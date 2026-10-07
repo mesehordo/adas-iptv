@@ -263,7 +263,7 @@ function epgIndex() {
 function loadEpgWatch(w) {
   const rx = kwRx(w.kw ? w.kw : sportOf(w.sport).kw);
   if (!rx) return [];
-  const nrx = kwRx(norm(w.kw ? w.kw : sportOf(w.sport).kw).replace(/\\b/g, '\\b'));
+  const nrx = kwRx(norm(w.kw ? w.kw : sportOf(w.sport).kw));
   const head = new RegExp('^(?:' + rx.source + ')', 'i'); // a cím a sportággal kezdődik (pl. „Tenisz: ATP 500”)
   const now = Date.now();
   // Egy műsor csak egyszer (a legközelebbi adás, a jobb csatornán), csatornánként legfeljebb 2, összesen 12 –
@@ -308,7 +308,7 @@ export function channelFor(ev) {
   if (!ev.start || !epg.byChannel?.size) return null;
   const teams = [...tokens(ev.home), ...tokens(ev.away), ...tokens(ev.title)];
   const league = tokens(ev.leagueName || '');
-  const sp = kwRx(norm(sportOf(ev.sport).kw).replace(/\\b/g, '\\b'));
+  const sp = kwRx(norm(sportOf(ev.sport).kw));
   let best = null;
   for (const x of epgIndex()) {
     const dt = Math.abs(x.p.start - ev.start);

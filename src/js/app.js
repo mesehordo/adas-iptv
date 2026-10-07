@@ -99,7 +99,8 @@ function route({ keepScroll = false } = {}) {
     });
     return;
   }
-  const fn = ROUTES[name] || renderDashboard;
+  // csak a saját útvonalak (a címből jövő név ne érhesse el pl. a „constructor”-t)
+  const fn = Object.prototype.hasOwnProperty.call(ROUTES, name) ? ROUTES[name] : renderDashboard;
   if (name !== 'tv') leaveHome();
   const full = location.hash;
   const sameRoute = full === currentRoute;

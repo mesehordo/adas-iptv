@@ -140,7 +140,8 @@ async function relay(key, req, res) {
   } catch (err) {
     if (res.headersSent) return res.destroy();
     res.statusCode = 502;
-    res.end(String(err.cause?.message || err.message || err));
+    console.warn('Továbbító – a forrás nem érhető el:', err.cause?.message || err.message || err);
+    res.end('A forrás nem érhető el');
   }
 }
 

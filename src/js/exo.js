@@ -166,7 +166,9 @@ export class ExoEngine {
     this.subsEl.textContent = '';
     for (const line of text.split('\n').filter(Boolean)) {
       const s = document.createElement('span');
-      s.textContent = line.replace(/<[^>]+>/g, '');
+      let tx = line; // a formázójelek eltávolítása (textContent: nem HTML-ként jelenik meg)
+      for (let p = null; p !== tx; ) (p = tx), (tx = tx.replace(/<[^<>]*>/g, ''));
+      s.textContent = tx;
       this.subsEl.appendChild(s);
     }
   }

@@ -1,7 +1,8 @@
 # CodeRabbit – automatikus kódátnézés a pull requestekhez.
 # Leírás: https://docs.coderabbit.ai/reference/configuration
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
-language: hu-HU
+# A magyar nyelvkódot a CodeRabbit nem ismeri (a „language” mező ezért marad el); a magyar választ a
+# tone_instructions kéri.
 tone_instructions: 'Röviden, lényegre törően, magyarul. A hibákat és a biztonsági kockázatokat emeld ki elsőként.'
 early_access: false
 

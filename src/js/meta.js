@@ -38,16 +38,19 @@ async function getJSON(url, headers, { method, body } = {}) {
   }
 }
 
+/** Címkék eltávolítása, amíg van mit (egymásba ágyazott „<<b>x>” ellen is). */
+const stripTags = (s) => {
+  for (let p = null; p !== s; ) (p = s), (s = s.replace(/<[^<>]*>/g, ''));
+  return s;
+};
 const stripHtml = (s) =>
-  String(s || '')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
+  stripTags(String(s || '').replace(/<br\s*\/?>/gi, '\n'))
     .replace(/&quot;/g, '"')
     .replace(/&#0?39;|&apos;/g, "'")
-    .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&') // utoljára: így a „&amp;lt;” szövegként „&lt;” marad
     .replace(/\(Source:[^)]*\)|\[Written by[^\]]*\]/gi, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
