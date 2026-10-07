@@ -1,0 +1,6 @@
+{
+  "name": "hu.adas.tv.service",
+  "version": "1.0.0",
+  "description": "Adás háttérszolgáltatás: letöltés CORS nélkül, adás-ellenőrzés",
+  "main": "service.js"
+}

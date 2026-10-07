@@ -1,0 +1,10 @@
+{
+  "id": "hu.adas.tv.service",
+  "description": "Adás háttérszolgáltatás",
+  "services": [
+    {
+      "name": "hu.adas.tv.service",
+      "description": "Letöltés CORS nélkül (lejátszólista, műsorújság) és adások ellenőrzése"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+/* Tartalék szabályok régebbi webOS böngészőmotorokhoz (Chromium 53–87), ahol nincs
+   aspect-ratio, flex-gap és (Chromium 57 alatt) CSS Grid. A modern tévéken ezek nem lépnek életbe. */
+
+@supports not (aspect-ratio: 1 / 1) {
+  /* 16:9 kártyák a padding-trükkel */
+  .thumb { height: 0; padding-top: 56.25%; }
+  .thumb .logo, .thumb .initials { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+  .thumb .logo { max-width: 62%; max-height: 62%; }
+  .tile { height: calc(var(--card-w) * 0.53); }
+  .info-logo { height: 112px; }
+  .profile .avatar { height: 120px; width: 120px; }
+  .theme-swatch { height: 78px; }
+  .vposter { height: 0; padding-top: 150%; }
+  .vd-poster { height: 300px; }
+  .vhero-poster { width: 30vh; }
+  .vrow .row-track > * + * { margin-left: 12px; }
+
+  /* flex-gap helyett margók */
+  .row-track > * + * { margin-left: 6px; }
+  .row-title a > * + * { margin-left: 10px; }
+  .see-all > * + * { margin-top: 4px; }
+  .links > * + * { margin-left: 20px; }
+  .nav-right > * + * { margin-left: 12px; }
+  .hero-btns > * + *, .info-btns > * + * { margin-left: 12px; }
+  .pop-btns > * + * { margin-left: 6px; }
+  .p-controls > * + * { margin-left: 6px; }
+  .dialog-btns > * + *, .inline > * + * { margin-left: 10px; }
+  .tabs > * + * { margin-left: 4px; }
+  .filters > * + * { margin-left: 10px; }
+  .hero-dots > * + * { margin-left: 8px; }
+  .profile-list > * + * { margin-left: 2vw; }
+  .row-order li > * + *, .src-list li > * + *, .streams li > * + * { margin-left: 12px; }
+  .row-order > * + *, .src-list > * + * { margin-top: 6px; }
+  .pin-dots > * + *, .p-ts > * + * { margin-left: 14px; }
+  .mv-head > * + *, .mv-tools > * + * { margin-left: 8px; }
+}
+
+@supports not (display: grid) {
+  .dash { display: flex; flex-wrap: wrap; }
+  .dash > .dcard { width: calc(50% - 16px); margin: 0 16px 16px 0; }
+  .w-days { display: flex !important; }
+  .w-days li { flex: 1; margin-right: 4px; }
+  .grid, .prog-results, .theme-swatches, .vgrid, .tile-grid { display: flex; flex-wrap: wrap; }
+  .tile-grid > .tile { width: calc(var(--card-w) * 0.85); margin: 0 12px 12px 0; }
+  .vgrid > .vcard { width: 150px; margin: 0 14px 26px 0; }
+  .grid > .card { width: calc(var(--card-w) - 8px); margin: 0 8px 34px 0; }
+  .prog-results > * { width: 320px; margin: 0 8px 8px 0; }
+  .theme-swatches > * { width: 150px; margin: 0 10px 10px 0; }
+  .info-body { display: block; }
+  .info-side { margin-top: 24px; }
+  .facts { display: block; }
+  .facts dt { margin-top: 6px; }
+  /* PIN-billentyűzet, többképes nézet, statisztika */
+  .pin-pad { display: flex; flex-wrap: wrap; width: 246px; margin: 0 auto; }
+  .pin-pad .btn { width: 72px; margin: 0 10px 10px 0; }
+  .pin-pad .btn:nth-child(3n) { margin-right: 0; }
+  #multiview .mv-grid { display: flex; flex-wrap: wrap; }
+  #multiview .mv-tile { width: calc(50% - 4px); height: calc(50% - 4px); margin: 2px; }
+  #multiview.layout-2 .mv-tile { height: calc(100% - 4px); }
+  .stats .stat-cards { display: flex; flex-wrap: wrap; }
+  .stat-card { width: 200px; margin: 0 12px 12px 0; }
+  .stat-two { display: block; }
+  .top-list li { display: flex; flex-wrap: wrap; align-items: center; }
+  .top-list .tl-name { flex: 1; margin-left: 12px; }
+  .top-list .tl-bar { width: 100%; margin-top: 4px; }
+}

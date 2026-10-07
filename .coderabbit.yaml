@@ -1,0 +1,52 @@
+# CodeRabbit – automatikus kódátnézés a pull requestekhez.
+# Leírás: https://docs.coderabbit.ai/reference/configuration
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: hu-HU
+tone_instructions: 'Röviden, lényegre törően, magyarul. A hibákat és a biztonsági kockázatokat emeld ki elsőként.'
+early_access: false
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: true
+  sequence_diagrams: false
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches: ['main']
+  path_filters:
+    - '!node_modules/**'
+    - '!dist/**'
+    - '!dist-android/**'
+    - '!package-lock.json'
+    - '!src/lists/**'
+    - '!src/data/**'
+    - '!src/avatars/**'
+  path_instructions:
+    - path: 'main.js'
+      instructions: 'Electron főfolyamat: figyelj az IPC-kezelők bemenetének ellenőrzésére (fájlútvonalak, URL-ek), a shell.openPath / openExternal biztonságos használatára és a contextIsolation megtartására.'
+    - path: 'preload.js'
+      instructions: 'Csak szűk, ellenőrzött API-t tegyen ki a felületnek (contextBridge); semmi általános ipcRenderer-hozzáférés.'
+    - path: 'media.js'
+      instructions: 'FFmpeg-folyamatok: argumentumok shell nélkül (spawn tömbbel), a helyi HTTP-kiszolgáló csak 127.0.0.1-en és tokennel; erőforrás-szivárgás (le nem állított folyamatok).'
+    - path: 'lan.js'
+      instructions: 'Helyi hálózati kiszolgáló: hitelesítés (kód, PIN), próbálkozás-korlát, ne szolgáljon ki fájlt a megengedett körön kívül.'
+    - path: 'src/js/**/*.js'
+      instructions: 'Böngészős ES-modulok. Minden külső adatot (lejátszólisták, műsorújság, API-válaszok) esc()-vel kell a HTML-be tenni – XSS-re figyelj. A felület szövegei magyarok; a kód és a megjegyzések stílusát kövesd.'
+    - path: 'android/src/**/*.java'
+      instructions: 'Android WebView-héj: a JavaScript-híd (AdasAndroid) csak ellenőrzött hívásokat engedjen; a LanServer hitelesítése; WebView-beállítások biztonsága.'
+  tools:
+    eslint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    actionlint:
+      enabled: true
+    markdownlint:
+      enabled: false
+
+chat:
+  auto_reply: true

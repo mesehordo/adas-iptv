@@ -1,0 +1,25 @@
+# Függőségek és buildek
+node_modules/
+dist/
+dist-android/
+dist-webos/
+android/build/
+
+# Letöltött eszközök (npm run ffmpeg / android-deps / linux-tools tölti le őket)
+vendor/
+.android-tools/
+.linux-tools/
+
+# Az Android aláíró kulcs és jelszava – SOHA ne kerüljön a repóba
+android/keystore/
+*.jks
+*.keystore
+
+# Helyi beállítások, naplók
+.claude/
+*.log
+.DS_Store
+Thumbs.db
+
+# Beépített AnimeAddicts-lista: nem jogtiszta tartalomra mutat, a nyilvános repóba nem kerül
+src/lists/animeaddicts.m3u8

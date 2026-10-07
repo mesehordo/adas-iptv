@@ -1,0 +1,33 @@
+{
+  "adasTheme": 1,
+  "id": "fair-user",
+  "name": "Fair-user",
+  "description": "Javítható, emberközpontú technológia: moduláris panelek, grafit háttér, friss lime és türkiz jelzések, lassú áramköri scan-animáció.",
+  "author": "Adás",
+  "tone": "dark",
+  "base": "switch",
+  "colors": {
+    "bg": "#0e1210",
+    "bg2": "#151b17",
+    "bg3": "#1f2821",
+    "bg4": "#28332b",
+    "line": "#405348",
+    "text": "#dbe7de",
+    "textStrong": "#ffffff",
+    "muted": "#96a89b",
+    "accent": "#8ee66b",
+    "accent2": "#62c8b8"
+  },
+  "fonts": {
+    "body": "'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+    "headings": "'Segoe UI Semibold', 'Segoe UI', Arial, sans-serif"
+  },
+  "radius": "10px",
+  "background": "radial-gradient(ellipse at 15% 0%, rgba(142,230,107,.12), transparent 42%), radial-gradient(ellipse at 92% 95%, rgba(98,200,184,.08), transparent 45%), #0e1210",
+  "preview": [
+    "#0e1210",
+    "#8ee66b",
+    "#1f2821"
+  ],
+  "css": "& { --fair-lime:#8ee66b; --fair-teal:#62c8b8; --fair-dark:#101510; --danger:#b4232d; }\n& .dcard, & .modal, & .set-section, & .card .thumb, & .vposter, & .tile { background:linear-gradient(180deg, rgba(31,40,33,.94), rgba(21,27,23,.96)); border:1px solid var(--line); box-shadow:inset 0 0 0 1px rgba(255,255,255,.018), 0 10px 26px rgba(0,0,0,.20); }\n& .brand, & .dc-title, & .row-title { color:var(--text-strong); font-weight:750; letter-spacing:.012em; }\n& .links a.active { background:var(--fair-lime); color:var(--fair-dark); border:1px solid var(--fair-lime); font-weight:900; box-shadow:0 0 16px rgba(142,230,107,.13); }\n& .tab.active { background:var(--fair-teal); color:var(--fair-dark); border:1px solid var(--fair-teal); font-weight:900; }\n& .btn { border:1px solid var(--line); font-weight:750; }\n& .btn.primary { background:var(--fair-lime); color:var(--fair-dark); border-color:var(--fair-lime); }\n& .btn.white { background:#edf5ef; color:#101510; border-color:#edf5ef; }\n& .btn.gray { background:#28332b; color:#e6eee8; border-color:#53665a; }\n& .btn.danger { background:var(--danger); color:#ffffff; border-color:var(--danger); }\n& .input, & select { background:#151b17; color:#dbe7de; border:1px solid #53665a; box-shadow:inset 0 0 0 1px rgba(142,230,107,.025); }\n& .live-badge, & .now-label { background:rgba(98,200,184,.17); color:#bff7ed; border:1px solid rgba(98,200,184,.58); font-weight:850; }\n& .bar { background:#263029; border:1px solid #405348; } & .bar i { background:linear-gradient(90deg,var(--fair-lime),var(--fair-teal)); }\n& .card:hover .thumb, & .vcard:hover .vposter, & .tile:hover { box-shadow:0 0 0 2px var(--fair-lime), 0 12px 30px rgba(0,0,0,.28); filter:brightness(1.055); }\n& :focus-visible { outline:3px solid var(--fair-teal); outline-offset:3px; box-shadow:0 0 0 2px rgba(142,230,107,.62); }\n&::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.20; background:linear-gradient(90deg, transparent 0 47%, rgba(142,230,107,.14) 48% 49%, transparent 50%), linear-gradient(0deg, transparent 0 47%, rgba(98,200,184,.11) 48% 49%, transparent 50%); background-size:48px 48px; animation: fair-circuit-scan 13s linear infinite; }\n&::after { content:''; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.14; background:radial-gradient(circle at 20% 24%, rgba(142,230,107,.55) 0 2px, transparent 2.6px), radial-gradient(circle at 72% 66%, rgba(98,200,184,.48) 0 1.8px, transparent 2.4px); background-size:96px 96px, 124px 124px; animation: fair-node-breathe 6.5s ease-in-out infinite; }\n@keyframes fair-circuit-scan { from { background-position:0 0,0 0; } to { background-position:48px 0,0 48px; } }\n@keyframes fair-node-breathe { 0%,100% { opacity:.08; filter:brightness(.9); } 50% { opacity:.22; filter:brightness(1.18); } }\n&.tv::before, &.tv::after { animation:none; opacity:.055; }"
+}

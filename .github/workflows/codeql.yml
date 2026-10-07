@@ -1,0 +1,56 @@
+# CodeQL kódelemzés: biztonsági hibák és gyakori programozási hibák keresése.
+# Fut minden pushra és pull requestre a main ágon, valamint hetente egyszer.
+# Az eredmények: a repó Security → Code scanning lapján.
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '23 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Elemzés (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Electron főfolyamat, felület (src/js), eszközök (tools/*.mjs)
+          - language: javascript-typescript
+            build-mode: none
+          # Android héj (android/src) – fordítás nélküli elemzés
+          - language: java-kotlin
+            build-mode: none
+          # A GitHub Actions munkafolyamatok maguk
+          - language: actions
+            build-mode: none
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-extended
+          config: |
+            paths-ignore:
+              - node_modules
+              - dist
+              - src/lists
+
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: '/language:${{ matrix.language }}'

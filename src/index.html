@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Adás</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="themes.css" />
+  <script src="../node_modules/hls.js/dist/hls.min.js"></script>
+  <script src="../node_modules/mpegts.js/dist/mpegts.js"></script>
+  <script src="../node_modules/dashjs/dist/dash.all.min.js"></script>
+</head>
+<body>
+  <!-- Indítóképernyő -->
+  <div id="splash">
+    <div class="brand big">ADÁS</div>
+    <div class="spinner"></div>
+    <div id="splash-msg">Betöltés…</div>
+  </div>
+
+  <!-- Profilválasztó -->
+  <div id="profiles" hidden></div>
+
+  <header id="nav" hidden>
+    <a class="brand" href="#/home" title="Főoldal">ADÁS</a>
+    <nav class="links">
+      <a href="#/home" data-route="home" title="Főoldal" aria-label="Főoldal"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M12 3 2 12h3v8h6v-6h2v6h6v-8h3z"/></svg><span class="lbl">Főoldal</span></a>
+      <a href="#/tv" data-route="tv" title="TV – csatornák" aria-label="TV"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M21 6h-7.6l3.3-3.3-.7-.7L12 6 8 2l-.7.7L10.6 6H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2Zm0 13H3V8h18v11Z"/></svg><span class="lbl">TV</span></a>
+      <a href="#/guide" data-route="guide" title="Műsorújság" aria-label="Műsorújság"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 16H5V9h14v11ZM7 11h5v5H7z"/></svg><span class="lbl">Műsorújság</span></a>
+      <a href="#/browse" data-route="browse" title="Csatornák böngészése" aria-label="Böngészés"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M3 3h8v8H3zm10 0h8v8h-8zM3 13h8v8H3zm10 0h8v8h-8z"/></svg><span class="lbl">Böngészés</span></a>
+      <a href="#/favorites" data-route="favorites" title="Kedvenc csatornák" aria-label="Kedvencek"><svg class="nav-ico" viewBox="0 0 24 24"><path d="m12 17.3 6.2 3.7-1.6-7 5.4-4.7-7.1-.6L12 2 9.1 8.7 2 9.3l5.4 4.7-1.6 7z"/></svg><span class="lbl">Kedvencek</span></a>
+      <a href="#/vod" data-route="vod" class="nav-vod" title="VOD – filmek, sorozatok, saját médiatár" aria-label="VOD"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M18 3v2h-2V3H8v2H6V3H4v18h2v-2h2v2h8v-2h2v2h2V3h-2ZM8 17H6v-2h2v2Zm0-4H6v-2h2v2Zm0-4H6V7h2v2Zm10 8h-2v-2h2v2Zm0-4h-2v-2h2v2Zm0-4h-2V7h2v2Z"/></svg><span class="lbl">VOD</span></a>
+      <a href="#/settings" data-route="settings" title="Beállítások" aria-label="Beállítások" class="rail-only"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3h-4l-.4 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1L11 21h4l.4-2.7c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5-2.2-1.8ZM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z"/></svg><span class="lbl">Beállítások</span></a>
+    </nav>
+    <div class="nav-right">
+      <div class="search-box" id="search-box">
+        <button class="icon-btn" id="search-toggle" title="Keresés (Ctrl+F)" aria-label="Keresés">
+          <svg viewBox="0 0 24 24"><path d="M10 3a7 7 0 1 0 4.2 12.6l4.6 4.6 1.4-1.4-4.6-4.6A7 7 0 0 0 10 3Zm0 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z"/></svg>
+        </button>
+        <input id="search-input" type="search" placeholder="Csatorna, ország, műsor…" autocomplete="off" spellcheck="false" />
+      </div>
+      <button class="icon-btn" id="help-btn" title="Súgó (F1)" aria-label="Súgó">
+        <svg viewBox="0 0 24 24"><path d="M11 18h2v-2h-2v2Zm1-16a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm0-14a4 4 0 0 0-4 4h2a2 2 0 1 1 4 0c0 2-3 1.8-3 5h2c0-2.3 3-2.5 3-5a4 4 0 0 0-4-4Z"/></svg>
+      </button>
+      <div class="dropdown" id="reminder-menu">
+        <button class="icon-btn" id="reminder-btn" title="Emlékeztetők" aria-label="Emlékeztetők">
+          <svg viewBox="0 0 24 24"><path d="M12 22a2.5 2.5 0 0 0 2.5-2.5h-5A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.8V3a1.5 1.5 0 0 0-3 0v1.2A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg>
+          <span class="count" id="reminder-count" hidden></span>
+        </button>
+        <div class="dropdown-panel" id="reminder-panel"></div>
+      </div>
+      <div class="dropdown" id="profile-menu">
+        <button class="avatar-btn" id="profile-btn" aria-label="Profil"></button>
+        <div class="dropdown-panel" id="profile-panel"></div>
+      </div>
+    </div>
+  </header>
+
+  <main id="view" tabindex="-1"></main>
+
+  <!-- Lejátszó -->
+  <section id="player" hidden>
+    <video id="video" playsinline></video>
+    <div class="p-backdrop"></div>
+    <div class="p-spinner" hidden><div class="spinner"></div><div class="p-status"></div></div>
+    <div class="p-error" hidden></div>
+    <div class="p-osd" hidden></div>
+    <div class="p-top">
+      <button class="icon-btn p-back" title="Vissza (Esc)" aria-label="Vissza">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20z"/></svg>
+      </button>
+      <div class="p-title"></div>
+      <span class="live-badge">ÉLŐ</span>
+    </div>
+    <div class="p-bottom">
+      <div class="p-epg"></div>
+      <div class="p-ts" hidden></div>
+      <div class="p-controls"></div>
+    </div>
+    <aside class="p-side" hidden></aside>
+    <div class="p-menu" hidden></div>
+  </section>
+
+  <div id="modal-root"></div>
+  <div id="toasts"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

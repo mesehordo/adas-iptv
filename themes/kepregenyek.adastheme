@@ -1,0 +1,33 @@
+{
+  "adasTheme": 1,
+  "id": "kepregenyek",
+  "name": "Képregények",
+  "description": "Nyomtatott képregénylap-hangulat: Ben-Day pöttyök, panelkeretek, harsány alapszínek és finom lapmozgás.",
+  "author": "Adás",
+  "tone": "light",
+  "base": "comic",
+  "colors": {
+    "bg": "#f7f0d8",
+    "bg2": "#fffaf0",
+    "bg3": "#ffd43b",
+    "bg4": "#dbeeff",
+    "line": "#111111",
+    "text": "#222222",
+    "textStrong": "#050505",
+    "muted": "#5f5a50",
+    "accent": "#d72638",
+    "accent2": "#0057b8"
+  },
+  "fonts": {
+    "body": "'Trebuchet MS', 'Segoe UI', Arial, sans-serif",
+    "headings": "Impact, 'Arial Black', 'Trebuchet MS', sans-serif"
+  },
+  "radius": "4px",
+  "background": "radial-gradient(circle at 1px 1px, rgba(0,0,0,.075) 1px, transparent 1.35px), linear-gradient(135deg, rgba(215,38,56,.035), transparent 38%), #f7f0d8",
+  "preview": [
+    "#f7f0d8",
+    "#d72638",
+    "#ffd43b"
+  ],
+  "css": "& { --comic-blue:#0057b8; --comic-red:#d72638; --comic-yellow:#ffd43b; --comic-ink:#111111; --danger:#b4232d; }\n& .dcard, & .card .thumb, & .vposter, & .tile, & .modal, & .set-section { background: var(--bg-2); border: 2px solid var(--comic-ink); box-shadow: 4px 4px 0 rgba(17,17,17,.92); }\n& .dc-title, & .row-title, & .hero h1, & .brand { color: var(--text-strong); text-transform: uppercase; letter-spacing: .045em; text-shadow: 2px 2px 0 #ffffff, 3px 3px 0 rgba(17,17,17,.22); }\n& .links a.active { background: var(--comic-blue); color: #ffffff; border: 2px solid var(--comic-ink); box-shadow: 2px 2px 0 var(--comic-ink); font-weight: 900; }\n& .tab.active { background: var(--comic-yellow); color: #111111; border: 2px solid var(--comic-ink); box-shadow: 2px 2px 0 var(--comic-ink); font-weight: 900; }\n& .btn { border: 2px solid var(--comic-ink); font-weight: 900; text-transform: uppercase; letter-spacing: .04em; box-shadow: 2px 2px 0 rgba(17,17,17,.9); }\n& .btn.primary { background: var(--comic-red); color: #ffffff; }\n& .btn.white { background: #ffffff; color: #111111; }\n& .btn.gray { background: #e5e0d2; color: #171717; }\n& .btn.danger { background: var(--danger); color: #ffffff; }\n& .input, & select { background: #fffdf7; color: #222222; border: 2px solid #111111; }\n& .live-badge, & .now-label { background: var(--comic-yellow); color: #111111; border: 2px solid var(--comic-ink); font-weight: 900; }\n& .bar { background: #d6d0c1; border: 1px solid #111111; } & .bar i { background: var(--comic-red); }\n& .card:hover .thumb, & .vcard:hover .vposter, & .tile:hover { transform: rotate(-.6deg) scale(1.012); filter: saturate(1.08); box-shadow: 5px 5px 0 #111111; }\n& :focus-visible { outline: 4px solid var(--comic-blue); outline-offset: 3px; box-shadow: 0 0 0 2px #ffffff; }\n&::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.24; background: radial-gradient(circle, rgba(215,38,56,.50) 0 1.4px, transparent 1.8px), radial-gradient(circle, rgba(0,87,184,.42) 0 1.2px, transparent 1.7px); background-size:28px 28px, 22px 22px; background-position:0 0, 11px 9px; mix-blend-mode:multiply; animation: comic-halftone-drift 9s steps(6,end) infinite; }\n&::after { content:'POW!'; position:fixed; right:3vw; bottom:5vh; pointer-events:none; z-index:0; color:rgba(215,38,56,.08); font-family:Impact,'Arial Black',sans-serif; font-weight:900; font-size:clamp(42px,8vw,140px); transform:rotate(-8deg); text-shadow:3px 3px 0 rgba(0,87,184,.05); animation: comic-pow 5.5s steps(2,end) infinite; }\n@keyframes comic-halftone-drift { 0%,100% { background-position:0 0,11px 9px; } 50% { background-position:8px -6px,17px 14px; } }\n@keyframes comic-pow { 0%,78%,100% { opacity:.45; transform:rotate(-8deg) scale(.98); } 82% { opacity:1; transform:rotate(-6deg) scale(1.035); } 88% { opacity:.62; transform:rotate(-9deg) scale(1); } }\n&.tv::before, &.tv::after { animation:none; opacity:.08; }"
+}

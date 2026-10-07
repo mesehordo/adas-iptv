@@ -1,0 +1,15 @@
+{
+  "id": "hu.adas.tv",
+  "version": "1.0.0",
+  "vendor": "Adás",
+  "type": "web",
+  "main": "index.html",
+  "title": "Adás",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "bgColor": "#141414",
+  "iconColor": "#141414",
+  "disableBackHistoryAPI": true,
+  "requiredACG": [],
+  "handlesRelaunch": false
+}

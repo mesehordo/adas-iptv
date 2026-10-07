@@ -1,0 +1,768 @@
+'use strict';
+// Adás – Electron főfolyamat: ablak, gyorsítótárazott letöltés, adásfejlécek,
+// elérhetőség-ellenőrzés, fájlpárbeszédek, mini lejátszó mód.
+
+const { app, BrowserWindow, ipcMain, dialog, shell, session, net, powerSaveBlocker, Menu, Notification, Tray, nativeImage } = require('electron');
+const path = require('path');
+const fs = require('fs');
+const zlib = require('zlib');
+const crypto = require('crypto');
+
+const CHROME_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
+
+let win = null;
+let normalBounds = null;
+let sleepBlockerId = null;
+
+const dataDir = () => app.getPath('userData');
+const cacheDir = () => path.join(dataDir(), 'cache');
+const storeFile = () => path.join(dataDir(), 'store.json');
+
+// Külön adatmappa (pl. hordozható használathoz vagy teszteléshez): ADAS_DATA_DIR=/út/vonal
+if (process.env.ADAS_DATA_DIR) app.setPath('userData', path.resolve(process.env.ADAS_DATA_DIR));
+
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+}
+
+app.on('second-instance', () => {
+  // újraindításkor (pl. a tálcán futó példány) az ablak előjön
+  if (win) {
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Adásonkénti HTTP-fejlécek (User-Agent, Referer) – a lejátszólista
+// #EXTVLCOPT / http-referrer mezői alapján, gazdagépenként.
+// ---------------------------------------------------------------------------
+const hostHeaders = new Map();
+
+function hostOf(url) {
+  try {
+    return new URL(url).host;
+  } catch {
+    return '';
+  }
+}
+
+function installHeaderHooks() {
+  const ses = session.defaultSession;
+  ses.webRequest.onBeforeSendHeaders((details, cb) => {
+    const h = details.requestHeaders;
+    const custom = hostHeaders.get(hostOf(details.url));
+    if (custom) {
+      if (custom.ua) h['User-Agent'] = custom.ua;
+      if (custom.referrer) {
+        h['Referer'] = custom.referrer;
+        try {
+          h['Origin'] = new URL(custom.referrer).origin;
+        } catch {
+          delete h['Origin'];
+        }
+      }
+    }
+    // A file:// oldalról érkező kérések „null” Origin fejlécét sok szerver elutasítja.
+    if (h['Origin'] === 'null' || h['Origin'] === 'file://') delete h['Origin'];
+    cb({ requestHeaders: h });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Gyorsítótárazott letöltés
+// ---------------------------------------------------------------------------
+function cachePath(url) {
+  return path.join(cacheDir(), crypto.createHash('sha1').update(url).digest('hex') + '.dat');
+}
+
+function maybeGunzip(buf) {
+  if (buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b) return zlib.gunzipSync(buf);
+  return buf;
+}
+
+async function download(url, { ua, referrer, timeoutMs = 90000 } = {}) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const headers = { 'User-Agent': ua || CHROME_UA };
+    if (referrer) headers.Referer = referrer;
+    const res = await net.fetch(url, { signal: ctrl.signal, headers, bypassCustomProtocolHandlers: true });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return Buffer.from(await res.arrayBuffer());
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/**
+ * Bájtok → szöveg: BOM szerint UTF-8 / UTF-16; BOM nélkül UTF-8, ha érvényes – különben Windows-1250
+ * (a magyar Windows ANSI kódolása, pl. Jegyzettömbbel mentett .m3u), így az ékezetek helyesek.
+ */
+function decodeText(buf) {
+  if (buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) return buf.subarray(3).toString('utf8');
+  if (buf[0] === 0xff && buf[1] === 0xfe) return new TextDecoder('utf-16le').decode(buf.subarray(2));
+  if (buf[0] === 0xfe && buf[1] === 0xff) return new TextDecoder('utf-16be').decode(buf.subarray(2));
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(buf);
+  } catch {
+    try {
+      return new TextDecoder('windows-1250').decode(buf);
+    } catch {
+      return buf.toString('latin1');
+    }
+  }
+}
+
+async function fetchText(url, opts = {}) {
+  const { maxAgeHours = 24, force = false } = opts;
+  fs.mkdirSync(cacheDir(), { recursive: true });
+  const file = cachePath(url);
+  let stat = null;
+  try {
+    stat = fs.statSync(file);
+  } catch {}
+  const fresh = stat && Date.now() - stat.mtimeMs < maxAgeHours * 3600e3;
+  if (fresh && !force) {
+    return { text: fs.readFileSync(file, 'utf8'), cachedAt: stat.mtimeMs, fromCache: true };
+  }
+  try {
+    const buf = maybeGunzip(await download(url));
+    const text = decodeText(buf);
+    fs.writeFileSync(file, text, 'utf8');
+    return { text, cachedAt: Date.now(), fromCache: false };
+  } catch (err) {
+    // Hálózati hiba esetén a régi példány is jobb a semminél.
+    if (stat) return { text: fs.readFileSync(file, 'utf8'), cachedAt: stat.mtimeMs, fromCache: true, stale: true };
+    throw err;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Elérhetőség-ellenőrzés
+// ---------------------------------------------------------------------------
+let checkRun = 0;
+
+/**
+ * Kérés az átirányítások követésével: a végső címre szükség van a lejátszólista relatív
+ * hivatkozásaihoz (pl. jmp2.uk → pluto.tv), és a net.fetch válasza ezt nem mindig adja meg.
+ */
+async function fetchFollow(url, opts) {
+  // A Node saját fetch-e (undici) követi az átirányítást és megadja a végső címet
+  // (az Electron net.fetch-nél a „manual” mód nem működik, a „follow” pedig nem adja vissza a címet).
+  const res = await fetch(url, { ...opts, redirect: 'follow' });
+  return { res, finalUrl: res.url || url };
+}
+
+/**
+ * Él-e az adás – úgy, ahogy a lejátszó látja: HLS-nél a változatlistán és a médialistán át
+ * egy valódi videószegmens elejét is letölti (földrajzi korlát, lejárt kulcs, üres adás kiszűrése).
+ * trace: hibakereséshez a lépések naplója (probe-one { debug: true }).
+ */
+async function probeStream({ url, ua, referrer, trace }, depth = 0) {
+  const T = (m) => trace && trace.push(m);
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 8000);
+  const headers = { 'User-Agent': ua || CHROME_UA };
+  if (referrer) headers.Referer = referrer;
+  try {
+    const { res, finalUrl } = await fetchFollow(url, { signal: ctrl.signal, headers });
+    T(depth + ' ' + res.status + ' ' + finalUrl.slice(0, 90) + ' ' + res.headers.get('content-type'));
+    if (!res.ok) return false;
+    const type = (res.headers.get('content-type') || '').toLowerCase();
+    if (/video|mp2t|octet-stream|dash|audio/.test(type) && !/mpegurl/.test(type)) {
+      ctrl.abort();
+      return true;
+    }
+    // A lejátszólista (legfeljebb 256 kB).
+    const reader = res.body.getReader();
+    let text = '';
+    while (text.length < 262144) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      text += Buffer.from(value).toString('latin1');
+    }
+    ctrl.abort();
+    if (text.includes('<MPD')) return true;
+    if (!text.includes('#EXTM3U')) return false;
+    const base = finalUrl;
+    const lines = text.split(/\r?\n/).map((l) => l.trim());
+    const abs = (u) => new URL(u, base).href;
+    if (text.includes('#EXT-X-STREAM-INF')) {
+      if (depth > 1) return false;
+      const i = lines.findIndex((l) => l.startsWith('#EXT-X-STREAM-INF'));
+      const variant = lines.slice(i + 1).find((l) => l && !l.startsWith('#'));
+      return variant ? probeStream({ url: abs(variant), ua, referrer, trace }, depth + 1) : false;
+    }
+    // Médialista: a legutolsó (legfrissebb) szegmens eleje.
+    const segs = lines.filter((l) => l && !l.startsWith('#'));
+    if (!segs.length) return false; // üres lista: most nem sugároz
+    T('seg ' + abs(segs[segs.length - 1]).slice(0, 90));
+    return await probeSegment(abs(segs[segs.length - 1]), headers, T);
+  } catch (e) {
+    T('HIBA ' + e.message);
+    return false;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function probeSegment(url, headers, T = () => {}) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 8000);
+  try {
+    const { res } = await fetchFollow(url, { signal: ctrl.signal, headers: { ...headers, Range: 'bytes=0-4095' } });
+    T('seg status ' + res.status);
+    if (res.status !== 200 && res.status !== 206) return false;
+    // A tartalom számít, nem a típusa: egyes adók .htm / text/html álcával küldik a videót.
+    // Hibás csak az, ami HTML / XML hibaoldal (vagy üres).
+    const { value } = await res.body.getReader().read();
+    if (!value || !value.length) return false;
+    const head = Buffer.from(value.slice(0, 64)).toString('latin1').trimStart();
+    return !head.startsWith('<');
+  } catch (e) {
+    T('seg HIBA ' + e.message);
+    return false;
+  } finally {
+    ctrl.abort();
+    clearTimeout(t);
+  }
+}
+
+async function checkStreams(event, list) {
+  const run = ++checkRun;
+  const results = {};
+  let index = 0;
+  let done = 0;
+  const workers = Array.from({ length: 16 }, async () => {
+    while (index < list.length && run === checkRun) {
+      const item = list[index++];
+      results[item.url] = await probeStream(item);
+      done++;
+      if (done % 10 === 0 || done === list.length) {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send('check-progress', { done, total: list.length, partial: results });
+        }
+      }
+    }
+  });
+  await Promise.all(workers);
+  return { results, cancelled: run !== checkRun };
+}
+
+// ---------------------------------------------------------------------------
+// Ablak
+// ---------------------------------------------------------------------------
+function createWindow() {
+  win = new BrowserWindow({
+    width: 1440,
+    height: 880,
+    show: !startHidden, // a rendszerrel induló, rejtett indításnál az ablak csak a tálcáról nyílik meg
+    minWidth: 360,
+    minHeight: 220,
+    backgroundColor: '#141414',
+    title: 'Adás',
+    icon: path.join(__dirname, 'assets', 'icon.png'),
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      // Az adások többsége nem küld CORS-fejlécet, és sok csak http-n érhető el.
+      // A felület csak helyi fájlokat tölt be, minden külső szöveget escape-elünk.
+      webSecurity: false,
+      autoplayPolicy: 'no-user-gesture-required',
+    },
+  });
+  win.loadFile(path.join(__dirname, 'src', 'index.html'));
+
+  // Külső hivatkozások a rendszer böngészőjében nyíljanak meg.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//.test(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
+  win.webContents.on('will-navigate', (e, url) => {
+    if (!url.startsWith('file://')) e.preventDefault();
+  });
+  win.on('enter-full-screen', () => win.webContents.send('fullscreen-changed', true));
+  win.on('leave-full-screen', () => win.webContents.send('fullscreen-changed', false));
+  // Háttérben futás: bezáráskor csak elrejtjük (az emlékeztetők így is megszólalnak), a tálcáról nyitható.
+  win.on('close', (e) => {
+    if (bg.enabled && !quitting) {
+      e.preventDefault();
+      win.hide();
+      win.webContents.send('went-background');
+      ensureTray();
+    }
+  });
+  win.on('closed', () => {
+    win = null;
+  });
+  if (startHidden) ensureTray();
+}
+
+// ---------------------------------------------------------------------------
+// Háttérben futás (tálca), indítás a rendszerrel, értesítések
+// ---------------------------------------------------------------------------
+const bg = { enabled: false };
+let tray = null;
+let quitting = false;
+const startHidden =
+  process.argv.includes('--hidden') ||
+  (process.platform === 'darwin' && (() => {
+    try {
+      const s = app.getLoginItemSettings();
+      return s.wasOpenedAsHidden || s.wasOpenedAtLogin;
+    } catch {
+      return false;
+    }
+  })());
+app.on('before-quit', () => (quitting = true));
+
+function showWindow() {
+  if (!win) return createWindow();
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+}
+
+function ensureTray() {
+  if (tray) return;
+  // A tálca ikonmérete: Windows 16, macOS menüsor 18, Linux (AppIndicator) 22–24 képpont.
+  const size = process.platform === 'linux' ? 24 : process.platform === 'darwin' ? 18 : 16;
+  tray = new Tray(nativeImage.createFromPath(path.join(__dirname, 'assets', 'icon.png')).resize({ width: size, height: size }));
+  tray.setToolTip('Adás – a háttérben fut (emlékeztetők)');
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: 'Adás megnyitása', click: showWindow },
+      { type: 'separator' },
+      { label: 'Kilépés', click: () => ((quitting = true), app.quit()) },
+    ])
+  );
+  tray.on('click', showWindow);
+}
+
+ipcMain.handle('set-background', (_e, { enabled, startWithSystem }) => {
+  bg.enabled = !!enabled;
+  if (bg.enabled) ensureTray();
+  else {
+    if (tray) {
+      tray.destroy();
+      tray = null;
+    }
+    // rejtve indult, de a háttérben futás már nincs bekapcsolva: az ablak ne maradjon elérhetetlen
+    if (win && !win.isVisible()) showWindow();
+  }
+  setStartWithSystem(!!startWithSystem && bg.enabled);
+});
+
+/** Indítás a rendszerrel, rejtve (a tálcán). Windows / macOS: beépített; Linux: ~/.config/autostart */
+function setStartWithSystem(on) {
+  try {
+    if (process.platform === 'linux') {
+      const dir = path.join(process.env.XDG_CONFIG_HOME || path.join(require('os').homedir(), '.config'), 'autostart');
+      const file = path.join(dir, 'hu.adas.tv.desktop');
+      if (!on) return fs.rmSync(file, { force: true });
+      // AppImage-nél a .AppImage fájl útvonala kell (a futó példány egy ideiglenes mappából fut).
+      const exe = process.env.APPIMAGE || process.execPath;
+      const q = (s) => `"${String(s).replace(/(["\\$`])/g, '\\$1')}"`;
+      const extra = process.argv.includes('--no-sandbox') ? ' --no-sandbox' : '';
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(
+        file,
+        ['[Desktop Entry]', 'Type=Application', 'Name=Adás', 'Comment=Élő TV – emlékeztetők a háttérben', `Exec=${q(exe)}${extra} --hidden`, 'X-GNOME-Autostart-enabled=true', 'NoDisplay=false', ''].join('\n')
+      );
+      return;
+    }
+    if (process.platform === 'darwin') {
+      // macOS-en nincs parancssori kapcsoló: az „elrejtve nyitás” jelzi a rejtett indítást.
+      app.setLoginItemSettings({ openAtLogin: on, openAsHidden: true });
+      return;
+    }
+    // A hordozható változat egy ideiglenes mappából fut: a rendszerindításhoz az eredeti .exe kell.
+    const exe = process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
+    app.setLoginItemSettings({ openAtLogin: on, path: exe, args: ['--hidden'] });
+  } catch (err) {
+    console.warn('Indítás a rendszerrel:', err);
+  }
+}
+
+ipcMain.handle('notify', (_e, { title, body, channelId }) => {
+  if (!Notification.isSupported()) return false;
+  const n = new Notification({ title, body, icon: path.join(__dirname, 'assets', 'icon.png'), silent: false });
+  n.on('click', () => {
+    showWindow();
+    win?.webContents.send('open-channel', channelId);
+  });
+  n.show();
+  return true;
+});
+
+// ---------------------------------------------------------------------------
+// IPC
+// ---------------------------------------------------------------------------
+ipcMain.handle('fetch-text', (_e, url, opts) => fetchText(url, opts));
+
+ipcMain.handle('set-stream-headers', (_e, url, headers) => {
+  const host = hostOf(url);
+  if (!host) return;
+  if (headers && (headers.ua || headers.referrer)) hostHeaders.set(host, headers);
+  else hostHeaders.delete(host);
+});
+
+ipcMain.handle('check-streams', (e, list) => checkStreams(e, list));
+// Egyetlen adás gyors ellenőrzése (a lejátszó a tartalék források közül ezzel választ) – a
+// háttérellenőrzés futását nem zavarja.
+ipcMain.handle('probe-one', async (_e, item) => {
+  if (!item.debug) return probeStream(item);
+  const trace = [];
+  const ok = await probeStream({ ...item, trace });
+  return { ok, trace };
+});
+// Kapcsolat előkészítése (DNS, TLS) a kártyán állva, hogy a lejátszás gyorsabban induljon.
+ipcMain.handle('preconnect', (_e, url) => {
+  try {
+    if (/^https?:\/\//.test(url)) session.defaultSession.preconnect({ url, numSockets: 2 });
+  } catch {}
+});
+ipcMain.handle('cancel-check', () => {
+  checkRun++;
+});
+
+ipcMain.handle('store-load', () => {
+  try {
+    return JSON.parse(fs.readFileSync(storeFile(), 'utf8'));
+  } catch {
+    return null;
+  }
+});
+
+ipcMain.handle('store-save', (_e, data) => {
+  const tmp = storeFile() + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(data), 'utf8');
+  fs.renameSync(tmp, storeFile());
+});
+
+// Általános HTTP-kérés (pl. OpenSubtitles, TMDB): a főfolyamatból nincs CORS, és a
+// User-Agent fejléc is beállítható.
+ipcMain.handle('http-request', async (_e, { method = 'GET', url, headers = {}, body } = {}) => {
+  if (!/^https?:\/\//.test(url || '')) throw new Error('Érvénytelen cím');
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 30000);
+  try {
+    const res = await net.fetch(url, { method, headers: { 'User-Agent': CHROME_UA, ...headers }, body, signal: ctrl.signal });
+    return { status: res.status, text: await res.text() };
+  } finally {
+    clearTimeout(t);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Saját médiatár (NAS / helyi mappa): lejátszólisták keresése, olvasása, feliratok a videó mellett
+// ---------------------------------------------------------------------------
+const LIST_EXT = /\.(m3u8?|txt)$/i;
+const SUB_EXT = /\.(srt|vtt)$/i;
+
+ipcMain.handle('pick-folder', async () => {
+  const res = await dialog.showOpenDialog(win, { properties: ['openDirectory'] });
+  return res.canceled || !res.filePaths.length ? null : res.filePaths[0];
+});
+
+/** A mappa (és almappái, legfeljebb 4 szint mélyen) .m3u / .m3u8 fájljai. */
+ipcMain.handle('scan-folder', async (_e, dir) => {
+  const out = [];
+  const walk = async (d, depth) => {
+    if (depth > 4 || out.length >= 1000) return;
+    let items;
+    try {
+      items = await fs.promises.readdir(d, { withFileTypes: true });
+    } catch (err) {
+      if (depth === 0) throw new Error(`A mappa nem olvasható: ${err.message}`);
+      return;
+    }
+    for (const it of items) {
+      if (it.name.startsWith('.') || it.name.startsWith('@') || it.name === '#recycle') continue; // rejtett, NAS-rendszermappák
+      const p = path.join(d, it.name);
+      if (it.isDirectory()) await walk(p, depth + 1);
+      else if (/\.m3u8?$/i.test(it.name)) {
+        try {
+          const st = await fs.promises.stat(p);
+          out.push({ name: it.name, path: p, rel: path.relative(dir, p), size: st.size, mtime: st.mtimeMs });
+        } catch {}
+      }
+    }
+  };
+  await walk(dir, 0);
+  return out.sort((a, b) => a.rel.localeCompare(b.rel));
+});
+
+ipcMain.handle('read-text-file', async (_e, p) => {
+  if (!LIST_EXT.test(p) && !SUB_EXT.test(p)) throw new Error('Csak lejátszólista és felirat olvasható.');
+  const st = await fs.promises.stat(p);
+  if (st.size > 30 * 1024 * 1024) throw new Error('A fájl túl nagy.');
+  return decodeText(await fs.promises.readFile(p));
+});
+
+/**
+ * A videó mellett lévő borítókép (Kodi / Plex szokás): Film.jpg, Film-poster.jpg, poster.jpg,
+ * folder.jpg, cover.jpg – sorozatnál a szülőmappáé is. → kicsinyített JPEG data: URL vagy ''.
+ */
+ipcMain.handle('sidecar-image', async (_e, videoPath) => {
+  try {
+    const dir = path.dirname(videoPath);
+    const base = path.basename(videoPath).replace(/\.[^.]+$/, '').toLowerCase();
+    const pickIn = async (d, names) => {
+      const files = await fs.promises.readdir(d).catch(() => []);
+      const imgs = files.filter((n) => /\.(jpe?g|png|webp)$/i.test(n));
+      for (const want of names) {
+        const f = imgs.find((n) => n.toLowerCase().replace(/\.[^.]+$/, '') === want);
+        if (f) return path.join(d, f);
+      }
+      return null;
+    };
+    const file =
+      (await pickIn(dir, [base, base + '-poster', base + '.poster', base + '-cover', 'poster', 'folder', 'cover', 'movie', 'show'])) ||
+      (await pickIn(path.dirname(dir), ['poster', 'folder', 'cover', 'show']));
+    if (!file) return '';
+    const img = nativeImage.createFromPath(file);
+    if (img.isEmpty()) return '';
+    const { width } = img.getSize();
+    return 'data:image/jpeg;base64,' + (width > 400 ? img.resize({ width: 342 }) : img).toJPEG(82).toString('base64');
+  } catch {
+    return '';
+  }
+});
+
+/** A videó mellett lévő azonos nevű feliratfájlok (pl. Film.srt, Film.hu.srt). */
+ipcMain.handle('sidecar-subs', async (_e, videoPath) => {
+  try {
+    const dir = path.dirname(videoPath);
+    const base = path.basename(videoPath).replace(/\.[^.]+$/, '').toLowerCase();
+    const files = (await fs.promises.readdir(dir)).filter((n) => SUB_EXT.test(n) && n.toLowerCase().startsWith(base)).slice(0, 8);
+    const out = [];
+    for (const n of files) {
+      const p = path.join(dir, n);
+      if ((await fs.promises.stat(p)).size < 5 * 1024 * 1024) out.push({ name: n, text: await fs.promises.readFile(p, 'utf8') });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+});
+
+// Feldolgozott adatok (pl. a csatornakatalógus) gyors újratöltéshez.
+const kvFile = (key) => path.join(cacheDir(), 'kv-' + crypto.createHash('sha1').update(key).digest('hex') + '.json');
+ipcMain.handle('kv-get', (_e, key) => {
+  try {
+    return JSON.parse(fs.readFileSync(kvFile(key), 'utf8'));
+  } catch {
+    return undefined;
+  }
+});
+ipcMain.handle('kv-set', (_e, key, value) => {
+  fs.mkdirSync(cacheDir(), { recursive: true });
+  fs.writeFileSync(kvFile(key), JSON.stringify(value), 'utf8');
+});
+
+// Tartós dokumentumok (pl. fájlból felvett nagy listák) a felhasználói adatok mellett, „lists” mappában.
+const docFile = (key) => path.join(app.getPath('userData'), 'lists', String(key).replace(/[^\w.-]+/g, '_') + '.json');
+ipcMain.handle('doc-get', (_e, key) => {
+  try {
+    return JSON.parse(fs.readFileSync(docFile(key), 'utf8'));
+  } catch {
+    return undefined;
+  }
+});
+ipcMain.handle('doc-set', (_e, key, value) => {
+  const f = docFile(key);
+  if (value == null) return fs.rmSync(f, { force: true });
+  fs.mkdirSync(path.dirname(f), { recursive: true });
+  fs.writeFileSync(f, JSON.stringify(value), 'utf8');
+});
+
+ipcMain.handle('clear-cache', () => {
+  fs.rmSync(cacheDir(), { recursive: true, force: true });
+});
+
+ipcMain.handle('save-file', async (_e, defaultName, text) => {
+  const res = await dialog.showSaveDialog(win, {
+    defaultPath: defaultName,
+    filters: [{ name: 'JSON', extensions: ['json'] }],
+  });
+  if (res.canceled || !res.filePath) return false;
+  fs.writeFileSync(res.filePath, text, 'utf8');
+  return true;
+});
+
+// Saját témák: a téma-mappa .json / .adastheme fájljai (alapból az adatmappa „themes” almappája)
+const defaultThemeDir = () => path.join(app.getPath('userData'), 'themes');
+ipcMain.handle('theme-dir-read', async (_e, dir) => {
+  const d = dir || defaultThemeDir();
+  if (!dir) fs.mkdirSync(d, { recursive: true });
+  let names;
+  try {
+    names = await fs.promises.readdir(d);
+  } catch (err) {
+    throw new Error(`A téma-mappa nem olvasható: ${err.message}`);
+  }
+  const out = [];
+  for (const n of names.filter((x) => /\.(adastheme|json)$/i.test(x)).slice(0, 200)) {
+    try {
+      const p = path.join(d, n);
+      const st = await fs.promises.stat(p);
+      if (st.isFile() && st.size < 1024 * 1024) out.push({ name: n, text: await fs.promises.readFile(p, 'utf8') });
+    } catch {}
+  }
+  return { dir: d, files: out };
+});
+ipcMain.handle('theme-dir-open', (_e, dir) => {
+  const d = dir || defaultThemeDir();
+  fs.mkdirSync(d, { recursive: true });
+  return shell.openPath(d);
+});
+
+ipcMain.handle('open-file', async (_e, filters) => {
+  const res = await dialog.showOpenDialog(win, { properties: ['openFile'], filters });
+  if (res.canceled || !res.filePaths.length) return null;
+  return { name: path.basename(res.filePaths[0]), text: fs.readFileSync(res.filePaths[0], 'utf8') };
+});
+
+ipcMain.handle('open-files', async (_e, filters) => {
+  const res = await dialog.showOpenDialog(win, { properties: ['openFile', 'multiSelections'], filters });
+  if (res.canceled || !res.filePaths.length) return null;
+  return res.filePaths.map((p) => ({ name: path.basename(p), bytes: new Uint8Array(fs.readFileSync(p)) }));
+});
+
+ipcMain.handle('open-external', (_e, url) => {
+  if (/^https?:\/\//.test(url)) shell.openExternal(url);
+});
+
+// Megnyitás külső lejátszóban (VLC, mpv, IINA…): egy ideiglenes .m3u lejátszólistát adunk át a rendszernek,
+// így a lejátszó a sorozat további részeit is látja. → hibaüzenet vagy ''.
+ipcMain.handle('open-in-player', async (_e, { items, name }) => {
+  const list = (items || []).filter((x) => /^(https?|file):\/\//i.test(x?.url || ''));
+  if (!list.length) return 'Nincs megnyitható cím.';
+  const dir = path.join(app.getPath('temp'), 'adas-player');
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, String(name || 'adas').replace(/[\\/:*?"<>|\r\n]+/g, '_').slice(0, 80) + '.m3u');
+  const clean = (s) => String(s || '').replace(/[\r\n]+/g, ' ');
+  fs.writeFileSync(file, '#EXTM3U\n' + list.map((x) => `#EXTINF:-1,${clean(x.title)}\n${clean(x.url)}`).join('\n') + '\n', 'utf8');
+  return shell.openPath(file); // '' = sikerült; különben pl. „nincs társított alkalmazás”
+});
+
+ipcMain.handle('set-fullscreen', (_e, on) => {
+  if (win) win.setFullScreen(!!on);
+});
+
+ipcMain.handle('set-mini', (_e, on) => {
+  if (!win) return;
+  if (on) {
+    if (win.isFullScreen()) win.setFullScreen(false);
+    normalBounds = win.getBounds();
+    const { width, height } = require('electron').screen.getDisplayMatching(normalBounds).workArea;
+    const w = 480;
+    const h = 270;
+    win.setAlwaysOnTop(true, 'floating');
+    win.setBounds({ x: width - w - 24, y: height - h - 24, width: w, height: h });
+  } else {
+    win.setAlwaysOnTop(false);
+    if (normalBounds) win.setBounds(normalBounds);
+  }
+});
+
+ipcMain.handle('set-playing', (_e, playing) => {
+  if (playing && sleepBlockerId === null) {
+    sleepBlockerId = powerSaveBlocker.start('prevent-display-sleep');
+  } else if (!playing && sleepBlockerId !== null) {
+    powerSaveBlocker.stop(sleepBlockerId);
+    sleepBlockerId = null;
+  }
+});
+
+ipcMain.handle('app-info', () => ({ version: app.getVersion(), dataDir: dataDir(), platform: process.platform }));
+
+// ---------------------------------------------------------------------------
+// Helyi hálózat: kivetítés (Chromecast / DLNA), beállítások átadása
+// ---------------------------------------------------------------------------
+const lan = require('./lan');
+lan.init({
+  headersFor: (url) => hostHeaders.get(hostOf(url)),
+  emit: (ch, data) => win && !win.isDestroyed() && win.webContents.send(ch, data),
+});
+ipcMain.handle('cast-discover', () => lan.discover());
+
+// Lejátszási híd (FFmpeg): AC3/DTS hang, beágyazott feliratok, régi videóformátumok, borítókép
+const media = require('./media');
+media.init({
+  headersFor: (url) => hostHeaders.get(hostOf(url)),
+  emit: (ch, data) => win && !win.isDestroyed() && win.webContents.send(ch, data),
+});
+ipcMain.handle('media-available', () => media.available());
+ipcMain.handle('media-status', () => media.status());
+ipcMain.handle('media-probe', (_e, url) => media.probe(url));
+ipcMain.handle('media-start', (_e, plan) => media.start(plan));
+ipcMain.handle('media-stop', (_e, id) => media.stop(id));
+ipcMain.handle('media-cover', (_e, url) => media.cover(url));
+app.on('will-quit', () => {
+  media.recStopAll();
+  media.stopAll();
+});
+
+// Felvételek: a Videók / Adás felvételek mappába
+// ADAS_REC_DIR: más mappa (pl. teszteléshez, a valódi Videók mappa érintése nélkül)
+const recDir = () => process.env.ADAS_REC_DIR || path.join(app.getPath('videos'), 'Adás felvételek');
+ipcMain.handle('rec-start', (_e, o) => media.recStart({ ...o, dir: recDir() }));
+ipcMain.handle('rec-stop', (_e, id) => media.recStop(id));
+ipcMain.handle('rec-list', () => ({ dir: recDir(), files: media.recList(recDir()) }));
+ipcMain.handle('rec-open', (_e, p) => (String(p).startsWith(recDir()) ? shell.openPath(p) : 'Érvénytelen fájl'));
+ipcMain.handle('rec-folder', () => {
+  fs.mkdirSync(recDir(), { recursive: true });
+  return shell.openPath(recDir());
+});
+ipcMain.handle('rec-trash', (_e, p) => (String(p).startsWith(recDir()) ? shell.trashItem(p).then(() => true) : false));
+ipcMain.handle('cast-play', (_e, opts) => lan.castPlay(opts));
+ipcMain.handle('cast-control', (_e, action, value) => lan.castControl(action, value));
+ipcMain.handle('share-start', (_e, data) => lan.shareStart(data));
+ipcMain.handle('share-stop', () => lan.shareStop());
+ipcMain.handle('lan-ips', () => lan.sortedIPs());
+ipcMain.handle('lan-get', (_e, urls, timeout) => lan.lanGet(Array.isArray(urls) ? urls.slice(0, 1100) : [], timeout));
+ipcMain.handle('rc-start', (_e, html, pin) => lan.rcStart(html, pin));
+ipcMain.handle('rc-stop', () => lan.rcStop());
+ipcMain.on('rc-state', (_e, json) => lan.rcState(json));
+
+// ---------------------------------------------------------------------------
+// Frissítések
+// ---------------------------------------------------------------------------
+const updater = require('./updater');
+ipcMain.handle('update-check', (_e, source) => updater.check(source));
+ipcMain.handle('update-download', (_e, asset) =>
+  updater.download(asset, (p) => win && !win.isDestroyed() && win.webContents.send('update-progress', p))
+);
+ipcMain.handle('update-install', (_e, file) => updater.install(file));
+
+// ---------------------------------------------------------------------------
+app.userAgentFallback = CHROME_UA;
+// A videóelem hangsáv-felülete (video.audioTracks) – több hangsávos MKV / MP4 fájlokhoz.
+app.commandLine.appendSwitch('enable-blink-features', 'AudioVideoTracks');
+
+// A Windows értesítései az alkalmazás azonosítójához kötődnek.
+if (process.platform === 'win32') app.setAppUserModelId('hu.adas.tv');
+
+app.whenReady().then(() => {
+  // macOS-en a menüsor nélkül a Cmd+C / Cmd+V / Cmd+Q sem működne: ott egy minimális menü kell.
+  Menu.setApplicationMenu(
+    process.platform === 'darwin'
+      ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }])
+      : null
+  );
+  installHeaderHooks();
+  createWindow();
+  // macOS: a Dock-ikonra kattintva az elrejtett (vagy bezárt) ablak előjön.
+  app.on('activate', () => showWindow());
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});

@@ -1,0 +1,615 @@
+// Feliratok filmekhez és sorozatokhoz: OpenSubtitles (magyar és angol), helyi .srt / .vtt fájl,
+// időeltolás, betűméret. A kiválasztott felirat profilonként megmarad az adott filmhez / részhez.
+import { api } from './api.js';
+import { store } from './store.js';
+import { esc, toast, bus } from './util.js';
+import { player } from './player.js';
+import { isHuLang, isEnLang } from './engine.js';
+import { nightAvailable, nightOn, setNight } from './audiofx.js';
+
+// Éjszakai hang: a profil beállítása minden adás indulásakor érvényesül.
+player.audioHooks = {
+  onStart(video) {
+    const want = !!store.profile.nightAudio;
+    if (nightAvailable() && want !== nightOn()) setNight(video, want);
+  },
+};
+
+const OS_BASE = 'https://api.opensubtitles.com/api/v1';
+const UA = 'Adas v1.5';
+const LANGS = { hu: 'magyar', en: 'angol' };
+
+const state = {
+  track: null, // a <video> saját feliratsávja
+  cues: [], // az aktuális felirat eredeti időzítéssel
+  offset: 0, // mp
+  label: '', // pl. „Magyar – Movie.Name.2019.srt”
+  key: '', // a film / rész kulcsa
+  results: null,
+  busy: false,
+};
+
+// ---------------------------------------------------------------------------
+// Feliratfájl feldolgozása (SRT és WebVTT)
+// ---------------------------------------------------------------------------
+function toSec(t) {
+  const m = /(?:(\d{1,2}):)?(\d{1,2}):(\d{2})[,.](\d{1,3})/.exec(t);
+  if (!m) return NaN;
+  return (parseInt(m[1] || '0', 10) * 3600) + parseInt(m[2], 10) * 60 + parseInt(m[3], 10) + parseInt(m[4].padEnd(3, '0'), 10) / 1000;
+}
+
+export function parseSubs(text) {
+  const cues = [];
+  const blocks = String(text).replace(/^﻿/, '').replace(/\r/g, '').split(/\n{2,}/);
+  for (const b of blocks) {
+    const lines = b.split('\n');
+    const i = lines.findIndex((l) => l.includes('-->'));
+    if (i < 0) continue;
+    const [a, z] = lines[i].split('-->');
+    const start = toSec(a);
+    const end = toSec(z);
+    if (!(end > start)) continue;
+    const body = lines
+      .slice(i + 1)
+      .join('\n')
+      .replace(/\{\\[^}]*\}/g, '') // ASS-stílusjelölők (pl. {\an8})
+      .replace(/<(?!\/?(?:i|b|u)>)[^>]+>/g, '') // csak az <i>, <b>, <u> marad
+      .trim();
+    if (body) cues.push({ start, end, text: body });
+  }
+  return cues;
+}
+
+// ---------------------------------------------------------------------------
+// Megjelenítés a videón
+// ---------------------------------------------------------------------------
+function ensureTrack(video) {
+  if (!state.track) {
+    state.track = video.addTextTrack('subtitles', 'Felirat', 'hu');
+  }
+  return state.track;
+}
+
+function clearCues() {
+  const t = state.track;
+  if (!t) return;
+  while (t.cues && t.cues.length) t.removeCue(t.cues[0]);
+}
+
+function render(video) {
+  const t = ensureTrack(video);
+  clearCues();
+  const Cue = window.VTTCue || window.TextTrackCue;
+  for (const c of state.cues) {
+    try {
+      t.addCue(new Cue(Math.max(0, c.start + state.offset), Math.max(0, c.end + state.offset), c.text));
+    } catch {}
+  }
+  t.mode = state.cues.length ? 'showing' : 'disabled';
+}
+
+function apply(video, cues, label) {
+  state.cues = cues;
+  state.label = label;
+  state.offset = 0;
+  player.engine?.setTextTrack(''); // a beágyazott felirat ilyenkor kikapcsol
+  render(video);
+  toast(`Felirat: ${label}`);
+}
+
+export function clearSubs(video) {
+  state.cues = [];
+  state.label = '';
+  state.offset = 0;
+  if (state.track) {
+    clearCues();
+    state.track.mode = 'disabled';
+  }
+}
+
+function applySize() {
+  const root = document.getElementById('player');
+  root.classList.remove('subs-small', 'subs-large', 'subs-huge');
+  const s = store.settings.subsSize || 'normal';
+  if (s !== 'normal') root.classList.add('subs-' + s);
+}
+bus.on('settings', (k) => k === 'subsSize' && applySize());
+
+// ---------------------------------------------------------------------------
+// OpenSubtitles
+// ---------------------------------------------------------------------------
+function osHeaders(auth) {
+  const h = {
+    'Api-Key': (store.settings.osApiKey || '').trim(),
+    'User-Agent': UA,
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  };
+  if (auth && store.settings.osToken) h.Authorization = `Bearer ${store.settings.osToken}`;
+  return h;
+}
+
+async function osReq(method, path, body, { auth = false, retry = true } = {}) {
+  if (!(store.settings.osApiKey || '').trim()) {
+    throw new Error('Nincs megadva OpenSubtitles API-kulcs (Beállítások → Magyar információk és feliratok).');
+  }
+  const base = auth && store.settings.osBaseUrl ? `https://${store.settings.osBaseUrl}/api/v1` : OS_BASE;
+  const r = await api.request({ method, url: base + path, headers: osHeaders(auth), body: body ? JSON.stringify(body) : undefined });
+  let j = {};
+  try {
+    j = JSON.parse(r.text);
+  } catch {}
+  if (r.status === 401 && auth && retry) {
+    await osLogin();
+    return osReq(method, path, body, { auth, retry: false });
+  }
+  if (r.status >= 400) throw new Error(huError(j.message || (j.errors || []).join(', '), r.status));
+  return j;
+}
+
+/** Az OpenSubtitles gyakori hibaüzenetei magyarul. */
+function huError(msg, status) {
+  const m = String(msg || '');
+  if (/cannot consume|invalid api key|api key/i.test(m) || status === 403) return 'Érvénytelen OpenSubtitles API-kulcs. Ellenőrizd a Beállításokban.';
+  if (/invalid username|password|unauthorized/i.test(m) || status === 401) return 'Hibás OpenSubtitles felhasználónév vagy jelszó.';
+  if (/download count|quota|limit/i.test(m) || status === 406) return 'Elfogyott a mai letöltési keret (OpenSubtitles). Holnap újra lehet tölteni.';
+  if (status === 429) return 'Túl sok kérés rövid időn belül – várj néhány másodpercet, és próbáld újra.';
+  return m || `HTTP ${status}`;
+}
+
+/** Bejelentkezés (a letöltéshez szükséges). Visszaadja a napi letöltési keretet. */
+export async function osLogin() {
+  const s = store.settings;
+  if (!s.osUser || !s.osPass) {
+    throw new Error('A felirat letöltéséhez OpenSubtitles-fiók kell: add meg a felhasználóneved és jelszavad a Beállításokban.');
+  }
+  const j = await osReq('POST', '/login', { username: s.osUser, password: s.osPass }, { retry: false });
+  s.osToken = j.token || '';
+  s.osBaseUrl = j.base_url || '';
+  store.save();
+  return j.user || {};
+}
+
+/** Feliratok keresése az aktuális filmhez / részhez. */
+export async function searchSubs(ch, lang) {
+  const { item, ep } = ch.vod;
+  const p = { languages: lang, query: item.title };
+  if (ep) {
+    p.type = 'episode';
+    if (ep.season) p.season_number = ep.season;
+    p.episode_number = ep.episode;
+  } else {
+    p.type = 'movie';
+    if (item.year) p.year = item.year;
+  }
+  // Az API ajánlása: ábécérendbe rendezett, kisbetűs paraméterek (különben átirányít).
+  const qs = Object.keys(p)
+    .sort()
+    .map((k) => `${k}=${encodeURIComponent(String(p[k]).toLowerCase())}`)
+    .join('&');
+  const j = await osReq('GET', '/subtitles?' + qs);
+  const list = (j.data || [])
+    .map((d) => {
+      const a = d.attributes || {};
+      return {
+        fileId: a.files?.[0]?.file_id,
+        fileName: a.files?.[0]?.file_name || a.release || '',
+        lang: a.language,
+        release: a.release || a.files?.[0]?.file_name || 'Felirat',
+        downloads: a.download_count || 0,
+        hi: !!a.hearing_impaired,
+        ai: !!(a.ai_translated || a.machine_translated),
+        year: a.feature_details?.year || 0,
+        title: a.feature_details?.title || '',
+      };
+    })
+    .filter((x) => x.fileId);
+  // Az évben egyező, nem gépi fordítású, sokat letöltött feliratok elöl.
+  const score = (x) => (item.year && x.year === item.year ? 1e7 : 0) + (x.ai ? 0 : 1e6) + x.downloads;
+  return list.sort((a, b) => score(b) - score(a)).slice(0, 25);
+}
+
+async function downloadText(fileId) {
+  const cached = await api.kvGet?.('sub:' + fileId).catch(() => null);
+  if (cached?.text) return cached.text;
+  if (!store.settings.osToken) await osLogin();
+  const j = await osReq('POST', '/download', { file_id: fileId }, { auth: true });
+  if (!j.link) throw new Error(j.message || 'A letöltési hivatkozás nem érkezett meg.');
+  const r = await api.request({ url: j.link, headers: { 'User-Agent': UA } });
+  if (r.status >= 400) throw new Error('A feliratfájl nem tölthető le (HTTP ' + r.status + ').');
+  api.kvSet?.('sub:' + fileId, { text: r.text, at: Date.now() })?.catch?.(() => {});
+  if (typeof j.remaining === 'number') toast(`Felirat letöltve – ma még ${j.remaining} letöltésed van.`, { timeout: 5000 });
+  return r.text;
+}
+
+async function useResult(video, ch, res) {
+  const text = await downloadText(res.fileId);
+  const cues = parseSubs(text);
+  if (!cues.length) throw new Error('A feliratfájl üres vagy nem értelmezhető.');
+  const label = `${LANGS[res.lang] || res.lang} – ${res.release}`;
+  apply(video, cues, label);
+  // Megjegyezzük ehhez a filmhez / részhez.
+  const p = store.profile;
+  p.vodSubs ||= {};
+  p.vodSubs[ch.vod.key] = { fileId: res.fileId, lang: res.lang, release: res.release };
+  store.save();
+}
+
+/** Felirat betöltése szövegből (helyi fájl, behúzott fájl). */
+export function applyText(video, text, label) {
+  const cues = parseSubs(text);
+  if (!cues.length) {
+    toast('A fájl nem tartalmaz feliratot.');
+    return false;
+  }
+  apply(video, cues, label);
+  return true;
+}
+
+// .srt / .vtt fájl ráhúzása a lejátszóra
+{
+  const root = document.getElementById('player');
+  root.addEventListener('dragover', (e) => {
+    if (player.channel?.vod && [...(e.dataTransfer?.items || [])].some((i) => i.kind === 'file')) e.preventDefault();
+  });
+  root.addEventListener('drop', async (e) => {
+    const f = e.dataTransfer?.files?.[0];
+    if (!f || !player.channel?.vod) return;
+    e.preventDefault();
+    if (!/\.(srt|vtt|txt)$/i.test(f.name)) return toast('Csak .srt vagy .vtt feliratfájl húzható ide.');
+    applyText(document.getElementById('video'), await f.text(), f.name);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Feliratfájlok a videó mellett (pl. Film.mkv mellett Film.hu.srt) – a saját médiatárhoz
+// ---------------------------------------------------------------------------
+const isHu = (n) => /[._ -](hu|hun|hungarian|magyar)\b/i.test(n);
+
+function urlToPath(u) {
+  const x = new URL(u);
+  let p = decodeURIComponent(x.pathname);
+  if (x.host) return '\\\\' + x.host + p.replace(/\//g, '\\');
+  if (/^\/[a-zA-Z]:/.test(p)) p = p.slice(1);
+  return p;
+}
+
+async function findSidecars(url) {
+  try {
+    if (url.startsWith('file:')) {
+      return api.sidecarSubs ? await api.sidecarSubs(urlToPath(url)) : [];
+    }
+    if (/^https?:/.test(url) && !/\.m3u8(\?|$)/i.test(url)) {
+      // Hálózati cím: a leggyakoribb elnevezések kipróbálása (nem létező fájl esetén csendben kihagyja).
+      const base = url.split(/[?#]/)[0].replace(/\.[^./]+$/, '');
+      const names = ['.hu.srt', '.hun.srt', '.srt', '.en.srt', '.eng.srt'];
+      const res = await Promise.all(
+        names.map(async (ext) => {
+          try {
+            const r = await api.request({ url: base + ext });
+            return r.status < 300 && r.text.includes('-->') ? { name: decodeURIComponent(base.split('/').pop()) + ext, text: r.text } : null;
+          } catch {
+            return null;
+          }
+        })
+      );
+      return res.filter(Boolean);
+    }
+  } catch {}
+  return [];
+}
+
+// ---------------------------------------------------------------------------
+// Kapcsolódás a lejátszóhoz
+// ---------------------------------------------------------------------------
+player.subsHooks = {
+  /** Új film / rész indulásakor: korábban választott felirat, vagy automatikus keresés. */
+  async onStart(ch, video) {
+    clearSubs(video);
+    applySize();
+    if (!ch?.vod) return;
+    state.key = ch.vod.key;
+    state.results = null;
+    state.sidecars = [];
+    const saved = store.profile.vodSubs?.[ch.vod.key];
+    try {
+      // A videó melletti feliratfájlok (a menüben is megjelennek).
+      // (csak a saját médiatárnál, ill. helyi fájlnál – a nyilvános listák szervereit nem terheljük)
+      const url0 = ch.streams[0]?.url || '';
+      if (ch.vod.item?.lib === 'own' || url0.startsWith('file:')) state.sidecars = await findSidecars(url0);
+      if (player.channel !== ch) return;
+      if (saved?.sidecar) {
+        const sc = state.sidecars.find((x) => x.name === saved.sidecar);
+        if (sc) return void applyText(video, sc.text, sc.name);
+      } else if (saved) {
+        await useResult(video, ch, saved);
+        return;
+      }
+      if (state.sidecars.length) {
+        const pref = store.settings.subsLang === 'en' ? (n) => /[._ -](en|eng|english)\b/i.test(n) : isHu;
+        const sc = state.sidecars.find((x) => pref(x.name)) || state.sidecars.find((x) => isHu(x.name)) || state.sidecars[0];
+        applyText(video, sc.text, sc.name);
+        return;
+      }
+      const s = store.settings;
+      if (s.subsAuto && s.osApiKey && s.osUser) {
+        const list = await searchSubs(ch, s.subsLang || 'hu');
+        const best = list.find((x) => !x.ai) || list[0];
+        if (best && player.channel === ch) await useResult(video, ch, best);
+        else if (!best) toast(`Nem található ${LANGS[s.subsLang || 'hu']} felirat ehhez a címhez.`);
+      }
+    } catch (err) {
+      console.warn('Felirat', err);
+      if (saved || store.settings.subsAuto) toast('Felirat: ' + (err.message || err), { timeout: 6000 });
+    }
+  },
+
+  clear(video) {
+    clearSubs(video);
+  },
+
+  /**
+   * Új adás / fájl sávjai ismertté váltak: a profil kedvenc hangsávjának és beágyazott feliratának
+   * automatikus kiválasztása (élő adásnál és filmnél is). Adásonként csak egyszer.
+   */
+  onTracks(ch, video) {
+    const eng = player.engine;
+    if (!ch) return;
+    // A hang- és a feliratsávok külön eseménnyel is megérkezhetnek, ezért külön jegyezzük.
+    const key = (ch.id || '') + '|' + (player.stream?.url || '');
+    const audio = eng.audioTracks();
+    const texts = eng.textTracks();
+    const p = store.profile;
+    const match = (lang) => (lang === 'hu' ? isHuLang : lang === 'en' ? isEnLang : null);
+    // Hangsáv
+    if (audio.length && state.autoAudio !== key) {
+      state.autoAudio = key;
+      const am = match(p.prefAudio);
+      const t = am && audio.length > 1 && audio.find((x) => am(x.lang) || am(x.label));
+      if (t && t.index !== eng.audioTrack) eng.setAudioTrack(t.index);
+    }
+    // Beágyazott felirat (csak ha nincs már saját / letöltött felirat bekapcsolva)
+    if (texts.length && state.autoText !== key) {
+      state.autoText = key;
+      // 'auto' (alapértelmezés): a fájlban alapértelmezettnek / kényszerítettnek jelölt felirat –
+      // pl. a magyar feliratos kiadásoknál; 'hu' / 'en': az adott nyelvű, ha van.
+      const pref = p.prefSubs || 'auto';
+      const sm = match(pref);
+      const t =
+        !state.cues.length &&
+        (sm ? texts.find((x) => sm(x.lang) || sm(x.label)) : pref === 'auto' ? texts.find((x) => x.forced) || texts.find((x) => x.default) : null);
+      // (a lejátszási híd a saját kezdő feliratát már bekapcsolta – azt nem írjuk felül)
+      if (t && !(eng.bridge && eng.textTrack)) eng.setTextTrack(t.id);
+    }
+  },
+
+  /** A lejátszó „Hang és felirat” menüje – élő adásnál és filmnél / sorozatnál is. */
+  render(menu, ch, video) {
+    const eng = player.engine;
+    const isVod = !!ch?.vod;
+    const draw = () => {
+      const s = store.settings;
+      const res = state.results;
+      const audio = eng.audioTracks();
+      const curA = eng.audioTrack;
+      const texts = eng.textTracks();
+      const curT = eng.textTrack;
+      const anySub = state.cues.length || curT;
+      menu.innerHTML = `
+        <h4>Hangsáv</h4>
+        ${
+          audio.length > 1
+            ? audio.map((t) => `<button class="menu-item ${t.index === curA ? 'sel' : ''}" data-s="audio" data-i="${t.index}">${esc(t.label)}</button>`).join('')
+            : `<p class="muted small">${audio.length === 1 ? esc(audio[0].label) + ' – e' : 'E'}bben ${isVod ? 'a videóban' : 'az adásban'} csak egy hangsáv van.</p>`
+        }
+        ${nightAvailable() ? `<button class="menu-item ${nightOn() ? 'sel' : ''}" data-s="night"><span>Éjszakai hang<small>halk párbeszéd kiemelése, a hangos részek tompítása</small></span></button>` : ''}
+        <h4>Felirat</h4>
+        <button class="menu-item ${anySub ? '' : 'sel'}" data-s="off">Kikapcsolva</button>
+        ${state.cues.length ? `<button class="menu-item sel" data-s="noop">${esc(state.label)}</button>` : ''}
+        ${texts.length ? `${texts.map((t) => `<button class="menu-item ${t.id === curT ? 'sel' : ''}" data-s="embedded" data-id="${esc(t.id)}">${esc(t.label)} <small class="muted">(${isVod ? 'a fájlban' : 'az adásban'})</small></button>`).join('')}` : ''}
+        ${!texts.length && !isVod ? `<p class="muted small">Ez az adás nem küld feliratot.</p>` : ''}
+        ${
+          isVod && state.sidecars?.length
+            ? `<h4>A videó mellett</h4>${state.sidecars
+                .map((x, i) => `<button class="menu-item" data-s="side" data-i="${i}">${esc(x.name)}</button>`)
+                .join('')}`
+            : ''
+        }
+        ${
+          isVod
+            ? `<h4>OpenSubtitles</h4>
+        ${
+          s.osApiKey
+            ? `<button class="menu-item" data-s="search" data-lang="hu">Magyar felirat keresése</button>
+               <button class="menu-item" data-s="search" data-lang="en">Angol felirat keresése</button>`
+            : `<p class="muted small">Add meg az OpenSubtitles API-kulcsot a Beállításokban (Magyar információk és feliratok).</p>`
+        }
+        ${state.busy ? '<p class="muted small">Keresés…</p>' : ''}
+        ${
+          res
+            ? res.list.length
+              ? res.list
+                  .map(
+                    (x, i) => `<button class="menu-item sub-hit" data-s="pick" data-i="${i}">
+                      <span><b>${esc(x.release)}</b><small>${esc(LANGS[x.lang] || x.lang)} · ${x.downloads.toLocaleString('hu-HU')} letöltés${x.hi ? ' · hallássérülteknek' : ''}${x.ai ? ' · gépi fordítás' : ''}</small></span></button>`
+                  )
+                  .join('')
+              : `<p class="muted small">Nincs ${esc(LANGS[res.lang])} felirat ehhez a címhez.</p>`
+            : ''
+        }`
+            : ''
+        }
+        <h4>Beállítások</h4>
+        ${isVod && api.caps.files ? '<button class="menu-item" data-s="file">Felirat betöltése fájlból (.srt, .vtt)</button>' : ''}
+        ${
+          state.cues.length
+            ? `<div class="sub-adjust">
+          <span>Időeltolás</span>
+          <button class="btn small" data-s="off-" title="Korábban">−0,5 mp</button>
+          <b class="sub-offset">${(state.offset >= 0 ? '+' : '') + state.offset.toFixed(1).replace('.', ',')} mp</b>
+          <button class="btn small" data-s="off+" title="Később">+0,5 mp</button>
+        </div>`
+            : ''
+        }
+        <div class="sub-adjust">
+          <span>Méret</span>
+          ${['small', 'normal', 'large', 'huge']
+            .map((z, i) => `<button class="btn small ${((s.subsSize || 'normal') === z) ? 'primary' : ''}" data-s="size" data-z="${z}">${['Kicsi', 'Közepes', 'Nagy', 'Óriás'][i]}</button>`)
+            .join('')}
+        </div>`;
+    };
+    draw();
+    menu.onclick = async (e) => {
+      const b = e.target.closest('[data-s]');
+      if (!b) return;
+      e.stopPropagation();
+      const a = b.dataset.s;
+      try {
+        if (a === 'night') {
+          setNight(video, !nightOn());
+          store.profile.nightAudio = nightOn();
+          store.save();
+          toast(nightOn() ? 'Éjszakai hang bekapcsolva' : 'Éjszakai hang kikapcsolva');
+          draw();
+        } else if (a === 'audio') {
+          eng.setAudioTrack(Number(b.dataset.i));
+          toast('Hangsáv: ' + b.textContent.trim());
+          draw();
+        } else if (a === 'off') {
+          clearSubs(video);
+          eng.setTextTrack('');
+          if (isVod && store.profile.vodSubs) delete store.profile.vodSubs[ch.vod.key];
+          store.save();
+          draw();
+        } else if (a === 'embedded') {
+          // Beágyazott felirat: a saját / letöltött felirat ilyenkor kikapcsol.
+          clearSubs(video);
+          eng.setTextTrack(b.dataset.id);
+          draw();
+        } else if (a === 'search') {
+          state.busy = true;
+          state.results = null;
+          draw();
+          const list = await searchSubs(ch, b.dataset.lang);
+          state.results = { lang: b.dataset.lang, list };
+          state.busy = false;
+          draw();
+          menu.querySelector('.sub-hit')?.focus();
+        } else if (a === 'side') {
+          const sc = state.sidecars[Number(b.dataset.i)];
+          eng.setTextTrack('');
+          applyText(video, sc.text, sc.name);
+          const p = store.profile;
+          p.vodSubs ||= {};
+          p.vodSubs[ch.vod.key] = { sidecar: sc.name };
+          store.save();
+          menu.hidden = true;
+        } else if (a === 'pick') {
+          const x = state.results.list[Number(b.dataset.i)];
+          b.disabled = true;
+          b.querySelector('small').textContent = 'Letöltés…';
+          eng.setTextTrack('');
+          await useResult(video, ch, x);
+          menu.hidden = true;
+        } else if (a === 'file') {
+          const f = await api.openFile([{ name: 'Felirat', extensions: ['srt', 'vtt', 'txt'] }]);
+          if (!f) return;
+          const cues = parseSubs(f.text);
+          if (!cues.length) return toast('A fájl nem tartalmaz feliratot.');
+          eng.setTextTrack('');
+          apply(video, cues, f.name);
+          menu.hidden = true;
+        } else if (a === 'off-' || a === 'off+') {
+          state.offset += a === 'off+' ? 0.5 : -0.5;
+          render(video);
+          draw();
+        } else if (a === 'size') {
+          store.set('subsSize', b.dataset.z);
+          applySize();
+          draw();
+        }
+        player.renderControls();
+      } catch (err) {
+        state.busy = false;
+        draw();
+        toast('Felirat: ' + (err.message || err), { timeout: 7000 });
+      }
+    };
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Beállítások
+// ---------------------------------------------------------------------------
+export function renderHuSettings(box) {
+  const s = store.settings;
+  box.innerHTML = `<h2>Magyar információk és feliratok <button class="help-link" data-help="hu-info" title="Súgó">?</button></h2>
+    <label class="setting"><span><b>Információk és borítóképek letöltése</b><small>Filmek, sorozatok és csatornák címe, leírása (magyarul, ennek híján angolul), borítóképe, műfaja, szereplői – Wikipédia / Wikidata, AniList (anime), TVmaze (sorozat) kulcs nélkül, vagy a TMDB-ből.</small></span>
+      <input type="checkbox" class="switch" data-hs="huInfo" ${s.huInfo !== false ? 'checked' : ''} /></label>
+    <label class="setting col"><span><b>TMDB API-kulcs</b> <small>(nem kötelező) – gazdagabb magyar leírás és értékelés. Ingyenes: themoviedb.org → Beállítások → API.</small></span>
+      <input class="input" type="password" autocomplete="off" data-ht="tmdbKey" value="${esc(s.tmdbKey || '')}" placeholder="API-kulcs (v3) vagy olvasási token (v4)" /></label>
+    <label class="setting col"><span><b>OMDb API-kulcs</b> <small>(nem kötelező) – IMDb-adatokon alapuló borítóképek a „Cím és borító” keresőben. Ingyenes kulcs (napi 1000 kérés): omdbapi.com → API Key.</small></span>
+      <input class="input" type="password" autocomplete="off" data-ht="omdbKey" value="${esc(s.omdbKey || '')}" placeholder="API-kulcs" /></label>
+    <h3>OpenSubtitles feliratok</h3>
+    <p class="muted small">Filmekhez és sorozatokhoz magyar és angol felirat. Ingyenes fiók és API-kulcs kell: regisztrálj az <a href="#" data-ext="https://www.opensubtitles.com/">opensubtitles.com</a> oldalon, majd a profilodban az <i>API consumers</i> résznél hozz létre egy kulcsot. A keresés a kulccsal, a letöltés bejelentkezéssel működik (ingyenes fiókkal napi korláttal).</p>
+    <label class="setting col"><span><b>API-kulcs</b></span><input class="input" type="password" autocomplete="off" data-ht="osApiKey" value="${esc(s.osApiKey || '')}" /></label>
+    <div class="form-row">
+      <label class="setting col"><span><b>Felhasználónév</b></span><input class="input" autocomplete="off" data-ht="osUser" value="${esc(s.osUser || '')}" /></label>
+      <label class="setting col"><span><b>Jelszó</b></span><input class="input" type="password" autocomplete="off" data-ht="osPass" value="${esc(s.osPass || '')}" /></label>
+    </div>
+    <p class="muted small">Az adatok csak ezen az eszközön tárolódnak, és csak az opensubtitles.com felé kerülnek elküldésre.</p>
+    <div class="inline"><button class="btn small" data-hb="test">Bejelentkezés kipróbálása</button><span class="muted small os-status"></span></div>
+    <label class="setting"><span><b>Felirat automatikus keresése</b><small>Film / rész indításakor a legjobb felirat automatikusan betöltődik (letöltési keretet használ).</small></span>
+      <input type="checkbox" class="switch" data-hs="subsAuto" ${s.subsAuto ? 'checked' : ''} /></label>
+    <label class="setting"><span><b>Felirat nyelve automatikus kereséskor</b></span>
+      <select data-hsel="subsLang"><option value="hu" ${s.subsLang !== 'en' ? 'selected' : ''}>Magyar</option><option value="en" ${s.subsLang === 'en' ? 'selected' : ''}>Angol</option></select></label>
+    <h3>Hangsáv és felirat – a(z) ${esc(store.profile.name)} profil kedvencei</h3>
+    <p class="muted small">Ha egy adásban, filmben vagy saját videóban több hangsáv vagy beágyazott felirat van, a lejátszó magától ezt választja. Lejátszás közben a <b>CC</b> gombbal vagy a <b>C</b> billentyűvel bármikor válthatsz.</p>
+    <label class="setting"><span><b>Előnyben részesített hangsáv</b></span>
+      <select data-hp="prefAudio">${[['orig', 'Az adás alapértelmezése'], ['hu', 'Magyar'], ['en', 'Angol']]
+        .map(([v, l]) => `<option value="${v}" ${(store.profile.prefAudio || 'orig') === v ? 'selected' : ''}>${l}</option>`)
+        .join('')}</select></label>
+    <label class="setting"><span><b>Beágyazott felirat automatikusan</b></span>
+      <select data-hp="prefSubs">${[['auto', 'A fájl alapértelmezése (pl. feliratos kiadásnál)'], ['off', 'Kikapcsolva'], ['hu', 'Magyar, ha van'], ['en', 'Angol, ha van']]
+        .map(([v, l]) => `<option value="${v}" ${(store.profile.prefSubs || 'auto') === v ? 'selected' : ''}>${l}</option>`)
+        .join('')}</select></label>
+    ${
+      nightAvailable()
+        ? `<label class="setting"><span><b>Éjszakai hang</b><small>A hangos részek (zene, reklám, robbanás) tompítása, a halk párbeszéd kiemelése – ha a többiek már alszanak.</small></span>
+      <input type="checkbox" class="switch" data-hpb="nightAudio" ${store.profile.nightAudio ? 'checked' : ''} /></label>`
+        : ''
+    }`;
+  if (box.dataset.bound) return;
+  box.dataset.bound = '1';
+  box.addEventListener('change', (e) => {
+    e.stopPropagation();
+    const t = e.target;
+    if (t.dataset.hs) store.set(t.dataset.hs, t.checked);
+    else if (t.dataset.hsel) store.set(t.dataset.hsel, t.value);
+    else if (t.dataset.hp) {
+      store.profile[t.dataset.hp] = t.value;
+      store.save();
+    } else if (t.dataset.hpb) {
+      store.profile[t.dataset.hpb] = t.checked;
+      store.save();
+    } else if (t.dataset.ht) {
+      store.set(t.dataset.ht, t.value.trim());
+      if (t.dataset.ht.startsWith('os')) store.set('osToken', '');
+    }
+  });
+  box.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-hb]');
+    if (!b) return;
+    e.stopPropagation();
+    const out = box.querySelector('.os-status');
+    // a még el nem mentett mezők mentése
+    box.querySelectorAll('[data-ht]').forEach((i) => store.set(i.dataset.ht, i.value.trim()));
+    out.textContent = 'Bejelentkezés…';
+    try {
+      const u = await osLogin();
+      out.textContent = `Sikeres bejelentkezés${u.allowed_downloads ? ` – napi ${u.allowed_downloads} letöltés` : ''}${u.level ? ` (${u.level})` : ''}.`;
+    } catch (err) {
+      out.textContent = 'Hiba: ' + (err.message || err);
+    }
+  });
+}

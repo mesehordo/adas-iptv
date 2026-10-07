@@ -1,0 +1,33 @@
+{
+  "adasTheme": 1,
+  "id": "yoru-no-umi",
+  "name": "Yoru no Umi",
+  "author": "Adás – minta",
+  "description": "Éjjeli óceán: mélykék, türkiz fények, finom hullámcsíkok.",
+  "tone": "dark",
+  "base": "prime",
+  "colors": {
+    "bg": "#061420",
+    "bg2": "#0b2133",
+    "bg3": "#123049",
+    "bg4": "#1a3d5c",
+    "line": "#1f4566",
+    "text": "#d8ecf7",
+    "textStrong": "#ffffff",
+    "muted": "#86a9bf",
+    "accent": "#2ee6d6",
+    "accent2": "#5fb8ff"
+  },
+  "fonts": {
+    "body": "'Segoe UI', Arial, sans-serif",
+    "headings": "'Segoe UI Semibold', 'Segoe UI', Arial, sans-serif"
+  },
+  "radius": "10px",
+  "background": "radial-gradient(ellipse at 20% 0%, rgba(46, 230, 214, 0.15), transparent 50%), radial-gradient(ellipse at 90% 100%, rgba(95, 184, 255, 0.12), transparent 50%), #061420",
+  "preview": [
+    "#061420",
+    "#2ee6d6",
+    "#123049"
+  ],
+  "css": ".dcard { background: linear-gradient(180deg, rgba(18, 48, 73, 0.9), rgba(11, 33, 51, 0.9)); border: 1px solid var(--line); border-radius: 14px; }\n.dc-title { color: var(--accent); }\n.thumb { box-shadow: 0 0 0 1px var(--line); }\n.card:focus-visible .thumb, .card:hover .thumb { box-shadow: 0 0 0 3px var(--accent), 0 0 20px rgba(46, 230, 214, 0.4); }\n.btn.primary, .btn.white { background: var(--accent); color: #04121c; }\n&::before { content: \"\"; position: fixed; inset: 0; pointer-events: none; z-index: 0; background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.015) 0 2px, transparent 2px 6px); }\n&.tv::before { display: none; }"
+}
