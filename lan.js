@@ -9,6 +9,7 @@ const os = require('os');
 const dgram = require('dgram');
 const tls = require('tls');
 const crypto = require('crypto');
+const dns = require('dns');
 const { Readable } = require('stream');
 
 const CHROME_UA =
@@ -146,11 +147,15 @@ async function handle(req, res) {
 // vagy amelyre egy onnan kapott lejátszólista hivatkozik – így a kulccsal sem érhető el tetszőleges
 // (pl. helyi hálózati) cím.
 const allowedOrigins = new Set();
+// Internetes hivatkozásból (lista, átirányítás) engedélyezett kiszolgálók: ezeknél a lekérés előtt a
+// DNS-feloldást is ellenőrizzük (egy internetes név se mutathasson helyi címre).
+const remoteOrigins = new Set();
 /** Helyi / belső cím (localhost, magánhálózat, link-local)? */
 function isPrivateHost(host) {
   const h = String(host || '').toLowerCase().replace(/^\[|\]$/g, '');
   if (h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local') || h === '0.0.0.0' || h === '::' || h === '::1') return true;
-  if (/^(127|10)\./.test(h) || /^192\.168\./.test(h) || /^169\.254\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
+  const v4 = h.replace(/^::ffff:/, ''); // IPv4-ként leképzett IPv6 cím is
+  if (/^(127|10|0)\./.test(v4) || /^192\.168\./.test(v4) || /^169\.254\./.test(v4) || /^172\.(1[6-9]|2\d|3[01])\./.test(v4) || /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(v4)) return true;
   return /^(fc|fd|fe8|fe9|fea|feb)[0-9a-f]*:/.test(h);
 }
 /**
@@ -162,9 +167,11 @@ const allowOrigin = (url, parent = null) => {
   try {
     const u = new URL(url);
     if (!/^https?:$/.test(u.protocol)) return false;
-    if (parent && isPrivateHost(u.hostname) && !isPrivateHost(new URL(parent).hostname)) return false;
-    if (allowedOrigins.size > 500) allowedOrigins.clear();
+    const fromRemote = !!parent && !isPrivateHost(new URL(parent).hostname);
+    if (fromRemote && isPrivateHost(u.hostname)) return false;
+    if (allowedOrigins.size > 500) allowedOrigins.clear(), remoteOrigins.clear();
     allowedOrigins.add(u.origin);
+    if (fromRemote) remoteOrigins.add(u.origin);
     return true;
   } catch {
     return false;
@@ -202,7 +209,14 @@ function rewritePlaylist(text, base) {
 async function fetchChecked(target, opts) {
   let url = target;
   for (let i = 0; i <= 5; i++) {
-    const res = await fetch(url, { ...opts, redirect: 'manual' });
+    const u = new URL(url);
+    if (!/^https?:$/.test(u.protocol) || !allowedOrigins.has(u.origin)) throw Object.assign(new Error('Nem engedélyezett cím'), { code: 403 });
+    // Internetes hivatkozásból kapott név: a feloldott címek egyike se legyen helyi / magánhálózati
+    if (remoteOrigins.has(u.origin)) {
+      const addrs = await dns.promises.lookup(u.hostname.replace(/^\[|\]$/g, ''), { all: true }).catch(() => []);
+      if (!addrs.length || addrs.some((a) => isPrivateHost(a.address))) throw Object.assign(new Error('Helyi címre mutató név'), { code: 403 });
+    }
+    const res = await fetch(u.href, { ...opts, redirect: 'manual' });
     const loc = res.status >= 300 && res.status < 400 && res.headers.get('location');
     if (!loc) return { res, url };
     const next = new URL(loc, url).href;
