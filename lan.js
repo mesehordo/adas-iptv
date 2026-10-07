@@ -5,6 +5,8 @@
 //  - kivetítés: Chromecast (mDNS-felderítés + Cast v2 protokoll) és DLNA / UPnP médialejátszók.
 
 const http = require('http');
+const https = require('https');
+const net = require('net');
 const os = require('os');
 const dgram = require('dgram');
 const tls = require('tls');
@@ -147,16 +149,57 @@ async function handle(req, res) {
 // vagy amelyre egy onnan kapott lejátszólista hivatkozik – így a kulccsal sem érhető el tetszőleges
 // (pl. helyi hálózati) cím.
 const allowedOrigins = new Set();
-// Internetes hivatkozásból (lista, átirányítás) engedélyezett kiszolgálók: ezeknél a lekérés előtt a
-// DNS-feloldást is ellenőrizzük (egy internetes név se mutathasson helyi címre).
+// Internetes hivatkozásból (lista, átirányítás) engedélyezett kiszolgálók: ezeknél kapcsolódáskor a
+// feloldott címet is ellenőrizzük (egy internetes név se mutathasson helyi címre).
 const remoteOrigins = new Set();
-/** Helyi / belső cím (localhost, magánhálózat, link-local)? */
+/**
+ * Helyi, belső vagy fenntartott cím? (localhost-nevek, magán- és fenntartott IPv4-tartományok, valamint
+ * az IPv6-os megfelelőik – beleértve az IPv4-et hordozó IPv6-alakokat: ::ffff:a.b.c.d, ::ffff:7f00:1,
+ * 64:ff9b::/96). Számként vizsgáljuk, így az írásmód (rövidítés, hexa, záró pont) nem játssza ki.
+ */
+function ipv4Private(n) {
+  const a = n >>> 24;
+  const b = (n >>> 16) & 255;
+  return (
+    a === 0 || a === 10 || a === 127 || a >= 224 || // „ez a hálózat”, magán, visszacsatolás, multicast, fenntartott
+    (a === 100 && b >= 64 && b <= 127) || // CGNAT
+    (a === 169 && b === 254) || // link-local
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 192 && b === 0 && ((n >>> 8) & 255) === 0) || // 192.0.0.0/24
+    (a === 198 && (b === 18 || b === 19)) // 198.18.0.0/15 (teljesítménymérés)
+  );
+}
+const ipv4ToInt = (s) => s.split('.').reduce((n, x) => n * 256 + Number(x), 0) >>> 0;
+/** IPv6 → 8 darab 16 bites szám (a beágyazott IPv4-alakot is kezeli) */
+function ipv6Words(s) {
+  let h = s;
+  const v4 = /(\d+\.\d+\.\d+\.\d+)$/.exec(h);
+  if (v4) {
+    const n = ipv4ToInt(v4[1]);
+    h = h.slice(0, -v4[1].length) + (n >>> 16).toString(16) + ':' + (n & 0xffff).toString(16);
+  }
+  const [head, tail] = h.split('::');
+  const hw = head ? head.split(':') : [];
+  const tw = tail !== undefined ? (tail ? tail.split(':') : []) : [];
+  const fill = tail !== undefined ? 8 - hw.length - tw.length : 0;
+  return [...hw, ...Array(Math.max(0, fill)).fill('0'), ...tw].map((x) => parseInt(x || '0', 16));
+}
 function isPrivateHost(host) {
-  const h = String(host || '').toLowerCase().replace(/^\[|\]$/g, '');
-  if (h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local') || h === '0.0.0.0' || h === '::' || h === '::1') return true;
-  const v4 = h.replace(/^::ffff:/, ''); // IPv4-ként leképzett IPv6 cím is
-  if (/^(127|10|0)\./.test(v4) || /^192\.168\./.test(v4) || /^169\.254\./.test(v4) || /^172\.(1[6-9]|2\d|3[01])\./.test(v4) || /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(v4)) return true;
-  return /^(fc|fd|fe8|fe9|fea|feb)[0-9a-f]*:/.test(h);
+  const h = String(host || '').toLowerCase().replace(/^\[|\]$/g, '').replace(/\.+$/, '').split('%')[0];
+  if (!h || h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local') || h.endsWith('.internal')) return true;
+  const kind = net.isIP(h);
+  if (kind === 4) return ipv4Private(ipv4ToInt(h));
+  if (kind === 6) {
+    const w = ipv6Words(h);
+    const v4 = ((w[6] << 16) | w[7]) >>> 0;
+    const zero5 = w.slice(0, 5).every((x) => x === 0);
+    if (zero5 && (w[5] === 0xffff || w[5] === 0)) return w[5] === 0 && w[6] === 0 ? true : ipv4Private(v4); // ::, ::1, ::ffff:x, ::x
+    if (w[0] === 0x64 && w[1] === 0xff9b && w.slice(2, 6).every((x) => x === 0)) return ipv4Private(v4); // NAT64
+    if ((w[0] & 0xfe00) === 0xfc00 || (w[0] & 0xffc0) === 0xfe80 || (w[0] & 0xff00) === 0xff00) return true; // ULA, link-local, multicast
+    return false;
+  }
+  return false; // név: a kapcsolódáskor a feloldott címet ellenőrizzük (lásd checkedLookup)
 }
 /**
  * Engedélyezés: amit az alkalmazás maga ad át (proxyUrl), az bármi lehet (pl. a NAS). Amire egy lista
@@ -205,29 +248,59 @@ function rewritePlaylist(text, base) {
     .join('\n');
 }
 
+/**
+ * Névfeloldás a kapcsolódáshoz: internetes hivatkozásból kapott kiszolgálónál csak nem helyi címre
+ * kapcsolódunk. Ez maga a kapcsolat címe (nem külön előzetes ellenőrzés), így a DNS-válasz közbeni
+ * megváltoztatása (DNS-rebinding) sem vezet a helyi hálózatra.
+ */
+function checkedLookup(remote) {
+  return (hostname, opts, cb) => {
+    dns.lookup(hostname, { ...opts, all: true }, (err, addrs) => {
+      if (err) return cb(err);
+      const ok = remote ? addrs.filter((a) => !isPrivateHost(a.address)) : addrs;
+      if (!ok.length) return cb(Object.assign(new Error('Helyi címre mutató név'), { code: 'EPRIVATE' }));
+      if (opts && opts.all) return cb(null, ok);
+      cb(null, ok[0].address, ok[0].family);
+    });
+  };
+}
+
+/** Egy kérés (átirányítás követése nélkül) → a válasz (IncomingMessage) */
+function requestOnce(url, { headers, signal, remote }) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const mod = u.protocol === 'https:' ? https : http;
+    const req = mod.request(u, { method: 'GET', headers: { ...headers, 'Accept-Encoding': 'identity' }, lookup: checkedLookup(remote), signal, timeout: 20000 }, resolve);
+    req.on('timeout', () => req.destroy(new Error('Időtúllépés')));
+    req.on('error', (err) => reject(err.code === 'EPRIVATE' ? Object.assign(err, { code: 403 }) : err));
+    req.end();
+  });
+}
+
 /** Lekérés kézi átirányítás-kezeléssel: minden új célt ugyanúgy ellenőrzünk (legfeljebb 5 lépés). */
-async function fetchChecked(target, opts) {
+async function fetchChecked(target, { headers, signal }) {
   let url = target;
   for (let i = 0; i <= 5; i++) {
     const u = new URL(url);
     if (!/^https?:$/.test(u.protocol) || !allowedOrigins.has(u.origin)) throw Object.assign(new Error('Nem engedélyezett cím'), { code: 403 });
-    // Internetes hivatkozásból kapott név: a feloldott címek egyike se legyen helyi / magánhálózati
-    if (remoteOrigins.has(u.origin)) {
-      const addrs = await dns.promises.lookup(u.hostname.replace(/^\[|\]$/g, ''), { all: true }).catch(() => []);
-      if (!addrs.length || addrs.some((a) => isPrivateHost(a.address))) throw Object.assign(new Error('Helyi címre mutató név'), { code: 403 });
-    }
-    const res = await fetch(u.href, { ...opts, redirect: 'manual' });
-    const loc = res.status >= 300 && res.status < 400 && res.headers.get('location');
+    const res = await requestOnce(u.href, { headers, signal, remote: remoteOrigins.has(u.origin) });
+    const loc = res.statusCode >= 300 && res.statusCode < 400 && res.headers.location;
     if (!loc) return { res, url };
+    res.resume(); // a törzs eldobása
     const next = new URL(loc, url).href;
-    try {
-      await res.body?.cancel();
-    } catch {}
     if (!allowOrigin(next, url)) throw Object.assign(new Error('Nem engedélyezett átirányítás'), { code: 403 });
     url = next;
   }
   throw new Error('Túl sok átirányítás');
 }
+
+const readAll = (stream) =>
+  new Promise((resolve, reject) => {
+    const parts = [];
+    stream.on('data', (c) => parts.push(c));
+    stream.on('end', () => resolve(Buffer.concat(parts).toString('utf8')));
+    stream.on('error', reject);
+  });
 
 async function proxy(req, res, target) {
   if (!/^https?:\/\//i.test(target || '') || !isAllowed(target)) {
@@ -246,28 +319,32 @@ async function proxy(req, res, target) {
   } catch (err) {
     if (res.headersSent) return res.destroy();
     res.statusCode = err.code === 403 ? 403 : 502;
-    return res.end(err.code === 403 ? 'Nem engedélyezett átirányítás' : 'A forrás nem érhető el');
+    return res.end(err.code === 403 ? 'Nem engedélyezett cím' : 'A forrás nem érhető el');
   }
-  const type = (up.headers.get('content-type') || '').toLowerCase();
+  const status = up.statusCode;
+  const type = String(up.headers['content-type'] || '').toLowerCase();
   const looksList = /mpegurl/.test(type) || /\.m3u8?(\?|$)/i.test(new URL(finalUrl).pathname);
-  if (looksList && up.ok) {
-    const text = await up.text();
+  if (looksList && status >= 200 && status < 300) {
+    const text = await readAll(up).catch(() => '');
     if (text.trimStart().startsWith('#EXTM3U')) {
       res.statusCode = 200;
       res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
       res.setHeader('Cache-Control', 'no-cache');
       return res.end(rewritePlaylist(text, finalUrl));
     }
-    res.statusCode = up.status;
+    res.statusCode = status;
     return res.end(text);
   }
-  res.statusCode = up.status;
+  res.statusCode = status;
   for (const k of ['content-type', 'content-length', 'content-range', 'accept-ranges', 'last-modified', 'etag']) {
-    const v = up.headers.get(k);
+    const v = up.headers[k];
     if (v) res.setHeader(k, v);
   }
-  if (req.method === 'HEAD' || !up.body) return res.end();
-  Readable.fromWeb(up.body).on('error', () => res.destroy()).pipe(res);
+  if (req.method === 'HEAD') {
+    up.resume();
+    return res.end();
+  }
+  up.on('error', () => res.destroy()).pipe(res);
 }
 
 /** A kivetítő eszköz által elérhető cím egy adáshoz. */
