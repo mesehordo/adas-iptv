@@ -507,7 +507,11 @@ async function readSmallFile(p, max) {
   try {
     const st = await fh.stat();
     if (!st.isFile() || st.size > max) return null;
-    return await fh.readFile();
+    // legfeljebb méret+1 bájtot olvasunk: ha a fájl közben megnőtt (változik), kihagyjuk
+    const buf = Buffer.alloc(st.size + 1);
+    let n = 0;
+    for (let r; n < buf.length && (r = await fh.read(buf, n, buf.length - n, n)).bytesRead > 0; ) n += r.bytesRead;
+    return n > st.size ? null : buf.subarray(0, n);
   } finally {
     await fh.close();
   }

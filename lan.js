@@ -146,12 +146,29 @@ async function handle(req, res) {
 // vagy amelyre egy onnan kapott lejátszólista hivatkozik – így a kulccsal sem érhető el tetszőleges
 // (pl. helyi hálózati) cím.
 const allowedOrigins = new Set();
-const allowOrigin = (url) => {
+/** Helyi / belső cím (localhost, magánhálózat, link-local)? */
+function isPrivateHost(host) {
+  const h = String(host || '').toLowerCase().replace(/^\[|\]$/g, '');
+  if (h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local') || h === '0.0.0.0' || h === '::' || h === '::1') return true;
+  if (/^(127|10)\./.test(h) || /^192\.168\./.test(h) || /^169\.254\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
+  return /^(fc|fd|fe8|fe9|fea|feb)[0-9a-f]*:/.test(h);
+}
+/**
+ * Engedélyezés: amit az alkalmazás maga ad át (proxyUrl), az bármi lehet (pl. a NAS). Amire egy lista
+ * hivatkozik vagy egy kiszolgáló átirányít, az csak akkor lehet helyi cím, ha a hivatkozó maga is helyi
+ * – így egy internetes forrás nem irányíthatja a továbbítót a helyi hálózat eszközeire.
+ */
+const allowOrigin = (url, parent = null) => {
   try {
-    const o = new URL(url).origin;
+    const u = new URL(url);
+    if (!/^https?:$/.test(u.protocol)) return false;
+    if (parent && isPrivateHost(u.hostname) && !isPrivateHost(new URL(parent).hostname)) return false;
     if (allowedOrigins.size > 500) allowedOrigins.clear();
-    allowedOrigins.add(o);
-  } catch {}
+    allowedOrigins.add(u.origin);
+    return true;
+  } catch {
+    return false;
+  }
 };
 const isAllowed = (url) => {
   try {
@@ -160,10 +177,7 @@ const isAllowed = (url) => {
     return false;
   }
 };
-const proxied = (abs) => {
-  allowOrigin(abs);
-  return `/p/${TOKEN}?u=${encodeURIComponent(abs)}`;
-};
+const proxied = (abs, parent = null) => (allowOrigin(abs, parent) ? `/p/${TOKEN}?u=${encodeURIComponent(abs)}` : '#tiltott');
 
 function rewritePlaylist(text, base) {
   const abs = (x) => {
@@ -178,10 +192,27 @@ function rewritePlaylist(text, base) {
     .map((line) => {
       const l = line.trim();
       if (!l) return line;
-      if (l.startsWith('#')) return line.replace(/URI="([^"]+)"/g, (_m, x) => `URI="${proxied(abs(x))}"`);
-      return proxied(abs(l));
+      if (l.startsWith('#')) return line.replace(/URI="([^"]+)"/g, (_m, x) => `URI="${proxied(abs(x), base)}"`);
+      return proxied(abs(l), base);
     })
     .join('\n');
+}
+
+/** Lekérés kézi átirányítás-kezeléssel: minden új célt ugyanúgy ellenőrzünk (legfeljebb 5 lépés). */
+async function fetchChecked(target, opts) {
+  let url = target;
+  for (let i = 0; i <= 5; i++) {
+    const res = await fetch(url, { ...opts, redirect: 'manual' });
+    const loc = res.status >= 300 && res.status < 400 && res.headers.get('location');
+    if (!loc) return { res, url };
+    const next = new URL(loc, url).href;
+    try {
+      await res.body?.cancel();
+    } catch {}
+    if (!allowOrigin(next, url)) throw Object.assign(new Error('Nem engedélyezett átirányítás'), { code: 403 });
+    url = next;
+  }
+  throw new Error('Túl sok átirányítás');
 }
 
 async function proxy(req, res, target) {
@@ -195,16 +226,23 @@ async function proxy(req, res, target) {
   if (req.headers.range) headers.Range = req.headers.range;
   const ctrl = new AbortController();
   req.on('close', () => ctrl.abort());
-  const up = await fetch(target, { headers, redirect: 'follow', signal: ctrl.signal });
+  let up, finalUrl;
+  try {
+    ({ res: up, url: finalUrl } = await fetchChecked(target, { headers, signal: ctrl.signal }));
+  } catch (err) {
+    if (res.headersSent) return res.destroy();
+    res.statusCode = err.code === 403 ? 403 : 502;
+    return res.end(err.code === 403 ? 'Nem engedélyezett átirányítás' : 'A forrás nem érhető el');
+  }
   const type = (up.headers.get('content-type') || '').toLowerCase();
-  const looksList = /mpegurl/.test(type) || /\.m3u8?(\?|$)/i.test(new URL(up.url).pathname);
+  const looksList = /mpegurl/.test(type) || /\.m3u8?(\?|$)/i.test(new URL(finalUrl).pathname);
   if (looksList && up.ok) {
     const text = await up.text();
     if (text.trimStart().startsWith('#EXTM3U')) {
       res.statusCode = 200;
       res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
       res.setHeader('Cache-Control', 'no-cache');
-      return res.end(rewritePlaylist(text, up.url));
+      return res.end(rewritePlaylist(text, finalUrl));
     }
     res.statusCode = up.status;
     return res.end(text);
