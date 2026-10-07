@@ -8,10 +8,11 @@ const RECHECK_MS = 12 * 3600e3;
 const PER_CHANNEL = 4; // csatornánként legfeljebb ennyi forrást ellenőrzünk a háttérben
 
 /** Háttérellenőrzés eredménye – egy friss sikertelen lejátszást nem ír felül „működik”-kel. */
+/** ok: true / false, vagy 'geo' (a szerver 403 / 451 válasszal elutasította – földrajzi korlát) */
 function applyProbe(url, ok) {
   const prev = store.health[url];
-  if (ok && prev && !prev[0] && prev[2] === 'p' && Date.now() - prev[1] < RECHECK_MS) return;
-  store.health[url] = [ok ? 1 : 0, Date.now(), 'c'];
+  if (ok === true && prev && !prev[0] && prev[2] === 'p' && Date.now() - prev[1] < RECHECK_MS) return;
+  store.health[url] = ok === 'geo' ? [0, Date.now(), 'c', 'g'] : [ok ? 1 : 0, Date.now(), 'c'];
 }
 const queue = new Map(); // url -> stream
 let running = false;
@@ -27,14 +28,29 @@ api.onCheckProgress(({ done, total, partial }) => {
   }
 });
 
+// Lejátszás közben a háttér-ellenőrzés szünetel: a próbák szegmenseket is letöltenek, és ez a nézett
+// adás elől vette el a sávszélességet (akadozás). A lejátszó bezárása után folytatódik.
+let playing = false;
+bus.on('player-opened', () => {
+  playing = true;
+  if (running && !fullScan) api.cancelCheck?.();
+});
+bus.on('player-closed', () => {
+  playing = false;
+  clearTimeout(timer);
+  timer = setTimeout(pump, 5000);
+});
+
 async function pump() {
-  if (running || !queue.size) return;
+  if (running || !queue.size || playing) return;
   running = true;
   try {
-    while (queue.size) {
+    while (queue.size && !playing) {
       const batch = [...queue.values()].slice(0, 60);
       batch.forEach((s) => queue.delete(s.url));
-      const { results } = await api.checkStreams(batch.map((s) => ({ url: s.url, ua: s.ua, referrer: s.referrer })));
+      const { results, cancelled } = await api.checkStreams(batch.map((s) => ({ url: s.url, ua: s.ua, referrer: s.referrer })));
+      // a megszakított kör ellenőrizetlen tételei visszakerülnek a sorba
+      if (cancelled) for (const s of batch) if (!(s.url in results)) queue.set(s.url, s);
       for (const [url, ok] of Object.entries(results)) applyProbe(url, ok);
       store.save();
       bus.emit('health');

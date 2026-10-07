@@ -4,10 +4,11 @@ import { $, esc, html, fmtTime, toast, bus, hashHue } from './util.js';
 import { api, IS_WEBOS } from './api.js';
 import { store } from './store.js';
 import { epg } from './epg.js';
-import { catalog, orderedStreams, visible, getChannels, countryName, countryFlag, offlineLabel } from './catalog.js';
+import { catalog, orderedStreams, visible, getChannels, countryName, countryFlag, offlineLabel, geoLimited } from './catalog.js';
 import { Engine } from './engine.js';
 import { probeMedia, bridgeReason } from './bridge.js';
 import { exoAvailable } from './exo.js';
+import { toggleStreamInfo, stopStreamInfo, streamInfoOpen } from './streaminfo.js';
 import { ICON, logoHtml, openInfo, modalOpen } from './components.js';
 
 const P = {
@@ -138,9 +139,10 @@ export const player = {
       if (h && Date.now() - h.t < 10 * 60e3) continue; // nemrég ellenőrzött
       api
         .probe({ url: s.url, ua: s.ua, referrer: s.referrer })
-        .then((ok) => {
+        .then((res) => {
           if (raceId !== this.raceId) return;
-          store.setHealth(s.url, ok, 'probe');
+          const ok = res === true; // 'geo': a szerver 403 / 451 válasszal elutasította
+          store.setHealth(s.url, ok, 'probe', res === 'geo');
           if (!ok || this.channel !== ch || this.engine.started || this.tried.has(s.url)) return;
           const wait = Math.max(0, RACE_DELAY - (Date.now() - (this.streamAt || 0)));
           setTimeout(() => {
@@ -271,7 +273,7 @@ export const player = {
       if (preferNative && this.engine.type === 'native' && window.Hls?.isSupported()) {
         return this.tryStream(stream, { forceHlsJs: true });
       }
-      store.setHealth(stream.url, false);
+      store.setHealth(stream.url, false, 'play', err.httpStatus === 403 || err.httpStatus === 451);
       this.fallback(err);
     }
   },
@@ -323,7 +325,7 @@ export const player = {
     this.engine.stop();
     const ch = this.channel;
     const box = $('.p-error', root);
-    const geo = ch.streams.every((s) => s.geoBlocked);
+    const geo = geoLimited(ch) || err?.httpStatus === 403 || err?.httpStatus === 451;
     const hasNext = ch.vod && this.vodHooks?.next(ch, 1);
     box.innerHTML = ch.vod
       ? `<h2>Ez a videó most nem érhető el</h2>
@@ -334,7 +336,11 @@ export const player = {
       ${api.openInPlayer && this.vodHooks?.external ? '<button class="btn" data-e="external">Külső lejátszóban</button>' : ''}
       <button class="btn" data-e="back">Vissza</button></div>`
       : `<h2>Ez az adás most nem érhető el</h2>
-      <p>${geo ? 'A csatorna földrajzilag korlátozott, lehet, hogy innen nem nézhető.' : 'Az adó nem válaszol, vagy megszűnt az adás. Ez az ingyenes listákon gyakori.'}</p>
+      <p>${
+        geo
+          ? '🌐 <b>Földrajzi korlátozás:</b> az adó csak bizonyos országokból nézhető, innen elutasította a kérést. (Más országban, vagy egy ottani VPN-nel működhet.)'
+          : 'Az adó nem válaszol, vagy megszűnt az adás. Ez az ingyenes listákon gyakori.'
+      }</p>
       ${err ? `<p class="muted small">${esc(err.message || err)}</p>` : ''}
       <div class="dialog-btns"><button class="btn primary" data-e="retry">${P.retry} Újra</button>
       <button class="btn" data-e="next">${P.down} Következő csatorna</button>
@@ -378,6 +384,7 @@ export const player = {
 
   close() {
     if (!this.active) return;
+    stopStreamInfo(video);
     if (this.mini) this.setMini(false);
     if (this.fullscreen) api.setFullscreen(false);
     if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
@@ -725,11 +732,12 @@ export const player = {
             <span class="st st-${h ? (h.ok ? 'ok' : 'bad') : 'unknown'}"></span>
             ${esc(s.feedName && s.feedName !== 'SD' ? s.feedName : `Forrás ${i + 1}`)}${s.quality ? ' · ' + esc(s.quality) : ''}</button>`;
         })
-        .join('')}`;
+        .join('')}<h4>Részletek</h4><button class="menu-item ${streamInfoOpen() ? 'sel' : ''}" data-stats>📊 Adás adatai (D)</button>`;
       menu.innerHTML = body;
       menu.onclick = (ev) => {
         const b = ev.target.closest('button');
         if (!b) return;
+        if ('stats' in b.dataset) toggleStreamInfo(this, root, video);
         if (b.dataset.level !== undefined) e.setLevel(Number(b.dataset.level));
         if (b.dataset.src !== undefined) {
           this.tried = new Set();
@@ -976,6 +984,10 @@ export const player = {
       case 'v':
       case 'V':
         if (api.caps.multiview) this.multiHooks?.open([this.channel]);
+        break;
+      case 'd':
+      case 'D':
+        toggleStreamInfo(this, root, video);
         break;
       case 'Enter':
         if (onButton) return false;

@@ -163,11 +163,28 @@ export class Engine {
           maxBufferLength: 30,
           maxMaxBufferLength: 600,
           maxBufferSize: 60 * 1000 * 1000,
+          // Akadás ellen: az élő adás széle előtt 4 szegmensnyivel indulunk (alapból 3) – így nagyobb a
+          // tartalék, ha a szerver épp lassabban küld –, és nem gyorsítunk rá a lejátszásra a behozáshoz.
+          liveSyncDurationCount: 4,
+          maxLiveSyncPlaybackRate: 1,
+          // A TS-adások szegmenshatárain gyakori apró időbélyeg-réseket a lejátszó átlépi, nem áll meg rajtuk.
+          maxBufferHole: 0.5,
+          nudgeMaxRetry: 6,
+          // Óvatosabb minőségváltás: felfelé csak bőséges sávszélességnél, lefelé hamarabb.
+          abrBandWidthFactor: 0.8,
+          abrBandWidthUpFactor: 0.6,
         });
         this.hls = hls;
         this.timeshift = timeshift;
         let recovered = false;
         hls.on(window.Hls.Events.MANIFEST_LOADED, () => (this.headReceived = true));
+        // Az adás tényleges bitrátája a letöltött szegmensekből (az Adás adatai panelhez; sok lista nem adja meg)
+        this.fragBitrate = 0;
+        hls.on(window.Hls.Events.FRAG_LOADED, (_e, d) => {
+          const bytes = d.frag?.stats?.loaded || d.payload?.byteLength || 0;
+          const dur = d.frag?.duration || 0;
+          if (bytes && dur > 0.5 && d.frag.type === 'main') this.fragBitrate = this.fragBitrate ? this.fragBitrate * 0.7 + ((bytes * 8) / dur) * 0.3 : (bytes * 8) / dur;
+        });
         hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
           tryPlay();
           this.onTracks();
@@ -193,7 +210,9 @@ export class Engine {
             hls.recoverMediaError();
             return;
           }
-          fail(new Error(data.details || 'HLS hiba'));
+          const err = new Error(data.details || 'HLS hiba');
+          err.httpStatus = data.response?.code || data.networkDetails?.status || 0; // 403 / 451: földrajzi korlát
+          fail(err);
         });
         hls.loadSource(stream.url);
         hls.attachMedia(video);

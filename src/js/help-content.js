@@ -167,7 +167,7 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
 <li>＋/✓ <b>Kedvenc</b>, ⓘ <b>Adatlap</b>.</li>
 <li>☾ <b>Elalvási időzítő</b>. ${t('sleep', 'Részletek')}</li>
 <li><b>CC</b> – <b>Hang és felirat</b>: hangsáv és felirat választása (<kbd>C</kbd>). ${t('audio-subs', 'Részletek')}</li>
-<li>⚙ <b>Minőség és forrás</b>. ${t('quality', 'Részletek')}</li>
+<li>⚙ <b>Minőség és forrás</b>. ${t('quality', 'Részletek')} Itt van a <b>📊 Adás adatai</b> panel is (<kbd>D</kbd>): felbontás, bitráta, letöltési sebesség, puffer. ${t('stream-info', 'Részletek')}</li>
 <li>☰ <b>Csatornalista-panel</b> a jobb oldalon, szűrővel.</li>
 <li>↺30 / ↻30 <b>Vissza- és előretekerés</b> az élő adásban, <b>Ugrás élőbe</b>. ${t('timeshift', 'Részletek')}</li>
 <li>▦ <b>Több adás egyszerre</b>. ${t('multiview', 'Részletek')}</li>
@@ -1094,7 +1094,7 @@ npm run webos:launch -- --device tv</pre></li>
 <li><b>Újra</b> gomb – néha csak a szerver volt lassú.</li>
 <li>Másik <b>forrás</b>: lejátszás közben ⚙ → Forrás, vagy az adatlapon egy másik ▶. ${t('quality', 'Részletek')}</li>
 <li>Más <b>lejátszómotor</b>: Beállítások → Lejátszás → Lejátszómotor (Beépített ↔ hls.js). ${t('engines', 'Részletek')}</li>
-<li><b>Földrajzi korlátozás</b>: ha az adatlapon „Földrajzilag korlátozott” áll, az adás valószínűleg csak az adott országból nézhető.</li>
+<li><b>Földrajzi korlátozás</b> (🌐): egyes adások csak bizonyos országokból nézhetők. ${t('geo', 'Részletek')}</li>
 <li><b>„Nem 0–24”</b> jelzés: a csatorna csak bizonyos időszakokban sugároz.</li>
 <li>Frissítsd a csatornalistát (profilmenü → Csatornalista frissítése) – lehet, hogy az iptv-org közben új címet talált.</li>
 <li>Kapcsold be a <b>Nem elérhető csatornák elrejtése</b> beállítást, hogy a halott csatornák ne zavarjanak.</li>
@@ -1102,18 +1102,54 @@ npm run webos:launch -- --device tv</pre></li>
 <p>Ha egy adás tartósan nem működik, az a forrás hibája – ilyenkor a csatornát az iptv-org GitHub-oldalán lehet jelezni.</p>`,
   },
   {
+    id: 'geo',
+    cat: 'trouble',
+    title: 'Földrajzi korlátozás (🌐)',
+    keywords: 'földrajzi korlát geo geoblokk geo-blocked ország vpn 403 451 nem nézhető',
+    body: `
+<p>Sok csatorna a jogdíjak miatt csak a saját országából nézhető. Az Adás kétféleképpen jelzi ezt:</p>
+<table class="help-table">
+<tr><td><b>🌐 GEO-KORLÁT</b> (narancs címke a kártyán, „Földrajzi korlát – innen nem nézhető”)</td><td>Biztos: az adó innen <b>elutasította</b> a kérést (HTTP 403 vagy 451). Ezt a háttérben futó elérhetőség-ellenőrzés vagy egy lejátszási kísérlet derítette ki.</td></tr>
+<tr><td><b>🌐</b> (kis jel a kártya sarkában, „Földrajzilag korlátozott lehet”)</td><td>A lista szerint a csatorna minden forrása korlátozott, de innen még nem próbáltuk. Sok ilyen adás mégis működik – ha egyszer elindult, a jel eltűnik.</td></tr>
+</table>
+<p>Ha egy korlátozott adást indítasz, a lejátszó ezt külön kiírja (nem csak annyit, hogy „nem érhető el”). Más országban, vagy egy ottani VPN-nel működhet.</p>
+<p><b>Szűrés:</b> a Böngészés oldalon a <i>Földrajzi korlát</i> választóval elrejtheted a korlátozottakat, vagy csak azokat mutathatod.</p>
+<div class="note">A 403-as választ néha nem az ország, hanem más ok (pl. lejárt hozzáférés) váltja ki – ilyenkor is a „földrajzi korlát” jelzés jelenik meg, mert kívülről a kettő nem különböztethető meg.</div>
+${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
+  },
+  {
+    id: 'stream-info',
+    cat: 'watch',
+    title: 'Adás adatai (minőség, sebesség)',
+    keywords: 'adás adatai statisztika bitráta sebesség sávszélesség felbontás minőség puffer késés eldobott képkocka kodek hálózat d billentyű',
+    body: `
+<p>Lejátszás közben a <b>⚙ Minőség és forrás → 📊 Adás adatai</b> menüponttal (vagy a <kbd>D</kbd> billentyűvel) egy átlátszó panel nyílik, amely másodpercenként frissül:</p>
+<table class="help-table">
+<tr><td><b>Lejátszó</b>, <b>Kiszolgáló</b></td><td>Melyik lejátszómotor játssza (hls.js, beépített, lejátszási híd…), és melyik szerverről jön az adás (🔒: titkosított kapcsolat).</td></tr>
+<tr><td><b>Felbontás</b>, <b>Kodekek</b>, <b>Bitráta</b></td><td>A kép mérete (SD / HD / Full HD / 4K) és képkockasebessége; az adás adatmennyisége másodpercenként. Ha a lista nem adja meg, a letöltött részekből mérjük („mért”).</td></tr>
+<tr><td><b>Mért letöltési sebesség</b></td><td>Amilyen gyorsan a szerver ténylegesen küld – és ez a bitráta hányszorosa. 1,3× alatt (narancs) a kapcsolat vagy a szerver épphogy bírja: ebből lesz az akadás.</td></tr>
+<tr><td><b>Puffer</b>, <b>Késés az élőtől</b></td><td>Hány másodpercnyi adás van már letöltve előre (3 mp alatt narancs), és mennyivel jár az élő adás mögött.</td></tr>
+<tr><td><b>Eldobott képkockák</b></td><td>Ha sok (5% felett), az eszköz nem bírja a dekódolást – kisebb minőség segít.</td></tr>
+<tr><td><b>Akadás</b></td><td>Hányszor és mennyi ideig állt meg a kép, mióta a panel nyitva van.</td></tr>
+<tr><td><b>Hálózat</b></td><td>A rendszer becslése a kapcsolatról (típus, sebesség, válaszidő), ahol ezt elárulja.</td></tr>
+</table>
+<p>Ha valami gyanús, a panel alján egy ⚠ sor tanácsot is ad (pl. kisebb minőség vagy másik forrás).</p>`,
+  },
+  {
     id: 'trouble-buffering',
     cat: 'trouble',
     title: 'Akadozik, pufferel a kép',
     keywords: 'akadozik pufferel lassú szaggat töltés minőség internet',
     body: `
+<p>Hogy mi a gond, azt az <b>Adás adatai</b> panel mutatja meg (lejátszás közben <kbd>D</kbd>): ha a mért letöltési sebesség alig nagyobb a bitrátánál, a szerver vagy a kapcsolat lassú. ${t('stream-info', 'Részletek')}</p>
 <ul>
 <li>Állíts be <b>alacsonyabb minőséget</b> (⚙ → Minőség), különösen mobilneten vagy gyenge wifin.</li>
 <li>Próbálj <b>másik forrást</b> – egy másik szerver gyorsabb lehet.</li>
-<li>Ha az adás 30 másodpercnél tovább áll, a program magától a következő forrásra vált (ha be van kapcsolva a tartalék forrás).</li>
+<li>Ha az adás 10 másodpercnél tovább áll, a program magától a következő forrásra vált (ha be van kapcsolva a tartalék forrás és van másik forrás).</li>
 <li>Távoli országok szerverei lassabbak lehetnek; ez nem a program hibája.</li>
-<li>A háttérben futó teljes elérhetőség-ellenőrzés sávszélességet használ – lejátszás közben érdemes leállítani.</li>
-</ul>`,
+<li>A háttérben futó automatikus elérhetőség-ellenőrzés lejátszás közben magától szünetel. A kézzel indított <i>Minden adás ellenőrzése</i> viszont fut tovább – azt lejátszás közben érdemes leállítani.</li>
+</ul>
+<p>Az élő adásokat a lejátszó kb. 4 résznyivel (jellemzően 20–30 mp-cel) az élő adás mögött indítja: így van tartalék, ha a szerver egy pillanatra lelassul – a legfrissebb, még készülő részt sok szerver csak lassan küldi.</p>`,
   },
   {
     id: 'trouble-epg',

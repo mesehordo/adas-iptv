@@ -340,15 +340,16 @@ export const store = {
    * Egy friss (12 órán belüli) sikertelen lejátszást a háttérellenőrzés „működik” eredménye nem írhat
    * felül – a lejátszás a megbízhatóbb jel (pl. a lista elérhető, de a kép nem jön le).
    */
-  setHealth(url, ok, source = 'play') {
+  /** geo: a szerver 403 / 451 válasszal utasította el (jellemzően földrajzi korlátozás) */
+  setHealth(url, ok, source = 'play', geo = false) {
     const prev = this.health[url];
     if (source === 'probe' && ok && prev && !prev[0] && prev[2] === 'p' && Date.now() - prev[1] < 12 * 3600e3) return;
-    this.health[url] = [ok ? 1 : 0, Date.now(), source === 'play' ? 'p' : 'c'];
+    this.health[url] = ok || !geo ? [ok ? 1 : 0, Date.now(), source === 'play' ? 'p' : 'c'] : [0, Date.now(), source === 'play' ? 'p' : 'c', 'g'];
     this.save();
   },
   healthOf(url) {
     const h = this.health[url];
     if (!h) return null;
-    return { ok: !!h[0], t: h[1] };
+    return { ok: !!h[0], t: h[1], geo: h[3] === 'g' };
   },
 };

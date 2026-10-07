@@ -12,12 +12,20 @@ try {
   workerUrl = 'js/epg-worker.js';
 }
 let reqId = 0;
+let indexFor = null; // melyik csatornalistához készült a háttérszálnak elküldött index
 const pending = new Map();
 const onWorkerMessage = (e) => {
   const p = pending.get(e.data.id);
   if (!p) return;
+  if (e.data.error) {
+    pending.delete(e.data.id);
+    return p.reject(new Error(e.data.error));
+  }
+  // a párosított műsorok részletekben jönnek; az utolsó üzenet hozza az összesítést
+  (p.matched ||= []).push(...e.data.chunk);
+  if (!e.data.done) return;
   pending.delete(e.data.id);
-  e.data.error ? p.reject(new Error(e.data.error)) : p.resolve(e.data);
+  p.resolve({ ...e.data, matched: p.matched });
 };
 // Androidon a háttérszál szkriptjét a memóriából indítjuk: a WebView a worker betöltését nem
 // mindig a keret saját kiszolgálóján át kéri.
@@ -28,22 +36,42 @@ const workerReady = (IS_ANDROID
   w.onmessage = onWorkerMessage;
   return w;
 });
-async function parse(text) {
+/** Feldolgozás a háttérszálon. `data`: szöveg, vagy UTF-8 bájtok (asztali változat – ezt másolás nélkül adjuk át). */
+async function parse(data) {
   const worker = await workerReady;
   const id = ++reqId;
   const from = Date.now() - 24 * 3600e3;
   const to = Date.now() + 7 * 24 * 3600e3;
   return new Promise((resolve, reject) => {
     pending.set(id, { resolve, reject });
-    worker.postMessage({ id, text, from, to });
+    if (typeof data === 'string') worker.postMessage({ id, text: data, from, to });
+    else {
+      const u8 = data instanceof Uint8Array ? data : new Uint8Array(data);
+      const buf = u8.byteOffset === 0 && u8.byteLength === u8.buffer.byteLength ? u8.buffer : u8.slice().buffer;
+      worker.postMessage({ id, bytes: buf, from, to }, [buf]);
+    }
   });
 }
+/** Letöltés (gyorsítótárral): ahol lehet, bájtként. */
+const fetchSource = (url, opts) =>
+  api.fetchBytes ? api.fetchBytes(url, opts).then((r) => ({ data: r.bytes, cachedAt: r.cachedAt })) : api.fetchText(url, opts).then((r) => ({ data: r.text, cachedAt: r.cachedAt }));
 
 /** Program: { start, stop, title, desc, category, subtitle, episode, age (korhatár, 0 = nincs adat) } */
 const toProg = (r) => ({ start: r[0], stop: r[1], title: r[2] || 'Műsor', desc: r[3], category: r[4], subtitle: r[5], episode: r[6], age: r[7] || 0 });
+// A háttérszál tömböket ad; a műsor-objektumok csatornánként, az első használatkor jönnek létre
+// (több százezer objektum egyszerre a felületet másodpercekre megakasztotta).
+const PROGS = Symbol('progs');
+function progsOf(map, id) {
+  const v = map.get(id);
+  if (!v || v[PROGS]) return v;
+  const out = v.map(toProg);
+  out[PROGS] = true;
+  map.set(id, out);
+  return out;
+}
 
 export const epg = {
-  byChannel: new Map(), // catalog id -> program[]
+  byChannel: new Map(), // catalog id -> program[] (első használatig nyers sorok)
   status: {}, // forrás url -> { ok, channels, matched, programs, error, at }
   loading: false,
   loadedAt: 0,
@@ -53,11 +81,11 @@ export const epg = {
   },
 
   list(id) {
-    return this.byChannel.get(id) || [];
+    return progsOf(this.byChannel, id) || [];
   },
 
   now(id, t = Date.now()) {
-    const list = this.byChannel.get(id);
+    const list = progsOf(this.byChannel, id);
     if (!list) return null;
     let lo = 0;
     let hi = list.length - 1;
@@ -85,11 +113,17 @@ export const epg = {
     const out = [];
     const now = Date.now();
     const until = now + 48 * 3600e3;
+    const fold = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
     for (const [id, list] of this.byChannel) {
-      for (const p of list) {
-        if (p.stop < now || p.start > until) continue;
-        const hay = p._n || (p._n = (p.title + ' ' + (p.subtitle || '')).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase());
-        if (tokens.every((t) => hay.includes(t))) out.push({ channelId: id, prog: p });
+      const conv = !!list[PROGS];
+      for (let i = 0; i < list.length; i++) {
+        const x = list[i];
+        // még nem átalakított csatornánál a nyers sort nézzük, és csak a találatot alakítjuk át
+        const start = conv ? x.start : x[0];
+        const stop = conv ? x.stop : x[1];
+        if (stop < now || start > until) continue;
+        const hay = conv ? x._n || (x._n = fold(x.title + ' ' + (x.subtitle || ''))) : fold((x[2] || 'Műsor') + ' ' + (x[5] || ''));
+        if (tokens.every((t) => hay.includes(t))) out.push({ channelId: id, prog: conv ? x : this.list(id)[i] });
       }
     }
     out.sort((a, b) => a.prog.start - b.prog.start);
@@ -107,7 +141,11 @@ export const epg = {
     if (this.loading) return;
     this.loading = true;
     bus.emit('epg-loading', true);
-    const index = buildIndex();
+    // A párosításhoz szükséges index a háttérszálba megy – csak ha a csatornalista azóta változott
+    if (indexFor !== catalog.channels) {
+      indexFor = catalog.channels;
+      (await workerReady).postMessage({ type: 'index', index: buildIndex() });
+    }
     const sources = this.sources();
     const parsed = new Array(sources.length);
     // Egyszerre legfeljebb 3 forrás töltődik.
@@ -117,11 +155,11 @@ export const epg = {
         const n = i++;
         const src = sources[n];
         try {
-          const { text, cachedAt } = await api.fetchText(src.url, { maxAgeHours: store.settings.epgRefreshHours, force });
-          parsed[n] = await parse(text);
+          const { data, cachedAt } = await fetchSource(src.url, { maxAgeHours: store.settings.epgRefreshHours, force });
+          parsed[n] = await parse(data);
           this.status[src.url] = {
             ok: true,
-            channels: Object.keys(parsed[n].channels).length,
+            channels: parsed[n].nChannels,
             programs: parsed[n].count,
             at: cachedAt,
           };
@@ -135,7 +173,14 @@ export const epg = {
     // Párosítás a lista sorrendjében: a korábbi forrás élvez elsőbbséget.
     const result = new Map();
     sources.forEach((src, n) => {
-      if (parsed[n]) this.status[src.url].matched = assign(parsed[n], index, result);
+      if (!parsed[n]) return;
+      let matched = 0;
+      for (const [chId, rows] of parsed[n].matched) {
+        if (result.has(chId)) continue; // az elsőként betöltött (magasabb prioritású) forrás nyer
+        result.set(chId, rows);
+        matched++;
+      }
+      this.status[src.url].matched = matched;
     });
     this.byChannel = result;
     this.loading = false;
@@ -146,7 +191,7 @@ export const epg = {
 };
 
 // ---------------------------------------------------------------------------
-// Párosítás: pontos tvg-id → azonosító-kulcs országgal → név országgal → név
+// Párosítási index (a párosítás maga a háttérszálban fut: epg-worker.js)
 // ---------------------------------------------------------------------------
 function stripSuffix(k) {
   return k.replace(/(uhd|fhd|hd|sd|4k)$/, '') || k;
@@ -185,44 +230,4 @@ function buildIndex() {
     }
   }
   return { exact, withCc, nameCc, nameOnly };
-}
-
-function resolve(epgId, names, idx) {
-  const lower = epgId.toLowerCase();
-  if (idx.exact.has(lower)) return idx.exact.get(lower);
-  const base = lower.split('@')[0];
-  if (idx.exact.has(base)) return idx.exact.get(base);
-  const { k, cc } = idKey(epgId);
-  const ccs = cc === 'uk' ? ['gb', 'uk'] : [cc];
-  for (const c of ccs) {
-    const hit = idx.withCc.get(k + '.' + c);
-    if (hit) return hit;
-  }
-  for (const n of names) {
-    const nk = stripSuffix(key(n));
-    for (const c of ccs) {
-      const hit = idx.nameCc.get(nk + '.' + c);
-      if (hit) return hit;
-    }
-  }
-  for (const n of [k, ...names.map((n) => stripSuffix(key(n)))]) {
-    const hit = idx.nameOnly.get(n);
-    if (hit) return hit;
-  }
-  return null;
-}
-
-function assign(data, idx, result) {
-  let matched = 0;
-  const ids = new Set([...Object.keys(data.channels), ...Object.keys(data.programs)]);
-  for (const epgId of ids) {
-    const progs = data.programs[epgId];
-    if (!progs?.length) continue;
-    const chId = resolve(epgId, data.channels[epgId] || [], idx);
-    // Az elsőként betöltött (magasabb prioritású) forrás nyer.
-    if (!chId || result.has(chId)) continue;
-    result.set(chId, progs.map(toProg));
-    matched++;
-  }
-  return matched;
 }

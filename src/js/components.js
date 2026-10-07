@@ -6,7 +6,7 @@ import { epg } from './epg.js';
 import { health } from './health.js';
 import { api } from './api.js';
 import {
-  catalog, countryName, countryFlag, categoryName, languageName, channelStatus, qualityBadge, orderedStreams, offlineLabel,
+  catalog, countryName, countryFlag, categoryName, languageName, channelStatus, qualityBadge, orderedStreams, offlineLabel, geoState,
 } from './catalog.js';
 import { player } from './player.js';
 import { channelInfo, infoBoxHtml } from './meta.js';
@@ -70,15 +70,19 @@ export function cardHtml(ch, { context = '' } = {}) {
   const fav = store.isFavorite(ch.id);
   const flag = countryFlag(ch.country);
   const off = offlineLabel(ch);
+  // földrajzi korlát: ellenőrizve (innen elutasította), vagy a lista szerint minden forrása korlátozott
+  const geo = geoState(ch);
+  const OFF_TEXT = { Adásszünet: 'Adásszünet – most nem sugároz', 'Földrajzi korlát': 'Földrajzi korlát – innen nem nézhető' };
   const sub = off
-    ? `<span class="off-text">${off === 'Adásszünet' ? 'Adásszünet – most nem sugároz' : 'Offline – jelenleg nem elérhető'}</span>`
+    ? `<span class="off-text">${OFF_TEXT[off] || 'Offline – jelenleg nem elérhető'}</span>`
     : now?.cur
       ? esc(now.cur.title)
       : esc([countryName(ch.country), categoryName(ch.categories[0])].filter(Boolean).join(' · '));
   return `<div class="card ${off ? 'is-off' : ''}" tabindex="0" data-id="${esc(ch.id)}" data-ctx="${esc(context)}">
     <div class="thumb" style="--h:${hashHue(ch.name)}">
       ${logoHtml(ch)}
-      ${off ? `<span class="off-badge">${off === 'Adásszünet' ? 'ADÁSSZÜNET' : 'OFFLINE'}</span>` : ''}
+      ${off ? `<span class="off-badge ${geo === 'sure' ? 'geo' : ''}">${{ Adásszünet: 'ADÁSSZÜNET', 'Földrajzi korlát': '🌐 GEO-KORLÁT' }[off] || 'OFFLINE'}</span>` : ''}
+      ${!off && geo === 'maybe' ? '<span class="geo-mark" title="Földrajzilag korlátozott lehet – csak bizonyos országokból nézhető">🌐</span>' : ''}
       ${q ? `<span class="q">${q}</span>` : ''}
       <span class="st st-${st}" title="${st === 'ok' ? 'Működik' : st === 'bad' ? 'Nem elérhető' : 'Nem ellenőrzött'}"></span>
       ${fav ? '<span class="fav-mark">★</span>' : ''}
@@ -492,7 +496,7 @@ export function openInfo(ch) {
             <span class="st-label st-${st}">${st === 'ok' ? 'Működik' : st === 'bad' ? offlineLabel(ch) + ' – jelenleg nem elérhető' : 'Nem ellenőrzött'}</span>
             ${qualityBadge(ch) ? `<span class="pill">${qualityBadge(ch)}</span>` : ''}
             ${ch.streams.length > 1 ? `<span class="pill">${ch.streams.length} forrás</span>` : ''}
-            ${ch.streams.every((s) => s.geoBlocked) ? '<span class="pill warn">Földrajzilag korlátozott</span>' : ''}
+            ${{ sure: '<span class="pill warn" title="Az adó innen elutasította a kérést (403 / 451)">🌐 Földrajzi korlát – innen nem nézhető</span>', maybe: '<span class="pill warn" title="A lista szerint csak bizonyos országokból nézhető">🌐 Földrajzilag korlátozott lehet</span>' }[geoState(ch)] || ''}
             ${ch.streams.every((s) => s.notAlways) ? '<span class="pill warn">Nem 0–24</span>' : ''}
           </div>
           ${now?.cur ? `<div class="info-now"><span class="now-label">MOST</span> <b>${esc(now.cur.title)}</b> <span class="muted">${fmtTime(now.cur.start)}–${fmtTime(now.cur.stop)}</span>

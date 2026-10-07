@@ -741,7 +741,34 @@ export function channelStatus(ch) {
  */
 export function offlineLabel(ch) {
   if (channelStatus(ch) !== 'bad') return null;
+  if (geoLimited(ch)) return 'Földrajzi korlát';
   return ch.streams.some((s) => s.notAlways) ? 'Adásszünet' : 'Offline';
+}
+
+/**
+ * Földrajzilag korlátozott-e a csatorna: minden forrása vagy a lista szerint az ([Geo-blocked]), vagy a
+ * szerver innen 403 / 451 válasszal elutasította – és egyik sem működik. (Ha egy forrás innen megy, nem az.)
+ */
+export function geoLimited(ch) {
+  if (!ch?.streams?.length) return false;
+  let any = false;
+  for (const s of ch.streams) {
+    const h = store.healthOf(s.url);
+    if (h?.ok) return false;
+    if (s.geoBlocked || h?.geo) any = true;
+    else if (!h) return false; // ismeretlen, nem korlátozott forrás: lehet, hogy működik
+  }
+  return any;
+}
+
+/**
+ * A felületi jelölés: 'sure' – innen biztosan nem nézhető (403 / 451); 'maybe' – a lista szerint minden
+ * forrása korlátozott, és innen még nem láttuk működni; '' – nem korlátozott (vagy innen működik).
+ */
+export function geoState(ch) {
+  if (geoLimited(ch)) return 'sure';
+  if (ch?.streams?.length && ch.streams.every((s) => s.geoBlocked) && channelStatus(ch) !== 'ok') return 'maybe';
+  return '';
 }
 
 /** Adások lejátszási sorrendben: működők elöl, majd jobb minőség, a korlátozottak hátul. */
