@@ -19,8 +19,9 @@ export function toggleStreamInfo(player, root, video, force) {
   if (box) return;
   box = document.createElement('div');
   box.className = 'p-stats';
-  box.setAttribute('role', 'status');
-  box.innerHTML = '<div class="ps-head"><b>Adás adatai</b><button class="ps-close" aria-label="Bezárás" title="Bezárás (D)">✕</button></div><dl></dl>';
+  box.setAttribute('aria-label', 'Adás adatai');
+  // (a másodpercenként frissülő mérőlista nem élő régió; csak a figyelmeztetés az, és csak ha változik)
+  box.innerHTML = '<div class="ps-head"><b>Adás adatai</b><button class="ps-close" aria-label="Bezárás" title="Bezárás (D)">✕</button></div><dl></dl><p class="ps-hint" role="status" aria-live="polite"></p>';
   box.querySelector('.ps-close').onclick = () => stopStreamInfo(video);
   root.append(box);
   stalls = { n: 0, ms: 0, since: 0 };
@@ -39,6 +40,7 @@ export function toggleStreamInfo(player, root, video, force) {
   timer = setInterval(draw, 1000);
 }
 
+/** A panel bezárása és a figyelők leválasztása. */
 export function stopStreamInfo(video) {
   clearInterval(timer);
   timer = null;
@@ -51,8 +53,10 @@ export function stopStreamInfo(video) {
   bound = null;
 }
 
+/** Nyitva van-e a panel. */
 export const streamInfoOpen = () => !!box;
 
+/** A mért adatok kirajzolása (másodpercenként). */
 function render(player, video) {
   if (!box) return;
   const e = player.engine;
@@ -97,8 +101,11 @@ function render(player, video) {
   }
   const ratio = bw && bitrate ? bw / bitrate : 0;
   add('Mért letöltési sebesség', bw ? `${mbit(bw)}${ratio ? ` · a bitráta ${ratio.toFixed(1)}×-a` : ''}` : '–', ratio > 0 && ratio < 1.3);
+  // a lejátszási pozíciót tartalmazó pufferelt tartomány (tekerés után a többi tartomány nem számít)
   const b = video.buffered;
-  const ahead = b.length ? b.end(b.length - 1) - video.currentTime : 0;
+  const t = video.currentTime;
+  let ahead = 0;
+  for (let i = 0; i < b.length; i++) if (b.start(i) <= t + 0.1 && b.end(i) >= t) ahead = b.end(i) - t;
   add('Puffer (előre)', sec(ahead), ahead < 3 && !video.paused);
   if (hls && Number.isFinite(hls.latency) && hls.latency > 0) add('Késés az élő adástól', sec(hls.latency));
   if (q) add('Eldobott képkockák', `${q.droppedVideoFrames} / ${q.totalVideoFrames}${q.totalVideoFrames ? ` (${((q.droppedVideoFrames / q.totalVideoFrames) * 100).toFixed(1)}%)` : ''}`, q.totalVideoFrames > 100 && q.droppedVideoFrames / q.totalVideoFrames > 0.05);
@@ -118,5 +125,8 @@ function render(player, video) {
   if (ratio > 0 && ratio < 1.2) hint = 'A letöltés alig gyorsabb a lejátszásnál – a szerver vagy a kapcsolat lassú. Válassz kisebb minőséget vagy másik forrást (Minőség és forrás).';
   else if (q && q.totalVideoFrames > 300 && q.droppedVideoFrames / q.totalVideoFrames > 0.05) hint = 'Sok eldobott képkocka: az eszköz nem bírja a dekódolást – kisebb minőség segíthet.';
   else if (stalls.n >= 3) hint = 'Gyakori akadás: próbáld másik forrással, vagy kisebb minőségben.';
-  box.querySelector('dl').innerHTML = rows.join('') + (hint ? `<dt class="ps-hint">⚠</dt><dd class="ps-hint">${esc(hint)}</dd>` : '');
+  box.querySelector('dl').innerHTML = rows.join('');
+  const hintEl = box.querySelector('p.ps-hint');
+  const txt = hint ? '⚠ ' + hint : '';
+  if (hintEl.textContent !== txt) hintEl.textContent = txt;
 }

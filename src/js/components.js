@@ -63,6 +63,7 @@ export function avatarHtml(p, cls = '', inner = '') {
 // ---------------------------------------------------------------------------
 // Kártya
 // ---------------------------------------------------------------------------
+/** Csatornakártya (állapot, minőség, földrajzi korlát, most futó műsor, felugró gombok). */
 export function cardHtml(ch, { context = '' } = {}) {
   const now = epg.now(ch.id);
   const st = channelStatus(ch);

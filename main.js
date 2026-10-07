@@ -81,6 +81,7 @@ function cachePath(url) {
 // Kicsomagolás a háttérben (a libuv szálkészletén): a több tíz MB-os műsorújságnál a szinkron
 // változat másodpercekre megállította a főfolyamatot – és vele az ablakot is.
 const gunzipAsync = require('util').promisify(zlib.gunzip);
+/** gzip-tömörített bájtok kicsomagolása (ha az); különben változatlanul adja vissza. */
 async function maybeGunzip(buf) {
   if (buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b) return gunzipAsync(buf);
   return buf;
@@ -125,6 +126,20 @@ function decodeText(buf) {
 }
 
 /**
+ * Gyorsítótár-fájl írása atomikusan: egyedi átmeneti fájlba írunk, majd átnevezzük – így egy közben
+ * futó olvasás soha nem lát félig megírt (hibás) fájlt. A hibát elnyeljük: a gyorsítótár nem kötelező.
+ */
+async function writeCacheAtomically(file, data, encoding) {
+  const tmp = `${file}.${process.pid}.${crypto.randomBytes(6).toString('hex')}.tmp`;
+  try {
+    await fs.promises.writeFile(tmp, data, encoding);
+    await fs.promises.rename(tmp, file);
+  } catch {
+    await fs.promises.unlink(tmp).catch(() => {});
+  }
+}
+
+/**
  * Mint a fetchText, de UTF-8 bájtokként adja vissza (a nagy műsorújság-fájlokhoz): a bájtok az IPC-n
  * gyorsan átmennek, és a felület másolás nélkül adja tovább a háttérszálnak – a több tíz MB-os
  * szöveg átvétele a felületet közel egy másodpercre megakasztotta.
@@ -141,20 +156,23 @@ async function fetchBytes(url, opts = {}) {
   try {
     const buf = await maybeGunzip(await download(url));
     const bytes = isUtf8Text(buf) ? stripBom(buf) : Buffer.from(decodeText(buf), 'utf8');
-    fs.promises.writeFile(file, bytes).catch(() => {});
+    writeCacheAtomically(file, bytes); // nem várjuk meg: a válasz ne késsen az írás miatt
     return { bytes, cachedAt: Date.now(), fromCache: false };
   } catch (err) {
     if (stat) return { bytes: await fs.promises.readFile(file), cachedAt: stat.mtimeMs, fromCache: true, stale: true };
     throw err;
   }
 }
+/** UTF-8 BOM levágása (ha van). */
 const stripBom = (b) => (b[0] === 0xef && b[1] === 0xbb && b[2] === 0xbf ? b.subarray(3) : b);
+/** Érvényes UTF-8 szöveg-e (UTF-16 BOM esetén nem). */
 function isUtf8Text(buf) {
   if ((buf[0] === 0xff && buf[1] === 0xfe) || (buf[0] === 0xfe && buf[1] === 0xff)) return false;
   const { isUtf8 } = require('buffer');
   return isUtf8 ? isUtf8(stripBom(buf)) : false;
 }
 
+/** Szöveges letöltés lemezes gyorsítótárral; hálózati hibánál a régi példányt adja (stale). */
 async function fetchText(url, opts = {}) {
   const { maxAgeHours = 24, force = false } = opts;
   // Minden fájlművelet aszinkron: a nagy (műsorújság) fájloknál a szinkron írás / olvasás az ablakot is megakasztotta.
@@ -171,7 +189,7 @@ async function fetchText(url, opts = {}) {
   try {
     const buf = await maybeGunzip(await download(url));
     const text = decodeText(buf);
-    fs.promises.writeFile(file, text, 'utf8').catch(() => {});
+    writeCacheAtomically(file, text, 'utf8');
     return { text, cachedAt: Date.now(), fromCache: false };
   } catch (err) {
     // Hálózati hiba esetén a régi példány is jobb a semminél.
@@ -485,19 +503,22 @@ ipcMain.handle('store-load', async () => {
 // Fájlba írás aszinkron, fájlonként sorban (a nagy JSON-ok szinkron írása az ablakot is megakasztotta).
 // Átmeneti fájlba írunk, majd átnevezzük – így megszakadt írás után sem sérül a régi.
 const writeChains = new Map();
-function writeJsonFile(file, value) {
+/** Egy fájlművelet sorba állítása: ugyanarra a fájlra az előző (írás / törlés) befejezése után fut. */
+function queueFileOp(file, op) {
   const prev = writeChains.get(file) || Promise.resolve();
-  const next = prev
-    .catch(() => {})
-    .then(async () => {
-      await fs.promises.mkdir(path.dirname(file), { recursive: true });
-      const tmp = `${file}.${process.pid}.tmp`;
-      await fs.promises.writeFile(tmp, JSON.stringify(value), 'utf8');
-      await fs.promises.rename(tmp, file);
-    });
+  const next = prev.catch(() => {}).then(op);
   writeChains.set(file, next);
   next.finally(() => writeChains.get(file) === next && writeChains.delete(file)).catch(() => {});
   return next;
+}
+/** JSON-fájl írása sorban, átmeneti fájlon és átnevezésen át (megszakadt írás után sem sérül a régi). */
+function writeJsonFile(file, value) {
+  return queueFileOp(file, async () => {
+    await fs.promises.mkdir(path.dirname(file), { recursive: true });
+    const tmp = `${file}.${process.pid}.tmp`;
+    await fs.promises.writeFile(tmp, JSON.stringify(value), 'utf8');
+    await fs.promises.rename(tmp, file);
+  });
 }
 
 ipcMain.handle('store-save', (_e, data) => writeJsonFile(storeFile(), data));
@@ -650,7 +671,8 @@ ipcMain.handle('doc-get', async (_e, key) => {
 });
 ipcMain.handle('doc-set', (_e, key, value) => {
   const f = docFile(key);
-  if (value == null) return fs.promises.rm(f, { force: true });
+  // a törlés is a fájl írási sorába áll (különben egy még futó írás átnevezése visszahozná a dokumentumot)
+  if (value == null) return queueFileOp(f, () => fs.promises.rm(f, { force: true }));
   return writeJsonFile(f, value);
 });
 

@@ -61,6 +61,7 @@ const toProg = (r) => ({ start: r[0], stop: r[1], title: r[2] || 'Műsor', desc:
 // A háttérszál tömböket ad; a műsor-objektumok csatornánként, az első használatkor jönnek létre
 // (több százezer objektum egyszerre a felületet másodpercekre megakasztotta).
 const PROGS = Symbol('progs');
+/** Egy csatorna műsorai objektumként (az első híváskor alakítjuk át és cseréljük a térképben). */
 function progsOf(map, id) {
   const v = map.get(id);
   if (!v || v[PROGS]) return v;
@@ -193,10 +194,12 @@ export const epg = {
 // ---------------------------------------------------------------------------
 // Párosítási index (a párosítás maga a háttérszálban fut: epg-worker.js)
 // ---------------------------------------------------------------------------
+/** A minőségjelölő végződés (HD, FHD, 4K...) levágása. */
 function stripSuffix(k) {
   return k.replace(/(uhd|fhd|hd|sd|4k)$/, '') || k;
 }
 
+/** XMLTV-azonosító -> { k: névkulcs, cc: országkód } */
 function idKey(id) {
   const base = id.split('@')[0];
   const m = base.match(/^(.*)\.([a-z]{2,3})$/i);
@@ -205,6 +208,7 @@ function idKey(id) {
   return { k: stripSuffix(key(name)), cc };
 }
 
+/** Párosítási index a csatornalistából (pontos tvg-id, azonosító-kulcs + ország, név + ország, név). */
 function buildIndex() {
   const exact = new Map();
   const withCc = new Map();

@@ -1145,7 +1145,7 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
 <ul>
 <li>Állíts be <b>alacsonyabb minőséget</b> (⚙ → Minőség), különösen mobilneten vagy gyenge wifin.</li>
 <li>Próbálj <b>másik forrást</b> – egy másik szerver gyorsabb lehet.</li>
-<li>Ha az adás 10 másodpercnél tovább áll, a program magától a következő forrásra vált (ha be van kapcsolva a tartalék forrás és van másik forrás).</li>
+<li>Ha az adás megáll, a program magától a következő forrásra vált (ha be van kapcsolva a tartalék forrás): <b>10 másodperc</b> után, ha van még ki nem próbált forrás – különben 30 másodpercig vár, hátha az adás magától folytatódik.</li>
 <li>Távoli országok szerverei lassabbak lehetnek; ez nem a program hibája.</li>
 <li>A háttérben futó automatikus elérhetőség-ellenőrzés lejátszás közben magától szünetel. A kézzel indított <i>Minden adás ellenőrzése</i> viszont fut tovább – azt lejátszás közben érdemes leállítani.</li>
 </ul>

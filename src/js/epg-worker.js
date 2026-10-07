@@ -42,18 +42,22 @@ const tag = (s, name) => {
 // vissza). Sorrend: pontos tvg-id → azonosító-kulcs országgal → név országgal → név.
 // ---------------------------------------------------------------------------
 let index = null;
+/** Összevetési kulcs: ékezet nélkül, kisbetűvel, csak betű és szám. */
 const key = (s) =>
   String(s || '')
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '');
+/** A minőségjelölő végződés (HD, FHD, 4K...) levágása. */
 const stripSuffix = (k) => k.replace(/(uhd|fhd|hd|sd|4k)$/, '') || k;
+/** XMLTV-azonosító -> { k: névkulcs, cc: országkód } (pl. M1.hu -> m1, hu). */
 function idKey(id) {
   const base = id.split('@')[0];
   const m = base.match(/^(.*)\.([a-z]{2,3})$/i);
   return { k: stripSuffix(key(m ? m[1] : base)), cc: m ? m[2].toLowerCase() : '' };
 }
+/** Egy XMLTV-csatorna párosítása a csatornalistával (a fenti sorrendben). -> csatorna-id vagy null */
 function resolve(epgId, names, idx) {
   const lower = epgId.toLowerCase();
   if (idx.exact.has(lower)) return idx.exact.get(lower);

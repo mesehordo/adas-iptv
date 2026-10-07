@@ -746,19 +746,19 @@ export function offlineLabel(ch) {
 }
 
 /**
- * Földrajzilag korlátozott-e a csatorna: minden forrása vagy a lista szerint az ([Geo-blocked]), vagy a
- * szerver innen 403 / 451 válasszal elutasította – és egyik sem működik. (Ha egy forrás innen megy, nem az.)
+ * Mért földrajzi korlát: a csatorna legalább egy forrását a szerver innen 403 / 451 válasszal
+ * elutasította, egyik sem működik, és nincs még ki nem próbált forrása. (A lista [Geo-blocked]
+ * jelölése önmagában nem elég – az csak „korlátozott lehet”, lásd geoState.)
  */
 export function geoLimited(ch) {
   if (!ch?.streams?.length) return false;
-  let any = false;
+  let measured = false;
   for (const s of ch.streams) {
     const h = store.healthOf(s.url);
-    if (h?.ok) return false;
-    if (s.geoBlocked || h?.geo) any = true;
-    else if (!h) return false; // ismeretlen, nem korlátozott forrás: lehet, hogy működik
+    if (!h || h.ok) return false; // ki nem próbált vagy működő forrás: lehet, hogy innen nézhető
+    if (h.geo) measured = true;
   }
-  return any;
+  return measured;
 }
 
 /**

@@ -347,6 +347,7 @@ export const store = {
     this.health[url] = ok || !geo ? [ok ? 1 : 0, Date.now(), source === 'play' ? 'p' : 'c'] : [0, Date.now(), source === 'play' ? 'p' : 'c', 'g'];
     this.save();
   },
+  /** Egy forrás utolsó ismert állapota: { ok, t (idő), geo (403 / 451) } vagy null. */
   healthOf(url) {
     const h = this.health[url];
     if (!h) return null;

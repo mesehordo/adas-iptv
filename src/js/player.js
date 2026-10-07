@@ -313,6 +313,7 @@ export const player = {
     this.decodeTimer = setTimeout(check, 1500);
   },
 
+  /** Hiba után a következő ki nem próbált forrás (ha engedélyezett), különben a hibaüzenet. */
   fallback(err) {
     const ch = this.channel;
     const next = (ch.vod ? ch.streams : orderedStreams(ch)).find((s) => !this.tried.has(s.url));
@@ -320,6 +321,7 @@ export const player = {
     this.showError(err);
   },
 
+  /** A lejátszó hibaüzenete (élő adásnál a földrajzi korlátot külön megnevezi). */
   showError(err) {
     this.setLoading(false);
     this.engine.stop();

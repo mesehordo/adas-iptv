@@ -1382,5 +1382,6 @@ body.pip #player .exo-subs { font-size: 12px; bottom: 4%; }
 .p-stats dt { color: #9aa; }
 .p-stats dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .p-stats dd.warn { color: #ffb347; }
-.p-stats .ps-hint { color: #ffb347; }
+.p-stats .ps-hint { color: #ffb347; margin: 8px 0 0; }
+.p-stats .ps-hint:empty { display: none; }
 @media (max-width: 600px) { .p-stats { top: 64px; left: 8px; width: calc(100% - 16px); font-size: 12px; } }

@@ -41,6 +41,7 @@ bus.on('player-closed', () => {
   timer = setTimeout(pump, 5000);
 });
 
+/** A sorban álló források ellenőrzése 60-as adagokban (lejátszás közben szünetel). */
 async function pump() {
   if (running || !queue.size || playing) return;
   running = true;
