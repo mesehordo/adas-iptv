@@ -498,11 +498,26 @@ ipcMain.handle('scan-folder', async (_e, dir) => {
   return out.sort((a, b) => a.rel.localeCompare(b.rel));
 });
 
+/**
+ * Kis fájl beolvasása: a méretet és a tartalmat ugyanabból a megnyitott fájlból olvassuk (nincs
+ * versenyhelyzet a kettő között). Ha nagyobb a korlátnál, vagy nem közönséges fájl → null.
+ */
+async function readSmallFile(p, max) {
+  const fh = await fs.promises.open(p, 'r');
+  try {
+    const st = await fh.stat();
+    if (!st.isFile() || st.size > max) return null;
+    return await fh.readFile();
+  } finally {
+    await fh.close();
+  }
+}
+
 ipcMain.handle('read-text-file', async (_e, p) => {
   if (!LIST_EXT.test(p) && !SUB_EXT.test(p)) throw new Error('Csak lejátszólista és felirat olvasható.');
-  const st = await fs.promises.stat(p);
-  if (st.size > 30 * 1024 * 1024) throw new Error('A fájl túl nagy.');
-  return decodeText(await fs.promises.readFile(p));
+  const buf = await readSmallFile(p, 30 * 1024 * 1024);
+  if (!buf) throw new Error('A fájl túl nagy.');
+  return decodeText(buf);
 });
 
 /**
@@ -543,8 +558,8 @@ ipcMain.handle('sidecar-subs', async (_e, videoPath) => {
     const files = (await fs.promises.readdir(dir)).filter((n) => SUB_EXT.test(n) && n.toLowerCase().startsWith(base)).slice(0, 8);
     const out = [];
     for (const n of files) {
-      const p = path.join(dir, n);
-      if ((await fs.promises.stat(p)).size < 5 * 1024 * 1024) out.push({ name: n, text: await fs.promises.readFile(p, 'utf8') });
+      const buf = await readSmallFile(path.join(dir, n), 5 * 1024 * 1024);
+      if (buf) out.push({ name: n, text: buf.toString('utf8') });
     }
     return out;
   } catch {
@@ -610,9 +625,8 @@ ipcMain.handle('theme-dir-read', async (_e, dir) => {
   const out = [];
   for (const n of names.filter((x) => /\.(adastheme|json)$/i.test(x)).slice(0, 200)) {
     try {
-      const p = path.join(d, n);
-      const st = await fs.promises.stat(p);
-      if (st.isFile() && st.size < 1024 * 1024) out.push({ name: n, text: await fs.promises.readFile(p, 'utf8') });
+      const buf = await readSmallFile(path.join(d, n), 1024 * 1024);
+      if (buf) out.push({ name: n, text: buf.toString('utf8') });
     } catch {}
   }
   return { dir: d, files: out };

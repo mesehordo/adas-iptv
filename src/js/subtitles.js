@@ -49,12 +49,13 @@ export function parseSubs(text) {
     const start = toSec(a);
     const end = toSec(z);
     if (!(end > start)) continue;
-    const body = lines
+    let body = lines
       .slice(i + 1)
       .join('\n')
-      .replace(/\{\\[^}]*\}/g, '') // ASS-stílusjelölők (pl. {\an8})
-      .replace(/<(?!\/?(?:i|b|u)>)[^>]+>/g, '') // csak az <i>, <b>, <u> marad
-      .trim();
+      .replace(/\{\\[^}]*\}/g, ''); // ASS-stílusjelölők (pl. {\an8})
+    // csak az <i>, <b>, <u> marad – ismételve, amíg van mit (egymásba ágyazott jelölők ellen is)
+    for (let p = null; p !== body; ) (p = body), (body = body.replace(/<(?!\/?(?:i|b|u)>)[^<>]*>/g, ''));
+    body = body.trim();
     if (body) cues.push({ start, end, text: body });
   }
   return cues;

@@ -142,7 +142,28 @@ async function handle(req, res) {
   res.end('Nem található');
 }
 
-const proxied = (abs) => `/p/${TOKEN}?u=${encodeURIComponent(abs)}`;
+// A továbbító csak olyan kiszolgálót kérdez le, amelyet maga az alkalmazás adott át kivetítésre (proxyUrl),
+// vagy amelyre egy onnan kapott lejátszólista hivatkozik – így a kulccsal sem érhető el tetszőleges
+// (pl. helyi hálózati) cím.
+const allowedOrigins = new Set();
+const allowOrigin = (url) => {
+  try {
+    const o = new URL(url).origin;
+    if (allowedOrigins.size > 500) allowedOrigins.clear();
+    allowedOrigins.add(o);
+  } catch {}
+};
+const isAllowed = (url) => {
+  try {
+    return allowedOrigins.has(new URL(url).origin);
+  } catch {
+    return false;
+  }
+};
+const proxied = (abs) => {
+  allowOrigin(abs);
+  return `/p/${TOKEN}?u=${encodeURIComponent(abs)}`;
+};
 
 function rewritePlaylist(text, base) {
   const abs = (x) => {
@@ -164,9 +185,9 @@ function rewritePlaylist(text, base) {
 }
 
 async function proxy(req, res, target) {
-  if (!/^https?:\/\//i.test(target || '')) {
-    res.statusCode = 400;
-    return res.end('Hibás cím');
+  if (!/^https?:\/\//i.test(target || '') || !isAllowed(target)) {
+    res.statusCode = 403;
+    return res.end('Nem engedélyezett cím');
   }
   const h = headersFor(target) || {};
   const headers = { 'User-Agent': h.ua || CHROME_UA };

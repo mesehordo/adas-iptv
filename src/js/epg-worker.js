@@ -40,12 +40,13 @@ const tag = (s, name) => {
 self.onmessage = (e) => {
   const { id, text, from, to } = e.data;
   try {
-    const channels = {};
+    // prototípus nélküli objektumok: a fájlból jövő azonosító (pl. „__proto__”) ne írhasson felül semmit
+    const channels = Object.create(null);
     for (const m of text.matchAll(/<channel\s+id="([^"]*)"[^>]*>([\s\S]*?)<\/channel>/g)) {
       const names = [...m[2].matchAll(/<display-name[^>]*>([\s\S]*?)<\/display-name>/g)].map((x) => decode(x[1]));
       channels[decode(m[1])] = names;
     }
-    const programs = {};
+    const programs = Object.create(null);
     let count = 0;
     for (const m of text.matchAll(/<programme\s([^>]*?)(?:\/>|>([\s\S]*?)<\/programme>)/g)) {
       const a = m[1];
