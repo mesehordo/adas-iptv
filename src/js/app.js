@@ -41,22 +41,24 @@ let settingsGrant = 0; // a felnőtt jóváhagyás eddig érvényes (gyerekprofi
 // ---------------------------------------------------------------------------
 // Útvonalak
 // ---------------------------------------------------------------------------
-// Map: a címből jövő név csak a felsorolt kulcsokat érheti el (pl. a „constructor”-t nem)
-const ROUTES = new Map([
-  ['home', renderDashboard],
-  ['tv', renderTv],
-  ['browse', renderBrowse],
-  ['countries', renderCountries],
-  ['favorites', renderFavorites],
-  ['search', renderSearch],
-  ['guide', renderGuide],
-  ['settings', renderSettings],
-  ['help', renderHelp],
-  ['vod', renderVod],
-  ['own', renderOwn],
-  ['recordings', renderRecordingsPage],
-  ['stats', renderStats],
-]);
+/** A címből jövő név → oldal (rögzített választás; ismeretlen névre a főoldal). */
+function routeFn(name) {
+  switch (name) {
+    case 'tv': return renderTv;
+    case 'browse': return renderBrowse;
+    case 'countries': return renderCountries;
+    case 'favorites': return renderFavorites;
+    case 'search': return renderSearch;
+    case 'guide': return renderGuide;
+    case 'settings': return renderSettings;
+    case 'help': return renderHelp;
+    case 'vod': return renderVod;
+    case 'own': return renderOwn;
+    case 'recordings': return renderRecordingsPage;
+    case 'stats': return renderStats;
+    default: return renderDashboard;
+  }
+}
 
 // Külső hivatkozások bárhonnan (súgó, beállítások, adatlap): <a|button data-ext="https://…"> – a rendszer böngészőjében
 document.addEventListener('click', (e) => {
@@ -110,7 +112,7 @@ function route({ keepScroll = false } = {}) {
     });
     return;
   }
-  const fn = ROUTES.get(name) || renderDashboard;
+  const fn = routeFn(name);
   if (name !== 'tv') leaveHome();
   const full = location.hash;
   const sameRoute = full === currentRoute;

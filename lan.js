@@ -146,6 +146,13 @@ async function handle(req, res) {
     if (!rc) res.statusCode = 404;
     return res.end(rc ? rc.html : 'A távirányító ki van kapcsolva.');
   }
+  // távirányító: a kiszolgáló alkalmi száma (hitelesítés nélkül – ebből és a kulcsból írja alá a telefon a kéréseit)
+  if (parts[0] === 'adas' && parts[1] === 'rchello' && parts.length === 2) {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    if (!rc) res.statusCode = 403;
+    return res.end(JSON.stringify({ n: rc ? rc.nonce : '' }));
+  }
   if (parts[0] === 'adas' && parts[1] === 'rc') {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
@@ -153,7 +160,7 @@ async function handle(req, res) {
       res.statusCode = 403;
       return res.end(JSON.stringify({ error: 'A távirányító ki van kapcsolva' }));
     }
-    if (parts[2] === 'hello') return res.end(JSON.stringify({ n: rc.nonce }));
+    // minden /adas/rc/… kérés aláírását ellenőrizzük – a védett műveletek csak ezután jönnek
     // az aláírt rész: az útvonal hitelesítő utáni része, ahogy a kérésben áll (kódolva, lekérdezéssel együtt)
     const prefix = `/adas/rc/${parts[2]}/`;
     const tail = req.url.startsWith(prefix) ? req.url.slice(prefix.length) : '';
@@ -311,30 +318,49 @@ function checkedLookup(remote) {
  * választott (`root`), az bármi lehet (pl. a NAS). Ha az internetes, akkor amire átirányít vagy amire a
  * listája hivatkozik, az nem lehet helyi / belső cím (név esetén a feloldott címeket nézzük).
  */
-async function hopAllowed(url, root) {
-  let u;
+const policyDenied = () => Object.assign(new Error('Nem engedélyezett cím'), { code: 403 });
+
+/** Kell-e korlátozni ezt a lépést? (nem a választott forrás maga, és a forrás internetes) */
+function restricted(url, root) {
+  if (!root || url === root) return false;
   try {
-    u = new URL(url);
+    return !isPrivateHost(new URL(root).hostname);
   } catch {
-    return false;
+    return true;
   }
-  if (!/^https?:$/.test(u.protocol)) return false;
-  if (!root || url === root) return true;
-  try {
-    if (isPrivateHost(new URL(root).hostname)) return true;
-  } catch {}
-  if (isPrivateHost(u.hostname)) return false;
-  if (net.isIP(u.hostname.replace(/^\[|\]$/g, ''))) return true;
-  const addrs = await dns.promises.lookup(u.hostname, { all: true }).catch(() => []);
-  return addrs.length > 0 && !addrs.some((a) => isPrivateHost(a.address));
 }
 
-/** fetch kézi átirányítás-kezeléssel; minden lépés a fenti szabály szerint. → { res, finalUrl } */
+/**
+ * Egy kérés (átirányítás követése nélkül) fetch-szerű Response-ként. Korlátozott lépésnél a kapcsolat
+ * maga a checkedLookup-pal ellenőrzött címre megy (nincs külön előzetes névfeloldás, amit a DNS-válasz
+ * megváltoztatása kijátszhatna).
+ */
+function policyRequest(u, { method = 'GET', headers = {}, signal } = {}, remote) {
+  return new Promise((resolve, reject) => {
+    const mod = u.protocol === 'https:' ? https : http;
+    const req = mod.request(u, { method, headers: { 'Accept-Encoding': 'identity', ...headers }, lookup: checkedLookup(remote), signal, timeout: 20000 }, (res) => {
+      const h = new Headers();
+      for (const [k, v] of Object.entries(res.headers)) if (v != null) h.set(k, Array.isArray(v) ? v.join(', ') : String(v));
+      const status = res.statusCode || 502;
+      const noBody = method === 'HEAD' || status === 204 || status === 304 || status < 200;
+      if (noBody) res.resume();
+      resolve(new Response(noBody ? null : Readable.toWeb(res), { status: status < 200 || status > 599 ? 502 : status, headers: h }));
+    });
+    req.on('timeout', () => req.destroy(new Error('Időtúllépés')));
+    req.on('error', (err) => reject(err.code === 'EPRIVATE' ? policyDenied() : err));
+    req.end();
+  });
+}
+
+/** Kérés kézi átirányítás-kezeléssel; minden lépés a fenti szabály szerint. → { res, finalUrl } */
 async function fetchPolicy(url, opts = {}, root = url) {
   let cur = url;
   for (let i = 0; i <= 5; i++) {
-    if (!(await hopAllowed(cur, root))) throw Object.assign(new Error('Nem engedélyezett cím'), { code: 403 });
-    const res = await fetch(cur, { ...opts, redirect: 'manual' });
+    const u = new URL(cur);
+    if (!/^https?:$/.test(u.protocol)) throw policyDenied();
+    const remote = restricted(cur, root);
+    if (remote && isPrivateHost(u.hostname)) throw policyDenied(); // helyi név vagy IP-cím a hivatkozásban
+    const res = await policyRequest(u, opts, remote);
     const loc = res.status >= 300 && res.status < 400 && res.headers.get('location');
     if (!loc) return { res, finalUrl: cur };
     try {

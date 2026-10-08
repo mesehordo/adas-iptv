@@ -95,6 +95,7 @@ const verified = new Set();
 
 /** → { current, latest, newer, notes, page, asset: { name, url, size } | null } */
 async function check(source) {
+  offered = null; // egy sikertelen ellenőrzés után a korábbi ajánlat se maradjon letölthető
   source = String(source || '').trim();
   if (!source) throw new Error('Nincs beállítva frissítési forrás.');
   const current = app.getVersion();
@@ -148,11 +149,14 @@ async function download(req, onProgress) {
   const dir = fs.mkdtempSync(path.join(app.getPath('temp'), 'adas-update-'));
   const file = path.join(dir, asset.name.replace(/[\\/:*?"<>|]/g, '_'));
   downloading = true;
+  let out = null;
   try {
     const res = await net.fetch(asset.url, { headers: { 'User-Agent': UA } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const total = Number(res.headers.get('content-length')) || asset.size || 0;
-    const out = fs.createWriteStream(file, { flags: 'wx', mode: 0o700 });
+    out = fs.createWriteStream(file, { flags: 'wx', mode: 0o700 });
+    let writeErr = null;
+    out.on('error', (e) => (writeErr = e));
     const hash = crypto.createHash('sha256');
     const reader = res.body.getReader();
     let got = 0;
@@ -163,20 +167,24 @@ async function download(req, onProgress) {
       got += value.length;
       const b = Buffer.from(value);
       hash.update(b);
-      if (!out.write(b)) await new Promise((r) => out.once('drain', r));
+      if (writeErr) throw writeErr;
+      if (!out.write(b)) await new Promise((r) => (out.once('drain', r), out.once('error', r)));
       if (total && Date.now() - last > 250) {
         last = Date.now();
         onProgress(got / total);
       }
     }
+    if (writeErr) throw writeErr;
     await new Promise((r, j) => out.end((e) => (e ? j(e) : r())));
-    if (hash.digest('hex') !== asset.sha256) {
-      fs.rmSync(dir, { recursive: true, force: true });
-      throw new Error('A letöltött fájl ellenőrző összege nem egyezik a kiadáséval – a frissítés megszakítva.');
-    }
+    if (hash.digest('hex') !== asset.sha256) throw new Error('A letöltött fájl ellenőrző összege nem egyezik a kiadáséval – a frissítés megszakítva.');
     verified.add(file);
     onProgress(1);
     return file;
+  } catch (err) {
+    // bármilyen hiba (HTTP, hálózat, írás, eltérő összeg): az ideiglenes mappa törlődik
+    out?.destroy();
+    fs.rmSync(dir, { recursive: true, force: true });
+    throw err;
   } finally {
     downloading = null;
   }

@@ -51,8 +51,15 @@ class LanServer {
   final Listener listener;
   ServerSocket socket;
   int port;
-  // korlátos szálkészlet és várósor: sok (lassú) kapcsolat se foglalhassa le korlátlanul a szálakat
-  final ThreadPoolExecutor pool = new ThreadPoolExecutor(2, 8, 30, TimeUnit.SECONDS, new ArrayBlockingQueue<>(32));
+  // korlátos szálkészlet és várósor: sok (lassú) kapcsolat se foglalhassa le korlátlanul a szálakat. 8 alapszál
+  // (a böngészők üresen nyitva tartott tartalék kapcsolatai ne akasszák meg a telefon kéréseit), üresjáratban megszűnnek.
+  final ThreadPoolExecutor pool = newPool();
+
+  static ThreadPoolExecutor newPool() {
+    ThreadPoolExecutor p = new ThreadPoolExecutor(8, 8, 30, TimeUnit.SECONDS, new ArrayBlockingQueue<>(32));
+    p.allowCoreThreadTimeOut(true);
+    return p;
+  }
   final SecureRandom rnd = new SecureRandom();
 
   // átadás
@@ -272,6 +279,12 @@ class LanServer {
         send(out, 200, "application/json", new JSONObject().put("app", "adas").put("share", shareSecret != null && System.currentTimeMillis() < shareExpires).toString());
         return;
       }
+      // távirányító: a kiszolgáló alkalmi száma (hitelesítés nélkül – ebből és a kulcsból írja alá a telefon a kéréseit)
+      if (parts.length == 2 && parts[0].equals("adas") && parts[1].equals("rchello")) {
+        String n = rcPin != null ? rcNonce : "";
+        send(out, n.isEmpty() ? 403 : 200, "application/json", new JSONObject().put("n", n).toString());
+        return;
+      }
       if (parts.length >= 3 && parts[0].equals("adas") && parts[1].equals("share")) {
         String sec = shareSecret;
         if (sec == null || System.currentTimeMillis() > shareExpires || !MessageDigest.isEqual(parts[2].getBytes(StandardCharsets.UTF_8), sec.getBytes(StandardCharsets.UTF_8))) {
@@ -295,15 +308,8 @@ class LanServer {
           send(out, 403, "application/json", "{\"error\":\"A távirányító ki van kapcsolva\"}");
           return;
         }
-        if (parts[2].equals("hello")) {
-          send(out, 200, "application/json", new JSONObject().put("n", rcNonce).toString());
-          return;
-        }
-        if (parts.length < 4) {
-          send(out, 404, "text/plain", "Nem található");
-          return;
-        }
-        // az aláírt rész: az útvonal hitelesítő utáni része, ahogy a kérésben áll (kódolva, lekérdezéssel)
+        // minden /adas/rc/… kérés aláírását ellenőrizzük – a védett műveletek csak ezután jönnek
+        // (az aláírt rész: az útvonal hitelesítő utáni része, ahogy a kérésben áll – kódolva, lekérdezéssel)
         String prefix = "/adas/rc/" + parts[2] + "/";
         String tail = target.startsWith(prefix) ? target.substring(prefix.length()) : "";
         int st = rcAuth(sock.getInetAddress().getHostAddress(), parts[2], tail);
@@ -311,7 +317,9 @@ class LanServer {
           send(out, st, "application/json", st == 429 ? "{\"error\":\"Túl sok hibás próbálkozás\"}" : "{\"error\":\"Hibás PIN\"}");
           return;
         }
-        if (parts[3].equals("state")) {
+        if (parts.length < 4) {
+          send(out, 404, "text/plain", "Nem található");
+        } else if (parts[3].equals("state")) {
           send(out, 200, "application/json; charset=utf-8", rcState);
         } else if (parts[3].equals("cmd")) {
           String cmd = "", arg = "";

@@ -641,10 +641,8 @@ ipcMain.handle('scan-folder', async (_e, dir) => {
  * versenyhelyzet a kettő között). Ha nagyobb a korlátnál, vagy nem közönséges fájl → null.
  */
 async function readSmallFile(p, max) {
-  // Nem közönséges fájl (pl. névvel ellátott cső / FIFO) megnyitása blokkolna: előtte kiszűrjük, és a
-  // megnyitás is nem blokkoló (Unixon), hogy egy közben kicserélt bejegyzés se akaszthassa meg.
-  const pre = await fs.promises.lstat(p).catch(() => null);
-  if (!pre?.isFile()) return null;
+  // Nem közönséges fájl (pl. névvel ellátott cső / FIFO) megnyitása blokkolna: a megnyitás nem blokkoló
+  // (Unixon), és a típust a már megnyitott leíróból ellenőrizzük (külön előzetes vizsgálat nélkül – nincs rés).
   const fh = await fs.promises.open(p, fs.constants.O_RDONLY | (process.platform === 'win32' ? 0 : fs.constants.O_NONBLOCK || 0));
   try {
     const st = await fh.stat();
@@ -757,8 +755,7 @@ ipcMain.handle('packs-scan', async () => {
     let fh = null;
     try {
       // egyetlen megnyitott leíróból vizsgálunk és olvasunk (a kettő között a fájl nem cserélődhet ki)
-      const pre = await fs.promises.lstat(path.join(packsDir(), name));
-      if (!pre.isFile()) continue; // FIFO, mappa, hivatkozás: kimarad (a megnyitás blokkolhatna)
+      // nem blokkoló megnyitás (FIFO ne akassza meg), a típus a megnyitott leíróból
       fh = await fs.promises.open(path.join(packsDir(), name), fs.constants.O_RDONLY | (process.platform === 'win32' ? 0 : fs.constants.O_NONBLOCK || 0));
       const st = await fh.stat();
       if (!st.isFile()) continue;

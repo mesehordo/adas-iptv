@@ -170,12 +170,14 @@ function recInfo(f) {
     title: m?.title || (parts.length >= 3 ? parts.slice(1, -1).join(' – ') : base),
     chName: ch?.name || (parts.length >= 3 ? parts[0] : ''),
     logo: ch?.logo || '',
+    chId: ch?.id || '',
     at: m?.at || f.mtime,
   };
 }
 const recItem = (f, info = recInfo(f)) => ({
   id: 'rec:' + f.path,
   rec: true,
+  srcChannel: info.chId, // a felvétel forráscsatornája: a gyerekprofil szabálya erre vonatkozik
   type: 'movie',
   lib: 'rec',
   title: info.title,

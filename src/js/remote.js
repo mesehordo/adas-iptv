@@ -15,7 +15,15 @@ export const canRemote = !!api.rcStart;
 const video = $('#video');
 let info = null; // { port, addresses }
 
-const newPin = () => String(1000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 9000));
+/** Egyenletes véletlen egész 0…n-1 (visszautasításos mintavétel – a maradékos osztás torzítana). */
+function randInt(n) {
+  const lim = Math.floor(0x100000000 / n) * n;
+  for (;;) {
+    const v = crypto.getRandomValues(new Uint32Array(1))[0];
+    if (v < lim) return v % n;
+  }
+}
+const newPin = () => String(1000 + randInt(9000));
 /** A QR-kódban átadott, 128 bites kulcs – ezzel írja alá a telefon a kéréseit (a hálózaton nem utazik). */
 const newKey = () => [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
 
@@ -111,10 +119,10 @@ var o=[];for(i=0;i<8;i++)o.push((H[i]>>>24)&255,(H[i]>>>16)&255,(H[i]>>>8)&255,H
 function u8(s){s=unescape(encodeURIComponent(s));var o=[];for(var i=0;i<s.length;i++)o.push(s.charCodeAt(i));return o}
 function hmac(k,msg){k=u8(k);if(k.length>64)k=sha256(k);var ip=[],op=[];for(var i=0;i<64;i++){var c=k[i]||0;ip.push(c^54);op.push(c^92)}return sha256(op.concat(sha256(ip.concat(u8(msg))))).map(function(x){return(x<16?'0':'')+x.toString(16)}).join('')}
 var $=function(i){return document.getElementById(i)};var last={};var busy=false;
-function hello(){return fetch('/adas/rc/hello',{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){nonce=j.n||''})}
+function hello(){return fetch('/adas/rchello',{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){nonce=j.n||''})}
 function signed(p){ctr=Math.max(Date.now(),ctr+1);return '/adas/rc/'+ctr+'.'+(key?'k':'p')+'.'+hmac(key||pin,nonce+'|'+ctr+'|'+p).slice(0,32)+'/'+p}
 // (időkorláttal: egy elakadt kérés ne tartsa fel a parancsok sorát)
-function api(p,again){if(!nonce)return hello().then(function(){return api(p,true)});var c=window.AbortController?new AbortController():null,t=setTimeout(function(){if(c)c.abort()},6000);return fetch(signed(p),{cache:'no-store',signal:c?c.signal:undefined}).then(function(r){clearTimeout(t);if(r.status===403){if(!again){nonce='';return api(p,true)}throw new Error('pin')}if(r.status===429)throw new Error('wait');return r.json()},function(e){clearTimeout(t);throw e})}
+function api(p,again){if(!nonce){if(again)return Promise.reject(new Error('pin'));return hello().then(function(){return api(p,true)})}var c=window.AbortController?new AbortController():null,t=setTimeout(function(){if(c)c.abort()},6000);return fetch(signed(p),{cache:'no-store',signal:c?c.signal:undefined}).then(function(r){clearTimeout(t);if(r.status===403){if(!again){nonce='';return hello().then(function(){return api(p,true)})}throw new Error('pin')}if(r.status===429)throw new Error('wait');return r.json()},function(e){clearTimeout(t);throw e})}
 function ask(msg){$('ui').hidden=true;$('tabs').hidden=true;$('pin').hidden=false;$('pinErr').textContent=msg||''}
 function esc(s){return String(s||'').replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function toast(t){var e=$('toast');e.textContent=t;e.className='toast show';clearTimeout(e._t);e._t=setTimeout(function(){e.className='toast'},1400)}

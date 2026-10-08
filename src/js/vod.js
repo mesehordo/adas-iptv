@@ -446,7 +446,7 @@ export function cleanRelease(raw) {
   // egyetlen elválasztóval kezdődő minta: nem pörgeti újra a hosszú szóköz-sorozatokat (lineáris)
   const m = /[\s.([-](?:2160p|1080[pi]|720p|576p|480p|4k|uhd|x26[45]|h\.?26[45]|hevc|avc|blu-?ray|brrip|bdrip|web-?dl|web-?rip|hdtv|dvdrip|dvd|xvid|aac|ac3|eac3|dts|hdr10?|dv|remux|proper|repack|extended|unrated|hun|eng|multi|dual|subbed|hunsub)\b/i.exec(t);
   if (m) t = trimEndChars(t.slice(0, m.index), ' \t.([-');
-  return t.trim() || String(raw).trim();
+  return t.trim() || String(raw).slice(0, MAX_TITLE).trim();
 }
 
 function build(lib, loaded) {
@@ -1095,8 +1095,12 @@ function vcardAction(card, act) {
     toggleVodFav(x);
     toast(isVodFav(x) ? 'Hozzáadva a kedvencekhez' : 'Eltávolítva a kedvencek közül');
     const focused = card.contains(document.activeElement);
-    card.outerHTML = vcardHtml(x);
-    if (focused) document.querySelector(`.vcard[data-vid="${CSS.escape(card.dataset.vid)}"]`)?.focus({ preventScroll: true });
+    // az új kártya pontosan a régi helyére kerül (ugyanaz a tétel más sorban is lehet), és ott kap fókuszt
+    const tpl = document.createElement('template');
+    tpl.innerHTML = vcardHtml(x).trim();
+    const fresh = tpl.content.firstElementChild;
+    card.replaceWith(fresh);
+    if (focused) fresh.focus({ preventScroll: true });
     return;
   }
   openVodDetail(x);

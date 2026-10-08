@@ -133,9 +133,17 @@ async function shareKeys(secret) {
 }
 
 /** → { secret, id, env } – env: a kiszolgálóra kerülő, titkosított csomag */
+/** Egyenletes véletlen egész 0…n-1 (visszautasításos mintavétel – a maradékos osztás torzítana). */
+function randInt(n) {
+  const lim = Math.floor(0x100000000 / n) * n;
+  for (;;) {
+    const v = crypto.getRandomValues(new Uint32Array(1))[0];
+    if (v < lim) return v % n;
+  }
+}
+
 async function sealShare(data) {
-  const rnd = crypto.getRandomValues(new Uint32Array(3));
-  const secret = [...rnd].map((n) => String(n % 1000).padStart(3, '0')).join('');
+  const secret = String(randInt(1e9)).padStart(9, '0');
   const { key, id } = await shareKeys(secret);
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, te.encode(JSON.stringify(data))));

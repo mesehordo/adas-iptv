@@ -45,7 +45,8 @@ function parseTime(s) {
 }
 
 const attr = (s, name) => {
-  const m = new RegExp('\\b' + name + '="([^"]*)"').exec(s);
+  // pontos név: az attribútum a szöveg elején vagy szóköz után áll (a provider-id ne adja az id-t)
+  const m = new RegExp('(?:^|\\s)' + name + '="([^"]*)"').exec(s);
   return m ? decode(m[1]) : '';
 };
 /**
@@ -127,16 +128,16 @@ self.onmessage = (e) => {
   const { id, from, to } = e.data;
   try {
     const text = e.data.text ?? new TextDecoder('utf-8').decode(e.data.bytes);
-    // prototípus nélküli objektumok: a fájlból jövő azonosító (pl. „__proto__”) ne írhasson felül semmit
-    const channels = Object.create(null);
+    // Map: a fájlból jövő azonosító (pl. „__proto__”) ne írhasson felül semmit
+    const channels = new Map();
     for (let el, i = 0; (el = element(text, 'channel', i)); i = el.end) {
       const id = attr(el.attrs, 'id');
       if (!id) continue;
       const names = [];
       for (let d, j = 0; (d = element(el.body, 'display-name', j)); j = d.end) names.push(decode(d.body));
-      channels[id] = names;
+      channels.set(id, names);
     }
-    const programs = Object.create(null);
+    const programs = new Map();
     let count = 0;
     for (let el, i = 0; (el = element(text, 'programme', i)); i = el.end) {
       const a = el.attrs;
@@ -152,23 +153,24 @@ self.onmessage = (e) => {
       const rv = rating ? tag(rating.body, 'value') : '';
       const age = rv ? Number((/(\d{1,2})/.exec(rv) || [])[1]) || 0 : 0;
       const row = [start, stop, tag(body, 'title'), tag(body, 'desc'), tag(body, 'category'), tag(body, 'sub-title'), tag(body, 'episode-num'), age];
-      (programs[ch] ||= []).push(row);
+      if (!programs.has(ch)) programs.set(ch, []);
+      programs.get(ch).push(row);
       count++;
     }
-    for (const k in programs) {
-      const list = programs[k].sort((x, y) => x[0] - y[0]);
+    for (const [k, all] of programs) {
+      const list = all.sort((x, y) => x[0] - y[0]);
       // Hiányzó vég: a következő műsor kezdete (az utolsónál 1 óra); ismétlődő kezdés kiszűrése.
       for (let i = 0; i < list.length; i++) if (!list[i][1]) list[i][1] = list[i + 1] ? list[i + 1][0] : list[i][0] + 3600e3;
-      programs[k] = list.filter((p, i) => p[1] > from && p[0] < to && (i === 0 || p[0] !== list[i - 1][0]));
+      programs.set(k, list.filter((p, i) => p[1] > from && p[0] < to && (i === 0 || p[0] !== list[i - 1][0])));
     }
     // Párosítás: csak a csatornalistában megtalált csatornák műsorai mennek vissza [[csatorna-id, műsorok], …]
     const matched = [];
     if (index) {
       const seen = new Set();
-      for (const epgId of new Set([...Object.keys(channels), ...Object.keys(programs)])) {
-        const progs = programs[epgId];
+      for (const epgId of new Set([...channels.keys(), ...programs.keys()])) {
+        const progs = programs.get(epgId);
         if (!progs || !progs.length) continue;
-        const chId = resolve(epgId, channels[epgId] || [], index);
+        const chId = resolve(epgId, channels.get(epgId) || [], index);
         if (!chId || seen.has(chId)) continue;
         seen.add(chId);
         matched.push([chId, progs]);
@@ -187,7 +189,7 @@ self.onmessage = (e) => {
         size = 0;
       }
     }
-    self.postMessage({ id, chunk: part, done: true, nChannels: Object.keys(channels).length, count });
+    self.postMessage({ id, chunk: part, done: true, nChannels: channels.size, count });
   } catch (err) {
     self.postMessage({ id, error: String(err) });
   }

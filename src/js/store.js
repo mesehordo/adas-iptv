@@ -221,7 +221,7 @@ export function cleanProfile(p) {
       for (const [k, v] of Object.entries(s.vod))
         if (v && typeof v === 'object') vod[k] = { t: num(v.t), title: str(v.title, 300), type: str(v.type, 20), poster: str(v.poster, 2000), last: num(v.last) };
     p.stats = { since: num(s.since, Date.now()), days: numMap(s.days), hours, ch: numMap(s.ch), vod, cat: numMap(s.cat), plays: Math.max(0, Math.round(num(s.plays))) };
-  }
+  } else if (p.stats != null) p.stats = null; // nem használható érték: a statisztika újrakezdődik
   if (p.dash != null) {
     const d = p.dash;
     p.dash = d && typeof d === 'object' && Array.isArray(d.units)

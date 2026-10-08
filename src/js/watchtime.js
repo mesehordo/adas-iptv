@@ -9,6 +9,7 @@ import { epg } from './epg.js';
 import { player } from './player.js';
 import { requireAdult } from './pin.js';
 import { kidsAllowed } from './kids.js';
+import { catalog } from './catalog.js';
 
 const TICK = 15;
 const video = $('#video');
@@ -54,7 +55,11 @@ async function askAge(p, ch, cur) {
 
 /** A profil tartalmi szabálya (felnőtt tartalom, gyerekprofil engedélyei) – minden indítási útvonalon. */
 function contentAllowed(p, ch) {
-  if (ch.vod) return !ch.vod.item || kidsAllowed(p, 'vod', ch.vod.item);
+  const item = ch.vod?.item;
+  // felvétel: a forráscsatorna besorolása és engedélye számít (ha ismert), nem a felvétel címe
+  const src = item?.rec && item.srcChannel && catalog.byId.get(item.srcChannel);
+  if (src) return contentAllowed(p, src);
+  if (ch.vod) return !item || kidsAllowed(p, 'vod', item);
   if (ch.nsfw && (!store.settings.showAdult || p?.kids)) return false;
   return kidsAllowed(p, 'ch', ch);
 }
