@@ -5,7 +5,9 @@ import { api, IS_WEBOS } from './api.js';
 import { store } from './store.js';
 import { epg } from './epg.js';
 import { catalog, orderedStreams, visible, getChannels, countryName, countryFlag, offlineLabel, geoLimited } from './catalog.js';
-import { Engine } from './engine.js';
+import { Engine, applyQualityCap } from './engine.js';
+// a minőségkorlát változása lejátszás közben is azonnal érvényes
+bus.on('settings', (k) => k === 'maxQuality' && applyQualityCap(player.engine?.hls));
 import { probeMedia, bridgeReason } from './bridge.js';
 import { exoAvailable } from './exo.js';
 import { toggleStreamInfo, stopStreamInfo, streamInfoOpen } from './streaminfo.js';

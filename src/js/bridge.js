@@ -383,6 +383,8 @@ export class MediaBridge {
 
 // --- Fájlelemzés gyorsítótárral ------------------------------------------------------
 const probes = new Map();
+/** Egy cím elemzésének elfelejtése (pl. a felvétel vágása után más a hossza). */
+export const forgetProbe = (url) => probes.delete(url);
 export function probeMedia(url) {
   if (!api.mediaProbe) return Promise.resolve(null);
   if (!probes.has(url)) {

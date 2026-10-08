@@ -225,6 +225,16 @@ function probe(url) {
   setTimeout(() => probeCache.delete(url), 30 * 60e3);
   return p;
 }
+/** Egy helyi fájl elemzésének elfelejtése (pl. vágás után más a hossza, de ugyanaz a címe). */
+function forgetFile(p) {
+  const want = path.resolve(p);
+  for (const k of [...probeCache.keys()]) {
+    if (!/^file:/i.test(k)) continue;
+    try {
+      if (path.resolve(inputOf(k)) === want) probeCache.delete(k);
+    } catch {}
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Lejátszási folyam
@@ -421,6 +431,12 @@ function stopAll() {
 const recordings = new Map(); // id -> { proc, file, timer, title }
 let recSeq = 0;
 
+/**
+ * Felvétel indítása. Az FFmpeg a kimenetét nekünk adja (pipe), mi fűzzük a fájlhoz – így ha az adás
+ * megszakad és az FFmpeg kilép, néhány másodperc múlva újraindítjuk, és ugyanabba a fájlba folytatja
+ * (az MPEG-TS egyszerűen összefűzhető). Élő HLS-nél a lejátszólista frissítését is türelmesebben várja.
+ * until: a leállás ideje (ütemezett felvétel), 0 = kézi leállításig.
+ */
 async function recStart({ url, dir, name, until }) {
   if (!FF) throw new Error('Az FFmpeg nem érhető el.');
   await ensureServer();
@@ -428,25 +444,51 @@ async function recStart({ url, dir, name, until }) {
   const safe = String(name || 'felvetel').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) || 'felvetel';
   let file = path.join(dir, `${safe}.ts`);
   for (let i = 2; fs.existsSync(file); i++) file = path.join(dir, `${safe} (${i}).ts`);
-  const args = ['-hide_banner', '-nostdin', '-loglevel', 'error', ...headerArgs(url), '-i', inputOf(url), '-c', 'copy', '-f', 'mpegts', file];
-  const proc = spawn(FF, args, { stdio: ['pipe', 'ignore', 'pipe'], windowsHide: true });
+  const hlsOpts = /\.m3u8?(\?|$)/i.test(url) ? ['-max_reload', '1000', '-m3u8_hold_counters', '1000'] : [];
+  // Újraindításkor a kimenet ideje az addig eltelt idővel folytatódik (különben az összefűzött fájlban az idő visszaugrana)
+  // (élő HLS-nél újraindításkor a legfrissebb résztől folytatjuk – különben a korábbi részek ismétlődnének)
+  const argsFor = (offset) => ['-hide_banner', '-nostdin', '-loglevel', 'error', ...headerArgs(url), ...hlsOpts, ...(offset > 0 && hlsOpts.length ? ['-live_start_index', '-1'] : []), '-i', inputOf(url), '-c', 'copy', ...(offset > 0 ? ['-output_ts_offset', offset.toFixed(1)] : []), '-f', 'mpegts', 'pipe:1'];
   const id = String(++recSeq);
-  let err = '';
-  proc.stderr.on('data', (b) => {
-    if (err.length < 2000) err += b;
-  });
-  const rec = { proc, file, started: Date.now(), until: until || 0 };
-  if (until) rec.timer = setTimeout(() => recStop(id), Math.max(1000, until - Date.now()));
+  const out = fs.createWriteStream(file, { flags: 'a' });
+  const rec = { proc: null, file, out, started: Date.now(), until: until || 0, restarts: 0, err: '' };
   recordings.set(id, rec);
-  proc.on('close', (code) => {
+  const MAX_RESTARTS = 60;
+  const finish = (error) => {
     clearTimeout(rec.timer);
+    clearTimeout(rec.retry);
     recordings.delete(id);
-    let size = 0;
-    try {
-      size = fs.statSync(file).size;
-    } catch {}
-    opts.emit('rec-ended', { id, file, size, error: code && !rec.stopping ? err.trim().split('\n').pop() || `kilépési kód: ${code}` : '' });
-  });
+    out.end(() => {
+      let size = 0;
+      try {
+        size = fs.statSync(file).size;
+      } catch {}
+      opts.emit('rec-ended', { id, file, size, restarts: rec.restarts, error });
+    });
+  };
+  const run = () => {
+    const proc = spawn(FF, argsFor(rec.restarts ? (Date.now() - rec.started) / 1000 : 0), { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+    rec.proc = proc;
+    rec.err = '';
+    proc.stdout.pipe(out, { end: false });
+    proc.stderr.on('data', (b) => {
+      if (rec.err.length < 2000) rec.err += b;
+    });
+    proc.on('error', () => {});
+    proc.on('close', (code) => {
+      proc.stdout.unpipe(out);
+      if (rec.stopping) return finish('');
+      // Váratlan leállás (megszakadt az adás): újrapróbálás, amíg az ütemezett vég el nem jön
+      const left = rec.until ? rec.until - Date.now() : Infinity;
+      if (left > 5000 && rec.restarts < MAX_RESTARTS) {
+        rec.restarts++;
+        rec.retry = setTimeout(run, 3000);
+        return;
+      }
+      finish(code && left > 5000 ? rec.err.trim().split('\n').pop() || `kilépési kód: ${code}` : '');
+    });
+  };
+  if (until) rec.timer = setTimeout(() => recStop(id), Math.max(1000, until - Date.now()));
+  run();
   return { id, file };
 }
 
@@ -454,27 +496,40 @@ function recStop(id) {
   const r = recordings.get(String(id));
   if (!r) return false;
   r.stopping = true;
-  // „q”: az FFmpeg rendben lezárja a fájlt; ha nem reagál, leállítjuk
+  clearTimeout(r.retry);
+  if (!r.proc || r.proc.exitCode !== null) {
+    // éppen újraindításra vár: nincs futó FFmpeg – a fájlt lezárjuk
+    r.proc = null;
+    recordings.delete(String(id));
+    r.out.end(() => opts.emit('rec-ended', { id: String(id), file: r.file, size: fs.existsSync(r.file) ? fs.statSync(r.file).size : 0, restarts: r.restarts, error: '' }));
+    return true;
+  }
+  // „q”: az FFmpeg rendben lezárja a kimenetet; ha nem reagál, leállítjuk
   try {
     r.proc.stdin.write('q');
   } catch {}
   setTimeout(() => {
     try {
-      r.proc.kill('SIGKILL');
+      r.proc?.kill('SIGKILL');
     } catch {}
   }, 4000);
   return true;
 }
 
+// Vágás: az első vágáskor az eredeti a rejtett „.eredeti” almappába kerül (onnan bármikor újravágható),
+// a felvétel helyén a vágott változat lesz – a listában és a lejátszásban csak ez szerepel.
+const ORIG_DIR = '.eredeti';
+const originalOf = (p) => path.join(path.dirname(p), ORIG_DIR, path.basename(p));
+
 function recList(dir) {
   try {
     return fs
       .readdirSync(dir)
-      .filter((f) => /\.(ts|mkv|mp4)$/i.test(f))
+      .filter((f) => /\.(ts|mkv|mp4)$/i.test(f) && !f.endsWith('.vagas.tmp.ts'))
       .map((f) => {
         const p = path.join(dir, f);
         const st = fs.statSync(p);
-        return { name: f, path: p, size: st.size, mtime: st.mtimeMs, active: [...recordings.values()].some((r) => r.file === p) };
+        return { name: f, path: p, size: st.size, mtime: st.mtimeMs, active: [...recordings.values()].some((r) => r.file === p), trimmed: fs.existsSync(originalOf(p)) };
       })
       .sort((a, b) => b.mtime - a.mtime);
   } catch {
@@ -482,4 +537,52 @@ function recList(dir) {
   }
 }
 
-module.exports = { init, available: () => !!FF, status, probe, start, stop, stopAll, cover, parseInfo, recStart, recStop, recList, recStopAll: () => [...recordings.keys()].forEach(recStop) };
+/** A vágás forrása: a megőrzött eredeti, ha már vágtuk, különben maga a felvétel. */
+const recSource = (p) => (fs.existsSync(originalOf(p)) ? originalOf(p) : p);
+
+/**
+ * Vágás start és end (mp, a forrás idejében) között, újrakódolás nélkül. → { ok, size }
+ * (A kezdet a legközelebbi előző kulcskockára esik – a kép így hibátlan marad.)
+ */
+async function recTrim(p, start, end) {
+  if (!FF) throw new Error('Az FFmpeg nem érhető el.');
+  start = Math.max(0, +start || 0);
+  end = +end || 0;
+  if (!(end > start + 1)) throw new Error('A vége legyen a kezdet után.');
+  const orig = originalOf(p);
+  await fs.promises.mkdir(path.dirname(orig), { recursive: true });
+  if (!fs.existsSync(orig)) await fs.promises.rename(p, orig); // első vágás: az eredeti félretéve
+  const tmp = p.replace(/\.[^.]+$/, '') + '.vagas.tmp.ts';
+  const args = ['-hide_banner', '-nostdin', '-loglevel', 'error', '-y', '-ss', start.toFixed(3), '-i', orig, '-t', (end - start).toFixed(3), '-map', '0', '-c', 'copy', '-avoid_negative_ts', 'make_zero', '-f', 'mpegts', tmp];
+  await new Promise((resolve, reject) => {
+    const proc = spawn(FF, args, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
+    let err = '';
+    proc.stderr.on('data', (b) => err.length < 2000 && (err += b));
+    proc.on('error', reject);
+    proc.on('close', (code) => (code ? reject(new Error(err.trim().split('\n').pop() || `kilépési kód: ${code}`)) : resolve()));
+  }).catch(async (e) => {
+    await fs.promises.rm(tmp, { force: true });
+    // ha még nem volt vágott változat, az eredeti visszakerül a helyére
+    if (!fs.existsSync(p)) await fs.promises.rename(orig, p).catch(() => {});
+    throw e;
+  });
+  await fs.promises.rm(p, { force: true });
+  await fs.promises.rename(tmp, p);
+  forgetFile(p);
+  return { ok: true, size: (await fs.promises.stat(p)).size };
+}
+
+/** Az eredeti visszaállítása (a vágás elvetése). */
+async function recRestore(p) {
+  const orig = originalOf(p);
+  if (!fs.existsSync(orig)) return false;
+  await fs.promises.rm(p, { force: true });
+  await fs.promises.rename(orig, p);
+  forgetFile(p);
+  return true;
+}
+
+module.exports = {
+  init, available: () => !!FF, status, probe, start, stop, stopAll, cover, parseInfo,
+  recStart, recStop, recList, recTrim, recRestore, recSource, originalOf, recStopAll: () => [...recordings.keys()].forEach(recStop),
+};

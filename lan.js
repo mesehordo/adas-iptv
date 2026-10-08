@@ -120,6 +120,7 @@ async function handle(req, res) {
   // Távirányító telefonról: a vezérlőlap, az állapot és a parancsok (PIN-nel)
   if (parts[0] === 'adas' && parts[1] === 'remote') {
     res.setHeader('Content-Type', rc ? 'text/html; charset=utf-8' : 'text/plain; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store'); // frissítés után a telefon ne a régi vezérlőlapot mutassa
     if (!rc) res.statusCode = 404;
     return res.end(rc ? rc.html : 'A távirányító ki van kapcsolva.');
   }

@@ -680,7 +680,7 @@ export function visibleVod(lib = vod) {
   const ok = (x) => {
     const g = x.groups.join(' ');
     if (!adult && ADULT_RX.test(g) && !kids) return false;
-    // gyerekprofil: a jelölés / a profil engedélye szerint (Beállítások → Gyerekprofilok)
+    // gyerekprofil: a jelölés / a profil engedélye szerint (Beállítások → Tartalom és gyerekek → Gyerekprofilok)
     return !kids || kidsAllowed(store.profile, 'vod', x);
   };
   return { movies: huFirst(lib.movies.filter(ok)), series: huFirst(lib.series.filter(ok)) };
@@ -1167,7 +1167,7 @@ function renderVodPage(view, params, lib) {
     const err = Object.values(isOwn ? { ...own.scanErrors, ...own.errors } : lib.errors)[0];
     view.innerHTML = `<div class="page">${emptyState(
       isOwn ? 'A saját médiatárban nincs film vagy sorozat' : 'Nincs megjeleníthető film vagy sorozat',
-      err ? `Hiba: ${err}` : isOwn ? 'Nem található bekapcsolt lejátszólista, vagy a listák üresek. Nézd meg a Beállítások → Saját médiatár részt.' : 'Kapcsolj be listát a Beállítások → VOD-listák alatt.',
+      err ? `Hiba: ${err}` : isOwn ? 'Nem található bekapcsolt lejátszólista, vagy a listák üresek. Nézd meg a Beállítások → Listák és források → Saját médiatár részt.' : 'Kapcsolj be listát a Beállítások → Listák és források → VOD-listák alatt.',
       listsLink
     )}</div>`;
     return;
@@ -1269,7 +1269,7 @@ function renderVodPage(view, params, lib) {
   view.append(rows);
   const cont = continueItems(lib).map((c) => c.x);
   const add = (el) => el && rows.append(el);
-  // A sorok a profil beállított sorrendjében (Beállítások → VOD-listák → A VOD oldal sorai)
+  // A sorok a profil beállított sorrendjében (Beállítások → Listák és források → VOD-listák → A VOD oldal sorai)
   const seed = Math.floor(Date.now() / 86400e3);
   const build = {
     // Az online részen a félbehagyott tételek a saját médiatárból is (a tévés főoldalon már nincs ilyen sor)
@@ -1515,7 +1515,7 @@ function editVodMeta(x) {
         </div>
       </div>
       <div class="ve-search inline"><input class="input" data-ve="q" value="${esc(x.title)}" placeholder="Keresés a borítóképek között…" /><button class="btn" data-ve="search">Keresés</button></div>
-      <p class="muted small ve-src">Források: AniList, Kitsu, MyAnimeList, TVmaze, Wikipédia, Wikidata${keys.length ? ', ' + keys.join(', ') : ' · TMDB / OMDb (IMDb) saját kulccsal: Beállítások › Magyar információk és feliratok'}</p>
+      <p class="muted small ve-src">Források: AniList, Kitsu, MyAnimeList, TVmaze, Wikipédia, Wikidata${keys.length ? ', ' + keys.join(', ') : ' · TMDB / OMDb (IMDb) saját kulccsal: Beállítások → Lejátszás → Magyar információk és feliratok'}</p>
       <div class="pp-grid"></div>
       <div class="ve-url"><b>Saját kép címe</b><div class="inline"><input class="input" data-ve="url" placeholder="https://…/plakat.jpg" /><button class="btn small" data-ve="useurl">Kiválasztás</button></div></div>
       <div class="inline ve-foot"><button class="btn" data-ve="cancel">Mégse</button><button class="btn primary" data-ve="save">Mentés</button></div>

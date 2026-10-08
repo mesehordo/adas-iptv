@@ -382,7 +382,9 @@ function moveFocus(dir) {
   const list = candidates(scope);
   if (!list.length) return;
   if (!cur || cur === document.body || !scope.contains(cur)) {
-    const first = list.find((el) => el.matches('.card, .btn.white, .profile')) || list[0];
+    // kijelölés nélkül: a tartalom első (kiemelt) eleme – nem a fejléc logója
+    const inView = list.filter((el) => !el.closest('#nav'));
+    const first = list.find((el) => el.matches('.card, .btn.white, .profile')) || inView.find((el) => el.matches('.btn, .tab, button, a.card')) || inView[0] || list[0];
     first.focus();
     return;
   }
@@ -407,15 +409,25 @@ function moveFocus(dir) {
   } else if (rail && !curNav && (dir === 'up' || dir === 'down')) {
     best = pickDirection(cur, content, dir);
   } else {
-    best = pickDirection(cur, list.filter((el) => inNav(el) === curNav), dir) || pickDirection(cur, list, dir);
+    // saját területen (tartalom / fejléc) bárhol; átlépni a másikba csak azonos sávban lehet
+    best = pickDirection(cur, list.filter((el) => inNav(el) === curNav), dir) || pickDirectionIn(cur, list, dir, true);
   }
+  // a tartalomból a beállítások oldalsávjára lépve az aktív (kiválasztott) fülre érkezünk
+  if (best?.closest?.('.set-tabs') && !cur.closest('.set-tabs')) best = best.closest('.set-tabs').querySelector('.tab.active') || best;
   if (best) {
     best.focus({ preventScroll: true });
     best.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
   }
 }
 
+/**
+ * A legközelebbi elem a megadott irányban. Vízszintesen előbb az azonos sávban (függőlegesen átfedő)
+ * keresünk; ha ott nincs (pl. oldalsávról a tartalomra), bármilyen magasságban a legközelebbit.
+ */
 function pickDirection(cur, list, dir) {
+  return pickDirectionIn(cur, list, dir, true) || ((dir === 'left' || dir === 'right') && pickDirectionIn(cur, list, dir, false)) || null;
+}
+function pickDirectionIn(cur, list, dir, sameBand) {
   const r = cur.getBoundingClientRect();
   const cx = r.left + r.width / 2;
   const cy = r.top + r.height / 2;
@@ -429,7 +441,7 @@ function pickDirection(cur, list, dir) {
     let primary;
     let secondary;
     // Vízszintesen csak az azonos „sávban” (függőlegesen átfedő) elemek jöhetnek szóba.
-    if ((dir === 'left' || dir === 'right') && (c.bottom <= r.top + 4 || c.top >= r.bottom - 4)) continue;
+    if (sameBand && (dir === 'left' || dir === 'right') && (c.bottom <= r.top + 4 || c.top >= r.bottom - 4)) continue;
     if (dir === 'right') {
       if (c.left < r.right - 8 && x <= cx + 4) continue;
       primary = x - cx;

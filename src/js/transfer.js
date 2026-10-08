@@ -216,7 +216,7 @@ export function renderTransfer(box) {
             return;
           }
           sb.innerHTML = `<div class="share-code">${esc(fmtCode(r.code))}</div>
-            <div>Írd be ezt a kódot a másik eszközön: Beállítások → Szinkronizálás eszközök között → <i>Szinkronizálás kóddal</i>.</div>
+            <div>Írd be ezt a kódot a másik eszközön: Beállítások → Eszközök és szinkron → Szinkronizálás eszközök között → <i>Szinkronizálás kóddal</i>.</div>
             <div class="muted small">Még ${Math.floor(left / 60000)}:${String(Math.floor((left % 60000) / 1000)).padStart(2, '0')} percig érvényes. Az eszköz címe: ${r.addresses.length ? r.addresses.map((ip) => `<code>${esc(ip)}${r.port === 47800 ? '' : ':' + r.port}</code>`).join(' vagy ') : '<i>nem található hálózati cím</i>'}${api.platform === 'electron' || !api.platform ? ' · Első alkalommal a Windows tűzfal engedélyt kérhet – engedélyezd a magánhálózaton.' : ''}</div>`;
         };
         clearInterval(shareTimer);

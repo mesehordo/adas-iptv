@@ -41,7 +41,7 @@ export const ARTICLES = [
 <li>Válassz profilt (a „Ki nézi?” képernyőn), vagy hozz létre sajátot. ${t('profiles', 'Profilok')}</li>
 <li>A főoldalon kattints egy csatornára – azonnal elindul. ${t('playing', 'Lejátszás')}</li>
 <li>Jelöld meg a kedvenceidet a kártyán lévő <b>+</b> gombbal. ${t('favorites', 'Kedvencek')}</li>
-<li>Válassz felületstílust a Beállítások → Megjelenés alatt. ${t('themes', 'Stílusok')}</li>
+<li>Válassz felületstílust a Beállítások → Megjelenés és főoldal → Megjelenés alatt. ${t('themes', 'Stílusok')}</li>
 <li>Ha egy csatorna hiányzik, vedd fel saját csatornaként vagy saját listaként. ${t('custom-channels', 'Saját csatornák')}</li>
 </ol>
 <div class="tip"><b>Tipp:</b> a súgó bárhonnan megnyitható az <kbd>F1</kbd> vagy a <kbd>?</kbd> billentyűvel, illetve a fejléc kérdőjel ikonjával – mindig az éppen használt képernyőhöz tartozó témával nyílik meg.</div>`,
@@ -61,7 +61,7 @@ export const ARTICLES = [
 </ol>
 <h2>Ajánlott első beállítások</h2>
 <ul>
-<li><b>Hazai ország</b> (Beállítások → Tartalom): ennek a csatornái kerülnek előre, ezek kapják a csatornaszámokat. Alapból Magyarország.</li>
+<li><b>Hazai ország</b> (Beállítások → Tartalom és gyerekek → Tartalom): ennek a csatornái kerülnek előre, ezek kapják a csatornaszámokat. Alapból Magyarország.</li>
 <li><b>Felületstílus</b>: tizenhat kinézet közül választhatsz, profilonként. ${t('themes', 'Stílusok')}</li>
 <li><b>Gyerekprofil</b>: ha gyerek is használja, állíts be neki külön profilt. ${t('kids', 'Részletek')}</li>
 </ul>
@@ -198,7 +198,8 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
     body: `
 <p>A lejátszó ⚙ gombja (tévén a sárga gomb) egy menüt nyit:</p>
 <ul>
-<li><b>Minőség</b>: <i>Automatikus</i> esetén a lejátszó a sávszélességhez igazítja a felbontást. Kézzel rögzítheted a legjobb vagy egy alacsonyabb (pl. lassú mobilnetnél) minőséget. Sok adás csak egyetlen minőségben érhető el – ilyenkor ezt írja ki a menü.</li>
+<li><b>Minőség</b>: <i>Automatikus</i> esetén a lejátszó a sávszélességhez és az ablak méretéhez igazítja a felbontást (kis ablakban, mini lejátszóban nem tölt Full HD-t). Kézzel rögzítheted a legjobb vagy egy alacsonyabb (pl. lassú mobilnetnél) minőséget. Sok adás csak egyetlen minőségben érhető el – ilyenkor ezt írja ki a menü.</li>
+<li><b>Legnagyobb minőség</b> (Beállítások → Lejátszás): állandó plafon minden adásra – 1080p, 720p, 480p vagy 360p (adatkímélő). Lassú vagy mobil kapcsolaton kevesebb akadás, kevesebb adat. Lejátszás közben átállítva azonnal érvényes.</li>
 <li><b>Forrás</b>: a csatorna összes adásforrása állapotjelző pöttyel (zöld = működött, piros = nem, szürke = nem ellenőrzött). Ha az egyik akad, próbáld a másikat.</li>
 </ul>
 <p>A hangsávot és a feliratot a <b>CC</b> gomb menüjében választhatod. ${t('audio-subs', 'Hang és felirat')}</p>
@@ -221,7 +222,7 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
 <li>A <b>méret</b> mindenhol állítható; az <b>időeltolás</b> a külső feliratokra vonatkozik.</li>
 </ul>
 <h2>Kedvenc nyelvek profilonként</h2>
-<p>Beállítások → <b>Magyar információk és feliratok</b> alján megadhatod, hogy a profilod <b>melyik hangsávot</b> (az adás alapértelmezése / magyar / angol) és <b>melyik beágyazott feliratot</b> (kikapcsolva / magyar / angol) kérje. A lejátszó minden új adásnál és videónál magától ezt választja, ha elérhető.</p>
+<p>Beállítások → Lejátszás → <b>Magyar információk és feliratok</b> alján megadhatod, hogy a profilod <b>melyik hangsávot</b> (az adás alapértelmezése / magyar / angol) és <b>melyik beágyazott feliratot</b> (kikapcsolva / magyar / angol) kérje. A lejátszó minden új adásnál és videónál magától ezt választja, ha elérhető.</p>
 <div class="note">Az asztali változat a beépített lejátszóval (MP4, MKV) is tud hangsávot váltani. Tévén a beépített lejátszó hangsávváltása a készüléktől függ; HLS-adásoknál a hls.js lejátszó mindenhol működik.</div>
 ${go('#/settings?section=huinfo', 'Kedvenc nyelvek beállítása')}`,
   },
@@ -314,7 +315,7 @@ ${go('#/vod', 'A VOD megnyitása')}`,
 <h2>Folytatás</h2>
 <p>A program 5 másodpercenként és kilépéskor menti, hol tartasz. Legközelebb a <i>Folytatás</i> gomb onnan indítja; az <i>Előről</i> gombbal az elejéről. Ha a videó 94%-át megnézted, megnézettnek számít.</p>
 <h2>Következő rész</h2>
-<p>Sorozatnál a rész végén megjelenik a <b>Következő rész</b> ajánló 8 másodperces visszaszámlálással – <i>Lejátszás</i> azonnal indítja, <i>Mégse</i> leállítja. Kikapcsolható: Beállítások → VOD-listák → <i>A következő rész automatikus indítása</i>.</p>
+<p>Sorozatnál a rész végén megjelenik a <b>Következő rész</b> ajánló 8 másodperces visszaszámlálással – <i>Lejátszás</i> azonnal indítja, <i>Mégse</i> leállítja. Kikapcsolható: Beállítások → Listák és források → VOD-listák → <i>A következő rész automatikus indítása</i>.</p>
 <p>Az elalvási időzítő „A műsor végén” beállítása itt a videó végét jelenti.</p>
 <h2>Hangsávok és beágyazott feliratok (lejátszási híd)</h2>
 <p>A beépített lejátszó (a Chromium motorja) magában nem tudja az <b>AC3 / E-AC3 / DTS / TrueHD</b> hangot (ezeket a sávokat nem is látja), a fájlba <b>ágyazott feliratokat</b> (MKV: ASS / SRT, MP4: mov_text) egyáltalán nem jeleníti meg, és néhány régi videóformátum (XviD, WMV, 10 bites H.264) képét sem.</p>
@@ -337,7 +338,7 @@ ${go('#/vod', 'A VOD megnyitása')}`,
     title: 'Film- és sorozatlisták',
     keywords: 'film lista sorozat lista hozzáadás github tárhely m3u m3u8 zip több fájl műfaj közkincs orphaned animeaddicts anime',
     body: `
-<p>A filmek és sorozatok <b>külön listákból</b> töltődnek, mint a tévécsatornák: Beállítások → <b>VOD-listák</b>.</p>
+<p>A filmek és sorozatok <b>külön listákból</b> töltődnek, mint a tévécsatornák: Beállítások → Listák és források → <b>VOD-listák</b>.</p>
 <h2>Beépített listák</h2>
 <table class="help-table">
 <tr><td><b>Orphaned Films</b></td><td>Több mint 1300 közkincs (public domain) film témák szerint csoportosítva, borítóképekkel.</td></tr>
@@ -370,7 +371,7 @@ ${go('#/settings?section=vodlists', 'Listák kezelése')}`,
     body: `
 <p>A VOD <b>Saját médiatár</b> fülén a saját filmjeid és sorozataid jelennek meg – például a NAS egy mappájában automatikusan keletkező <code>.m3u</code> / <code>.m3u8</code> lejátszólistákból. Ugyanúgy működik, mint az online VOD-listák: borítók, adatlap, folytatás, következő rész, magyar információk és feliratok.</p>
 <h2>Forrás megadása</h2>
-<p>Beállítások → <b>Saját médiatár (NAS)</b>:</p>
+<p>Beállítások → Listák és források → <b>Saját médiatár (NAS)</b>:</p>
 <table class="help-table">
 <tr><td><b>Mappa kiválasztása…</b> / <b>Mappa útvonalának megadása</b><br><small>(asztali változat)</small></td><td>A NAS megosztott mappája, pl. <code>\\\\NAS\\Media\\Listak</code>, egy hálózati meghajtó (<code>Z:\\Listak</code>) vagy Linuxon / macOS-en csatolt mappa (<code>/mnt/nas/listak</code>, <code>/Volumes/Media</code>). A program az almappákat is átnézi (4 szint mélységig).</td></tr>
 <tr><td><b>Hálózati cím (http)</b><br><small>(minden eszközön, tévén is)</small></td><td>Ha a NAS webszerveren is elérhetővé teszi a mappát (pl. Synology Web Station, QNAP, nginx / Apache könyvtárlista): <code>http://192.168.1.10/listak/</code>. A program a lapon talált .m3u / .m3u8 hivatkozásokat és az almappákat (2 szint) nézi át. Egyetlen lista címe is megadható.</td></tr>
@@ -405,7 +406,7 @@ ${go('#/settings?section=ownlists', 'Saját médiatár beállítása')}`,
 <ol>
 <li>Regisztrálj ingyenesen az <b>opensubtitles.com</b> oldalon.</li>
 <li>Bejelentkezve a profilodban keresd meg az <b>API consumers</b> részt, és hozz létre egy új kulcsot (bármilyen név jó, pl. „Adás”).</li>
-<li>Az Adásban: Beállítások → <b>Magyar információk és feliratok</b> → add meg az <b>API-kulcsot</b>, a <b>felhasználóneved</b> és a <b>jelszavad</b>, majd nyomd meg a <i>Bejelentkezés kipróbálása</i> gombot.</li>
+<li>Az Adásban: Beállítások → Lejátszás → <b>Magyar információk és feliratok</b> → add meg az <b>API-kulcsot</b>, a <b>felhasználóneved</b> és a <b>jelszavad</b>, majd nyomd meg a <i>Bejelentkezés kipróbálása</i> gombot.</li>
 </ol>
 <p>A kereséshez elég az API-kulcs, a <b>letöltéshez bejelentkezés</b> is kell. Ingyenes fiókkal naponta korlátozott számú felirat tölthető le (a program minden letöltés után kiírja, mennyi maradt); egyszer letöltött feliratot a program megjegyez, az újra nem fogyaszt keretet.</p>
 <h2>Használat lejátszás közben</h2>
@@ -445,7 +446,7 @@ ${go('#/settings?section=huinfo', 'Felirat-beállítások')}`,
 <tr><td><b>TMDB</b> (The Movie Database)</td><td>Ha megadod a saját ingyenes API-kulcsodat (themoviedb.org → Beállítások → API), a filmek és sorozatok adatai innen is jönnek: gazdagabb magyar leírások és értékelések.</td></tr>
 </table>
 <p>Ha egy szolgáltató lassításra kér (túl sok kérés), a program egy ideig nem kérdezi, és később folytatja. Az <b>AnimeAddicts</b> ismertetői csak bejelentkezve érhetők el, ezért azokat a program nem olvassa be.</p>
-<p>Az adatok a gyorsítótárba kerülnek (30 napig), így másodszorra azonnal megjelennek. Kikapcsolás: Beállítások → Magyar információk és feliratok → <i>Magyar információk letöltése</i>.</p>
+<p>Az adatok a gyorsítótárba kerülnek (30 napig), így másodszorra azonnal megjelennek. Kikapcsolás: Beállítások → Lejátszás → Magyar információk és feliratok → <i>Magyar információk letöltése</i>.</p>
 ${go('#/settings?section=huinfo', 'Beállítások')}`,
   },
   {
@@ -480,7 +481,7 @@ ${go('#/settings?section=huinfo', 'Beállítások')}`,
     body: `
 <p>A főoldal egységekből (kártyákból) álló áttekintő, amely asztali gépen és tévén mindig <b>egy képernyőre fér</b>. Telefonon (és álló helyzetű Androidon) az egységek egymás alatt vannak, ott görgethető.</p>
 <h2>Testreszabás</h2>
-<p>A főoldal jobb felső <b>Testreszabás</b> gombjával (vagy Beállítások → Főoldal → <i>Főoldal testreszabása</i>):</p>
+<p>A főoldal jobb felső <b>Testreszabás</b> gombjával (vagy Beállítások → Megjelenés és főoldal → Főoldal → <i>Főoldal testreszabása</i>):</p>
 <ul>
 <li>a rács <b>oszlopainak</b> (1–5) és <b>sorainak</b> (1–4) száma,</li>
 <li>egységenként: <b>sorrend</b> (‹ ›, egérrel áthúzással is), <b>szélesség</b> (↔) és <b>magasság</b> (↕) cellában, <b>elrejtés</b> (×),</li>
@@ -490,9 +491,9 @@ ${go('#/settings?section=huinfo', 'Beállítások')}`,
 <div class="tip"><b>A méret számít:</b> minden egység a saját méretéhez igazítja, mit és mennyit mutat – például a hírek és a műsorok száma, a hírek képe és bevezetője, a heti előrejelzés napjainak száma, az órás bontás sűrűsége, a VOD-plakátok mérete és száma vagy a műsorújság időablaka.</div>
 <h2>Az egységek</h2>
 <table class="help-table">
-<tr><td><b>Időjárás</b></td><td>Felül a mai idő a település nevével, alatta a mai nap órás bontásban (keskeny kártyán két-három óránként), alul a heti előrejelzés. Kis kártyán a heti rész, még kisebben a diagram is elmarad. A mai rész megjelenése választható: vonaldiagram, terület + csapadék, oszlopok, csempék vagy csak egy érték. A település és a megjelenés: Beállítások → <b>Főoldal</b>. Forrás: Open-Meteo.</td></tr>
+<tr><td><b>Időjárás</b></td><td>Felül a mai idő a település nevével, alatta a mai nap órás bontásban (keskeny kártyán két-három óránként), alul a heti előrejelzés. Kis kártyán a heti rész, még kisebben a diagram is elmarad. A mai rész megjelenése választható: vonaldiagram, terület + csapadék, oszlopok, csempék vagy csak egy érték. A település és a megjelenés: Beállítások → Megjelenés és főoldal → <b>Főoldal</b>. Forrás: Open-Meteo.</td></tr>
 <tr><td><b>Most a tévében</b></td><td>A kedvenc csatornáid műsora a Műsorújság idővonalas rácsához hasonlóan (a szélességtől függően 1–5 órás időablak). Ami nem fér ki, arra a „+N további” sor utal.</td></tr>
-<tr><td><b>Hírek</b></td><td>A bekapcsolt RSS / Atom forrásokból a legfrissebb hírek – annyi, amennyi kifér (széles kártyán bevezetővel). Kattintásra a hír összefoglalója nyílik meg. Források: Beállítások → <b>Főoldal</b> → <i>Hírforrások</i>. Alapból: Telex, HVG, 444. Gyerekprofilban nem érhető el.</td></tr>
+<tr><td><b>Hírek</b></td><td>A bekapcsolt RSS / Atom forrásokból a legfrissebb hírek – annyi, amennyi kifér (széles kártyán bevezetővel). Kattintásra a hír összefoglalója nyílik meg. Források: Beállítások → Megjelenés és főoldal → <b>Főoldal</b> → <i>Hírforrások</i>. Alapból: Telex, HVG, 444. Gyerekprofilban nem érhető el.</td></tr>
 <tr><td><b>Ma este a tévében</b></td><td>A kedvenc csatornáid esti (19 óra utáni) műsoraiból csatornánként egy. A csengő gombbal emlékeztetőt kérhetsz.</td></tr>
 <tr><td><b>Utoljára nézett csatorna</b></td><td>Az utoljára nézett csatorna a most futó és a következő műsorral (nagyobb kártyán a műsor leírásával), egy gombnyomással folytatható.</td></tr>
 <tr><td><b>VOD – folytatás</b></td><td>Az utoljára nézett 5 film / sorozatrész plakáttal és haladással (kis kártyán listában) – onnan folytatódik, ahol abbahagytad.</td></tr>
@@ -532,7 +533,7 @@ ${go('#/settings?section=dashboard', 'A főoldal beállításai')}`,
 <h2>A sor összes eleme egy oldalon</h2>
 <p>Minden sor címe mellett egy <b>kerek nyíl ›</b> látható: rákattintva (érintve) a sor <b>összes</b> eleme egy oldalon nyílik meg. Távirányítóval vagy billentyűzettel a sor végére lépve ugyanezt egy <b>„Összes”</b> csempe teszi meg (OK / Enter). A VOD sorainál, a <i>Folytatás</i> sornál és az országok csempéinél is így működik.</p>
 <h2>Magyar elöl</h2>
-<p>Minden listában és kategóriában elöl állnak a <b>magyarországi</b>, utánuk a <b>magyar nyelvű</b> (pl. határon túli) csatornák, azon belül a működő, logós, jobb minőségű adások; a sorrend naponta kicsit változik, hogy mindig mást is felfedezz. A keresésnél a pontos névegyezés marad legelöl. A filmeknél és sorozatoknál a magyar jelölésű (szinkron, felirat, „magyar” csoport) és a magyar tárhelyről (.hu) származó tételek kerülnek előre. A „hazai” ország a Beállítások → Általános alatt módosítható. ${t('card-badges', 'A kártyák jelölései')}</p>`,
+<p>Minden listában és kategóriában elöl állnak a <b>magyarországi</b>, utánuk a <b>magyar nyelvű</b> (pl. határon túli) csatornák, azon belül a működő, logós, jobb minőségű adások; a sorrend naponta kicsit változik, hogy mindig mást is felfedezz. A keresésnél a pontos névegyezés marad legelöl. A filmeknél és sorozatoknál a magyar jelölésű (szinkron, felirat, „magyar” csoport) és a magyar tárhelyről (.hu) származó tételek kerülnek előre. A „hazai” ország a Beállítások → Tartalom és gyerekek → Tartalom alatt módosítható. ${t('card-badges', 'A kártyák jelölései')}</p>`,
   },
   {
     id: 'card-badges',
@@ -643,7 +644,7 @@ ${go('#/settings?section=dashboard', 'A főoldal beállításai')}`,
 <p>Egy jövőbeli műsorra emlékeztetőt kérhetsz a műsorújságban (kattints a műsorra → <b>🔔 Emlékeztető</b>), a csatorna adatlapján (a műsor melletti 🔔) vagy a keresés találatai közül.</p>
 <ul>
 <li><b>Minden adására</b>: a műsor adatlapján a <b>↻ Minden adására</b> gombbal a műsor összes adására kérhetsz emlékeztetőt azon a csatornán (sorozatokhoz, híradóhoz, rendszeres műsorokhoz). A „– 312. rész” jellegű végződéseket figyelmen kívül hagyja, és a következő 7 nap adásait magától felveszi.</li>
-<li><b>Mikor szól?</b> Beállítások → Emlékeztetők: a kezdéskor vagy 1–30 perccel előtte.</li>
+<li><b>Mikor szól?</b> Beállítások → Értesítések → Emlékeztetők: a kezdéskor vagy 1–30 perccel előtte.</li>
 <li><b>Automatikus átkapcsolás</b>: bekapcsolva a műsor kezdetekor (8 mp visszaszámlálás után, <i>Maradok</i> gombbal megállítható) átvált a csatornára, ha az Adás nyitva van.</li>
 <li>A fejléc 🔔 ikonja mutatja a beállított emlékeztetőket és a „minden adására” szabályokat; innen törölheted is őket.</li>
 <li>Az emlékeztetők <b>profilonként</b> tárolódnak, és a profil költöztetésével együtt mennek.</li>
@@ -664,7 +665,7 @@ ${go('#/settings?section=reminders', 'Emlékeztetők beállításai')}`,
     title: 'Műsorújság-források',
     keywords: 'epg xmltv forrás párosítás frissítés saját műsorújság',
     body: `
-<p>A műsoradatok <b>XMLTV</b> formátumú forrásokból érkeznek. Beállítások → Műsorújság alatt látod mindegyiket: hány csatornához sikerült párosítani, hány műsort tartalmaz, és ha hibás, mi a hiba.</p>
+<p>A műsoradatok <b>XMLTV</b> formátumú forrásokból érkeznek. Beállítások → Listák és források → Műsorújság alatt látod mindegyiket: hány csatornához sikerült párosítani, hány műsort tartalmaz, és ha hibás, mi a hiba.</p>
 <h2>Beépített források</h2>
 <ul>
 <li>Alapból bekapcsolva: két magyar forrás és a lejátszólista saját forrása.</li>
@@ -707,15 +708,15 @@ ${go('#/profiles', 'Profilok kezelése')}`,
 <h2>Gyerekprofil</h2>
 <p>A profil szerkesztésekor kapcsold be a <b>Gyerekprofil</b> kapcsolót. Ilyenkor alapból csak a <b>gyerektartalom</b> jelenik meg – a főoldalon, a TV és a VOD oldalon, a böngészésben, a keresésben és a műsorújságban is. A gyerekprofilban a hírek kártyája sem látszik.</p>
 <h2>Mi számít gyerektartalomnak?</h2>
-<p>Alapból a <b>Gyerek, Animáció, Családi és Oktatás</b> kategóriájú csatornák, illetve a gyerek-, családi és animációs csoportú / műfajú filmek és sorozatok (a felnőtt műfajok soha). Ez <b>minden profilban közös</b> jelölés, és kézzel is állítható: a csatorna és a film / sorozat <b>adatlapján</b> a <b>Gyerektartalom</b> gombbal (felnőtt profilban), vagy a Beállítások → <b>Gyerekprofilok – mit nézhetnek?</b> listában.</p>
+<p>Alapból a <b>Gyerek, Animáció, Családi és Oktatás</b> kategóriájú csatornák, illetve a gyerek-, családi és animációs csoportú / műfajú filmek és sorozatok (a felnőtt műfajok soha). Ez <b>minden profilban közös</b> jelölés, és kézzel is állítható: a csatorna és a film / sorozat <b>adatlapján</b> a <b>Gyerektartalom</b> gombbal (felnőtt profilban), vagy a Beállítások → Tartalom és gyerekek → <b>Gyerekprofilok – mit nézhetnek?</b> listában.</p>
 <h2>Mit nézhet a gyerekprofil?</h2>
-<p>Beállítások → <b>Gyerekprofilok – mit nézhetnek?</b>: a <b>TV-csatornák</b> vagy a <b>VOD</b> fülön minden sorban ott a közös <i>Gyerektartalom</i> kapcsoló, és mellette <b>minden gyerekprofilnak külön kapcsoló</b> (a profil nevével): így például a nagyobb gyerek nézhet olyat, amit a kisebb nem. A szűrővel nézheted, mi a gyerektartalom, mindent, vagy azt, amit egy adott gyerekprofil nézhet / nem nézhet; kereséssel szűkíthetsz, és gyerekprofilonként a látható találatokat egyszerre is engedélyezheted / tilthatod. Gyerekprofilból a beállítások csak PIN-kóddal nyílnak meg.</p>
+<p>Beállítások → Tartalom és gyerekek → <b>Gyerekprofilok – mit nézhetnek?</b>: a <b>TV-csatornák</b> vagy a <b>VOD</b> fülön minden sorban ott a közös <i>Gyerektartalom</i> kapcsoló, és mellette <b>minden gyerekprofilnak külön kapcsoló</b> (a profil nevével): így például a nagyobb gyerek nézhet olyat, amit a kisebb nem. A szűrővel nézheted, mi a gyerektartalom, mindent, vagy azt, amit egy adott gyerekprofil nézhet / nem nézhet; kereséssel szűkíthetsz, és gyerekprofilonként a látható találatokat egyszerre is engedélyezheted / tilthatod. Gyerekprofilból a beállítások csak PIN-kóddal nyílnak meg.</p>
 <h2>Napi nézési idő és korhatár</h2>
 <p>Ugyanitt gyerekprofilonként megadható a <b>napi nézési idő</b> (30 perctől 4 óráig, vagy korlátlan) és a <b>korhatár</b> (6, 12, 16, 18 év). 5 és 1 perccel a vége előtt figyelmeztet; ha elfogy, a lejátszás leáll, és csak egy felnőtt profil PIN-jével nézhető tovább (+30 perc). Ha a műsorújság szerint egy élő műsor korhatára magasabb a beállítottnál, az adás nem indul (vagy a műsor kezdetekor leáll) – szülői PIN-nel az adott műsorra feloldható. (A korhatárt nem minden műsorújság közli; ahol nincs adat, ott nincs korlátozás.)</p>
 <div class="tip">A korlátozásokhoz állíts be PIN-t egy felnőtt profilnak (Profilok kezelése) – PIN nélkül bárki feloldhatja.</div>
 <p>Felnőtt (18+) csatorna gyerekprofilban akkor sem jelenik meg, ha kézzel engedélyezed.</p>
 <h2>Felnőtt tartalom</h2>
-<p>A felnőtt (18+) csatornák alapból rejtve vannak. Megjelenítésük: Beállítások → Tartalom → <b>Felnőtt tartalom megjelenítése</b> (megerősítést kér). A szűrés az iptv-org besorolásán és tiltólistáján alapul.</p>
+<p>A felnőtt (18+) csatornák alapból rejtve vannak. Megjelenítésük: Beállítások → Tartalom és gyerekek → Tartalom → <b>Felnőtt tartalom megjelenítése</b> (megerősítést kér). A szűrés az iptv-org besorolásán és tiltólistáján alapul.</p>
 <div class="warn">A szűrés a nyilvános adatbázis jelöléseire épül, ezért nem tökéletes. Kisebb gyerekeknél érdemes felügyelni a használatot; a gyerekprofilból a profilváltás nincs jelszóval védve.</div>`,
   },
   {
@@ -740,7 +741,7 @@ ${go('#/profiles', 'Profilok kezelése')}`,
     title: 'Felületstílusok',
     keywords: 'téma stílus kinézet netflix disney skyshowtime rakuten prime apple zen wabi szabi nintendo wii switch világos sötét',
     body: `
-<p>A felület kinézete profilonként választható: <b>Beállítások → Megjelenés → Felület stílusa</b> (legördülő menü, vagy kattints a mintákra). A váltás azonnal érvényes.</p>
+<p>A felület kinézete profilonként választható: <b>Beállítások → Megjelenés és főoldal → Megjelenés → Felület stílusa</b> (legördülő menü, vagy kattints a mintákra). A váltás azonnal érvényes.</p>
 <p>Az <b>elrendezés minden stílusban ugyanaz</b> (felső menüsáv, hat csatornás lapozó kiemelt sáv, azonos kártyaméretek, sorok és kártyák a főoldalon) – a stílus csak a kinézetet adja: színek, betűtípus, keretek, árnyékok, háttérminták, animációk.</p>
 <table class="help-table">
 <tr><th colspan="2">Sötét stílusok</th></tr>
@@ -767,7 +768,7 @@ ${go('#/profiles', 'Profilok kezelése')}`,
 <tr><td><b>Rakugaki</b></td><td>(firka) Vonalas füzetlap kézírással: a csatornák beragasztott polaroid fotók, a gombok ceruzával rajzoltak.</td></tr>
 </table>
 <p>A főoldal egységei (csempéi) is a stílushoz illő kinézetet kapnak (keret, árnyék, háttér, címek). A lejátszó minden stílusban sötét marad, hogy a kép a lehető legjobban érvényesüljön.</p>
-<p><b>Saját téma</b>: téma-fájl feltöltésével vagy (asztali gépen) a téma-mappába másolva – Beállítások → Megjelenés → <i>Saját témák</i>. ${t('custom-theme', 'Saját téma készítése')}</p>
+<p><b>Saját téma</b>: téma-fájl feltöltésével vagy (asztali gépen) a téma-mappába másolva – Beállítások → Megjelenés és főoldal → Megjelenés → <i>Saját témák</i>. ${t('custom-theme', 'Saját téma készítése')}</p>
 ${go('#/settings', 'Megjelenés beállítása')}`,
   },
   {
@@ -779,7 +780,7 @@ ${go('#/settings', 'Megjelenés beállítása')}`,
 <p>A téma egyetlen <b>JSON-fájl</b> (<code>.adastheme</code> vagy <code>.json</code>), amely a felület <b>kinézetét</b> adja meg: színeket, betűtípusokat, hátteret és díszítő CSS-t. Az <b>elrendezést nem változtathatja</b> – a méretet, térközt, pozíciót vagy láthatóságot módosító CSS-t az Adás automatikusan kiszűri, így a téma soha nem csúsztatja szét a felületet. A teljes leírás a forráskódban: <code>docs/TEMA-KESZITES.md</code>; két minta: <code>themes/sakura.adastheme</code>, <code>themes/yoru-no-umi.adastheme</code>.</p>
 <h2>Betöltés</h2>
 <ul>
-<li><b>Feltöltés</b> (minden eszközön): Beállítások → Megjelenés → <i>Saját témák</i> → <b>Téma-fájl feltöltése…</b> A téma a beállításokba kerül (a mentés és a szinkron is viszi).</li>
+<li><b>Feltöltés</b> (minden eszközön): Beállítások → Megjelenés és főoldal → Megjelenés → <i>Saját témák</i> → <b>Téma-fájl feltöltése…</b> A téma a beállításokba kerül (a mentés és a szinkron is viszi).</li>
 <li><b>Téma-mappa</b> (asztali): az adatmappa <code>themes</code> almappája (<b>Téma-mappa megnyitása</b>), vagy saját mappa (<b>Másik téma-mappa…</b>). A bemásolt fájlokat indításkor és a <b>Téma-mappa újraolvasása</b> gombra olvassa be – szerkesztéshez ez a kényelmes.</li>
 <li><b>Sablon mentése a mostani stílusból</b>: a használt stílus színeivel kitöltött téma-fájl – ebből érdemes kiindulni.</li>
 </ul>
@@ -830,7 +831,7 @@ ${go('#/settings', 'Megjelenés beállítása')}`,
     title: 'A TV és a VOD oldal sorainak sorrendje',
     keywords: 'sorrend sorok kategóriák rendezés elrejtés tv oldal vod műfaj húzás',
     body: `
-<p>Beállítások → Megjelenés → <b>A TV oldal sorai</b>, illetve Beállítások → VOD-listák → <b>A VOD oldal sorai</b>. A lista a sorokat abban a sorrendben mutatja, ahogy megjelennek. A beállítás <b>csak az aktuális profilra</b> vonatkozik. A VOD-nál a sorok: Folytatás, Sorozatok, Ajánlott filmek, listánként egy sor, minden csoport / műfaj külön sorként, Egyéb filmek.</p>
+<p>Beállítások → Megjelenés és főoldal → Megjelenés → <b>A TV oldal sorai</b>, illetve Beállítások → Listák és források → VOD-listák → <b>A VOD oldal sorai</b>. A lista a sorokat abban a sorrendben mutatja, ahogy megjelennek. A beállítás <b>csak az aktuális profilra</b> vonatkozik. A VOD-nál a sorok: Folytatás, Sorozatok, Ajánlott filmek, listánként egy sor, minden csoport / műfaj külön sorként, Egyéb filmek.</p>
 <ul>
 <li><b>Áthelyezés</b>: fogd meg a sort a ⋮⋮ jelnél és húzd a helyére, vagy használd a ⌃ / ⌄ gombokat (távirányítóval is: a gombon maradva többször megnyomható).</li>
 <li><b>Elrejtés</b>: a sor melletti kapcsoló. Az elrejtett sor halványan látszik a listában, de a főoldalon nem jelenik meg.</li>
@@ -870,7 +871,7 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
     keywords: 'mentés visszaállítás biztonsági másolat export import gyorsítótár törlés költözés',
     body: `
 <h2>Mentés fájlba</h2>
-<p>Beállítások → Profilok és adatok → <b>Mentés fájlba</b>: egy <code>.json</code> fájlba írja a beállításokat, az összes profilt a kedvencekkel, előzményekkel, emlékeztetőkkel, stílussal és sorrenddel, valamint a saját listákat és csatornákat. Így másik gépre is átviheted az egészet.</p>
+<p>Beállítások → Profilok és mentés → <b>Mentés fájlba</b>: egy <code>.json</code> fájlba írja a beállításokat, az összes profilt a kedvencekkel, előzményekkel, emlékeztetőkkel, stílussal és sorrenddel, valamint a saját listákat és csatornákat. Így másik gépre is átviheted az egészet.</p>
 <h2>Visszaállítás</h2>
 <p><b>Visszaállítás fájlból</b>: a mentett fájl felülírja a jelenlegi beállításokat és profilokat (megerősítést kér), majd a program újraindul.</p>
 <p><b>Profilok hozzáadása fájlból</b>: csak a mentés profiljait veszi át (kedvencekkel, előzményekkel, emlékeztetőkkel, profilképpel, PIN-nel); a mostani beállítások, listák és a többi profil megmaradnak, az azonos profil frissül. Ugyanez a <i>Szinkronizálás eszközök között</i> résznél a <b>Csak a profilok</b> kapcsolóval hálózaton át is működik.</p>
@@ -898,7 +899,7 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
     body: `
 <p>A program csatornái a <b>beépített listákból</b>, a <b>saját lejátszólistáidból</b> és az egyenként felvett <b>saját csatornáidból</b> állnak össze.</p>
 <h2>Beépített listák</h2>
-<p>Beállítások → Csatornalisták → <b>Beépített listák</b>: mindegyik külön kapcsolóval ki-be kapcsolható. Mellettük látszik, hány csatornát adnak.</p>
+<p>Beállítások → Listák és források → Csatornalisták → <b>Beépített listák</b>: mindegyik külön kapcsolóval ki-be kapcsolható. Mellettük látszik, hány csatornát adnak.</p>
 <table class="help-table">
 <tr><td><b>iptv-org</b></td><td>A legnagyobb közösségi gyűjtemény (kb. 10 000 csatorna), részletes adatokkal (ország, nyelv, tulajdonos, weboldal…). A címe a <i>Cím</i> gombbal módosítható (pl. csak egy ország listája).</td></tr>
 <tr><td><b>iptv-org – Animáció</b></td><td>Az iptv-org animációs csatornái külön listaként; bekapcsolt iptv-org mellett összevonódnak vele, önállóan akkor hasznos, ha az iptv-org ki van kapcsolva.</td></tr>
@@ -913,10 +914,10 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
 <h2>Frissítés</h2>
 <ul>
 <li><b>Automatikusan</b>: a fő lista 6 óránként, a csatornaadatok naponta frissülnek; induláskor a program az elmentett listával azonnal elindul, és ha az régi, a háttérben frissíti.</li>
-<li><b>Azonnal</b>: profilmenü (a fejléc profilképe) → <b>Csatornalista frissítése</b> – alatta látszik, mikor volt az utolsó letöltés. Vagy: Beállítások → Csatornalisták → <b>Minden lista frissítése most</b>. Mindkettő a gyorsítótár megkerülésével mindent újratölt, a műsorújsággal együtt, és a végén kiírja, hány csatorna lett (és hány új).</li>
+<li><b>Azonnal</b>: profilmenü (a fejléc profilképe) → <b>Csatornalista frissítése</b> – alatta látszik, mikor volt az utolsó letöltés. Vagy: Beállítások → Listák és források → Csatornalisták → <b>Minden lista frissítése most</b>. Mindkettő a gyorsítótár megkerülésével mindent újratölt, a műsorújsággal együtt, és a végén kiírja, hány csatorna lett (és hány új).</li>
 </ul>
 <h2>Az iptv-org lista címe</h2>
-<p>Beállítások → Csatornalisták → iptv-org → <b>Cím</b>: más M3U cím is megadható (pl. csak egy ország listája: <code>https://iptv-org.github.io/iptv/countries/hu.m3u</code>). Üresen hagyva visszaáll a teljes listára.</p>
+<p>Beállítások → Listák és források → Csatornalisták → iptv-org → <b>Cím</b>: más M3U cím is megadható (pl. csak egy ország listája: <code>https://iptv-org.github.io/iptv/countries/hu.m3u</code>). Üresen hagyva visszaáll a teljes listára.</p>
 <p>Lásd még: ${t('custom-playlists', 'Saját lejátszólista hozzáadása')} · ${t('custom-channels', 'Saját csatorna hozzáadása')}</p>
 ${go('#/settings?section=lists', 'Csatornalisták kezelése')}`,
   },
@@ -926,7 +927,7 @@ ${go('#/settings?section=lists', 'Csatornalisták kezelése')}`,
     title: 'Saját lejátszólista hozzáadása',
     keywords: 'saját lista hozzáadás m3u m3u8 url fájl beillesztés ajánlott szolgáltató iptv',
     body: `
-<p>Bármely M3U / M3U8 lejátszólistát felvehetsz – például a szolgáltatódtól kapottat, egy közösségi gyűjteményt vagy egy saját összeállítást. Beállítások → Csatornalisták → Saját lejátszólisták:</p>
+<p>Bármely M3U / M3U8 lejátszólistát felvehetsz – például a szolgáltatódtól kapottat, egy közösségi gyűjteményt vagy egy saját összeállítást. Beállítások → Listák és források → Csatornalisták → Saját lejátszólisták:</p>
 <table class="help-table">
 <tr><td><b>Lista hozzáadása címről</b></td><td>Add meg a lista <code>http(s)://</code> címét. A program azonnal letölti és megmutatja, hány adás van benne, majd nevet kér (javaslatot is ad).</td></tr>
 <tr><td><b>Lista hozzáadása fájlból</b></td><td>Egy vagy több <code>.m3u</code> / <code>.m3u8</code> fájl, vagy egy <b>ZIP</b>-csomag (asztali és Android-változat). Minden fájl külön, ki-be kapcsolható lista lesz.</td></tr>
@@ -947,7 +948,7 @@ ${go('#/settings?section=lists', 'Csatornalisták kezelése')}`,
     title: 'Saját csatorna hozzáadása',
     keywords: 'csatorna hozzáadás saját adás url egyedi stream kipróbálás user-agent referer fejléc',
     body: `
-<p>Egyetlen adást is felvehetsz, lista nélkül: profilmenü → <b>Csatorna hozzáadása</b>, vagy Beállítások → Csatornalisták → <b>Csatorna hozzáadása</b>.</p>
+<p>Egyetlen adást is felvehetsz, lista nélkül: profilmenü → <b>Csatorna hozzáadása</b>, vagy Beállítások → Listák és források → Csatornalisták → <b>Csatorna hozzáadása</b>.</p>
 <h2>Mezők</h2>
 <table class="help-table">
 <tr><td><b>Név</b> *</td><td>Ahogy a felületen látszani fog.</td></tr>
@@ -957,7 +958,7 @@ ${go('#/settings?section=lists', 'Csatornalisták kezelése')}`,
 <tr><td><b>Haladó: User-Agent, Referer</b></td><td>Egyes szerverek csak bizonyos böngészőazonosítóval vagy hivatkozó oldallal adnak képet. Ha a forrásnál ilyet látsz (pl. <code>#EXTVLCOPT:http-referrer=…</code>), itt add meg.</td></tr>
 </table>
 <p>A <b>Kipróbálás</b> gomb mentés nélkül elindítja az adást – így előre ellenőrizheted, hogy működik-e. A <b>Mentés</b> után a csatorna a főoldal <i>Saját csatornák</i> sorában, a Böngészésben és a keresésben is megjelenik, kedvencnek jelölhető, és csatornaszámot kaphat.</p>
-<p>Szerkesztés, lejátszás, törlés: Beállítások → Csatornalisták → Saját csatornák.</p>
+<p>Szerkesztés, lejátszás, törlés: Beállítások → Listák és források → Csatornalisták → Saját csatornák.</p>
 <div class="note">Tévén a User-Agent / Referer fejlécet a beépített lejátszó nem mindig veszi figyelembe.</div>
 ${go('#/settings?section=lists', 'Saját csatornák kezelése')}`,
   },
@@ -993,14 +994,14 @@ https://…/sport/playlist.m3u8</pre>
     body: `
 <p>Az ingyenes listák adásainak egy része időnként vagy véglegesen leáll. Az Adás ezért ellenőrzi, melyik működik:</p>
 <ul>
-<li><b>Automatikusan</b>: a képernyőn megjelenő csatornák forrásait (csatornánként legfeljebb négyet) a háttérben kipróbálja, 12 óránként újra. Kikapcsolható: Beállítások → Elérhetőség-ellenőrzés.</li>
+<li><b>Automatikusan</b>: a képernyőn megjelenő csatornák forrásait (csatornánként legfeljebb négyet) a háttérben kipróbálja, 12 óránként újra. Kikapcsolható: Beállítások → Listák és források → Elérhetőség-ellenőrzés.</li>
 <li><b>Úgy, ahogy a lejátszó látja</b>: nem elég, hogy a szerver válaszol – a program a lejátszólistán át egy valódi videórészlet elejét is letölti. Így a földrajzilag korlátozott, lejárt vagy éppen üres (nem sugárzó) adás is <b>Offline</b> / <b>Adásszünet</b> jelzést kap.</li>
 <li><b>Lejátszáskor</b>: ami elindul, működőnek, ami nem, hibásnak jelölődik. Egy sikertelen lejátszást a háttérellenőrzés 12 órán át nem írhat felül „működőre”.</li>
 <li><b>Gyors váltás</b>: ha egy forrás 6 másodpercen belül nem válaszol, a lejátszó a következőre lép; több forrásnál a többit közben párhuzamosan kipróbálja, és 3 másodperc után átvált egy biztosan élőre.</li>
-<li><b>Teljes ellenőrzés</b>: Beállítások → <b>Minden adás ellenőrzése</b> – az összes (több mint tízezer) forrást végigpróbálja, néhány perc alatt; folyamatjelzővel, leállítható.</li>
+<li><b>Teljes ellenőrzés</b>: Beállítások → Listák és források → Elérhetőség-ellenőrzés → <b>Minden adás ellenőrzése</b> – az összes (több mint tízezer) forrást végigpróbálja, néhány perc alatt; folyamatjelzővel, leállítható.</li>
 <li><b>Az adatlapon</b>: <i>Források ellenőrzése</i> – az adott csatorna összes forrása azonnal.</li>
 </ul>
-<p>A <b>Nem elérhető csatornák elrejtése</b> (Beállítások → Tartalom) bekapcsolásával a hibásnak talált csatornák eltűnnek a listákból. Az <b>Eredmények törlése</b> mindent „nem ellenőrzöttre” állít.</p>
+<p>A <b>Nem elérhető csatornák elrejtése</b> (Beállítások → Tartalom és gyerekek → Tartalom) bekapcsolásával a hibásnak talált csatornák eltűnnek a listákból. Az <b>Eredmények törlése</b> mindent „nem ellenőrzöttre” állít.</p>
 <div class="note">Ritkán előfordul, hogy egy „működő” adás mégsem indul (pl. a gép nem tudja dekódolni a videó formátumát) – ezt az első sikertelen lejátszás után jelöli. Egy „hibás” adás később újra elérhető lehet. Böngészőben futtatva az ellenőrzés nem érhető el.</div>`,
   },
 
@@ -1159,7 +1160,7 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
     body: `
 <p>A nyilvános műsorújság-források csak a csatornák egy részét fedik le – elsősorban a magyar és a nagyobb nemzetközi csatornákat. Amit tehetsz:</p>
 <ul>
-<li>Kapcsold be a csatorna országának forrását: Beállítások → Műsorújság (pl. Németország, Egyesült Királyság, Pluto TV). ${t('epg-sources', 'Források')}</li>
+<li>Kapcsold be a csatorna országának forrását: Beállítások → Listák és források → Műsorújság (pl. Németország, Egyesült Királyság, Pluto TV). ${t('epg-sources', 'Források')}</li>
 <li>Adj hozzá saját XMLTV forrást, ha ismersz olyat, amely tartalmazza a csatornát.</li>
 <li>Nézd meg a forrás sorában, hány csatornát párosított, és nem írt-e ki hibát.</li>
 <li>Frissítsd a műsorújságot (<i>Műsorújság frissítése most</i>).</li>
@@ -1176,8 +1177,8 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
 <li>Ellenőrizd az internetkapcsolatot, majd nyomd meg az <b>Újrapróbálás</b> gombot.</li>
 <li>Ha a letöltés nem sikerül, a program a korábban letöltött (régebbi) listát használja, ha van ilyen.</li>
 <li>Az első indítás 20–40 másodperc is lehet; a következők az elmentett lista miatt gyorsak.</li>
-<li>Ha a fő listát lecserélted, és nem működik: Beállítások → Csatornalisták → <i>Alapértelmezett (iptv-org)</i>.</li>
-<li>Furcsa, „beragadt” állapot esetén: Beállítások → <b>Gyorsítótár törlése</b>, majd indítsd újra a programot.</li>
+<li>Ha a fő listát lecserélted, és nem működik: Beállítások → Listák és források → Csatornalisták → <i>Alapértelmezett (iptv-org)</i>.</li>
+<li>Furcsa, „beragadt” állapot esetén: Beállítások → Profilok és mentés → <b>Gyorsítótár törlése</b>, majd indítsd újra a programot.</li>
 </ul>`,
   },
   {
@@ -1233,7 +1234,7 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
     title: 'Sportfigyelő',
     keywords: 'sport sportfigyelő bajnokság csapat meccs eredmény foci tenisz kézilabda vízilabda forma-1 disc golf world chase tag sakk darts esport naptár ics thesportsdb espn csatorna',
     body: `
-<p>A Sportfigyelő bármilyen sportág, bajnokság, csapat vagy verseny követésére való; a főoldal <b>Sport</b> egysége ezek élő, friss és következő eseményeit mutatja. Megnyitása: a Sport egység fejlécében a <i>Sportfigyelő ›</i>, vagy Beállítások → Főoldal → <i>Sportfigyelő megnyitása</i>.</p>
+<p>A Sportfigyelő bármilyen sportág, bajnokság, csapat vagy verseny követésére való; a főoldal <b>Sport</b> egysége ezek élő, friss és következő eseményeit mutatja. Megnyitása: a Sport egység fejlécében a <i>Sportfigyelő ›</i>, vagy Beállítások → Megjelenés és főoldal → Főoldal → <i>Sportfigyelő megnyitása</i>.</p>
 <p>Az ablak fülei:</p>
 <table class="help-table">
 <tr><td><b>Követett</b></td><td>Minden, amit figyelsz, sportáganként csoportosítva. Egyenként ki-be kapcsolható vagy törölhető.</td></tr>
@@ -1290,7 +1291,7 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
 <p>Az <b>éjszakai hang</b> letompítja a hangos részeket (zene, robbanás, reklám), és kiemeli a halk párbeszédet – hogy halkan is érthető legyen, és ne ébredjen fel senki.</p>
 <ul>
 <li>Bekapcsolás lejátszás közben: <b>CC</b> gomb → <i>Hang és felirat</i> → <i>Éjszakai hang</i>.</li>
-<li>Profilonként alapértelmezetté teheted: Beállítások → Magyar információk és feliratok → <i>Éjszakai hang</i>.</li>
+<li>Profilonként alapértelmezetté teheted: Beállítások → Lejátszás → Magyar információk és feliratok → <i>Éjszakai hang</i>.</li>
 </ul>
 <div class="note">Az asztali változatban érhető el.</div>`,
   },
@@ -1343,7 +1344,7 @@ ${go('#/stats', 'Statisztika megnyitása')}`,
     body: `
 <p>Az asztali gép, az Android TV és az Android telefon között egy kóddal viheted át a beállításokat (listák, profilok, kedvencek, előzmények, emlékeztetők, főoldal) a helyi hálózaton – bármelyik irányba:</p>
 <ol>
-<li>Azon az eszközön, <b>amelyiknek a beállításait át akarod venni</b>: Beállítások → <i>Szinkronizálás eszközök között</i> → <b>Kód kérése</b>. Megjelenik egy 6 jegyű kód (pl. <code>123 456</code>). Kérésre a kulcsok és jelszavak is átmennek.</li>
+<li>Azon az eszközön, <b>amelyiknek a beállításait át akarod venni</b>: Beállítások → Eszközök és szinkron → <i>Szinkronizálás eszközök között</i> → <b>Kód kérése</b>. Megjelenik egy 6 jegyű kód (pl. <code>123 456</code>). Kérésre a kulcsok és jelszavak is átmennek.</li>
 <li>A <b>másik eszközön</b>: ugyanitt a <i>Szinkronizálás kóddal</i> mezőbe írd be a kódot, majd <b>Szinkronizálás</b>. Az eszköz magától megkeresi a kódot adó eszközt a hálózaton, és átveszi a beállításait (jóváhagyás után).</li>
 </ol>
 <p>A kód 15 percig érvényes; 10 hibás próbálkozás után leáll, ilyenkor kérj újat. A két eszköz legyen ugyanazon a (otthoni) hálózaton; a Windows tűzfal első alkalommal engedélyt kérhet – a magánhálózaton engedélyezd.</p>
@@ -1355,14 +1356,19 @@ ${go('#/settings?section=transfer', 'Szinkronizálás eszközök között')}`,
     id: 'remote',
     cat: 'personal',
     title: 'Távirányító telefonról',
-    keywords: 'távirányító telefon mobil böngésző vezérlés pin hálózat csatornaváltás hangerő',
+    keywords: 'távirányító telefon mobil böngésző vezérlés pin qr kód hálózat csatornaváltás hangerő érintőpad keresés',
     body: `
 <p>Az asztali alkalmazás és az Android (TV) változat a telefonodról – vagy bármelyik eszköz böngészőjéből – is vezérelhető ugyanazon a (otthoni) hálózaton:</p>
 <ol>
-<li>Beállítások → <b>Távirányító telefonról</b> → kapcsold be. Megjelenik egy cím (pl. <code>http://192.168.1.20:47800/adas/remote</code>) és egy 4 jegyű PIN.</li>
-<li>A telefon böngészőjében nyisd meg a címet, és írd be a PIN-t (a telefon megjegyzi). Tipp: tedd ki a lapot a kezdőképernyőre.</li>
+<li>Beállítások → Eszközök és szinkron → <b>Távirányító telefonról</b> → kapcsold be. Megjelenik egy <b>QR-kód</b>, egy cím (pl. <code>http://192.168.1.20:47800/adas/remote</code>) és egy 4 jegyű PIN.</li>
+<li>Olvasd be a QR-kódot a telefon kamerájával: a vezérlő megnyílik, és a PIN-t is megkapja. (Vagy nyisd meg a címet a böngészőben, és írd be a PIN-t – a telefon megjegyzi.) Tipp: tedd ki a lapot a kezdőképernyőre, így alkalmazásként indul.</li>
 </ol>
-<p>A vezérlőn: CH ▲ / ▼, hangerő, némítás, szünet, nyilak, OK, Vissza, számok (csatornaszám), <i>Előző</i> csatorna, Főoldal / TV / Műsor / VOD, és a kedvenc csatornáid egy érintéssel. Felül látszik, mi megy éppen.</p>
+<p>Felül mindig látszik, mi megy éppen (logóval, a műsor haladásával és a következő műsorral). A vezérlő három fülből áll:</p>
+<table class="help-table">
+<tr><td><b>🎮 Vezérlő</b></td><td><b>Érintőpad</b>: húzd az ujjad – a kijelölés arra lép (mint a nyilak), koppintás = OK, hosszan nyomva = Vissza. Alatta: Vissza, Főoldal, Adatlap; tekerés (±10 / ±30 mp – élő adásnál időcsúsztatás); szünet; CH ▲ / ▼, Előző csatorna, némítás, <b>hangerő-csúszka</b>; Felirat, Minőség, Csatornalista, Teljes képernyő; nyilak és csatornaszám.</td></tr>
+<tr><td><b>📺 Csatornák</b></td><td><b>Kereső</b> az összes csatorna között (gépelés közben szűr, a most futó műsort is mutatja), a kedvenceid és a legutóbb nézett csatornák – egy érintéssel indulnak.</td></tr>
+<tr><td><b>☰ Továbbiak</b></td><td>Ugrás bármelyik oldalra (TV, Műsorújság, Kedvencek, VOD, Felvételek, Böngészés, Súgó); <b>szöveg küldése</b> (a telefon billentyűzetével a kijelölt mezőbe gépel, vagy keresést indít); Adás adatai, Több adás egyszerre, elalvási időzítő.</td></tr>
+</table>
 <div class="note">A PIN-t bármikor újra lehet generálni (Új PIN) – a régi telefonnak újra be kell írnia. Rossz PIN-nel a vezérlő nem működik; sok hibás próbálkozás után lezár.</div>
 ${go('#/settings?section=remote', 'Távirányító telefonról')}`,
   },
@@ -1370,14 +1376,18 @@ ${go('#/settings?section=remote', 'Távirányító telefonról')}`,
     id: 'recording',
     cat: 'watch',
     title: 'Felvétel',
-    keywords: 'felvétel rögzítés felvenni mentés ütemezés videó ts',
+    keywords: 'felvétel rögzítés felvenni mentés ütemezés videó ts vágás ráhagyás eleje vége',
     body: `
 <p>Az asztali változatban (Windows, Mac, Linux) az élő adás felvehető – újrakódolás nélkül, eredeti minőségben, <code>.ts</code> fájlba, a <b>Videók / Adás felvételek</b> mappába.</p>
 <ul>
 <li><b>Azonnal</b>: lejátszás közben a vezérlősáv piros <b>●</b> gombjával; újra megnyomva leáll. Közben a gomb villog.</li>
-<li><b>Ütemezve</b>: a műsorújságban egy műsor adatlapján <b>● Felvétel</b>. A műsor előtt 1 perccel indul, utána 2 perccel áll le. Az Adásnak ekkor futnia kell (a tálcára rejtve is jó – Beállítások → Futás a háttérben).</li>
+<li><b>Ütemezve</b>: a műsorújságban egy műsor adatlapján <b>● Felvétel</b>. A felvétel <b>ráhagyással</b> indul és áll le – alapból 3 perccel a műsor előtt és 10 perccel utána, mert a tévé gyakran csúszik (Beállítások → Lejátszás → Felvételek). Az Adásnak ekkor futnia kell (a tálcára rejtve is jó – Beállítások → Értesítések → Futás a háttérben); az indítás a tálcán is pontos.</li>
+<li>Ha az adás felvétel közben <b>megszakad</b> (pl. akadozó szerver), a felvétel néhány másodperc múlva magától folytatódik ugyanabba a fájlba – a végén a „Felvétel kész” üzenet jelzi, hányszor szakadt meg.</li>
 </ul>
-<p>A felvételek a <b>VOD → Felvételek</b> fülön vannak (csatornalogóval, dátummal, mérettel; az elkezdettek haladásjelzővel). A <b>▶ Lejátszás</b> az Adás saját lejátszójában indítja a felvételt – tekerhetően, a félbehagyott felvétel onnan folytatódik, ahol abbahagytad. A <b>⧉</b> gomb a gép videólejátszójában (pl. VLC) nyitja meg, a <b>✕</b> a Lomtárba teszi. Itt látod a most rögzített és az ütemezett felvételeket is; a legutóbbiak a Beállítások → Felvételek alatt is ott vannak.</p>
+<h2>Vágás</h2>
+<p>A felvétel kártyáján a <b>✂</b> gomb nyitja a vágót: előnézet, idővonal (sárga jelek: a műsor kezdete és vége a műsorújság szerint), léptetés (±1 mp / ±10 mp / ±1 perc), <b>⇤ Kezdet ide</b> és <b>Vége ide ⇥</b> (vagy az <kbd>I</kbd> / <kbd>O</kbd> billentyű), az időpontok be is írhatók; a <b>Kijelölés a műsorújság szerint</b> gomb egy lépésben beállítja őket. A <b>✂ Vágás és mentés</b> után a felvétel helyén a vágott változat lesz – ezt játssza le az Adás, és ezt nyitja meg a külső lejátszó is.</p>
+<p>Az <b>eredeti megmarad</b> (nem jelenik meg külön felvételként): újra megnyitva a vágót az eredetiből vághatsz újra (az előző kijelöléssel), vagy az <b>Eredeti visszaállítása</b> gombbal visszahozhatod a teljes felvételt. A vágott felvétel kártyáján a ✂ mellett pipa látszik. Törléskor mindkettő a Lomtárba kerül.</p>
+<p>A felvételek a <b>VOD → Felvételek</b> fülön vannak (csatornalogóval, dátummal, mérettel; az elkezdettek haladásjelzővel). A <b>▶ Lejátszás</b> az Adás saját lejátszójában indítja a felvételt – tekerhetően, a félbehagyott felvétel onnan folytatódik, ahol abbahagytad. A <b>⧉</b> gomb a gép videólejátszójában (pl. VLC) nyitja meg, a <b>✕</b> a Lomtárba teszi. Itt látod a most rögzített és az ütemezett felvételeket is; a legutóbbiak a Beállítások → Lejátszás → Felvételek alatt is ott vannak.</p>
 <div class="note">Csak a saját, otthoni nézésre: a felvett műsorok jogai a csatornáké. Néhány (titkosított vagy DRM-mel védett) adás nem rögzíthető.</div>
 ${go('#/recordings', 'Felvételek')}`,
   },
@@ -1387,7 +1397,7 @@ ${go('#/recordings', 'Felvételek')}`,
     title: 'Frissítések',
     keywords: 'frissítés új verzió update letöltés telepítés github kiadás',
     body: `
-<p>Az asztali változat ellenőrizni tudja, van-e újabb verzió. Beállítások → <i>Frissítések</i>:</p>
+<p>Az asztali változat ellenőrizni tudja, van-e újabb verzió. Beállítások → Frissítés és névjegy → <i>Frissítések</i>:</p>
 <ul>
 <li><b>Frissítési forrás</b>: egy GitHub-tároló (<code>tulajdonos/tároló</code> – a legutóbbi kiadást nézi), vagy egy JSON-fájl címe ezzel a tartalommal: <code>{ "version": "1.9.0", "url": "https://…/Adás Setup 1.9.0.exe", "notes": "…" }</code>.</li>
 <li>Bekapcsolt <i>Ellenőrzés indításkor</i> mellett naponta egyszer megnézi, és értesít, ha van új verzió.</li>
