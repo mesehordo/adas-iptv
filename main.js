@@ -471,7 +471,15 @@ ipcMain.handle('notify', (_e, { title, body, channelId }) => {
 // IPC
 // ---------------------------------------------------------------------------
 ipcMain.handle('fetch-text', (_e, url, opts) => fetchText(url, opts));
-ipcMain.handle('fetch-bytes', (_e, url, opts) => fetchBytes(url, opts));
+// csak http(s): a felület által adott cím ne olvashasson helyi fájlt (file:) a net.fetch-csel
+ipcMain.handle('fetch-bytes', (_e, url, opts) => {
+  let protocol = '';
+  try {
+    protocol = new URL(String(url)).protocol;
+  } catch {}
+  if (protocol !== 'http:' && protocol !== 'https:') throw new Error('Érvénytelen cím');
+  return fetchBytes(url, opts);
+});
 
 ipcMain.handle('set-stream-headers', (_e, url, headers) => {
   const host = hostOf(url);
