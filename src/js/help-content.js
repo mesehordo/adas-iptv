@@ -28,7 +28,7 @@ export const ARTICLES = [
 <h2>A felület részei</h2>
 <table class="help-table">
 <tr><td><b>Főoldal</b></td><td>Áttekintő: időjárás, a kedvenc csatornák műsora, hírek, ma esti műsorok, TV- és VOD-folytatás. ${t('dashboard', 'Részletek')}</td></tr>
-<tr><td><b>TV</b></td><td>Kiemelt csatornák, a legutóbb nézettek, a kedvencek, a most futó műsorok és kategóriánkénti sorok. ${t('home', 'Részletek')}</td></tr>
+<tr><td><b>TV</b></td><td>Csatornák és Felvételek fül; a legutóbb nézettek, a kedvencek, a most futó műsorok és kategóriánkénti sorok. ${t('home', 'Részletek')}</td></tr>
 <tr><td><b>Műsorújság</b></td><td>Idővonalas rács: mi megy most és később az egyes csatornákon. ${t('guide-grid', 'Részletek')}</td></tr>
 <tr><td><b>Böngészés</b></td><td>Az összes csatorna kategória, ország, nyelv és minőség szerint szűrve. ${t('browse', 'Részletek')}</td></tr>
 <tr><td><b>Kedvencek</b></td><td>A megjelölt csatornáid – a sorrendjük adja a csatornaszámokat. ${t('favorites', 'Részletek')}</td></tr>
@@ -86,7 +86,6 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
 <li><kbd>Enter</kbd> / OK: lejátszás vagy a kijelölt gomb megnyomása.</li>
 <li><kbd>I</kbd>: a kijelölt csatorna adatlapja. <kbd>F</kbd>: kedvenc be/ki.</li>
 <li><kbd>Esc</kbd> / <kbd>Backspace</kbd> / Vissza: bezárás, illetve vissza az előző képernyőre.</li>
-<li>A kiemelt sávban az utolsó gombon jobbra lépve a következő kiemelt csatornára lapozol.</li>
 </ul>
 <p>Az összes billentyű: ${t('shortcuts', 'Billentyűparancsok')} · Tévén: ${t('tv-remote', 'A távirányító gombjai')}</p>`,
   },
@@ -133,7 +132,6 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
 <p>Egy csatornát többféleképpen indíthatsz:</p>
 <ul>
 <li>kattints a kártyájára (vagy álls rá és nyomj <kbd>Enter</kbd>-t),</li>
-<li>a kiemelt sáv <b>Lejátszás</b> gombjával,</li>
 <li>az adatlap <b>Lejátszás</b> gombjával vagy egy konkrét adásforrás ▶ gombjával,</li>
 <li>a műsorújságban a csatorna nevére kattintva, vagy egy futó műsoron a <b>Nézem most</b> gombbal,</li>
 <li>a lejátszóban a csatornalistából, a fel/le gombokkal vagy a csatornaszám beírásával.</li>
@@ -277,7 +275,6 @@ ${go('#/settings?section=huinfo', 'Kedvenc nyelvek beállítása')}`,
 <p>A csatornák között csak élő adás van, a VOD-ban csak film és sorozat. Ha egy csatornalistában (pl. IPTV-szolgáltatótól kapott listában) filmek vagy sorozatrészek is vannak – hosszjelölés (<code>#EXTINF:5400</code>), <code>/movie/</code> vagy <code>/series/</code> cím, illetve filmfájl évszámmal / részszámmal –, azok magától a VOD-ba kerülnek (a lista nevével). Fordítva: ha egy VOD-listában élő adás van (HLS / TS cím hossz nélkül, „Live / TV / Élő” csoporttal vagy tvg-id-vel), az a csatornák közé kerül. A Beállításoknál a listák mellett látszik, mennyi került át.</p>
 <h2>Az Online listák oldal</h2>
 <ul>
-<li><b>Kiemelt film</b> felül, nagy borítóképpel.</li>
 <li><b>Folytatás</b>: az elkezdett filmek és sorozatok (a haladásjelző csík mutatja, hol tartasz).</li>
 <li><b>Sorozatok</b>, <b>Ajánlott filmek</b>, majd a listák csoportjai / műfajai (pl. Horror, Kung Fu Theater, Noir after dark…).</li>
 <li>Az <b>Összes film</b>, <b>Összes sorozat</b> és <b>Keresés és szűrés</b> gombbal rácsnézetben, típus, csoport és év szerint szűrhetsz.</li>
@@ -523,13 +520,12 @@ ${go('#/settings?section=dashboard', 'A főoldal beállításai')}`,
     id: 'home',
     cat: 'find',
     title: 'A TV oldal (csatornák)',
-    keywords: 'tv oldal csatornák kiemelt sáv sorok lapozó előnézet',
+    keywords: 'tv oldal csatornák felvételek fül sorok',
     body: `
-<h2>Kiemelt sáv</h2>
-<p>A <b>TV</b> oldal (a menüben a Főoldal után) a csatornáké. A tetején kiemelt csatornák láthatók a most futó műsorral – minden stílusban egy hat csatornás <b>lapozó</b>: 12 másodpercenként vált (nem vált, amíg az egér felette van vagy a kijelölés rajta áll), a pöttyökkel vagy nyilakkal te is lapozhatsz. Az asztali változatban néhány másodperc után a háttérben a csatorna <b>némított élő képe</b> indul (kikapcsolható: Beállítások → Lejátszás → Előnézet).</p>
-<p>A kiemelt csatornák a kedvenceid és a hazai csatornák közül kerülnek ki, azok közül, amelyeken épp fut valami.</p>
+<h2>Fülek</h2>
+<p>A <b>TV</b> oldal (a menüben a Főoldal után) a csatornáké. A tetején két fül van: <b>Csatornák</b> és – az asztali változatban – <b>Felvételek</b> (a saját tévéfelvételeid). ${t('recording', 'A felvételekről')}</p>
 <h2>Sorok</h2>
-<p>Alatta vízszintesen görgethető sorok: Legutóbb nézett, Kedvenceid, Most a TV-ben, a hazai ország csatornái, saját listáid, a kategóriák (Hírek, Sport, Filmek…) és az országok csempéi. A sorok <b>sorrendje és láthatósága profilonként beállítható</b>. ${t('home-rows', 'Hogyan?')}</p>
+<p>A Csatornák fülön vízszintesen görgethető sorok: Legutóbb nézett, Kedvenceid, Most a TV-ben, a hazai ország csatornái, saját listáid, a kategóriák (Hírek, Sport, Filmek…) és az országok csempéi. A sorok <b>sorrendje és láthatósága profilonként beállítható</b>. ${t('home-rows', 'Hogyan?')}</p>
 <h2>A sor összes eleme egy oldalon</h2>
 <p>Minden sor címe mellett egy <b>kerek nyíl ›</b> látható: rákattintva (érintve) a sor <b>összes</b> eleme egy oldalon nyílik meg. Távirányítóval vagy billentyűzettel a sor végére lépve ugyanezt egy <b>„Összes”</b> csempe teszi meg (OK / Enter). A VOD sorainál, a <i>Folytatás</i> sornál és az országok csempéinél is így működik.</p>
 <h2>Magyar elöl</h2>
@@ -599,7 +595,7 @@ ${go('#/settings?section=dashboard', 'A főoldal beállításai')}`,
     title: 'A csatorna adatlapja',
     keywords: 'adatlap információ részletek ország nyelv tulajdonos weboldal forrás',
     body: `
-<p>Megnyitás: a kártya ⌄ gombja, jobb kattintás, <kbd>I</kbd> billentyű, a kiemelt sáv <i>További információk</i> gombja, vagy lejátszás közben az ⓘ gomb.</p>
+<p>Megnyitás: a kártya ⌄ gombja, jobb kattintás, <kbd>I</kbd> billentyű, vagy lejátszás közben az ⓘ gomb.</p>
 <h2>Mit tartalmaz?</h2>
 <ul>
 <li><b>Fejléc</b>: logó, név, állapot, minőség, források száma, korlátozások, a most futó műsor leírással és haladással; Lejátszás és Kedvenc gomb.</li>
@@ -742,7 +738,7 @@ ${go('#/profiles', 'Profilok kezelése')}`,
     keywords: 'téma stílus kinézet netflix disney skyshowtime rakuten prime apple zen wabi szabi nintendo wii switch világos sötét',
     body: `
 <p>A felület kinézete profilonként választható: <b>Beállítások → Megjelenés és főoldal → Megjelenés → Felület stílusa</b> (legördülő menü, vagy kattints a mintákra). A váltás azonnal érvényes.</p>
-<p>Az <b>elrendezés minden stílusban ugyanaz</b> (felső menüsáv, hat csatornás lapozó kiemelt sáv, azonos kártyaméretek, sorok és kártyák a főoldalon) – a stílus csak a kinézetet adja: színek, betűtípus, keretek, árnyékok, háttérminták, animációk.</p>
+<p>Az <b>elrendezés minden stílusban ugyanaz</b> (felső menüsáv, azonos kártyaméretek, sorok és kártyák a főoldalon) – a stílus csak a kinézetet adja: színek, betűtípus, keretek, árnyékok, háttérminták, animációk.</p>
 <table class="help-table">
 <tr><th colspan="2">Sötét stílusok</th></tr>
 <tr><td><b>Kurenai</b></td><td>(bíborvörös) Esti mozi: fekete háttér, vörös kiemelés, rámutatásra kinagyuló kártyák.</td></tr>
@@ -761,8 +757,8 @@ ${go('#/profiles', 'Profilok kezelése')}`,
 <tr><td><b>Wabi-sabi</b></td><td>Meleg, földszínű papírtextúra, kissé szabálytalan kártyák, rozsda- és indigószín, rámutatásra arany kintsugi-repedés.</td></tr>
 <tr><td><b>Asobiba</b></td><td>(játszótér) Csíkos háttér, fehér keretes „buborék” kártyák, ruganyos mozgás, lüktető türkiz kijelölés.</td></tr>
 <tr><td><b>Hiroba</b></td><td>(tér) A „csatornás” konzolmenü: fehér, finoman csíkos háttér, szürke keretes, fényes csempék, kék kijelölés.</td></tr>
-<tr><td><b>16-Bit</b></td><td>A 90-es évek szürke otthoni konzolja: lila gombok, színes A–B–X–Y pöttyök a logónál, pixeles keretek, képernyő-pásztázás a kiemelt sávon, kockás betűs címek.</td></tr>
-<tr><td><b>Manga</b></td><td>Fekete tus fehér papíron: rasztertónus (pöttyös árnyalás), vastag panelkeretek, sebességvonalak a kiemelt sávon, szürkeárnyalatos képek (kijelöléskor színesek), beszédbuborék-gombok.</td></tr>
+<tr><td><b>16-Bit</b></td><td>A 90-es évek szürke otthoni konzolja: lila gombok, színes A–B–X–Y pöttyök a logónál, pixeles keretek, kockás betűs címek.</td></tr>
+<tr><td><b>Manga</b></td><td>Fekete tus fehér papíron: rasztertónus (pöttyös árnyalás), vastag panelkeretek, szürkeárnyalatos képek (kijelöléskor színesek), beszédbuborék-gombok.</td></tr>
 <tr><td><b>Pow!</b></td><td>Amerikai képregény: Ben-Day pöttyök, vörös–sárga–kék, vastag fekete kontúr eltolt árnyékkal, sárga szövegdobozos sorcímek, „POW!” csillagrobbanás az ablakokon.</td></tr>
 <tr><td><b>Kikagaku</b></td><td>(geometria) Plakátművészet: vörös–kék–sárga–fekete, vastag fekete keretes kártyák kemény árnyékkal, sorszámozott sorok.</td></tr>
 <tr><td><b>Rakugaki</b></td><td>(firka) Vonalas füzetlap kézírással: a csatornák beragasztott polaroid fotók, a gombok ceruzával rajzoltak.</td></tr>
@@ -803,7 +799,7 @@ ${go('#/settings', 'Megjelenés beállítása')}`,
 <p><b>Szabad</b>: színek, hátterek, keretek, <code>border-radius</code>, <code>box-shadow</code>, <code>text-shadow</code>, <code>filter</code>, <code>backdrop-filter</code>, <code>transform</code>, <code>transition</code>, <code>animation</code>, <code>@keyframes</code>, <code>@media</code>, betűcsalád / -vastagság, <code>letter-spacing</code>, <code>text-transform</code>, <code>clip-path</code>, képek <code>url(https://…)</code> vagy <code>url(data:…)</code> formában.</p>
 <p><b>Kiszűrve</b> (a sima elemeken): <code>width</code>, <code>height</code>, <code>margin</code>, <code>padding</code>, <code>top</code>/<code>left</code>/…, <code>gap</code>, <code>display</code>, <code>flex</code>, <code>grid</code>, <code>font-size</code>, <code>line-height</code>, <code>overflow</code>, <code>visibility</code>, a <code>position</code> (kivéve <code>relative</code>) és a hasonlók. A <code>::before</code> / <code>::after</code> díszítő álelemeken ezek is használhatók (adj nekik <code>pointer-events: none</code>-t). Mindig tiltott: <code>@import</code>, <code>javascript:</code>.</p>
 <h2>Díszíthető elemek</h2>
-<p><code>#nav</code> (menüsáv), <code>.brand</code> (logó), <code>.links a.active</code>, <code>.hero</code> / <code>.hero h1</code> / <code>.hero-dots .dot.active</code> (kiemelt sáv), <code>.btn</code> / <code>.btn.primary</code>, <code>.row-title</code>, <code>.card</code> / <code>.thumb</code> / <code>.card .name</code> (csatornakártya), <code>.tile</code>, <code>.vposter</code> (VOD-plakát), <code>.dcard</code> / <code>.dc-title</code> (főoldali egység), <code>.d-row</code>, <code>.modal</code>, <code>.tab.active</code>, <code>.switch:checked</code>, <code>.input</code>, <code>.now-label</code>, <code>.bar i</code>, <code>.profile .avatar</code>, <code>:focus-visible</code> (kijelölés – tévén a legfontosabb). Tévén a <code>&amp;.tv</code> előtaggal kapcsold ki a lassító hatásokat (elmosás, végtelen animáció).</p>
+<p><code>#nav</code> (menüsáv), <code>.brand</code> (logó), <code>.links a.active</code>, <code>.btn</code> / <code>.btn.primary</code>, <code>.row-title</code>, <code>.card</code> / <code>.thumb</code> / <code>.card .name</code> (csatornakártya), <code>.tile</code>, <code>.vposter</code> (VOD-plakát), <code>.dcard</code> / <code>.dc-title</code> (főoldali egység), <code>.d-row</code>, <code>.modal</code>, <code>.tab.active</code>, <code>.switch:checked</code>, <code>.input</code>, <code>.now-label</code>, <code>.bar i</code>, <code>.profile .avatar</code>, <code>:focus-visible</code> (kijelölés – tévén a legfontosabb). Tévén a <code>&amp;.tv</code> előtaggal kapcsold ki a lassító hatásokat (elmosás, végtelen animáció).</p>
 <h2>Teljes példa</h2>
 <pre class="code">{
   "adasTheme": 1,
@@ -1387,7 +1383,7 @@ ${go('#/settings?section=remote', 'Távirányító telefonról')}`,
 <h2>Vágás</h2>
 <p>A felvétel kártyáján a <b>✂</b> gomb nyitja a vágót: előnézet, idővonal (sárga jelek: a műsor kezdete és vége a műsorújság szerint), léptetés (±1 mp / ±10 mp / ±1 perc), <b>⇤ Kezdet ide</b> és <b>Vége ide ⇥</b> (vagy az <kbd>I</kbd> / <kbd>O</kbd> billentyű), az időpontok be is írhatók; a <b>Kijelölés a műsorújság szerint</b> gomb egy lépésben beállítja őket. A <b>✂ Vágás és mentés</b> után a felvétel helyén a vágott változat lesz – ezt játssza le az Adás, és ezt nyitja meg a külső lejátszó is.</p>
 <p>Az <b>eredeti megmarad</b> (nem jelenik meg külön felvételként): újra megnyitva a vágót az eredetiből vághatsz újra (az előző kijelöléssel), vagy az <b>Eredeti visszaállítása</b> gombbal visszahozhatod a teljes felvételt. A vágott felvétel kártyáján a ✂ mellett pipa látszik. Törléskor mindkettő a Lomtárba kerül.</p>
-<p>A felvételek a <b>VOD → Felvételek</b> fülön vannak (csatornalogóval, dátummal, mérettel; az elkezdettek haladásjelzővel). A <b>▶ Lejátszás</b> az Adás saját lejátszójában indítja a felvételt – tekerhetően, a félbehagyott felvétel onnan folytatódik, ahol abbahagytad. A <b>⧉</b> gomb a gép videólejátszójában (pl. VLC) nyitja meg, a <b>✕</b> a Lomtárba teszi. Itt látod a most rögzített és az ütemezett felvételeket is; a legutóbbiak a Beállítások → Lejátszás → Felvételek alatt is ott vannak.</p>
+<p>A felvételek a <b>TV → Felvételek</b> fülön vannak (csatornalogóval, dátummal, mérettel; az elkezdettek haladásjelzővel). A <b>▶ Lejátszás</b> az Adás saját lejátszójában indítja a felvételt – tekerhetően, a félbehagyott felvétel onnan folytatódik, ahol abbahagytad. A <b>⧉</b> gomb a gép videólejátszójában (pl. VLC) nyitja meg, a <b>✕</b> a Lomtárba teszi. Itt látod a most rögzített és az ütemezett felvételeket is; a legutóbbiak a Beállítások → Lejátszás → Felvételek alatt is ott vannak.</p>
 <div class="note">Csak a saját, otthoni nézésre: a felvett műsorok jogai a csatornáké. Néhány (titkosított vagy DRM-mel védett) adás nem rögzíthető.</div>
 ${go('#/recordings', 'Felvételek')}`,
   },

@@ -107,7 +107,7 @@ function route({ keepScroll = false } = {}) {
   const y = window.scrollY;
   currentRoute = full;
   // A „Saját” médiatár a VOD része; az országok oldala a Böngészésé
-  const navRoute = { own: 'vod', recordings: 'vod', countries: 'browse' }[name] || name;
+  const navRoute = { own: 'vod', recordings: 'tv', countries: 'browse' }[name] || name;
   $$('.links a', nav).forEach((a) => a.classList.toggle('active', a.dataset.route === navRoute));
   document.body.dataset.route = name;
   if (name !== 'search' && document.activeElement !== searchInput) {

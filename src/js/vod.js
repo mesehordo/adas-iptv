@@ -1119,8 +1119,7 @@ function progressiveGrid(grid, list) {
 /** A VOD két része: az online listák és a saját (NAS) médiatár – fülekkel váltható. */
 export function vodTabs(lib) {
   const tab = (l, href, label) => `<a class="tab ${lib === l ? 'active' : ''}" href="${href}">${label}</a>`;
-  // Felvételek (asztali változat): a saját tévéfelvételek az alkalmazáson belül játszhatók le
-  return `<div class="tabs vod-tabs">${tab(vod, '#/vod', 'Online listák')}${tab(own, '#/own', 'Saját médiatár')}${api.recStart ? tab('rec', '#/recordings', 'Felvételek') : ''}</div>`;
+  return `<div class="tabs vod-tabs">${tab(vod, '#/vod', 'Online listák')}${tab(own, '#/own', 'Saját médiatár')}</div>`;
 }
 
 export function renderVod(view, params, lib = vod) {
@@ -1229,29 +1228,9 @@ function renderVodPage(view, params, lib) {
   }
 
   // Kezdőlap
+  // (a felső kiemelt sáv kikerült: az oldal rögtön a fülekkel és a sorokkal kezdődik)
   const withPoster = movies.filter((m) => m.poster);
-  const heroes = seededShuffle(withPoster.length ? withPoster : all, Math.floor(Date.now() / 3600e3)).slice(0, 1);
-  const h = heroes[0];
   view.innerHTML = '';
-  if (h) {
-    const hero = html(`<section class="vhero" style="--h:${hashHue(h.title)}">
-      ${h.poster ? `<div class="vhero-bg" style="background-image:url('${esc(h.poster)}')"></div>` : ''}
-      <div class="vhero-shade"></div>
-      <div class="vhero-content">
-        <div class="vhero-kicker">${isOwn ? 'SAJÁT · ' : ''}${h.type === 'series' ? 'SOROZAT' : 'FILM'}</div>
-        <h1>${esc(h.title)}</h1>
-        <div class="hero-meta">${esc([h.year || '', fmtDur(h.duration), ...h.groups.slice(0, 2)].filter(Boolean).join(' · '))}</div>
-        <div class="hero-btns">
-          <button class="btn white big" data-vh="play">${ICON.play} Lejátszás</button>
-          <button class="btn gray big" data-vh="info">${ICON.info} Részletek</button>
-        </div>
-      </div>
-      ${h.poster ? `<img class="vhero-poster" src="${esc(h.poster)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()" />` : ''}
-    </section>`);
-    hero.querySelector('[data-vh="play"]').onclick = () => playVod(h);
-    hero.querySelector('[data-vh="info"]').onclick = () => openVodDetail(h);
-    view.append(hero);
-  }
   const rows = html(`<div class="rows vrows">
     <div class="vod-quick">
       ${movies.length ? `<a class="btn small" href="${R}?type=movie">Összes film (${movies.length})</a>` : ''}

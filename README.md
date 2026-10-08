@@ -50,7 +50,7 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 **Filmek és sorozatok (1.4)**
 - Külön oldal (fejléc: *Filmek és sorozatok*) M3U / M3U8 listákból betöltött filmekkel és sorozatokkal:
-  kiemelt film, Folytatás sor, Sorozatok, csoportonkénti / műfajonkénti sorok, rácsnézet szűrővel és kereséssel.
+  Folytatás sor, Sorozatok, csoportonkénti / műfajonkénti sorok, rácsnézet szűrővel és kereséssel.
 - Film vagy sorozat? A címből ismeri fel (S01E02, 1x02, Season/Episode, „5. rész”, 第5集…; egy fájlban
   sorszámozott címek → sorozat; évszám a cím végén → film). Részletek a súgóban.
 - Saját film/sorozat listák külön (Beállítások → Filmek és sorozatok – listák): cím, fájl, beillesztés,
@@ -67,7 +67,7 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - 11 választható rajzolt profilkép (vagy betűs avatar).
 
 **Felület**
-- Kiemelt sáv a főoldalon (némított élő előnézettel), vízszintesen görgethető sorok: Legutóbb nézett,
+- TV oldal Csatornák és Felvételek füllel; vízszintesen görgethető sorok: Legutóbb nézett,
   Kedvenceid, Most a TV-ben, hazai csatornák, kategóriák, országok
 - Rámutatásra kinagyuló kártyák: lejátszás, kedvenc, részletek, az éppen futó és a következő műsor
 - Böngészés kategória, ország, nyelv, minőség és állapot szerint
@@ -100,8 +100,12 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - Mentés és visszaállítás fájlba (beállítások, profilok, kedvencek, emlékeztetők)
 - Teljes billentyűzetes / távirányítós vezérlés (nyilak, Enter, Esc / Backspace)
 
+**Felvételek a TV alatt, ajánlósáv nélkül (1.24.1)**
+- A **Felvételek** a TV oldal fülére költözött (TV → Csatornák / Felvételek); a VOD-ban csak az Online listák és a Saját médiatár maradt
+- A TV és a VOD oldal tetejéről kikerült a nagy kiemelt (ajánló) sáv: az oldal rögtön a sorokkal kezdődik
+
 **Felvétel vágása, megbízható felvétel, új távirányító QR-kóddal, levegős Beállítások (1.24)**
-- **Felvétel vágása** (VOD → Felvételek → ✂): előnézet, idővonal a műsorújság szerinti kezdet / vég jelével, léptetés, „Kezdet ide” / „Vége ide” (I / O), beírható időpontok; vágás újrakódolás nélkül. A vágott változatot játssza le az Adás, az eredeti megmarad (újravágható, visszaállítható, külön nem jelenik meg)
+- **Felvétel vágása** (TV → Felvételek → ✂): előnézet, idővonal a műsorújság szerinti kezdet / vég jelével, léptetés, „Kezdet ide” / „Vége ide” (I / O), beírható időpontok; vágás újrakódolás nélkül. A vágott változatot játssza le az Adás, az eredeti megmarad (újravágható, visszaállítható, külön nem jelenik meg)
 - **Ütemezett felvétel:** beállítható ráhagyás (alapból 3 perc előtte, 10 perc utána); az indítást a főfolyamat időzítője adja (a tálcán is pontos); ha az adás megszakad, a felvétel magától folytatódik ugyanabba a fájlba (folytonos időbélyegekkel)
 - **Távirányító telefonról:** QR-kóddal csatlakozik (a PIN-t is átadja); érintőpad (húzás = nyilak, koppintás = OK, hosszan = Vissza), tekerés, hangerő-csúszka, felirat / minőség / lista / teljes képernyő, csatornakereső, kedvencek és előzmények, szöveg küldése, ugrás bármelyik oldalra; a lap nem kerül gyorsítótárba
 - **Beállítások:** a részek kártyákon; széles képernyőn két oszlop, füles módban bal oldali csoportlista; egységes „Beállítások → csoport → rész” hivatkozások a súgóban és a felületen

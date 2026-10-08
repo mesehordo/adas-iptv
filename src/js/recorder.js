@@ -10,8 +10,8 @@ import { store } from './store.js';
 import { catalog, orderedStreams } from './catalog.js';
 import { epg } from './epg.js';
 import { player } from './player.js';
-import { programExtras, confirmDialog, ICON, emptyState } from './components.js';
-import { playVod, pathToUrl, vodTabs } from './vod.js';
+import { programExtras, confirmDialog, ICON, emptyState, tvTabs } from './components.js';
+import { playVod, pathToUrl } from './vod.js';
 
 export const canRecord = !!api.recStart;
 const active = new Map(); // felvétel-azonosító → { chId, title, file, sched }
@@ -55,7 +55,7 @@ export async function toggleRecording() {
     try {
       const cur = epg.now(ch.id, Date.now())?.cur;
       await startRec(ch, { title: cur?.title || 'élő adás', progStart: cur?.start, progStop: cur?.stop });
-      toast(`Felvétel: ${ch.name} – a VOD → Felvételek alatt találod`);
+      toast(`Felvétel: ${ch.name} – a TV → Felvételek alatt találod`);
     } catch (err) {
       toast('A felvétel nem indult el: ' + (err.message || err));
     }
@@ -404,21 +404,21 @@ export async function openTrimEditor(f, onDone) {
 }
 
 // ---------------------------------------------------------------------------
-// VOD → Felvételek oldal
+// TV → Felvételek oldal
 // ---------------------------------------------------------------------------
 export async function renderRecordingsPage(view) {
   if (!canRecord) {
-    view.innerHTML = `<div class="page">${vodTabs('rec')}<p class="muted">Felvenni és a felvételeket lejátszani az asztali alkalmazásban lehet.</p></div>`;
+    view.innerHTML = `<div class="page">${tvTabs('rec')}<p class="muted">Felvenni és a felvételeket lejátszani az asztali alkalmazásban lehet.</p></div>`;
     return;
   }
-  view.innerHTML = `<div class="page recs">${vodTabs('rec')}<div class="empty-state"><div class="spinner"></div></div></div>`;
+  view.innerHTML = `<div class="page recs">${tvTabs('rec')}<div class="empty-state"><div class="spinner"></div></div></div>`;
   const draw = async () => {
     const { dir, files } = await api.recList();
     if (!view.isConnected || document.body.dataset.route !== 'recordings') return;
     const sch = schedule().filter((s) => !s.startedId);
     const prog = store.profile.vodProgress || {};
     const done = files.filter((f) => !f.active);
-    view.innerHTML = `<div class="page recs">${vodTabs('rec')}
+    view.innerHTML = `<div class="page recs">${tvTabs('rec')}
       <div class="page-head"><h1>Felvételek</h1><span class="muted">${done.length} felvétel</span>
         <span class="grow"></span><button class="btn small" data-r-folder>Mappa megnyitása</button> <button class="help-link" data-help="recording" title="Súgó">?</button></div>
       <p class="muted small">Az élő adás a lejátszó <b>●</b> gombjával vehető fel, vagy a műsorújságban egy műsor adatlapján a <b>Felvétel</b> gombbal ütemezhető. Hely: <code>${esc(dir)}</code></p>
@@ -544,7 +544,7 @@ export async function renderRecordings(box) {
               .join('')}</ul>`
           : '<p class="muted small">Még nincs felvétel.</p>'
       }
-      <div class="inline"><a class="btn small" href="#/recordings">Összes felvétel (VOD → Felvételek) ›</a><button class="btn small" data-r-folder>Mappa megnyitása</button></div>`;
+      <div class="inline"><a class="btn small" href="#/recordings">Összes felvétel (TV → Felvételek) ›</a><button class="btn small" data-r-folder>Mappa megnyitása</button></div>`;
     box._files = files;
   };
   box.onclick = async (e) => {

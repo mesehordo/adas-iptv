@@ -3,7 +3,7 @@ import { store } from './store.js';
 import { categoryName, countryName } from './catalog.js';
 
 /**
- * Minden stílus ugyanazzal az elrendezéssel (felső menüsáv, lapozó kiemelt sáv, azonos kártyaméretek);
+ * Minden stílus ugyanazzal az elrendezéssel (felső menüsáv, azonos kártyaméretek);
  * a stílus csak a kinézetet adja (színek, betűk, keretek, árnyékok, minták) – themes.css, body[data-theme].
  */
 export const THEMES = {
@@ -65,7 +65,7 @@ export const THEMES = {
   },
   manga: {
     label: 'Manga',
-    desc: 'Manga: fekete tus fehér papíron – rasztertónus, vastag panelkeretek, sebességvonalak a kiemelt sávon, beszédbuborék-gombok, dőlt tömör címek.',
+    desc: 'Manga: fekete tus fehér papíron – rasztertónus, vastag panelkeretek, beszédbuborék-gombok, dőlt tömör címek.',
     light: true,
   },
   comic: {

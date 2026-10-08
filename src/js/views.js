@@ -9,10 +9,10 @@ import {
   KIDS_CATEGORIES, channelStatus, bestQuality, MINE, activeLists, homeRank, homeFirst, COUNTRY_LANG, geoState,
 } from './catalog.js';
 import {
-  ICON, rowEl, gridEl, cardHtml, registerContext, openInfo, openProgram, openModal, confirmDialog, promptDialog,
-  logoHtml, emptyState, avatarHtml, rowTitleHtml, seeAllHtml, rowOrderEditor,
+  ICON, rowEl, gridEl, cardHtml, registerContext, openProgram, openModal, confirmDialog, promptDialog,
+  logoHtml, emptyState, avatarHtml, rowTitleHtml, seeAllHtml, rowOrderEditor, tvTabs,
 } from './components.js';
-import { player, startPreview, stopPreview } from './player.js';
+import { player, stopPreview } from './player.js';
 import { THEMES, currentTheme, applyTheme, profileRows, defaultRows, rowLabel } from './themes.js';
 import { renderLists } from './lists.js';
 import { renderVodLists, renderOwnLists, searchVod, vcardHtml, vod } from './vod.js';
@@ -59,8 +59,6 @@ function lazyRows(container, factories, initial = 4) {
 // ===========================================================================
 // Főoldal
 // ===========================================================================
-let heroTimer = null;
-
 /** A TV oldal: a csatornák sorai (a korábbi főoldal). */
 export function renderTv(view) {
   const s = store.settings;
@@ -76,17 +74,9 @@ export function renderTv(view) {
   const recent = getChannels(p.recent).filter((c) => visSet.has(c));
   const home = vis.filter((c) => c.country === s.homeCountry);
 
-  // --- kiemelt sáv (egy csatorna, vagy lapozó több csatornával)
-  let pool = [...favs, ...home].filter((c) => c.logo && channelStatus(c) !== 'bad' && epg.now(c.id)?.cur);
-  if (pool.length < 6) pool = [...new Set([...pool, ...popular(home.length ? home : vis).filter((c) => c.logo).slice(0, 20)])];
-  if (!pool.length) pool = vis.slice(0, 20);
-  const heroes = seededShuffle([...new Set(pool)].slice(0, 24), Date.now() & 0xffff).slice(0, 6);
-
+  // --- fülek (Csatornák / Felvételek), alattuk a sorok a profil beállított sorrendjében
   view.innerHTML = '';
-  view.append(heroEl(heroes));
-
-  // --- sorok a profil beállított sorrendjében
-  const rows = html('<div class="rows"></div>');
+  const rows = html(`<div class="rows tv-rows">${tvTabs('tv') ? `<div class="tv-head">${tvTabs('tv')}</div>` : ''}</div>`);
   view.append(rows);
   const onAir = vis.filter((c) => epg.now(c.id)?.cur);
   const favSet = new Set(p.favorites);
@@ -136,93 +126,6 @@ export function renderTv(view) {
   lazyRows(rows, factories, 4);
 }
 
-function heroSlide(ch, i) {
-  const now = epg.now(ch.id);
-  return `<div class="hero-slide ${i === 0 ? 'active' : ''}" data-i="${i}" data-id="${esc(ch.id)}" style="--h:${hashHue(ch.name)}" ${i ? 'aria-hidden="true"' : ''}>
-    <div class="hero-bg">${ch.logo ? `<img src="${esc(ch.logo)}" alt="" referrerpolicy="no-referrer" />` : ''}</div>
-    <div class="hero-shade"></div>
-    <div class="hero-content">
-      <div class="hero-logo">${logoHtml(ch)}</div>
-      <h1>${esc(ch.name)}</h1>
-      <div class="hero-meta">${countryFlag(ch.country)} ${esc(countryName(ch.country))} · ${ch.categories.map((c) => esc(categoryName(c))).join(', ')}</div>
-      ${now?.cur ? `<div class="hero-now"><span class="now-label">MOST</span> <b>${esc(now.cur.title)}</b> <span class="muted">${fmtTime(now.cur.start)}–${fmtTime(now.cur.stop)}</span></div>
-        ${now.cur.desc ? `<p class="hero-desc">${esc(now.cur.desc.slice(0, 260))}${now.cur.desc.length > 260 ? '…' : ''}</p>` : ''}` : ''}
-      <div class="hero-btns">
-        <button class="btn white big" data-h="play">${ICON.play} Lejátszás</button>
-        <button class="btn gray big" data-h="info">${ICON.info} További információk</button>
-      </div>
-    </div>
-  </div>`;
-}
-
-function heroEl(heroes) {
-  const multi = heroes.length > 1;
-  const el = html(`<section class="hero ${multi ? 'carousel' : ''}">
-    <div class="hero-slides">${heroes.map(heroSlide).join('')}</div>
-    ${
-      multi
-        ? `<button class="hero-arrow left" data-go="-1" aria-label="Előző" tabindex="-1">${ICON.left}</button>
-           <button class="hero-arrow right" data-go="1" aria-label="Következő" tabindex="-1">${ICON.right}</button>
-           <div class="hero-dots">${heroes.map((_, i) => `<button class="dot ${i ? '' : 'active'}" data-dot="${i}" aria-label="${i + 1}. kiemelt" tabindex="-1"></button>`).join('')}</div>`
-        : ''
-    }
-  </section>`);
-  let cur = 0;
-  const slides = [...el.querySelectorAll('.hero-slide')];
-  const show = (i) => {
-    cur = (i + heroes.length) % heroes.length;
-    slides.forEach((s, n) => {
-      s.classList.toggle('active', n === cur);
-      if (n === cur) s.removeAttribute('aria-hidden');
-      else s.setAttribute('aria-hidden', 'true');
-    });
-    el.querySelectorAll('.dot').forEach((d, n) => d.classList.toggle('active', n === cur));
-    schedulePreview();
-  };
-  let previewTimer = null;
-  const schedulePreview = () => {
-    stopPreview();
-    clearTimeout(previewTimer);
-    if (!api.caps.preview) return;
-    previewTimer = setTimeout(() => {
-      if (location.hash.startsWith('#/tv') && document.body.contains(el)) startPreview(slides[cur].querySelector('.hero-bg'), heroes[cur]);
-    }, 1500);
-  };
-  el.addEventListener('click', (e) => {
-    const h = e.target.closest('[data-h]');
-    const go = e.target.closest('[data-go]');
-    const dot = e.target.closest('[data-dot]');
-    if (h) {
-      const ch = heroes[cur];
-      h.dataset.h === 'play' ? player.play(ch) : openInfo(ch);
-    } else if (go) show(cur + Number(go.dataset.go));
-    else if (dot) show(Number(dot.dataset.dot));
-  });
-  // Lapozás a kiemelt sáv gombjain állva balra/jobbra nyíllal (távirányító).
-  el.addEventListener('keydown', (e) => {
-    if (!multi || !e.target.closest('.hero-btns')) return;
-    // Az utolsó gombon jobbra: következő kiemelt; az első gombon balra: előző (az elsőn a menübe lép tovább).
-    const first = e.target === e.target.parentElement.firstElementChild;
-    const last = e.target === e.target.parentElement.lastElementChild;
-    if ((e.key === 'ArrowLeft' && first && cur > 0) || (e.key === 'ArrowRight' && last)) {
-      e.preventDefault();
-      e.stopPropagation();
-      show(cur + (e.key === 'ArrowLeft' ? -1 : 1));
-      slides[cur].querySelector(e.key === 'ArrowLeft' ? '[data-h="info"]' : '[data-h="play"]').focus({ preventScroll: true });
-    }
-  });
-  clearInterval(heroTimer);
-  if (multi) {
-    heroTimer = setInterval(() => {
-      if (!document.body.contains(el)) return clearInterval(heroTimer);
-      if (el.matches(':hover') || el.contains(document.activeElement) || player.active) return;
-      show(cur + 1);
-    }, 12000);
-  }
-  schedulePreview();
-  return el;
-}
-
 /** Országlista: a beállított ország legelöl, a többi sorrendje marad. */
 const homeCountryFirst = (list) => list.slice().sort((a, b) => (b.code === store.settings.homeCountry) - (a.code === store.settings.homeCountry));
 
@@ -261,7 +164,6 @@ export function renderCountries(view) {
 }
 
 export function leaveHome() {
-  clearInterval(heroTimer);
   stopPreview();
 }
 
@@ -719,7 +621,7 @@ export function renderSettings(view) {
       ${toggle('autoFallback', 'Automatikus tartalék forrás', 'Ha egy adás nem indul el, a csatorna következő forrását próbálja.')}
       ${api.mediaProbe ? toggle('mediaBridge', 'Lejátszási híd (FFmpeg) filmekhez', 'AC3 / DTS hang, a fájlba ágyazott feliratok (MKV, MP4), több hangsáv és régi videóformátumok lejátszása. Kikapcsolva a beépített lejátszó próbálja (néma lehet, felirat nélkül).') + '<p class="muted small media-status">FFmpeg ellenőrzése…</p>' : ''}
       ${exoAvailable() ? toggle('mediaBridge', 'Natív lejátszó (ExoPlayer) filmekhez', 'MKV / MP4 / AVI fájlok AC3 / DTS hanggal és beágyazott (ASS / SRT) felirattal, minden hangsáv választható. Kikapcsolva a WebView saját lejátszója próbálja (néma lehet, felirat nélkül).') : ''}
-      ${api.caps.preview ? toggle('heroPreview', 'Előnézet a főoldalon', 'A kiemelt csatorna némított élő képe a főoldal tetején.') : ''}
+      ${api.caps.preview ? toggle('heroPreview', 'Előnézet a főoldalon', 'A Főoldal csatornás csempéin a csatorna némított élő képe.') : ''}
       ${toggle('resumeLast', 'Utolsó csatorna folytatása indításkor')}
       ${api.setBackgroundPrefs && api.caps.pip ? toggle('autoPip', 'Kis ablak kilépéskor (kép a képben)', 'Ha lejátszás közben a Kezdőképernyőre vagy másik alkalmazásba lépsz, az adás egy lebegő kis ablakban szól tovább minden más fölött. Kézzel: a lejátszó kép a képben gombja.') : ''}
       ${api.setBackgroundPrefs ? toggle('bgAudio', 'Háttérlejátszás (csak hang)', 'Másik alkalmazásra váltva az adás hangja tovább szól (értesítéssel, onnan leállítható). Ha a kis ablak is be van kapcsolva, az az elsődleges.') : ''}

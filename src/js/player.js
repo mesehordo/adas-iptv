@@ -1283,7 +1283,7 @@ video.addEventListener('playing', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Előnézet a főoldali kiemelt sávban (némítva)
+// Élő előnézet (némítva) – a Főoldal csempéin
 // ---------------------------------------------------------------------------
 let preview = null;
 export async function startPreview(container, ch) {
