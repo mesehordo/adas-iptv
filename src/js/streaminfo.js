@@ -101,6 +101,12 @@ function render(player, video) {
   }
   const ratio = bw && bitrate ? bw / bitrate : 0;
   add('Mért letöltési sebesség', bw ? `${mbit(bw)}${ratio ? ` · a bitráta ${ratio.toFixed(1)}×-a` : ''}` : '–', ratio > 0 && ratio < 1.3);
+  // A forrás vizsgálata (hálózatfigyelő): válaszidő és hogy a szegmensek valós időnél gyorsabban jönnek-e
+  const net = e?.net;
+  if (net?.samples) {
+    if (net.ttfb) add('A forrás válaszideje', `${Math.round(net.ttfb)} ms`, net.ttfb > 1500);
+    if (net.ratio) add('Szegmens letöltése', `a hossza ${Math.round(net.ratio * 100)}%-a alatt${net.ratio > 0.75 ? ' (alig valós idejű)' : ''}`, net.ratio > 0.75);
+  }
   // a lejátszási pozíciót tartalmazó pufferelt tartomány (tekerés után a többi tartomány nem számít)
   const b = video.buffered;
   const t = video.currentTime;
@@ -122,7 +128,11 @@ function render(player, video) {
   }
   // Értékelés: miért akadhat?
   let hint = '';
-  if (ratio > 0 && ratio < 1.2) hint = 'A letöltés alig gyorsabb a lejátszásnál – a szerver vagy a kapcsolat lassú. Válassz kisebb minőséget vagy másik forrást (Minőség és forrás).';
+  const diag = net?.diagnose(bitrate);
+  if (diag?.kind === 'offline') hint = 'Nincs internetkapcsolat – a lejátszás folytatódik, amint visszatér.';
+  else if (diag?.kind === 'slow-net') hint = `${diag.text} Válassz kisebb minőséget (⚙ → Minőség), vagy állíts be legnagyobb minőséget a Beállításokban.`;
+  else if (diag?.kind === 'slow-source') hint = `${diag.text} A te kapcsolatod nem tehet róla – próbáld másik forrással (⚙ → Forrás), ha van.`;
+  else if (ratio > 0 && ratio < 1.2) hint = 'A letöltés alig gyorsabb a lejátszásnál – a szerver vagy a kapcsolat lassú. Válassz kisebb minőséget vagy másik forrást (Minőség és forrás).';
   else if (q && q.totalVideoFrames > 300 && q.droppedVideoFrames / q.totalVideoFrames > 0.05) hint = 'Sok eldobott képkocka: az eszköz nem bírja a dekódolást – kisebb minőség segíthet.';
   else if (stalls.n >= 3) hint = 'Gyakori akadás: próbáld másik forrással, vagy kisebb minőségben.';
   box.querySelector('dl').innerHTML = rows.join('');

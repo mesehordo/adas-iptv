@@ -88,15 +88,9 @@ export const BUILTIN_PLAYLISTS = [
 /**
  * Beépített VOD-listák (filmek, sorozatok). asset: a programmal együtt szállított lista (src/lists);
  * off: alapból kikapcsolva (a Beállítások → VOD alatt kapcsolható be).
+ * A nem nyilvános listák nem ide kerülnek, hanem kiegészítő csomagként (.adaspack, lásd vod.js).
  */
 export const VOD_BUILTIN = [
-  {
-    id: 'animeaddicts',
-    name: 'AnimeAddicts',
-    asset: 'lists/animeaddicts.m3u8',
-    off: true,
-    desc: 'Az AnimeAddicts magyar feliratos animéi (kb. 490 sorozat és 420 film), 69 műfajjal. A fájlok MKV-k AC3 hanggal és beágyazott magyar felirattal – az asztali változat lejátszási hídjával szólnak. Az animeaddicts.hu percenként legfeljebb ~65 kérést enged.',
-  },
   {
     id: 'orphaned',
     name: 'Orphaned Films',
@@ -145,7 +139,7 @@ const DEFAULT_SETTINGS = {
   subsAuto: false, // felirat automatikus keresése film / rész indításakor
   subsLang: 'hu', // 'hu' | 'en'
   subsSize: 'normal', // 'small' | 'normal' | 'large' | 'huge'
-  autoPip: true, // Android: lejátszás közben kilépve lebegő kis ablak
+  playerButtons: {}, // a vezérlősáv kiegészítő gombjai: { kulcs: false } = elrejtve (player.js PLAYER_BUTTONS)
   bgAudio: false, // Android: háttérlejátszás (csak hang)
   epgSources: BUILTIN_EPG,
   useEmbeddedEpg: true, // a lejátszólista x-tvg-url forrása

@@ -8,6 +8,7 @@ import { ICON, openModal, confirmDialog, promptDialog } from './components.js';
 import { player } from './player.js';
 import { refreshAll, refreshing } from './refresh.js';
 import { readPickedFiles } from './vod.js';
+import { packsOf, pickAndImportPacks, removePack } from './packs.js';
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 const isUrl = (u) => /^https?:\/\/\S+$/i.test(u || '');
@@ -32,17 +33,23 @@ export function renderLists(box) {
 
     <h3>Beépített listák</h3>
     <p class="muted small">Ha több lista is be van kapcsolva, a program az azonos csatornákat összevonja: egy csatorna csak egyszer jelenik meg, a különböző listákból származó adásai pedig egymás tartalék forrásai lesznek.</p>
-    <ul class="src-list builtin">${BUILTIN_PLAYLISTS.map((b) => {
-      const on = s.builtinLists?.[b.id] !== false;
+    <ul class="src-list builtin">${[...BUILTIN_PLAYLISTS, ...packsOf('tv')].map((b) => {
+      const on = b.pack ? (s.builtinLists?.[b.id] ?? !b.off) : s.builtinLists?.[b.id] !== false;
       const info = !on
         ? 'kikapcsolva'
         : errors[b.id]
           ? `<span class="warn">hiba: ${esc(errors[b.id])}</span>`
           : `${counts[b.id] || 0} csatorna${movedTxt(b.id)}`;
-      return `<li data-builtin="${b.id}"><input type="checkbox" class="switch" data-l-builtin ${on ? 'checked' : ''} aria-label="${esc(b.name)} bekapcsolva" />
-        <span><b>${esc(b.name)}</b><small>${esc(b.desc)} · ${info}</small></span>
-        ${b.id === 'iptvorg' ? '<button class="btn small" data-l="main-edit">Cím</button>' : ''}</li>`;
+      return `<li data-builtin="${esc(b.id)}"><input type="checkbox" class="switch" data-l-builtin ${on ? 'checked' : ''} aria-label="${esc(b.name)} bekapcsolva" />
+        <span><b>${esc(b.name)}</b>${b.pack ? ' <span class="pill">kiegészítő csomag</span>' : ''}<small>${esc(b.desc || '')} · ${info}</small></span>
+        ${b.id === 'iptvorg' ? '<button class="btn small" data-l="main-edit">Cím</button>' : ''}
+        ${b.pack ? '<button class="btn small danger" data-l="pack-del">Eltávolítás</button>' : ''}</li>`;
     }).join('')}</ul>
+    <div class="inline">
+      ${api.caps.files ? `<button class="btn small" data-l="pack-add">${ICON.plus} Kiegészítő csomag betöltése (…_tv.adaspack)</button>` : ''}
+      ${api.packsDir ? '<button class="btn small" data-l="pack-dir">Csomagok mappája</button>' : ''}
+      <button class="btn small" data-help="adaspack">Mi ez, és hogyan készíthetek ilyet?</button>
+    </div>
 
     <h3>Saját lejátszólisták <span class="muted small">(M3U / M3U8)</span></h3>
     <ul class="src-list">${
@@ -131,6 +138,22 @@ export function renderLists(box) {
         refreshAll({ force: true }).then(() => renderLists(box));
         renderLists(box);
         break;
+      case 'pack-add':
+        // a betöltés után a katalógus magától újraépül (bus 'packs'), utána frissül ez a rész is
+        if ((await pickAndImportPacks())?.ok.length) setTimeout(() => box.isConnected && renderLists(box), 300);
+        break;
+      case 'pack-dir':
+        api.packsDir();
+        break;
+      case 'pack-del': {
+        const id = b.closest('[data-builtin]').dataset.builtin;
+        const pk = packsOf('tv').find((x) => x.id === id);
+        if (!pk || !(await confirmDialog(`Eltávolítod a(z) „${pk.name}” kiegészítő csomagot erről az eszközről?`, { ok: 'Eltávolítás' }))) return;
+        await removePack('tv', id);
+        toast('A csomag eltávolítva. (Ha a Csomagok mappájában is ott van, a következő indításkor visszakerül.)', { timeout: 7000 });
+        renderLists(box);
+        break;
+      }
       case 'main-edit': {
         const url = await promptDialog(
           'Az iptv-org lista címe (pl. csak egy ország: https://iptv-org.github.io/iptv/countries/hu.m3u). Üresen hagyva visszaáll a teljes listára.',

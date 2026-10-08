@@ -10,22 +10,26 @@ Profilonként választható a **Beállítások → Megjelenés** legördülő me
 
 | Stílus | Jellemzői |
 |---|---|
-| Netflix | fekete háttér, piros kiemelés, rámutatásra kinyíló kártyák, élő előnézet a kiemelt sávban |
-| Disney+ | mélykék színátmenet, keretbe foglalt lapozó kiemelt sáv, fénylő keretes kártyák |
-| SkyShowtime | oldalsó menüsáv ikonokkal, lila–rózsaszín színátmenetek |
-| Rakuten TV | nagy kártyák a csatorna nevével a képen, magas kiemelt sáv nagy lapozónyilakkal |
-| Prime Video | éjkék háttér, kék kiemelés, részletes kártyák |
-| Apple TV | mélyfekete, áttetsző elmosott menü, lebegő árnyékú kártyák |
-| Zen *(világos)* | rizspapír-háttér, mohazöld kiemelés, sok levegő, lassú, csendes mozgások, ensō a logóban |
-| Wabi-szabi *(világos)* | földszínű washi-papír textúra, kissé szabálytalan kártyák, rozsda és indigó, arany kintsugi-repedés |
-| Nintendo *(világos)* | csíkos háttér, fehér keretes buborékkártyák, ruganyos mozgás, lüktető türkiz kijelölés |
-| Switch | sötét HOME-menü, Joy-Con piros–kék, szögletes csempék lüktető türkiz kerettel |
-| Wii *(világos)* | fehér csíkos háttér, szürke keretes fényes csatornacsempék, ívelt menüsáv |
-| Cyberpunk | neonsárga–cián–bíbor, levágott sarkok, rácsos háttér, glitch kijelölés |
-| Terminál | zöld foszfor, monospace betűk, inverz kijelölés, villogó kurzor |
-| Bauhaus *(világos)* | geometrikus plakát, vörös–kék–sárga–fekete, oldalsó menüsáv, kemény árnyékos kártyák |
-| Aurora | hullámzó sarki fény háttér, matt üveg kártyák, lebegő kapszula-menüsáv |
-| Vázlatfüzet *(világos)* | vonalas füzetlap, kézírás, beragasztott polaroid kártyák, ceruzarajzolt gombok |
+| Kurenai | Az esti mozi hangulata – fekete háttér, vörös kiemelés, rámutatásra kinagyuló kártyák. |
+| Mahō | Mesés, csillagos mélykék színátmenet, fénylő keretes, lekerekített kártyák. |
+| Murasaki | Sötét alap lila–rózsaszín színátmenetekkel és fénylő kiemeléssel. |
+| Akane | Fekete alap, vörös jelölések, nagybetűs sorcímek – mozivászon-hangulat. |
+| Shinkai | Sötét éjkék háttér, tengerkék kiemelés. |
+| Garasu | Mélyfekete háttér, áttetsző, elmosott üvegfelületek, lebegő árnyékok, letisztult betűk. |
+| Zen *(világos)* | Világos rizspapír-háttér, mohazöld kiemelés, sok levegő és csendes, lassú mozgások. |
+| Wabi-sabi *(világos)* | Meleg, földszínű papírtextúra, kissé szabálytalan, kézműves kártyák, arany kintsugi-repedés. |
+| Asobiba *(világos)* | Világos, csíkos háttér, fehér keretes buborékkártyák, ruganyos mozgás – játékbolt-hangulat. |
+| Futago | Kézikonzol-menü – sötétszürke alap, piros–kék kontrollerpár, szögletes csempék türkiz kerettel. |
+| Hiroba *(világos)* | A „csatornás” konzolmenü – fehér, finoman csíkos háttér, fényes, szürke keretes csempék. |
+| Neon City | Éjszakai neonváros – neonsárga, cián és bíbor, levágott sarkú kártyák, pásztázó sorok, „glitch”. |
+| Neo-Tokyo | Az AKIRA világa – éjszakai romváros sziluettje, Kaneda-vörös, száguldó motorfény-csíkok, fehér kapszula-jelvény, döntött tömbös címbetűk. |
+| Manga *(világos)* | Fekete tus fehér papíron – rasztertónus, vastag panelkeretek, beszédbuborék-gombok, dőlt tömör címek. |
+| Pow! *(világos)* | Amerikai képregény – Ben-Day pöttyök, vörös–sárga–kék, vastag fekete kontúr eltolt árnyékkal, sárga szövegdobozok, „POW!” csillagrobbanás. |
+| 16-Bit *(világos)* | A 90-es évek szürke konzolja – lila gombok, színes A–B–X–Y pöttyök, pixeles keretek és képernyő-pásztázás, kockás betűk. |
+| Kikagaku *(világos)* | Plakátművészet – törtfehér papír, vörös–kék–sárga–fekete, vastag keretek kemény árnyékkal. |
+| Kyokkō | Lassan hullámzó színes háttér, matt üveg kártyák és lágy fénylés. |
+| Rakugaki *(világos)* | Vonalas füzetlap kézírással – a csatornák beragasztott polaroid fotók, ceruzás keretek. |
+| Phosphor | Régi zöld foszforos monitor – fix szélességű betűk, parancssori feliratok, inverz kijelölés. |
 
 Ugyanitt profilonként **sorrendbe állíthatók és elrejthetők a főoldal sorai** (húzással vagy a nyilakkal,
 távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben, hazai csatornák, kategóriák, országok.
@@ -84,7 +88,7 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - Az adások által kért `User-Agent` / `Referer` fejlécek beállítása (`#EXTVLCOPT`, `http-referrer`)
 - Automatikus tartalék forrás, ha egy adás nem indul el vagy megakad
 - Csatornaváltás ↑/↓ billentyűvel, csatornaszám beírása (0–9), csatornalista-panel
-- Minőség-, hangsáv- és forrásválasztás, kép a képben, mindig felül lévő mini lejátszó
+- Minőség-, hangsáv- és forrásválasztás, mindig felül lévő mini lejátszó, egyenként elrejthető lejátszógombok
 - Elalvási időzítő (lágy elhalkulással, akár a műsor végén)
 - A képernyő nem alszik el lejátszás közben; médiabillentyűk
 
@@ -99,6 +103,20 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - Felnőtt tartalom alapból rejtve
 - Mentés és visszaállítás fájlba (beállítások, profilok, kedvencek, emlékeztetők)
 - Teljes billentyűzetes / távirányítós vezérlés (nyilak, Enter, Esc / Backspace)
+
+**Kiadás a GitHubról, egérkurzor a távirányítón, új feliratforrás, egységes műfajok (1.25)**
+- **Kiadások:** a `v*` címke pusholásakor a GitHub Actions minden platformra lefordít, és GitHub Release-be tölti a fájlokat (Windows: telepítő, hordozható, MSI · Linux: AppImage, deb · macOS: dmg, zip · Android: APK), SHA256SUMS.txt-vel; az asztali változat innen frissül (induláskor keres, kikapcsolható)
+- **Kiegészítő csomagok** (`.adaspack`): nem nyilvános listák a programmal nem szállítva, beépítettként megjelenve – betöltés fájlból vagy az asztali „packs” mappából; a mentés és az átvitel is viszi. Készítés: `tools/make-pack.mjs`
+- **Távirányító:** egér mód (kurzor a képernyőn, koppintás = kattintás, két ujjal görgetés), a parancsok sorban mennek (nem ugrál), a kijelölés mindig látszik; gyorsgombok: TV, Műsorújság, Böngészés, VOD; a Főoldalon *Távirányító* gomb – egy kis ablakban QR-kóddal csatlakoztat
+- **Feliratok.eu:** magyar és angol feliratok fiók és napi korlát nélkül, sorozatnál évadcsomagból is; a régi (Windows-1250) magyar feliratok ékezetei is helyesek; **SubDL** ingyenes kulccsal; a CC-menüben egyetlen *Felirat keresése* gomb (alatta az aktív adatbázisok), magyarul és angolul is keres
+- **VOD:** egységes műfajok az AnimeAddicts műfajlistája szerint (a magyar és angol, témacsatorna-szerű csoportok ezekre fordítva), egy cím több műfajban is; alapból a 12 legnépszerűbb műfaj kap sort
+- **Hálózatfigyelő:** a letöltés sebessége, a forrás válaszideje és a valós idejűség mérése; ismételt akadásnál másik forrás, kisebb minőség vagy nagyobb tartalék; megszakadt internetnél magától folytatja
+- **Menü:** Főoldal · TV · VOD · Kedvencek (a kedvenc filmek és sorozatok is); a TV alatt fülek: Csatornák, Műsorújság, Böngészés, Felvételek
+- **Keresés:** fekvő, széles képernyőn a tévé- és a VOD-találatok két hasábban egymás mellett; Androidon egymás alatt, elöl a csatornákkal
+- **Beállítások:** 15 kisebb csoport, mindegyik egy-két mondatos leírással; Androidon csak csempék
+- **Lejátszó:** a kiegészítő gombok egyenként elrejthetők; a kép a képben mód megszűnt
+- **Erőforrások:** a sorok fokozatosan töltődnek (fele annyi elem és kép induláskor), a Főoldal élő előnézete egy perc után megáll, kis puffer a többképes nézetben és az előnézetben
+- Electron 44 (biztonsági javítások)
 
 **Felvételek a TV alatt, ajánlósáv nélkül (1.24.1)**
 - A **Felvételek** a TV oldal fülére költözött (TV → Csatornák / Felvételek); a VOD-ban csak az Online listák és a Saját médiatár maradt
@@ -123,7 +141,7 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 **Felvételek az alkalmazásban, új Beállítások, minden ablakméret (1.22)**
 - **VOD → Felvételek** fül (asztali): a saját tévéfelvételek csatornalogóval, dátummal, mérettel; lejátszás az Adás saját lejátszójában (tekerhetően, folytatással), külső lejátszó, törlés; a most rögzített és az ütemezett felvételek is itt
 - A lejátszási híd az MPEG-TS fájlokat (.ts) is lejátssza (AAC / MP2 hang, nem nulláról induló időbélyegek)
-- **Beállítások:** nyolc csoport (Megjelenés és főoldal · Lejátszás · Listák és források · Tartalom és gyerekek · Értesítések · Eszközök és szinkron · Profilok és mentés · Frissítés és névjegy), **csempés** vagy **füles** elrendezés választható, kereső az összes beállítás között; új Névjegy (verzió, platform, adatok helye, adatforrások)
+- **Beállítások:** nyolc csoport (Megjelenés és főoldal · Lejátszás · Listák és források · Tartalom és gyerekek · Értesítések · Eszközök és szinkron · Profilok és mentés · Frissítés), **csempés** vagy **füles** elrendezés választható, kereső az összes beállítás között; új Névjegy (verzió, platform, adatok helye, adatforrások)
 - A felugró ablakok minden képernyőméretben elférnek (a tartalmuk belül görget); telefonos javítások: listák gombjai, választómezők, sorok nyilai, statisztika, keresés
 
 **Sportfigyelő, VOD cím- és borítószerkesztő (1.21)**
@@ -142,7 +160,7 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 **Új stílusnevek, saját témák, magyar VOD-címek, kép a képben Androidon (1.20)**
 - A stílusok új, márkanév nélküli nevei: Kurenai, Mahō, Murasaki, Akane, Shinkai, Garasu, Zen, Wabi-sabi, Asobiba, Futago, Hiroba, Neon City, Kikagaku, Kyokkō, Rakugaki, Phosphor; új stílus: **Neo-Tokyo** (80-as évekbeli anime-romváros) és **16-Bit** (90-es évekbeli szürke konzol)
 - A főoldal egységei (csempék) minden stílusban a stílushoz illő kinézetet kapnak
-- Saját témák: téma-fájl (`.adastheme` / `.json`) feltöltése, vagy asztali gépen téma-mappa; az elrendezést módosító CSS-t az alkalmazás kiszűri. Teljes leírás: [docs/TEMA-KESZITES.md](docs/TEMA-KESZITES.md), minták: `themes/`
+- Saját témák: téma-fájl (`.adastheme` / `.json`) feltöltése, vagy asztali gépen téma-mappa; az elrendezést módosító CSS-t az alkalmazás kiszűri. Teljes leírás és minta: [docs/TEMA-KESZITES.md](docs/TEMA-KESZITES.md)
 - Új, hozzáadható főoldali egységek: Megnézendő, Új részek, Hamarosan kezdődik, Ma esti filmek, Nézési idő, Fedezd fel, Nap és levegő, Jegyzet
 - VOD: magyar cím a kártyákon és az adatlapon (alatta az eredeti), kézi cím; borítókép-választó több forrásból, saját képcímmel vagy képfájllal
 - Lista-feldolgozás: „Cím - 01 [CRC]” és „Part 2 - 01” részek, évadmappák („Season 2/…”), általános fájlnevek (index.m3u8), azonos című, eltérő hosszú filmek helyes kezelése (eddig ezek összevonódhattak)
@@ -197,7 +215,7 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - A „Filmek és sorozatok” neve **VOD**; a menüben a tévés részek után áll, a *Saját médiatár* fülként a VOD-on belül van
 - A csatornák között csak élő adás: a csatornalistákban talált filmek / sorozatrészek (hosszjelölés, `/movie/` – `/series/` cím, filmfájl évszámmal / részszámmal) a VOD-ba kerülnek, a VOD-listák élő adásai a csatornák közé
 - A VOD „Folytatás” sora a VOD oldalon van (a tévés főoldalon már nincs)
-- Beépített **AnimeAddicts** VOD-lista (alapból kikapcsolva, 9238 tétel, 69 műfaj)
+- Nagy, nem nyilvános VOD-lista támogatása (műfajcsomagok, sok ezer tétel)
 - Linux: **AppImage** (Windowson is készíthető) és `.deb`; a webOS-változat szünetel
 
 **Hangsávok, feliratok, borítók (1.13)**
@@ -371,7 +389,7 @@ Android TV-n / Google TV-n is (Android 6.0 vagy újabb); tévén a Leanback ind�
 | 0–9 | Csatornaszám |
 | Szóköz | Szünet / lejátszás |
 | Enter / L | Csatornalista |
-| M / F / P / N / S | Némítás / teljes képernyő / kép a képben / mini lejátszó / kedvenc |
+| M / F / N / S | Némítás / teljes képernyő / mini lejátszó / kedvenc |
 | Shift+← / Shift+→, End | Élő adás: 30 mp vissza / előre, ugrás élőbe |
 | C | Hang és felirat |
 | V | Több adás egyszerre |

@@ -7,10 +7,11 @@ import { epg } from './epg.js';
 import { player } from './player.js';
 import { ICON, closeTopModal, modalOpen, topModalEl, openProgram, openInfo, confirmDialog, avatarHtml } from './components.js';
 import { applyTheme } from './themes.js';
-import { refreshAll } from './refresh.js';
+import { refreshAll, refreshing } from './refresh.js';
 import { channelDialog } from './lists.js';
 import { renderHelp, helpTopicForRoute } from './help.js';
-import { renderVod, renderOwn, loadVod, loadOwn, vodLists } from './vod.js';
+import { renderVod, renderOwn, loadVod, loadOwn, vodLists, vod } from './vod.js';
+import { syncPackFolder } from './packs.js';
 import './subtitles.js'; // a lejátszó felirat-kezelője
 import { unlockProfile, requireAdult, adultGuardNeeded, markUnlocked, hasPin } from './pin.js';
 import './cast.js'; // kivetítés (Chromecast / DLNA)
@@ -55,6 +56,15 @@ const ROUTES = {
   recordings: renderRecordingsPage,
   stats: renderStats,
 };
+
+// Külső hivatkozások bárhonnan (súgó, beállítások, adatlap): <a|button data-ext="https://…"> – a rendszer böngészőjében
+document.addEventListener('click', (e) => {
+  const x = e.target.closest('[data-ext]');
+  if (!x || !/^https?:\/\//i.test(x.dataset.ext || '')) return;
+  e.preventDefault();
+  e.stopPropagation();
+  api.openExternal?.(x.dataset.ext);
+}, true);
 
 // Súgóhivatkozások bárhonnan: <button data-help="téma">
 document.addEventListener('click', (e) => {
@@ -107,7 +117,7 @@ function route({ keepScroll = false } = {}) {
   const y = window.scrollY;
   currentRoute = full;
   // A „Saját” médiatár a VOD része; az országok oldala a Böngészésé
-  const navRoute = { own: 'vod', recordings: 'tv', countries: 'browse' }[name] || name;
+  const navRoute = { own: 'vod', recordings: 'tv', guide: 'tv', browse: 'tv', countries: 'tv' }[name] || name;
   $$('.links a', nav).forEach((a) => a.classList.toggle('active', a.dataset.route === navRoute));
   document.body.dataset.route = name;
   if (name !== 'search' && document.activeElement !== searchInput) {
@@ -126,7 +136,9 @@ const rerender = debounce(() => {
   if (['home', 'tv', 'guide', 'search', 'favorites', 'browse'].includes(name)) route({ keepScroll: true });
 }, 300);
 bus.on('epg', rerender);
-bus.on('vod', () => ['vod', 'search', 'home'].includes(parseHash().name) && !player.active && route({ keepScroll: true }));
+bus.on('vod', () => ['vod', 'search', 'home', 'favorites'].includes(parseHash().name) && !player.active && route({ keepScroll: true }));
+// kedvenc film / sorozat jelölése (pl. a Kedvencek oldalról nyitott adatlapon): a Kedvencek oldal frissül
+bus.on('vod-favs', () => parseHash().name === 'favorites' && !player.active && route({ keepScroll: true }));
 bus.on('own', () => ['own', 'search', 'home'].includes(parseHash().name) && !player.active && route({ keepScroll: true }));
 bus.on('catalog', rerender);
 bus.on('profile', () => {
@@ -354,16 +366,11 @@ const flushNow = () => {
 document.addEventListener('visibilitychange', () => document.hidden && flushNow());
 window.addEventListener('pagehide', flushNow);
 window.__adasFlush = flushNow; // az Android-keret hívja, amikor az alkalmazás a háttérbe kerül
-// Android: lebegő kis ablak (kép a képben) – csak a kép látszik, a kezelőelemek nem
-window.__adasPip = (on) => {
-  document.body.classList.toggle('pip', !!on);
-  if (on) document.activeElement?.blur?.();
-};
 // Android: a háttérlejátszás értesítésének „Leállítás” gombja
 window.__adasStopPlayback = () => player.active && player.close();
-// Háttér-beállítások átadása a keretnek (kilépéskor kis ablak / háttérlejátszás)
-const sendBgPrefs = () => api.setBackgroundPrefs?.(store.settings.autoPip !== false, !!store.settings.bgAudio);
-bus.on('settings', (k) => (k === 'autoPip' || k === 'bgAudio') && sendBgPrefs());
+// Háttér-beállítás átadása a keretnek (háttérlejátszás; a kép a képben mód megszűnt)
+const sendBgPrefs = () => api.setBackgroundPrefs?.(false, !!store.settings.bgAudio);
+bus.on('settings', (k) => k === 'bgAudio' && sendBgPrefs());
 setTimeout(sendBgPrefs, 1000);
 
 // Szövegbevitel közben (telefonon a képernyő-billentyűzet nyitva) az alsó menüsáv elrejthető.
@@ -671,6 +678,15 @@ async function boot() {
   } catch {}
   setTimeout(autoCheckUpdate, 15000);
   // A VOD-listák a háttérben töltődnek be (az első megnyitáskor már készen legyenek).
+  // Előtte az asztali „packs” mappa kiegészítő csomagjai (ha közben a VOD már betöltött, újratölt).
+  syncPackFolder();
+  // betöltött / eltávolított csomag: a csatornalista, illetve a VOD újraépül
+  // (ha a csatornalista vagy a VOD épp töltődik, a futó művelet még a régi listákkal dolgozik: utána még egyszer)
+  const tvReload = () => refreshAll({ force: false, epgToo: true, quiet: true });
+  bus.on('packs', (kind) => {
+    if (kind === 'tv') refreshing() ? refreshAll({ quiet: true }).then(tvReload) : tvReload();
+    else vod.loading ? vod.loading.then(() => loadVod()) : vod.ready && loadVod();
+  });
   setTimeout(() => vodLists().length && loadVod(), 8000);
   // A VOD-listákban talált élő adások a csatornák közé kerülnek: ilyenkor újrafésüljük a csatornalistát.
   bus.on('vod-live', () => refreshAll({ force: false, epgToo: false, quiet: true }));

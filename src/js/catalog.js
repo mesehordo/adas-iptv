@@ -1,6 +1,7 @@
 // Csatornakatalógus: M3U feldolgozás, iptv-org adatok összefésülése, magyar nevek, keresés.
 import { api } from './api.js';
 import { store, BUILTIN_PLAYLISTS } from './store.js';
+import { packsOf } from './packs.js';
 import { norm, key, bus } from './util.js';
 import { kidsAllowed } from './kids.js';
 
@@ -272,6 +273,8 @@ export function activeLists() {
     if (s.builtinLists?.[b.id] === false) continue;
     out.push({ ...b, url: b.id === 'iptvorg' ? s.playlistUrl || b.url : b.url, builtin: true });
   }
+  // tévés kiegészítő csomagok (packs.js): beépítettként, a beépített listák kapcsolójával
+  for (const p of packsOf('tv')) if ((s.builtinLists?.[p.id] ?? !p.off) !== false) out.push({ ...p, builtin: true });
   for (const p of s.customPlaylists) if (p.enabled) out.push({ ...p, builtin: false });
   return out;
 }
@@ -341,7 +344,11 @@ async function fetchAndBuild({ force = false, onProgress } = {}) {
   const loadList = async (pl) => {
     if (pl.stream) return { pl, entries: [streamEntry(pl)], tvgUrls: [], at: Date.now() };
     try {
-      const r = pl.url ? await api.fetchText(pl.url, { maxAgeHours: 6, force }) : { text: pl.text || '', cachedAt: Date.now() };
+      const r = pl.url
+        ? await api.fetchText(pl.url, { maxAgeHours: 6, force })
+        : pl.textKey // kiegészítő csomag: a szövege a tartós tárban
+          ? { text: (await api.docGet?.(pl.textKey))?.text || '', cachedAt: pl.at || Date.now() }
+          : { text: pl.text || '', cachedAt: Date.now() };
       const parsed = parseM3U(r.text);
       if (parsed.isStream) return { pl, entries: [streamEntry(pl)], tvgUrls: [], at: r.cachedAt };
       return { pl, entries: parsed.entries, tvgUrls: parsed.tvgUrls, at: r.cachedAt };
@@ -401,7 +408,7 @@ const SNAPSHOT_MAX_AGE = 6 * 3600e3;
 
 function snapshotKey() {
   const s = store.settings;
-  const lists = activeLists().map((p) => p.id + (p.url || '')).join(',');
+  const lists = activeLists().map((p) => p.id + (p.url || '') + (p.at || '')).join(',');
   // A saját csatornák bármely módosítása új kulcsot ad (így nem a régi állapot töltődik be).
   const mine = JSON.stringify(s.customChannels);
   let h = 0;

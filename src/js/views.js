@@ -12,10 +12,10 @@ import {
   ICON, rowEl, gridEl, cardHtml, registerContext, openProgram, openModal, confirmDialog, promptDialog,
   logoHtml, emptyState, avatarHtml, rowTitleHtml, seeAllHtml, rowOrderEditor, tvTabs,
 } from './components.js';
-import { player, stopPreview } from './player.js';
+import { player, stopPreview, PLAYER_BUTTONS } from './player.js';
 import { THEMES, currentTheme, applyTheme, profileRows, defaultRows, rowLabel } from './themes.js';
 import { renderLists } from './lists.js';
-import { renderVodLists, renderOwnLists, searchVod, vcardHtml, vod } from './vod.js';
+import { renderVodLists, renderOwnLists, searchVod, vcardHtml, vod, vodFavItems, loadVod } from './vod.js';
 import { renderHuSettings } from './subtitles.js';
 import { exoAvailable } from './exo.js';
 import { renderKidsSettings } from './kidsui.js';
@@ -76,7 +76,7 @@ export function renderTv(view) {
 
   // --- fülek (Csatornák / Felvételek), alattuk a sorok a profil beállított sorrendjében
   view.innerHTML = '';
-  const rows = html(`<div class="rows tv-rows">${tvTabs('tv') ? `<div class="tv-head">${tvTabs('tv')}</div>` : ''}</div>`);
+  const rows = html(`<div class="rows tv-rows"><div class="tv-head">${tvTabs('tv')}</div></div>`);
   view.append(rows);
   const onAir = vis.filter((c) => epg.now(c.id)?.cur);
   const favSet = new Set(p.favorites);
@@ -155,7 +155,7 @@ export function renderCountries(view) {
   const count = new Map();
   for (const c of vis) count.set(c.country, (count.get(c.country) || 0) + 1);
   const list = homeCountryFirst([...catalog.countries.values()].filter((c) => count.get(c.code)).sort((a, b) => count.get(b.code) - count.get(a.code)));
-  view.innerHTML = `<div class="page">
+  view.innerHTML = `<div class="page">${tvTabs('browse')}
     <div class="page-head"><h1>Országok</h1><span class="muted">${list.length} ország</span></div>
     <div class="tile-grid">${list
       .map((c) => `<a class="tile" href="#/browse?country=${esc(c.code)}" style="--h:${hashHue(c.code)}"><span class="flag">${countryFlag(c.code) || `<span class="cc">${esc(c.code)}</span>`}</span><b>${esc(c.name)}</b><small>${count.get(c.code)} csatorna</small></a>`)
@@ -216,7 +216,7 @@ export function renderBrowse(view, params) {
   const plName = f.pl && (f.pl === MINE ? 'Saját csatornák' : [...BUILTIN_PLAYLISTS, ...store.settings.customPlaylists].find((x) => x.id === f.pl)?.name);
   const title = [plName || titleParts.join(' · '), f.q ? `„${f.q}”` : ''].filter(Boolean).join(' · ') || 'Minden csatorna';
 
-  view.innerHTML = `<div class="page">
+  view.innerHTML = `<div class="page">${tvTabs('browse')}
     <div class="page-head"><h1>${esc(title)}</h1><span class="muted">${list.length} csatorna</span></div>
     <form class="filters">
       <input class="input" name="q" type="search" placeholder="Keresés a csatornák között…" value="${esc(f.q)}" aria-label="Keresés" />
@@ -274,6 +274,9 @@ export function renderFavorites(view) {
   const favs = getChannels(p.favorites).filter((c) => vis.has(c));
   const recent = getChannels(p.recent).filter((c) => vis.has(c));
   const ctx = registerContext('Kedvencek', favs);
+  const vodFavs = vodFavItems();
+  // (a kedvenc filmekhez a filmlisták kellenek: ha még nem töltődtek be, most – a „vod” esemény újrarajzol)
+  if ((p.vodFavs || []).length && !vod.ready) loadVod();
   view.innerHTML = `<div class="page">
     <div class="page-head"><h1>Kedvencek</h1><span class="muted">${favs.length} csatorna · a sorrend adja a csatornaszámokat; áthelyezés: húzással, ${IS_TV ? 'CH+ / CH− gombbal' : /Mac/.test(navigator.platform) ? '⌘← / ⌘→ billentyűvel' : 'Ctrl+← / Ctrl+→ billentyűvel'}</span></div>
     ${
@@ -281,7 +284,13 @@ export function renderFavorites(view) {
         ? `<div class="grid fav-grid">${favs
             .map((c, i) => cardHtml(c, { context: ctx }).replace('<div class="card"', `<div class="card" draggable="true" data-num="${i + 1}"`))
             .join('')}</div>`
-        : emptyState('Még nincsenek kedvenceid', 'A csatornák kártyáján a + gombbal, vagy kijelölve az F billentyűvel jelölhetsz kedvencet.', '<a class="btn primary" href="#/browse">Csatornák böngészése</a>')
+        : emptyState('Még nincsenek kedvenc csatornáid', 'A csatornák kártyáján a + gombbal, vagy kijelölve az F billentyűvel jelölhetsz kedvencet.', '<a class="btn primary" href="#/browse">Csatornák böngészése</a>')
+    }
+    <div class="page-head sub"><h2>Filmek és sorozatok</h2>${vodFavs.length ? `<span class="muted">${vodFavs.length} cím</span>` : ''}</div>
+    ${
+      vodFavs.length
+        ? `<div class="vgrid fav-vod">${vodFavs.map(vcardHtml).join('')}</div>`
+        : `<p class="muted">${(store.profile.vodFavs || []).length && !vod.ready ? 'A filmlisták betöltése…' : 'Egy film vagy sorozat adatlapján a <b>☆ Kedvenc</b> gombbal teheted ide.'}</p>`
     }
     ${recent.length ? `<div class="page-head sub"><h2>Legutóbb nézett</h2><button class="btn small" id="clear-recent">Előzmények törlése</button></div>` : ''}
   </div>`;
@@ -353,11 +362,22 @@ export function renderSearch(view, params) {
     (x) => homeRank(catalog.byId.get(x.channelId))
   );
   const vodHits = searchVod(q);
-  view.innerHTML = `<div class="page">
-    <div class="page-head"><h1>Találatok: „${esc(q)}”</h1><span class="muted">${chans.length} csatorna${progs.length ? `, ${progs.length} műsor` : ''}</span></div>
-    ${progs.length ? `<h2 class="section-title">Műsorok</h2><div class="prog-results"></div>` : ''}
-    ${vodHits.length ? `<h2 class="section-title">VOD – filmek és sorozatok <a class="btn small" href="#/vod?type=all&amp;q=${encodeURIComponent(q)}">Mind (${vodHits.length})</a></h2><div class="vgrid vod-search">${vodHits.slice(0, 18).map(vcardHtml).join('')}</div>` : ''}
-    ${chans.length ? `<h2 class="section-title">Csatornák <a class="btn small" href="#/browse?q=${encodeURIComponent(q)}">Szűrés ország, nyelv, kategória szerint ›</a></h2>` : ''}
+  const tvAny = chans.length || progs.length;
+  // Két hasáb: tévé (csatornák, alattuk a műsorok) és VOD. Fekvő, széles képernyőn egymás mellett;
+  // Androidon mindig egymás alatt, elöl a tévécsatornákkal.
+  view.innerHTML = `<div class="page search-page">
+    <div class="page-head"><h1>Találatok: „${esc(q)}”</h1><span class="muted">${chans.length} csatorna${progs.length ? `, ${progs.length} műsor` : ''}${vodHits.length ? `, ${vodHits.length} film / sorozat` : ''}</span></div>
+    <div class="search-cols ${IS_ANDROID ? 'stack' : ''} ${tvAny && vodHits.length ? '' : 'one'}">
+      ${
+        tvAny
+          ? `<section class="sc-tv">
+        ${chans.length ? `<h2 class="section-title">Csatornák <a class="btn small" href="#/browse?q=${encodeURIComponent(q)}">Szűrés ország, nyelv, kategória szerint ›</a></h2><div class="sc-chans"></div>` : ''}
+        ${progs.length ? `<h2 class="section-title">Műsorok</h2><div class="prog-results"></div>` : ''}
+      </section>`
+          : ''
+      }
+      ${vodHits.length ? `<section class="sc-vod"><h2 class="section-title">VOD – filmek és sorozatok <a class="btn small" href="#/vod?type=all&amp;q=${encodeURIComponent(q)}">Mind (${vodHits.length})</a></h2><div class="vgrid vod-search">${vodHits.slice(0, 18).map(vcardHtml).join('')}</div></section>` : ''}
+    </div>
   </div>`;
   const page = $('.page', view);
   if (progs.length) {
@@ -380,7 +400,7 @@ export function renderSearch(view, params) {
       openProgram(catalog.byId.get(channelId), prog);
     };
   }
-  if (chans.length) page.append(gridEl(chans, { title: `Keresés: ${q}` }));
+  if (chans.length) $('.sc-chans', view).append(gridEl(chans, { title: `Keresés: ${q}` }));
   else if (!progs.length && !vodHits.length) page.append(html(`<div>${emptyState('Nincs találat', 'Próbálj rövidebb vagy más kifejezést.')}</div>`));
 }
 
@@ -447,7 +467,7 @@ export function renderGuide(view) {
   const nowT = Date.now();
   if (guideState.cat) list = list.filter((c) => (guideState.mode === 'now' ? [epg.now(c.id, nowT)?.cur].filter(Boolean) : epg.range(c.id, from, to)).some((pr) => progMatch(pr, guideState.cat)));
 
-  view.innerHTML = `<div class="page guide-page">
+  view.innerHTML = `<div class="page guide-page">${tvTabs('guide')}
     <div class="page-head"><h1>Műsorújság</h1><span class="muted">${fmtDay(from)}</span></div>
     <div class="guide-bar">
       <div class="tabs">
@@ -615,28 +635,43 @@ export function renderSettings(view) {
 
     <section class="set-section appearance" id="appearance" data-g="look"></section>
 
-    <section class="set-section" id="dashboard" data-g="look"></section>
+    <section class="set-section" id="dashboard" data-g="home"></section>
 
     <section class="set-section" id="playback" data-g="play"><h2>Lejátszás <button class="help-link" data-help="engines" title="Súgó">?</button></h2>
-      ${toggle('autoFallback', 'Automatikus tartalék forrás', 'Ha egy adás nem indul el, a csatorna következő forrását próbálja.')}
-      ${api.mediaProbe ? toggle('mediaBridge', 'Lejátszási híd (FFmpeg) filmekhez', 'AC3 / DTS hang, a fájlba ágyazott feliratok (MKV, MP4), több hangsáv és régi videóformátumok lejátszása. Kikapcsolva a beépített lejátszó próbálja (néma lehet, felirat nélkül).') + '<p class="muted small media-status">FFmpeg ellenőrzése…</p>' : ''}
-      ${exoAvailable() ? toggle('mediaBridge', 'Natív lejátszó (ExoPlayer) filmekhez', 'MKV / MP4 / AVI fájlok AC3 / DTS hanggal és beágyazott (ASS / SRT) felirattal, minden hangsáv választható. Kikapcsolva a WebView saját lejátszója próbálja (néma lehet, felirat nélkül).') : ''}
-      ${api.caps.preview ? toggle('heroPreview', 'Előnézet a főoldalon', 'A Főoldal csatornás csempéin a csatorna némított élő képe.') : ''}
+      ${toggle('autoFallback', 'Automatikus tartalék forrás', 'Ha egy adás nem indul el, vagy a forrása túl lassú, a csatorna következő forrását próbálja.')}
       ${toggle('resumeLast', 'Utolsó csatorna folytatása indításkor')}
-      ${api.setBackgroundPrefs && api.caps.pip ? toggle('autoPip', 'Kis ablak kilépéskor (kép a képben)', 'Ha lejátszás közben a Kezdőképernyőre vagy másik alkalmazásba lépsz, az adás egy lebegő kis ablakban szól tovább minden más fölött. Kézzel: a lejátszó kép a képben gombja.') : ''}
-      ${api.setBackgroundPrefs ? toggle('bgAudio', 'Háttérlejátszás (csak hang)', 'Másik alkalmazásra váltva az adás hangja tovább szól (értesítéssel, onnan leállítható). Ha a kis ablak is be van kapcsolva, az az elsődleges.') : ''}
       ${toggle('perChannelVolume', 'Hangerő csatornánként', 'Minden csatorna megjegyzi a saját hangerejét (a halkabb és hangosabb adók miatt).')}
+      ${api.setBackgroundPrefs ? toggle('bgAudio', 'Háttérlejátszás (csak hang)', 'Másik alkalmazásra váltva az adás hangja tovább szól (értesítéssel, onnan leállítható).') : ''}
       <label class="setting"><span><b>Legnagyobb minőség</b><small>A több minőségben elérhető adásoknál: lassú vagy mobil kapcsolaton kisebb felbontással kevesebbet akad, és kevesebb adatot használ. Automatikusan az ablak méretéhez igazodik. (Az egyetlen minőségű adásokon nem változtat.)</small></span>
         <select data-set="maxQuality">${[['', 'Automatikus (az ablakmérethez)'], ['1080', 'Legfeljebb 1080p (Full HD)'], ['720', 'Legfeljebb 720p (HD)'], ['480', 'Legfeljebb 480p (SD)'], ['360', 'Legfeljebb 360p (adatkímélő)']]
           .map(([v, l]) => `<option value="${v}" ${String(s.maxQuality || '') === v ? 'selected' : ''}>${l}</option>`)
           .join('')}</select></label>
-      <label class="setting"><span><b>Feliratok mérete</b></span><select data-set="subsSize">${[['small', 'Kicsi'], ['normal', 'Közepes'], ['large', 'Nagy'], ['huge', 'Óriás']].map(([v, l]) => `<option value="${v}" ${(s.subsSize || 'normal') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-      <label class="setting stack"><span><b>Feliratok színe és háttere</b><small>Filmeknél, sorozatoknál és az élő adások feliratainál.</small></span><div class="inline sub-style"><select data-set="subColor" aria-label="Szín">${[['white', 'Fehér'], ['yellow', 'Sárga'], ['cyan', 'Világoskék']].map(([v, l]) => `<option value="${v}" ${(s.subColor || 'white') === v ? 'selected' : ''}>${l}</option>`).join('')}</select><select data-set="subBg" aria-label="Háttér">${[['box', 'Sötét sáv'], ['shadow', 'Árnyék'], ['none', 'Nincs']].map(([v, l]) => `<option value="${v}" ${(s.subBg || 'box') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></label>
+    </section>
+
+    <section class="set-section" id="engine" data-g="play"><h2>Lejátszómotor <button class="help-link" data-help="engines" title="Súgó">?</button></h2>
       <label class="setting"><span><b>Lejátszómotor</b><small>Automatikus: tévén a beépített lejátszó, máshol a hls.js. Ha egy adás nem indul, érdemes átváltani.</small></span>
         <select data-set="playbackEngine">${[['auto', 'Automatikus'], ['native', 'Beépített lejátszó'], ['hlsjs', 'hls.js']]
           .map(([v, l]) => `<option value="${v}" ${s.playbackEngine === v ? 'selected' : ''}>${l}</option>`)
           .join('')}</select></label>
+      ${api.mediaProbe ? toggle('mediaBridge', 'Lejátszási híd (FFmpeg) filmekhez', 'AC3 / DTS hang, a fájlba ágyazott feliratok (MKV, MP4), több hangsáv és régi videóformátumok lejátszása. Kikapcsolva a beépített lejátszó próbálja (néma lehet, felirat nélkül).') + '<p class="muted small media-status">FFmpeg ellenőrzése…</p>' : ''}
+      ${exoAvailable() ? toggle('mediaBridge', 'Natív lejátszó (ExoPlayer) filmekhez', 'MKV / MP4 / AVI fájlok AC3 / DTS hanggal és beágyazott (ASS / SRT) felirattal, minden hangsáv választható. Kikapcsolva a WebView saját lejátszója próbálja (néma lehet, felirat nélkül).') : ''}
     </section>
+
+    <section class="set-section" id="playerbuttons" data-g="play"><h2>A lejátszó gombjai <button class="help-link" data-help="pip-mini" title="Súgó">?</button></h2>
+      <p class="muted small">Melyik kiegészítő gomb látsszon a vezérlősávon. A billentyűk (pl. C, I, L) kikapcsolt gombnál is működnek; a szünet, a hangerő és a ⚙ menü mindig látszik.</p>
+      <div class="pb-grid">${PLAYER_BUTTONS.filter(([k]) => (k !== 'mini' || api.caps.mini) && (k !== 'full' || api.caps.fullscreen) && (k !== 'multi' || api.caps.multiview) && (k !== 'cast' || api.caps.cast) && (k !== 'rec' || api.recStart))
+        .map(([k, l]) => `<label class="pb-item"><input type="checkbox" data-pb="${k}" ${s.playerButtons?.[k] !== false ? 'checked' : ''} /> ${esc(l)}</label>`)
+        .join('')}</div>
+    </section>
+
+    <section class="set-section" id="subsstyle" data-g="subs"><h2>A feliratok kinézete <button class="help-link" data-help="subtitles" title="Súgó">?</button></h2>
+      <label class="setting"><span><b>Feliratok mérete</b></span><select data-set="subsSize">${[['small', 'Kicsi'], ['normal', 'Közepes'], ['large', 'Nagy'], ['huge', 'Óriás']].map(([v, l]) => `<option value="${v}" ${(s.subsSize || 'normal') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label class="setting stack"><span><b>Feliratok színe és háttere</b><small>Filmeknél, sorozatoknál és az élő adások feliratainál.</small></span><div class="inline sub-style"><select data-set="subColor" aria-label="Szín">${[['white', 'Fehér'], ['yellow', 'Sárga'], ['cyan', 'Világoskék']].map(([v, l]) => `<option value="${v}" ${(s.subColor || 'white') === v ? 'selected' : ''}>${l}</option>`).join('')}</select><select data-set="subBg" aria-label="Háttér">${[['box', 'Sötét sáv'], ['shadow', 'Árnyék'], ['none', 'Nincs']].map(([v, l]) => `<option value="${v}" ${(s.subBg || 'box') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></label>
+    </section>
+
+    ${api.caps.preview ? `<section class="set-section" id="homepreview" data-g="home"><h2>Élő előnézet</h2>
+      ${toggle('heroPreview', 'Élő előnézet a Főoldalon', 'Az utoljára nézett csatorna csempéjén néhány másodperc után a csatorna némított élő képe. Egy perc után megáll (kíméli a gépet); rámutatva újraindul.')}
+    </section>` : ''}
 
     <section class="set-section" id="content" data-g="kids"><h2>Tartalom <button class="help-link" data-help="kids" title="Súgó">?</button></h2>
       <label class="setting"><span><b>Hazai ország</b><small>Ennek a csatornái kerülnek előre, és ezek kapják a csatornaszámokat a kedvencek után.</small></span>
@@ -647,7 +682,7 @@ export function renderSettings(view) {
 
     <section class="set-section" id="kidsallow" data-g="kids"></section>
 
-    <section class="set-section" id="health" data-g="lists"><h2>Elérhetőség-ellenőrzés <button class="help-link" data-help="health" title="Súgó">?</button></h2>
+    <section class="set-section" id="health" data-g="tvlists"><h2>Elérhetőség-ellenőrzés <button class="help-link" data-help="health" title="Súgó">?</button></h2>
       ${health.available ? toggle('autoCheck', 'Automatikus ellenőrzés a háttérben', 'A megjelenő csatornák adását időnként ellenőrzi.') : '<p class="muted">Az ellenőrzés csak az asztali alkalmazásban érhető el.</p>'}
       <p class="muted">Ellenőrzött adások: ${healthCount.length} · működik: ${okCount} · hibás: ${healthCount.length - okCount}</p>
       ${health.available ? `<div class="scan">${
@@ -658,13 +693,13 @@ export function renderSettings(view) {
       <button class="btn small" data-act="health-clear">Eredmények törlése</button>
     </section>
 
-    <section class="set-section lists" id="lists" data-g="lists"></section>
+    <section class="set-section lists" id="lists" data-g="tvlists"></section>
 
-    <section class="set-section lists" id="vodlists" data-g="lists"></section>
+    <section class="set-section lists" id="vodlists" data-g="vod"></section>
 
-    <section class="set-section lists" id="ownlists" data-g="lists"></section>
+    <section class="set-section lists" id="ownlists" data-g="vod"></section>
 
-    <section class="set-section" id="huinfo" data-g="play"></section>
+    <section class="set-section" id="huinfo" data-g="subs"></section>
 
     <section class="set-section" id="reminders" data-g="notify"><h2>Emlékeztetők és értesítések <button class="help-link" data-help="reminders" title="Súgó">?</button></h2>
       <p class="muted">A műsorújságban vagy a csatorna adatlapján a csengővel jelölhetsz meg műsort; a műsor adatlapján <i>Minden adására</i> is kérhetsz emlékeztetőt (sorozatokhoz, rendszeres műsorokhoz).</p>
@@ -687,15 +722,15 @@ export function renderSettings(view) {
       }
     </section>
 
-    ${api.recStart ? '<section class="set-section" id="recordings" data-g="play"></section>' : ''}
+    ${api.recStart ? '<section class="set-section" id="recordings" data-g="rec"></section>' : ''}
 
-    <section class="set-section" id="transfer" data-g="devices"></section>
+    <section class="set-section" id="transfer" data-g="sync"></section>
 
-    ${api.rcStart ? '<section class="set-section" id="remote" data-g="devices"></section>' : ''}
+    ${api.rcStart ? '<section class="set-section" id="remote" data-g="remote"></section>' : ''}
 
-    <section class="set-section" id="update" data-g="about"></section>
+    <section class="set-section" id="update" data-g="update"></section>
 
-    <section class="set-section" id="epg" data-g="lists"><h2>Műsorújság <button class="help-link" data-help="epg-sources" title="Súgó">?</button></h2>
+    <section class="set-section" id="epg" data-g="epg"><h2>Műsorújság <button class="help-link" data-help="epg-sources" title="Súgó">?</button></h2>
       <p class="muted">${epg.byChannel.size} csatornához van műsoradat. ${epg.loading ? 'Betöltés folyamatban…' : ''}</p>
       <ul class="src-list">${[...s.epgSources.map((src, i) => ({ ...src, i })), ...(s.useEmbeddedEpg ? (catalog.tvgUrls || []).map((url) => ({ url, name: 'Lejátszólista műsorújsága: ' + url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 50), embedded: true, enabled: true })) : [])]
         .map((src) => {
@@ -724,7 +759,7 @@ export function renderSettings(view) {
 
     ${
       IS_TV
-        ? `<section class="set-section" id="tvkeys" data-g="devices"><h2>Távirányító</h2>
+        ? `<section class="set-section" id="tvkeys" data-g="remote"><h2>Távirányító</h2>
       <table class="keys">
         <tr><td>Nyilak, OK</td><td>Mozgás, kiválasztás / lejátszás</td></tr>
         <tr><td>Vissza</td><td>Vissza (a főoldalon: kilépés)</td></tr>
@@ -739,7 +774,7 @@ export function renderSettings(view) {
       </table></section>`
         : ''
     }
-    <section class="set-section" id="keys" data-g="devices" ${IS_TV ? 'data-off' : ''}><h2>Billentyűparancsok</h2>
+    <section class="set-section" id="keys" data-g="remote" ${IS_TV ? 'data-off' : ''}><h2>Billentyűparancsok</h2>
       <table class="keys">
         <tr><td>Nyilak</td><td>Mozgás a felületen (távirányítóval is)</td></tr>
         <tr><td>Enter</td><td>Lejátszás / kiválasztás</td></tr>
@@ -753,7 +788,7 @@ export function renderSettings(view) {
         <tr><td>0–9</td><td>Csatornaszám beírása</td></tr>
         <tr><td>Szóköz</td><td>Szünet / lejátszás</td></tr>
         <tr><td>Enter / L</td><td>Csatornalista</td></tr>
-        <tr><td>M / F / P / N / S</td><td>Némítás / teljes képernyő / kép a képben / mini lejátszó / kedvenc</td></tr>
+        <tr><td>M / F / N / S</td><td>Némítás / teljes képernyő / mini lejátszó / kedvenc</td></tr>
         <tr><td>Shift+← / Shift+→, End</td><td>Élő adás: 30 mp vissza / előre, ugrás élőbe</td></tr>
         <tr><td>C / V</td><td>Hang és felirat / több adás egyszerre</td></tr>
         <tr><td>D</td><td>Adás adatai (minőség, sebesség, puffer)</td></tr>
@@ -813,6 +848,7 @@ export function renderSettings(view) {
       if (t.dataset.set === 'useEmbeddedEpg') epg.load();
       return;
     }
+    if (t.dataset.pb) return store.set('playerButtons', { ...store.settings.playerButtons, [t.dataset.pb]: t.checked });
     if (t.dataset.setNum) return store.set(t.dataset.setNum, Number(t.value));
     if (t.dataset.setText) {
       store.set(t.dataset.setText, t.value.trim());
@@ -905,22 +941,31 @@ export function renderSettings(view) {
 // A beállítások csoportjai: csempés kezdőlap vagy fülek (settings.settingsView), keresővel.
 // A részek mind kirajzolódnak (így minden kezelőjük működik), a csoportváltás csak elrejti a többit.
 // ---------------------------------------------------------------------------
+// [azonosító, ikon, név, rövid (legfeljebb kétmondatos) leírás: mit talál itt a felhasználó]
 const SET_GROUPS = [
-  ['look', '🎨', 'Megjelenés és főoldal', 'Stílus, saját témák, főoldali csempék, időjárás, hírek'],
-  ['play', '▶️', 'Lejátszás', 'Lejátszómotor, feliratok, kép a képben, felvételek, magyar információk'],
-  ['lists', '📋', 'Listák és források', 'Tévé- és VOD-listák, saját médiatár, műsorújság, elérhetőség'],
-  ['kids', '👪', 'Tartalom és gyerekek', 'Hazai ország, felnőtt tartalom, mit nézhetnek a gyerekprofilok'],
-  ['notify', '🔔', 'Értesítések', 'Emlékeztetők, automatikus átkapcsolás, háttérben futás'],
-  ['devices', '📡', 'Eszközök és szinkron', 'Szinkron eszközök között, távirányító telefonról, billentyűk'],
-  ['data', '💾', 'Profilok és mentés', 'Profilok, mentés és visszaállítás, automatikus mentések'],
-  ['about', 'ℹ️', 'Frissítés és névjegy', 'Verzió, frissítések, adatforrások'],
+  ['look', '🎨', 'Megjelenés', 'A felület stílusa, a saját témák és a TV oldal sorainak sorrendje. Itt adhatod meg azt is, mennyire legyenek kiemelve az elemek.'],
+  ['home', '🏠', 'Főoldal', 'A Főoldal csempéi: melyik látsszon, mekkora legyen, és mit mutasson. Itt állíthatod be az időjárás városát és a hírforrásokat is.'],
+  ['play', '▶️', 'Lejátszás', 'Hogyan induljanak és szóljanak az adások: tartalék forrás, minőség, lejátszómotor, hangerő. Itt választhatod ki azt is, mely gombok látszanak a lejátszóban.'],
+  ['subs', '💬', 'Feliratok és információk', 'Feliratforrások (Feliratok.eu, OpenSubtitles, SubDL), a felirat nyelve és kinézete, a kedvenc hangsáv. A filmek és sorozatok magyar leírásai és borítóképei is innen jönnek.'],
+  ['rec', '⏺', 'Felvételek', 'Hová kerüljenek a felvételek, és mennyivel előbb kezdődjenek, illetve később érjenek véget a műsornál. Itt látod a legutóbbi felvételeidet is.'],
+  ['tvlists', '📺', 'Csatornalisták', 'A tévécsatornák forrásai: beépített és saját lejátszólisták, saját csatornák. Itt ellenőrizheted azt is, mely adások élnek.'],
+  ['vod', '🎬', 'VOD és médiatár', 'Film- és sorozatlisták, kiegészítő csomagok és a saját (NAS-) médiatár mappái. Itt rendezheted a VOD oldal sorait is.'],
+  ['epg', '🗓️', 'Műsorújság', 'A műsorújság forrásai és a frissítésük gyakorisága. Itt látod azt is, melyik forrás hány csatornát fed le.'],
+  ['kids', '👪', 'Tartalom és gyerekek', 'A hazai ország, a felnőtt tartalom és a nyelvek. Itt állíthatod be, mit nézhetnek a gyerekprofilok.'],
+  ['notify', '🔔', 'Értesítések', 'Emlékeztetők a kedvenc műsoraidra, automatikus átkapcsolás. Itt dől el az is, hogy az Adás a háttérben fusson-e.'],
+  ['remote', '📱', 'Távirányító és billentyűk', 'A telefon távirányítóként (QR-kóddal csatlakozik). Itt találod a billentyűzet és a tévé-távirányító gombjait is.'],
+  ['sync', '🔄', 'Szinkron eszközök között', 'Beállítások, profilok és listák átvitele egy másik eszközre a helyi hálózaton, egy hatjegyű kóddal.'],
+  ['data', '💾', 'Profilok és mentés', 'A profilok kezelése, mentés fájlba és visszaállítás. Itt vannak az automatikus napi mentések is.'],
+  ['update', '⬆️', 'Frissítés', 'Új verzió keresése és telepítése a GitHubról. Itt kapcsolhatod ki azt is, hogy induláskor keressen frissítést.'],
+  ['about', 'ℹ️', 'Névjegy', 'A verzió, az adatmappa helye és az adatforrások.'],
 ];
 let refocusSetTab = false;
 /** A beállítások csoportnavigációja (csempék / fülek), kereső, kártyás elrendezés. */
 function settingsNav(view) {
   const nav = $('.set-nav', view);
   const params = new URLSearchParams(location.hash.split('?')[1] || '');
-  const mode = store.settings.settingsView === 'tiles' ? 'tiles' : 'tabs';
+  // Androidon csak csempék: a fülsor a keskeny képernyőn kilógott, görgetni kellett
+  const mode = IS_ANDROID || store.settings.settingsView === 'tiles' ? 'tiles' : 'tabs';
   const sections = [...view.querySelectorAll('.set-section[data-g]')].filter((s) => !s.hasAttribute('data-off'));
   const groups = SET_GROUPS.filter(([id]) => sections.some((s) => s.dataset.g === id));
   const label = Object.fromEntries(groups.map(([id, ico, name]) => [id, `${ico} ${name}`]));
@@ -936,8 +981,8 @@ function settingsNav(view) {
     const h = '#/settings' + (id ? '?g=' + id : '');
     replace ? location.replace(h) : (location.hash = h);
   };
-  // Nézetváltó a fejlécben
-  $('.set-head', view).insertAdjacentHTML(
+  // Nézetváltó a fejlécben (Androidon nincs)
+  if (!IS_ANDROID) $('.set-head', view).insertAdjacentHTML(
     'beforeend',
     `<div class="seg set-view" role="group" aria-label="Elrendezés"><button class="tab ${mode === 'tiles' ? 'active' : ''}" data-sv="tiles" title="Csempés kezdőlap">▦ Csempék</button><button class="tab ${mode === 'tabs' ? 'active' : ''}" data-sv="tabs" title="Fülek">☰ Fülek</button></div>`
   );
@@ -972,6 +1017,9 @@ function settingsNav(view) {
   body.className = 'set-body';
   nav.after(body);
   for (const s of view.querySelectorAll('.page.settings > .set-section')) body.append(s);
+  // a csoport rövid leírása a részek fölött: mit talál itt a felhasználó
+  const gdesc = !hub && g && groups.find(([id]) => id === g)?.[3];
+  if (gdesc) body.insertAdjacentHTML('afterbegin', `<p class="set-gdesc">${esc(gdesc)}</p>`);
   if (secEl && !hub) requestAnimationFrame(() => secEl.scrollIntoView({ block: 'start' }));
   const search = nav.querySelector('.set-search');
   const parts = [...nav.children].filter((el) => !el.matches('.set-search, .set-noresult'));
@@ -1006,7 +1054,7 @@ function settingsNav(view) {
       go(t.dataset.sg, true);
     }
   });
-  $('.set-view', view).addEventListener('click', (e) => {
+  $('.set-view', view)?.addEventListener('click', (e) => {
     const b = e.target.closest('[data-sv]');
     if (!b || b.dataset.sv === mode) return;
     store.set('settingsView', b.dataset.sv);

@@ -1,0 +1,32 @@
+# Dependabot: hetente ellenőrzi az npm-csomagokat és a GitHub Actions-öket.
+# A kisebb frissítések csoportosítva, egy PR-ban jönnek (kevesebb PR, kevesebb CodeRabbit-átnézés).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Budapest
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+    # az Electron főverzió-váltása kézi tesztet igényel (lejátszás, FFmpeg-híd, csomagolás)
+    ignore:
+      - dependency-name: electron
+        update-types: [version-update:semver-major]
+    labels: [dependencies]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Budapest
+    groups:
+      actions:
+        patterns: ['*']
+    labels: [dependencies]

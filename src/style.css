@@ -561,7 +561,7 @@ body.mini .p-controls [data-c="info"], body.mini .p-controls [data-c="sleep"], b
 }
 @media (max-width: 560px) {
   .links a:not(.active) { font-size: 0.85rem; }
-  .p-controls [data-c="pip"], .p-controls [data-c="mini"] { display: none; }
+  .p-controls [data-c="mini"] { display: none; }
 }
 
 /* ------------------------------------------------------------------ Profilmenü kiegészítések */
@@ -675,6 +675,14 @@ mark { background: rgba(255, 213, 74, 0.45); color: inherit; border-radius: 2px;
 /* oszlop × sor rács; a magasságot a fitDash() állítja a képernyő maradékára, a helyeket a packDash() */
 .dash { display: grid; gap: 16px; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); grid-template-rows: repeat(var(--rows, 2), minmax(0, 1fr)); }
 .dash-head .dash-edit-btn { margin-left: auto; align-self: center; }
+/* a Távirányító gomb a Testreszabás előtt (együtt a sor végén) */
+.dash-head .dash-rc-btn { margin-left: auto; align-self: center; }
+.dash-head .dash-rc-btn + .dash-edit-btn { margin-left: 0; }
+.rc-modal { width: min(760px, calc(100vw - 32px)); }
+.rc-dialog { padding: 22px 24px 20px; }
+.rc-dialog > h2, .rc-dialog > .setting { padding-right: 48px; } /* a bezárás gomb ne takarja a kapcsolót */
+.rc-dialog .rc-box { margin-top: 10px; }
+.dash-rc-btn svg { width: 1.05em; height: 1.05em; vertical-align: -0.15em; margin-right: 4px; fill: currentColor; }
 .dash-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 10px 14px; margin-bottom: 8px; border-radius: 10px; background: var(--bg-2); border: 1px dashed var(--accent); }
 .dt-group { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; }
 .dt-group b { min-width: 1.2em; text-align: center; }
@@ -907,11 +915,6 @@ mark { background: rgba(255, 213, 74, 0.45); color: inherit; border-radius: 2px;
 .vod-tabs { display: inline-flex; margin: 0 14px 12px 0; vertical-align: middle; }
 .vod-quick .vod-tabs { margin-bottom: 0; }
 .page > .vod-tabs { display: flex; margin: 0 0 18px; }
-/* A felső menüben a VOD a tévés részektől elválasztva */
-@media (min-width: 701px) {
-  body:not([data-layout="rail"]) #nav .links .nav-vod { margin-left: 14px; position: relative; }
-  body:not([data-layout="rail"]) #nav .links .nav-vod::before { content: ''; position: absolute; left: -16px; top: 22%; bottom: 22%; border-left: 1px solid currentColor; opacity: 0.3; }
-}
 :root { --poster-w: calc(var(--card-w) * 0.66); }
 .vcard { position: relative; flex: none; width: var(--poster-w); cursor: pointer; border-radius: var(--radius); transition: transform 0.25s; scroll-margin: 90px var(--gutter) 60px; }
 .vcard:hover, .vcard:focus-visible { transform: scale(1.06); z-index: 5; outline: none; }
@@ -1237,10 +1240,17 @@ body.mini .p-ts { display: none; }
 .broken .top-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
 .broken .top-list .tl-name { flex: 1 1 140px; min-width: 0; overflow-wrap: anywhere; }
 .nc-prog .now-label { align-self: flex-start; }
-/* Android: lebegő kis ablak (kép a képben) – csak a kép */
-body.pip #nav, body.pip #view, body.pip #toasts, body.pip #modal-root { display: none !important; }
-body.pip #player .p-top, body.pip #player .p-bottom, body.pip #player .p-side, body.pip #player .p-menu, body.pip #player .p-osd, body.pip #player .p-backdrop, body.pip #player .p-nextup { display: none !important; }
-body.pip #player .exo-subs { font-size: 12px; bottom: 4%; }
+/* Telefonos távirányító: a kijelölés mindig látszik (a programból adott fókuszt a böngésző nem mindig
+   jelöli :focus-visible-lel), és egérkurzor az érintőpad egér módjához */
+body.rc-nav :focus { outline: 3px solid #fff; outline-offset: 2px; }
+body.rc-nav .card:focus-within { transform: scale(1.32); z-index: 10; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.75); outline: none; }
+body.rc-nav .tile:focus, body.rc-nav .see-all:focus { transform: scale(1.06); z-index: 2; }
+#rc-cursor { position: fixed; left: 0; top: 0; z-index: 2147483647; pointer-events: none; opacity: 0; transition: opacity 0.3s; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)); will-change: transform; }
+#rc-cursor.show { opacity: 1; }
+
+/* A lejátszó gombjainak kapcsolói (Beállítások → Lejátszás) */
+.pb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px 14px; margin-top: 8px; }
+.pb-item { display: flex; align-items: center; gap: 8px; cursor: pointer; min-width: 0; }
 /* VOD: borítókép választása */
 .vod-edit .pp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 104px), 1fr)); align-content: start; gap: 10px; flex: 1 1 auto; min-height: 150px; overflow: auto; margin: 2px 0 4px; }
 
@@ -1436,7 +1446,7 @@ body.pip #player .exo-subs { font-size: 12px; bottom: 4%; }
 @media (min-width: 1100px) {
   .settings.set-mode-tabs:not(.set-searching) { display: grid; grid-template-columns: 250px minmax(0, 1fr); column-gap: 28px; align-items: start; }
   .settings.set-mode-tabs .set-head { grid-column: 1 / -1; }
-  .settings.set-mode-tabs .set-nav { position: sticky; top: 84px; margin: 0; }
+  .settings.set-mode-tabs .set-nav { position: sticky; top: 84px; margin: 0; max-height: calc(100vh - 100px); overflow-y: auto; scrollbar-width: thin; }
   .settings.set-mode-tabs .set-tabs { flex-direction: column; align-items: stretch; overflow: visible; gap: 4px; }
   .settings.set-mode-tabs .set-tabs .tab { text-align: left; justify-content: flex-start; padding: 10px 14px; border-radius: 10px; white-space: normal; }
   .settings.set-mode-tabs .set-search { max-width: none; }
@@ -1445,6 +1455,17 @@ body.pip #player .exo-subs { font-size: 12px; bottom: 4%; }
 @media (max-width: 600px) {
   .set-body > .set-section { padding: 16px 14px; border-radius: 12px; margin-bottom: 14px; }
 }
+
+/* Keresés: tévé (csatornák + műsorok) és VOD hasáb – fekvő, széles képernyőn egymás mellett */
+.search-cols { display: flex; flex-direction: column; gap: 8px; }
+.search-cols > section { min-width: 0; }
+@media (orientation: landscape) and (min-width: 900px) {
+  .search-cols:not(.stack):not(.one) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 32px; align-items: start; }
+}
+
+/* a csoport rövid leírása a kártyák fölött (mindkét hasábon át) */
+.set-gdesc { column-span: all; margin: 0 0 16px; color: var(--muted); font-size: 0.98rem; line-height: 1.45; max-width: 80ch; }
+.settings.set-searching .set-gdesc { display: none; }
 
 /* kártyán belül a listaelemek egy árnyalattal világosabbak (különben beolvadnának) */
 .set-body .src-list li { background: var(--bg-3); }

@@ -346,6 +346,8 @@ function createWindow() {
       // A felület csak helyi fájlokat tölt be, minden külső szöveget escape-elünk.
       webSecurity: false,
       autoplayPolicy: 'no-user-gesture-required',
+      // a helyesírás-ellenőrző szótárai feleslegesen foglalnának memóriát (a keresőmezőkhöz nem kell)
+      spellcheck: false,
     },
   });
   win.loadFile(path.join(__dirname, 'src', 'index.html'));
@@ -545,12 +547,18 @@ ipcMain.handle('store-save', (_e, data) => writeJsonFile(storeFile(), data));
 
 // Általános HTTP-kérés (pl. OpenSubtitles, TMDB): a főfolyamatból nincs CORS, és a
 // User-Agent fejléc is beállítható.
-ipcMain.handle('http-request', async (_e, { method = 'GET', url, headers = {}, body } = {}) => {
+ipcMain.handle('http-request', async (_e, { method = 'GET', url, headers = {}, body, binary = false } = {}) => {
   if (!/^https?:\/\//.test(url || '')) throw new Error('Érvénytelen cím');
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 30000);
   try {
     const res = await net.fetch(url, { method, headers: { 'User-Agent': CHROME_UA, ...headers }, body, signal: ctrl.signal });
+    // bájtként (pl. ZIP-be csomagolt vagy nem UTF-8 kódolású felirat): a megjelenítő dekódolja
+    if (binary) {
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.length > 20e6) throw new Error('A fájl túl nagy.');
+      return { status: res.status, bytes: buf };
+    }
     return { status: res.status, text: await res.text() };
   } finally {
     clearTimeout(t);
@@ -694,6 +702,41 @@ ipcMain.handle('doc-set', (_e, key, value) => {
   // a törlés is a fájl írási sorába áll (különben egy még futó írás átnevezése visszahozná a dokumentumot)
   if (value == null) return queueFileOp(f, () => fs.promises.rm(f, { force: true }));
   return writeJsonFile(f, value);
+});
+
+// Kiegészítő csomagok (.adaspack) a felhasználói adatmappa „packs” almappájából: ami ott van, az
+// beépített listaként jelenik meg (a programmal nem szállítjuk őket).
+const packsDir = () => path.join(app.getPath('userData'), 'packs');
+ipcMain.handle('packs-scan', async () => {
+  const MAX = 200;
+  let names = [];
+  try {
+    names = (await fs.promises.readdir(packsDir())).filter((n) => /\.adaspa(c)?k$/i.test(n)).sort();
+  } catch {
+    return [];
+  }
+  // → [{ name, text }] vagy [{ name, error }] – a kihagyott fájl oka is visszamegy (a felület jelzi)
+  const out = names.slice(MAX).map((name) => ({ name, error: `túl sok csomag a mappában (legfeljebb ${MAX})` }));
+  for (const name of names.slice(0, MAX)) {
+    let fh = null;
+    try {
+      // egyetlen megnyitott leíróból vizsgálunk és olvasunk (a kettő között a fájl nem cserélődhet ki)
+      fh = await fs.promises.open(path.join(packsDir(), name), 'r');
+      const st = await fh.stat();
+      if (!st.isFile()) continue;
+      if (st.size > 64e6) out.push({ name, error: 'túl nagy (legfeljebb 64 MB)' });
+      else out.push({ name, text: await fh.readFile('utf8') });
+    } catch (err) {
+      out.push({ name, error: `nem olvasható (${err.code || err.message})` });
+    } finally {
+      await fh?.close().catch(() => {});
+    }
+  }
+  return out;
+});
+ipcMain.handle('packs-dir', () => {
+  fs.mkdirSync(packsDir(), { recursive: true });
+  return shell.openPath(packsDir());
 });
 
 ipcMain.handle('clear-cache', () => {

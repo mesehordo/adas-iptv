@@ -108,7 +108,7 @@ export function themeTemplate(baseId = currentTheme()) {
   );
 }
 
-/** Beállítások → Megjelenés és főoldal → Megjelenés → Saját témák */
+/** Beállítások → Megjelenés → Saját témák */
 export function renderThemeTools(box, onChange) {
   const draw = () => {
     const defs = allDefs();

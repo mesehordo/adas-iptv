@@ -155,7 +155,7 @@ async function assign(i, ch) {
   const streams = orderedStreams(ch);
   for (const s of streams.slice(0, 3)) {
     try {
-      await tile.eng.load(s, { muted: i !== state.sel });
+      await tile.eng.load(s, { muted: i !== state.sel, lite: true });
       if (tile.ch !== ch) return;
       tile.video.muted = i !== state.sel;
       tile.video.volume = store.settings.volume;

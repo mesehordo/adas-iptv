@@ -12,7 +12,6 @@
   <!-- háttérlejátszás (másik alkalmazásra váltáskor, ha be van kapcsolva) -->
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-  <uses-feature android:name="android.software.picture_in_picture" android:required="false" />
   <!-- Android TV: nincs érintőképernyő, a Leanback indítóban is megjelenik -->
   <uses-feature android:name="android.software.leanback" android:required="false" />
   <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
@@ -31,7 +30,6 @@
         android:name=".MainActivity"
         android:exported="true"
         android:launchMode="singleTask"
-        android:supportsPictureInPicture="true"
         android:resizeableActivity="true"
         android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|density">
       <intent-filter>

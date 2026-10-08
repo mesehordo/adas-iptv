@@ -39,6 +39,10 @@ function resultHtml(info) {
     ${info.page ? '<button class="btn" data-up="page">Kiadási megjegyzések</button>' : ''}</div>`;
 }
 
+/** A hivatalos kiadások (GitHub Releases) – ha a mező üres, innen frissül. */
+const DEFAULT_SOURCE = 'mesehordo/adas-iptv';
+const source = () => store.settings.updateSource || DEFAULT_SOURCE;
+
 export function renderUpdate(box) {
   if (!updateAvailable()) {
     box.hidden = true;
@@ -47,11 +51,11 @@ export function renderUpdate(box) {
   const s = store.settings;
   let info = null;
   box.innerHTML = `<h2>Frissítések <button class="help-link" data-help="update" title="Súgó">?</button></h2>
-    <label class="setting col"><span><b>Frissítési forrás</b><small>GitHub-tároló („tulajdonos/tároló”, a legutóbbi kiadás), vagy egy JSON-fájl címe ({ "version", "url", "notes" }).</small></span>
-      <input class="input" data-up-src value="${esc(s.updateSource || '')}" placeholder="pl. felhasznalo/adas" autocomplete="off" /></label>
-    <label class="setting"><span><b>Ellenőrzés indításkor</b><small>Naponta legfeljebb egyszer; új verziónál értesítést kapsz.</small></span>
+    <label class="setting col"><span><b>Frissítési forrás</b><small>Üresen a hivatalos kiadások (github.com/${DEFAULT_SOURCE}). Saját forrás: GitHub-tároló („tulajdonos/tároló”, a legutóbbi kiadás), vagy egy JSON-fájl címe ({ "version", "url", "notes" }).</small></span>
+      <input class="input" data-up-src value="${esc(s.updateSource || '')}" placeholder="${DEFAULT_SOURCE}" autocomplete="off" /></label>
+    <label class="setting"><span><b>Frissítés keresése induláskor</b><small>Minden indításkor megnézi a GitHubon, van-e új verzió; ha van, értesítést kapsz, és egy kattintással telepítheted. Kikapcsolva csak a lenti gombbal keres.</small></span>
       <input type="checkbox" class="switch" data-up-auto ${s.updateAuto !== false ? 'checked' : ''} /></label>
-    <div class="inline"><button class="btn" data-up="check">Ellenőrzés most</button><span class="muted small up-status"></span></div>
+    <div class="inline"><button class="btn primary" data-up="check">Frissítés keresése most</button><span class="muted small up-status"></span></div>
     <div class="up-result"></div>`;
   const out = box.querySelector('.up-result');
   box.onchange = (e) => {
@@ -69,7 +73,7 @@ export function renderUpdate(box) {
       st.textContent = 'Ellenőrzés…';
       out.innerHTML = '';
       try {
-        info = await api.updateCheck(store.settings.updateSource);
+        info = await api.updateCheck(source());
         store.set('lastUpdateCheck', Date.now());
         st.textContent = '';
         out.innerHTML = resultHtml(info);
@@ -81,13 +85,12 @@ export function renderUpdate(box) {
   };
 }
 
-/** Indításkor: naponta egyszer, ha be van állítva forrás. */
+/** Indításkor: naponta egyszer (a beállított vagy a hivatalos forrásból). */
 export async function autoCheckUpdate() {
   const s = store.settings;
-  if (!updateAvailable() || !s.updateSource || s.updateAuto === false) return;
-  if (Date.now() - (s.lastUpdateCheck || 0) < 20 * 3600e3) return;
+  if (!updateAvailable() || s.updateAuto === false) return;
   try {
-    const info = await api.updateCheck(s.updateSource);
+    const info = await api.updateCheck(source());
     store.set('lastUpdateCheck', Date.now());
     if (info.newer) {
       toast(`Új Adás-verzió érhető el: ${info.latest}`, { action: 'Frissítés', onAction: () => downloadAndInstall(info, null), timeout: 20000 });

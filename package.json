@@ -1,7 +1,7 @@
 {
   "name": "adas",
   "productName": "Adás",
-  "version": "1.24.1",
+  "version": "1.25.0",
   "description": "Élő TV lejátszó az iptv-org nyilvános csatornalistájához, streaming-szolgáltatás stílusú felülettel.",
   "main": "main.js",
   "author": "Adás",
@@ -10,7 +10,7 @@
     "start": "electron .",
     "start:nosandbox": "electron . --no-sandbox",
     "dist": "electron-builder",
-    "dist:win": "electron-builder --win nsis portable",
+    "dist:win": "electron-builder --win nsis portable msi",
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux",
     "dist:linux:any": "electron-builder --linux dir && node tools/build-linux.mjs",
@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@webos-tools/cli": "^3.2.6",
-    "electron": "^33.2.0",
+    "electron": "^44.7.0",
     "electron-builder": "^25.1.8",
     "esbuild": "^0.28.2",
     "ffmpeg-static": "^5.3.0"
@@ -47,7 +47,8 @@
     "win": {
       "target": [
         "nsis",
-        "portable"
+        "portable",
+        "msi"
       ],
       "icon": "assets/icon.png",
       "extraResources": [
@@ -75,6 +76,7 @@
         }
       ],
       "category": "public.app-category.entertainment",
+      "artifactName": "Adas-${version}-mac-${arch}.${ext}",
       "extraResources": [
         {
           "from": "vendor/ffmpeg/darwin-${arch}",
@@ -104,7 +106,23 @@
         "Keywords": "tv;iptv;élő;televízió;műsor;"
       }
     },
+    "nsis": {
+      "artifactName": "Adas-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Adas-${version}-portable.${ext}"
+    },
+    "msi": {
+      "artifactName": "Adas-${version}.${ext}"
+    },
+    "dmg": {
+      "artifactName": "Adas-${version}-mac-${arch}.${ext}"
+    },
+    "deb": {
+      "artifactName": "adas_${version}_${arch}.${ext}"
+    },
     "appImage": {
+      "artifactName": "Adas-${version}-${arch}.${ext}",
       "executableArgs": [
         "--no-sandbox"
       ]

@@ -92,7 +92,7 @@ async function directDownload(url) {
 const webApi = {
   native: false,
   platform: 'web',
-  caps: { mini: false, pip: true, fullscreen: true, files: true, external: true, health: false, preview: false, exit: false, multiview: 4 },
+  caps: { mini: false, fullscreen: true, files: true, external: true, health: false, preview: false, exit: false, multiview: 4 },
   fetchText: (url, opts) => cachedFetchText(url, opts, directDownload),
   /** Általános HTTP-kérés: { method, url, headers, body } → { status, text } */
   async request({ method = 'GET', url, headers = {}, body } = {}) {
@@ -104,6 +104,11 @@ const webApi = {
     }
     const res = await fetch(url, { method, headers: h, body });
     return { status: res.status, text: await res.text() };
+  },
+  /** Letöltés bájtként (ZIP, nem UTF-8 kódolású szöveg) → { status, bytes } */
+  async requestBytes(url) {
+    const res = await fetch(url);
+    return { status: res.status, bytes: new Uint8Array(await res.arrayBuffer()) };
   },
   async setStreamHeaders() {},
   async checkStreams() {
@@ -194,7 +199,7 @@ const webApi = {
     } catch {}
   },
   async appInfo() {
-    return { version: '1.24.1', dataDir: 'böngésző tárhely', platform: 'web' };
+    return { version: '1.25.0', dataDir: 'böngésző tárhely', platform: 'web' };
   },
   exit() {},
 };
@@ -247,7 +252,7 @@ let tvCheckRun = 0;
 const tvApi = {
   ...webApi,
   platform: 'webos',
-  caps: { mini: false, pip: false, fullscreen: false, files: false, external: false, health: true, preview: false, exit: true, multiview: 2 },
+  caps: { mini: false, fullscreen: false, files: false, external: false, health: true, preview: false, exit: true, multiview: 2 },
   fetchText: (url, opts) => cachedFetchText(url, opts, tvDownload),
   async request(opts) {
     try {
@@ -297,7 +302,7 @@ const tvApi = {
   },
   notifyPermission() {},
   async appInfo() {
-    return { version: '1.24.1', dataDir: 'TV tárhely', platform: 'LG webOS' };
+    return { version: '1.25.0', dataDir: 'TV tárhely', platform: 'LG webOS' };
   },
   exit() {
     try {
@@ -343,7 +348,7 @@ const androidApi = {
   ...webApi,
   platform: ANDROID_TV ? 'androidtv' : 'android',
   caps: {
-    mini: false, pip: !!window.AdasAndroid?.pipAvailable?.(), fullscreen: !ANDROID_TV, files: true, external: !ANDROID_TV, health: true,
+    mini: false, fullscreen: !ANDROID_TV, files: true, external: !ANDROID_TV, health: true,
     preview: true, exit: true, multiview: 2, folders: false,
   },
   fetchText: (url, opts) => cachedFetchText(url, opts, directDownload),
@@ -373,14 +378,7 @@ const androidApi = {
     androidProgress = cb;
   },
   saveFile: (name, text) => native('saveFile', { name, text }),
-  // Kép a képben (lebegő kis ablak), háttérlejátszás
-  enterPip() {
-    try {
-      return window.AdasAndroid.enterPip();
-    } catch {
-      return false;
-    }
-  },
+  // Háttérlejátszás (az első paraméter a megszűnt kép a képben módé – mindig false)
   setBackgroundPrefs(pip, audio) {
     try {
       window.AdasAndroid.setBackgroundPrefs(!!pip, !!audio);
