@@ -267,7 +267,17 @@ async function pickFromZip(bytes, { season = 0, episode = 0, pack = false } = {}
   const files = (await unzip(bytes, (p) => /\.(srt|vtt|sub|txt)$/i.test(p))).filter((f) => /\.(srt|vtt)$/i.test(f.name));
   if (!files.length) throw new Error('A letöltött csomagban nincs .srt felirat.');
   let hit = null;
-  if (episode) for (const rx of episodeMatchers(season || 1, episode)) if ((hit = files.find((f) => rx.test(f.name)))) break;
+  if (episode) {
+    const want = season || 1;
+    // a fájlnév évadjelölése (S02E…, 2x…, Season 2, 2. évad) – ha van
+    const seasonOf = (name) => {
+      const m = /s0*(\d{1,2})[ ._-]?e\d|\b(\d{1,2})x\d{1,3}\b|season[ ._-]*0*(\d{1,2})|(\d{1,2})\.\s*évad/i.exec(name);
+      return m ? Number(m[1] || m[2] || m[3] || m[4]) : 0;
+    };
+    // a lazább (csak részszámos) mintáknál a más évadot jelölő fájl nem jöhet szóba
+    const sameSeason = files.filter((f) => [0, want].includes(seasonOf(f.name)));
+    episodeMatchers(want, episode).some((rx, i) => (hit = (i === 0 ? files : sameSeason).find((f) => rx.test(f.name))));
+  }
   hit ||= pack ? null : files[0];
   if (!hit) throw new Error(`Az évadcsomagban nincs felirat a(z) ${season}. évad ${episode}. részéhez.`);
   return hit.bytes;
