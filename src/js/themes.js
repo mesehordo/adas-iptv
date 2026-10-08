@@ -179,7 +179,8 @@ function scopeCss(css, root) {
       const sel = head
         .split(',')
         .map((s) => s.trim())
-        .filter(Boolean)
+        // mezőértékeket vizsgáló attribútum-szelektor nem lehet (pl. [value^="a"] + háttérkép → adatszivárgás)
+        .filter((s) => s && !/\[\s*(value|data-ht|data-sw-key|placeholder)\b/i.test(s))
         .map((s) => (s.includes('&') ? s.replace(/&/g, root) : /^(html|body)\b/.test(s) ? s.replace(/^(html|body)/, root) : `${root} ${s}`))
         .join(', ');
       const decls = cleanDecls(inner, head);

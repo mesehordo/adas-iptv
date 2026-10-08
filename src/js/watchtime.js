@@ -8,6 +8,8 @@ import { store } from './store.js';
 import { epg } from './epg.js';
 import { player } from './player.js';
 import { requireAdult } from './pin.js';
+import { kidsAllowed } from './kids.js';
+import { catalog } from './catalog.js';
 
 const TICK = 15;
 const video = $('#video');
@@ -51,9 +53,37 @@ async function askAge(p, ch, cur) {
   return ok;
 }
 
+/** A profil tartalmi szabálya (felnőtt tartalom, gyerekprofil engedélyei) – minden indítási útvonalon. */
+function contentAllowed(p, ch) {
+  const item = ch.vod?.item;
+  // felvétel: a forráscsatorna besorolása és engedélye számít, nem a felvétel címe. Ismeretlen forrású
+  // felvételt gyerekprofil nem nézhet (felnőtt profil igen – pl. egy azóta eltávolított lista csatornájáról).
+  if (item?.rec) {
+    const src = item.srcChannel && catalog.byId.get(item.srcChannel);
+    return src ? contentAllowed(p, src) : !p?.kids;
+  }
+  if (ch.vod) return !item || kidsAllowed(p, 'vod', item);
+  if (ch.nsfw && (!store.settings.showAdult || p?.kids)) return false;
+  return kidsAllowed(p, 'ch', ch);
+}
+
+/**
+ * Az alkalmazáson kívüli lejátszás (külső lejátszó, a felvételszerkesztő előnézete): ott a napi keret és a
+ * korhatár nem követhető, ezért gyerekprofilból csak felnőtt jóváhagyásával indul.
+ */
+export async function allowOutsidePlayback(what = 'Külső lejátszóban') {
+  const p = store.profile;
+  if (!p?.kids) return true;
+  return requireAdult(`${what} a gyerekprofil nézési ideje és korhatára nem követhető. A megnyitásához`);
+}
+
 // A lejátszás indítása előtt
 player.guard = async (ch) => {
   const p = store.profile;
+  if (!contentAllowed(p, ch)) {
+    toast('Ez a tartalom ebben a profilban nem nézhető.');
+    return false;
+  }
   if (!p?.kids) return true;
   if (minutesLeft(p) <= 0 && !(await askMore(p))) return false;
   const cur = overAge(p, ch);
@@ -66,7 +96,8 @@ let warned = '';
 setInterval(async () => {
   const p = store.profile;
   if (!p?.kids || !player.active || document.hidden) return;
-  const playing = player.engine?.started && !video.paused;
+  // kivetítéskor a helyi lejátszó áll, de a vevőn megy az adás – az is nézésnek számít
+  const playing = player.castHooks?.active ? !player.castHooks.paused : player.engine?.started && !video.paused;
   if (!playing) return;
   if (p.dailyLimit) {
     usage(p).sec += TICK;

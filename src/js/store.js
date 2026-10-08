@@ -108,10 +108,15 @@ export const VOD_BUILTIN = [
 /** Ajánlott kiegészítő lejátszólisták (a beépítetteken felül). */
 export const PLAYLIST_PRESETS = [];
 
-/** Választható profilképek: src/avatars/0.png … 10.png */
-export const AVATAR_COUNT = 11;
+/**
+ * Választható profilképek: src/avatars/0.png … 28.png (256×256) – 0–19 szereplők (állatok, emberek,
+ * robotok), 20–28 arc nélküli tárgyak (bájital, kontroller, fejhallgató, ecset…). A betűs változattal
+ * együtt pontosan 30 választási lehetőség.
+ */
+export const AVATAR_COUNT = 29;
 export const avatarUrl = (n) => `avatars/${n}.png`;
-const DEFAULT_AVATARS = [3, 2, 1, 5, 4, 7, 8, 0, 9, 10];
+// új profilok alapértelmezett képei, változatosan (róka, kisfiú, ezüsthajú, béka, elf, robot…)
+const DEFAULT_AVATARS = [3, 16, 4, 11, 18, 8, 1, 19, 9, 0];
 
 export const PROFILE_COLORS =['#e50914', '#2f80ed', '#27ae60', '#f2994a', '#9b51e0', '#eb5757', '#00b8a9', '#f2c94c'];
 
@@ -149,8 +154,7 @@ const DEFAULT_SETTINGS = {
   playbackEngine: 'auto', // 'auto' | 'native' | 'hlsjs' – auto: TV-n a beépített lejátszó, máshol hls.js
   hideOffline: false,
   autoCheck: true,
-  heroPreview: true,
-  resumeLast: false,
+  heroPreview: true,  resumeLast: false,
   showAdult: false,
   mediaBridge: true, // asztali: FFmpeg-híd az AC3/DTS hanghoz, beágyazott feliratokhoz, régi formátumokhoz
   volume: 0.8,
@@ -183,6 +187,50 @@ function newProfile(name, color, kids = false) {
   };
 }
 
+const num = (v, d = 0) => (Number.isFinite(Number(v)) && v !== null && v !== '' ? Number(v) : d);
+const str = (v, max = 200) => (typeof v === 'string' ? v.slice(0, max) : v == null ? '' : String(v).slice(0, max));
+const numMap = (o) => {
+  const out = {};
+  if (o && typeof o === 'object') for (const [k, v] of Object.entries(o)) if (Number.isFinite(Number(v))) out[k] = Number(v);
+  return out;
+};
+
+/**
+ * Importált / visszaállított profil típusainak rendbetétele: a számként használt mezők (statisztika, emlékeztetők
+ * időpontjai, főoldali elrendezés) csak véges számok lehetnek, a szövegek szövegek – a HTML-sablonokba így nem
+ * kerülhet a mentésből jelölőkód.
+ */
+export function cleanProfile(p) {
+  p.id = str(p.id, 40) || Math.random().toString(36).slice(2, 10);
+  p.name = str(p.name, 40) || '?';
+  p.color = str(p.color, 40);
+  p.kids = !!p.kids;
+  if (!(p.avatar === undefined || p.avatar === null || p.avatar === 'custom' || Number.isInteger(p.avatar))) p.avatar = null;
+  if (p.avatarData != null && !/^data:image\/(png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/]+=*$/.test(String(p.avatarData))) p.avatarData = '';
+  if (p.avatar === 'custom' && !p.avatarData) p.avatar = null;
+  for (const k of ['favorites', 'recent']) p[k] = Array.isArray(p[k]) ? p[k].filter((x) => typeof x === 'string') : [];
+  p.reminders = (Array.isArray(p.reminders) ? p.reminders : [])
+    .filter((r) => r && typeof r === 'object' && Number.isFinite(Number(r.start)))
+    .map((r) => ({ ...r, channelId: str(r.channelId), title: str(r.title, 300), start: num(r.start), stop: num(r.stop, num(r.start)), notified: !!r.notified }));
+  if (p.stats && typeof p.stats === 'object') {
+    const s = p.stats;
+    const hours = Array.isArray(s.hours) ? s.hours.slice(0, 24).map((h) => num(h)) : [];
+    while (hours.length < 24) hours.push(0);
+    const vod = {};
+    if (s.vod && typeof s.vod === 'object')
+      for (const [k, v] of Object.entries(s.vod))
+        if (v && typeof v === 'object') vod[k] = { t: num(v.t), title: str(v.title, 300), type: str(v.type, 20), poster: str(v.poster, 2000), last: num(v.last) };
+    p.stats = { since: num(s.since, Date.now()), days: numMap(s.days), hours, ch: numMap(s.ch), vod, cat: numMap(s.cat), plays: Math.max(0, Math.round(num(s.plays))) };
+  } else if (p.stats != null) p.stats = null; // nem használható érték: a statisztika újrakezdődik
+  if (p.dash != null) {
+    const d = p.dash;
+    p.dash = d && typeof d === 'object' && Array.isArray(d.units)
+      ? { cols: num(d.cols, 3), rows: num(d.rows, 2), units: d.units.filter((u) => u && typeof u.id === 'string').map((u) => ({ id: u.id, w: num(u.w, 1), h: num(u.h, 1) })) }
+      : null;
+  }
+  return p;
+}
+
 export const store = {
   settings: defaults(),
   profiles: [],
@@ -204,7 +252,9 @@ export const store = {
     this.settings.vodBuiltin = { ...DEFAULT_SETTINGS.vodBuiltin, ...(this.settings.vodBuiltin || {}) };
     const builtinUrls = new Set(BUILTIN_PLAYLISTS.map((p) => p.url));
     this.settings.customPlaylists = this.settings.customPlaylists.filter((p) => !p.url || !builtinUrls.has(p.url));
-    this.profiles = (data.profiles || []).map((p) => ({ ...newProfile(p.name, p.color), ...p }));
+    this.profiles = (Array.isArray(data.profiles) ? data.profiles : [])
+      .filter((p) => p && typeof p === 'object')
+      .map((p) => cleanProfile({ ...newProfile(p.name, p.color), ...p }));
     if (!this.profiles.length) {
       this.profiles = [newProfile('Én', PROFILE_COLORS[0]), newProfile('Gyerekek', PROFILE_COLORS[3], true)];
     }

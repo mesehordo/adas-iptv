@@ -39,6 +39,32 @@ function toSec(t) {
   return (parseInt(m[1] || '0', 10) * 3600) + parseInt(m[2], 10) * 60 + parseInt(m[3], 10) + parseInt(m[4].padEnd(3, '0'), 10) / 1000;
 }
 
+/**
+ * Csak az <i>, <b>, <u> marad. Egyetlen, lineáris menet: minden más jelölő kimarad, és a magányos „<” is –
+ * így egymásba ágyazott jelölőkből sem állhat össze új (és nem kell ismételve, négyzetes időben futtatni).
+ */
+const BASIC_TAGS = ['<i>', '</i>', '<b>', '</b>', '<u>', '</u>'];
+function keepBasicTags(s) {
+  let out = '';
+  let i = 0;
+  while (i < s.length) {
+    const lt = s.indexOf('<', i);
+    if (lt < 0) return out + s.slice(i);
+    out += s.slice(i, lt);
+    const tag = BASIC_TAGS.find((t) => s.startsWith(t, lt));
+    if (tag) {
+      out += tag;
+      i = lt + tag.length;
+      continue;
+    }
+    // a jelölő vége: az első „>” – ha előbb új „<” jön (vagy semmi), csak ez a „<” marad ki
+    let j = lt + 1;
+    while (j < s.length && s[j] !== '>' && s[j] !== '<') j++;
+    i = s[j] === '>' ? j + 1 : lt + 1;
+  }
+  return out;
+}
+
 export function parseSubs(text) {
   const cues = [];
   const blocks = String(text).replace(/^﻿/, '').replace(/\r/g, '').split(/\n{2,}/);
@@ -54,9 +80,7 @@ export function parseSubs(text) {
       .slice(i + 1)
       .join('\n')
       .replace(/\{\\[^}]*\}/g, ''); // ASS-stílusjelölők (pl. {\an8})
-    // csak az <i>, <b>, <u> marad – ismételve, amíg van mit (egymásba ágyazott jelölők ellen is)
-    for (let p = null; p !== body; ) (p = body), (body = body.replace(/<(?!\/?(?:i|b|u)>)[^<>]*>/g, ''));
-    body = body.trim();
+    body = keepBasicTags(body).trim();
     if (body) cues.push({ start, end, text: body });
   }
   return cues;
@@ -135,7 +159,10 @@ async function osReq(method, path, body, { auth = false, retry = true } = {}) {
   if (!(store.settings.osApiKey || '').trim()) {
     throw new Error('Nincs megadva OpenSubtitles API-kulcs (Beállítások → Feliratok és információk → Magyar információk és feliratok).');
   }
-  const base = auth && store.settings.osBaseUrl ? `https://${store.settings.osBaseUrl}/api/v1` : OS_BASE;
+  // a bejelentkezéskor kapott kiszolgáló csak az OpenSubtitles saját címe lehet (egy importált beállítás se
+  // irányíthassa máshová a kulccsal és a tokennel együtt)
+  const host = String(store.settings.osBaseUrl || '').toLowerCase();
+  const base = auth && /^([a-z0-9-]+\.)*opensubtitles\.(com|org)$/.test(host) ? `https://${host}/api/v1` : OS_BASE;
   const r = await api.request({ method, url: base + path, headers: osHeaders(auth), body: body ? JSON.stringify(body) : undefined });
   let j = {};
   try {
@@ -749,21 +776,21 @@ export function renderHuSettings(box) {
     <label class="setting"><span><b>Információk és borítóképek letöltése</b><small>Filmek, sorozatok és csatornák címe, leírása (magyarul, ennek híján angolul), borítóképe, műfaja, szereplői – Wikipédia / Wikidata, AniList (anime), TVmaze (sorozat) kulcs nélkül, vagy a TMDB-ből.</small></span>
       <input type="checkbox" class="switch" data-hs="huInfo" ${s.huInfo !== false ? 'checked' : ''} /></label>
     <label class="setting col"><span><b>TMDB API-kulcs</b> <small>(nem kötelező) – gazdagabb magyar leírás és értékelés. Ingyenes: themoviedb.org → Beállítások → API.</small></span>
-      <input class="input" type="password" autocomplete="off" data-ht="tmdbKey" value="${esc(s.tmdbKey || '')}" placeholder="API-kulcs (v3) vagy olvasási token (v4)" /></label>
+      <input class="input" type="password" autocomplete="off" data-ht="tmdbKey" placeholder="API-kulcs (v3) vagy olvasási token (v4)" /></label>
     <label class="setting col"><span><b>OMDb API-kulcs</b> <small>(nem kötelező) – IMDb-adatokon alapuló borítóképek a „Cím és borító” keresőben. Ingyenes kulcs (napi 1000 kérés): omdbapi.com → API Key.</small></span>
-      <input class="input" type="password" autocomplete="off" data-ht="omdbKey" value="${esc(s.omdbKey || '')}" placeholder="API-kulcs" /></label>
+      <input class="input" type="password" autocomplete="off" data-ht="omdbKey" placeholder="API-kulcs" /></label>
     <h3>Feliratok.eu</h3>
     <label class="setting"><span><b>Feliratok.eu feliratok</b><small>Magyar feliratoldal: magyar és angol feliratok filmekhez és sorozatokhoz, fiók, kulcs és napi korlát nélkül. A sorozatoknál évadcsomagból is kiveszi a kért részt. A kereséskor csak a film / sorozat címe és a rész száma megy el a feliratok.eu-nak.</small></span>
       <input type="checkbox" class="switch" data-hs="subsFeliratok" ${s.subsFeliratok !== false ? 'checked' : ''} /></label>
     <h3>SubDL <small class="muted">(nem kötelező)</small></h3>
     <p class="muted small">További magyar és angol feliratok (filmek, sorozatok). Ingyenes kulcs: regisztrálj a <a href="#" data-ext="https://subdl.com/">subdl.com</a> oldalon, majd a profilodban (<i>API</i>) másold ki a kulcsot. Fiók-jelszó nem kell, a kulcs csak ezen az eszközön tárolódik, és csak a subdl.com felé megy.</p>
-    <label class="setting col"><span><b>SubDL API-kulcs</b></span><input class="input" type="password" autocomplete="off" data-ht="subdlKey" value="${esc(s.subdlKey || '')}" /></label>
+    <label class="setting col"><span><b>SubDL API-kulcs</b></span><input class="input" type="password" autocomplete="off" data-ht="subdlKey" /></label>
     <h3>OpenSubtitles feliratok <small class="muted">(nem kötelező)</small></h3>
     <p class="muted small">Filmekhez és sorozatokhoz magyar és angol felirat – a Feliratok.eu mellett további találatok. Ingyenes fiók és API-kulcs kell: regisztrálj az <a href="#" data-ext="https://www.opensubtitles.com/">opensubtitles.com</a> oldalon, majd a profilodban az <i>API consumers</i> résznél hozz létre egy kulcsot. A keresés a kulccsal, a letöltés bejelentkezéssel működik (ingyenes fiókkal napi korláttal).</p>
-    <label class="setting col"><span><b>API-kulcs</b></span><input class="input" type="password" autocomplete="off" data-ht="osApiKey" value="${esc(s.osApiKey || '')}" /></label>
+    <label class="setting col"><span><b>API-kulcs</b></span><input class="input" type="password" autocomplete="off" data-ht="osApiKey" /></label>
     <div class="form-row">
-      <label class="setting col"><span><b>Felhasználónév</b></span><input class="input" autocomplete="off" data-ht="osUser" value="${esc(s.osUser || '')}" /></label>
-      <label class="setting col"><span><b>Jelszó</b></span><input class="input" type="password" autocomplete="off" data-ht="osPass" value="${esc(s.osPass || '')}" /></label>
+      <label class="setting col"><span><b>Felhasználónév</b></span><input class="input" autocomplete="off" data-ht="osUser" /></label>
+      <label class="setting col"><span><b>Jelszó</b></span><input class="input" type="password" autocomplete="off" data-ht="osPass" /></label>
     </div>
     <p class="muted small">Az adatok csak ezen az eszközön tárolódnak, és csak az opensubtitles.com felé kerülnek elküldésre.</p>
     <div class="inline"><button class="btn small" data-hb="test">Bejelentkezés kipróbálása</button><span class="muted small os-status"></span></div>
@@ -787,6 +814,8 @@ export function renderHuSettings(box) {
       <input type="checkbox" class="switch" data-hpb="nightAudio" ${store.profile.nightAudio ? 'checked' : ''} /></label>`
         : ''
     }`;
+  // a kulcsok és jelszavak csak tulajdonságként kerülnek a mezőkbe (nem HTML-attribútumként, amit egy téma CSS-e vizsgálhatna)
+  box.querySelectorAll('[data-ht]').forEach((i) => (i.value = s[i.dataset.ht] || ''));
   if (box.dataset.bound) return;
   box.dataset.bound = '1';
   box.addEventListener('change', (e) => {

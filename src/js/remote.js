@@ -15,7 +15,17 @@ export const canRemote = !!api.rcStart;
 const video = $('#video');
 let info = null; // { port, addresses }
 
-const newPin = () => String(Math.floor(1000 + Math.random() * 9000));
+/** Egyenletes véletlen egész 0…n-1 (visszautasításos mintavétel – a maradékos osztás torzítana). */
+function randInt(n) {
+  const lim = Math.floor(0x100000000 / n) * n;
+  for (;;) {
+    const v = crypto.getRandomValues(new Uint32Array(1))[0];
+    if (v < lim) return v % n;
+  }
+}
+const newPin = () => String(1000 + randInt(9000));
+/** A QR-kódban átadott, 128 bites kulcs – ezzel írja alá a telefon a kéréseit (a hálózaton nem utazik). */
+const newKey = () => [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
 
 /** A telefonon megnyíló vezérlőlap (önálló HTML, külső fájlok nélkül; régi telefonos böngészőkhöz is). */
 function pageHtml() {
@@ -89,10 +99,30 @@ input.q{width:100%;font:inherit;font-size:17px;padding:12px 14px;border-radius:1
 <nav class="tabs" id="tabs" hidden><button data-t="ctl" class="sel"><span>🎮</span>Vezérlő</button><button data-t="ch"><span>📺</span>Csatornák</button><button data-t="go"><span>☰</span>Továbbiak</button></nav>
 <div class="toast" id="toast"></div>
 <script>
-var pin='';try{var m=/[#&]pin=(\\d{4})/.exec(location.hash);if(m){pin=m[1];localStorage.setItem('adasPin',pin);history.replaceState(null,'',location.pathname)}else pin=localStorage.getItem('adasPin')||''}catch(e){}
+// Hitelesítés: a QR-kódból kapott kulcs (vagy a beírt PIN) soha nem megy át a hálózaton – minden kérést
+// HMAC-SHA256 aláírás véd (a kiszolgáló alkalmi számával és egy növekvő számlálóval, így vissza sem játszható).
+var key='',pin='',nonce='',ctr=0;
+try{var mk=/[#&]k=([0-9a-f]{32})/.exec(location.hash),mp=/[#&]pin=(\\d{4})/.exec(location.hash);
+if(mk){key=mk[1];localStorage.setItem('adasKey',key);localStorage.removeItem('adasPin')}else key=localStorage.getItem('adasKey')||'';
+if(mp&&!key){pin=mp[1];localStorage.setItem('adasPin',pin)}else if(!key)pin=localStorage.getItem('adasPin')||'';
+if(mk||mp)history.replaceState(null,'',location.pathname)}catch(e){}
+var SK=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+function sha256(b){var H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19],m=b.slice(),w=[],i,j,t,bl=b.length*8;
+function r(x,n){return(x>>>n)|(x<<(32-n))}
+m.push(128);while(m.length%64!==56)m.push(0);m.push(0,0,0,0,(bl>>>24)&255,(bl>>>16)&255,(bl>>>8)&255,bl&255);
+for(j=0;j<m.length;j+=64){for(t=0;t<16;t++)w[t]=(m[j+4*t]<<24)|(m[j+4*t+1]<<16)|(m[j+4*t+2]<<8)|m[j+4*t+3];
+for(t=16;t<64;t++){var x=w[t-15],y=w[t-2];w[t]=(w[t-16]+(r(x,7)^r(x,18)^(x>>>3))+w[t-7]+(r(y,17)^r(y,19)^(y>>>10)))|0}
+var A=H[0],B=H[1],C=H[2],D=H[3],E=H[4],F=H[5],G=H[6],I=H[7];
+for(t=0;t<64;t++){var t1=(I+(r(E,6)^r(E,11)^r(E,25))+((E&F)^(~E&G))+SK[t]+w[t])|0,t2=((r(A,2)^r(A,13)^r(A,22))+((A&B)^(A&C)^(B&C)))|0;I=G;G=F;F=E;E=(D+t1)|0;D=C;C=B;B=A;A=(t1+t2)|0}
+H[0]=(H[0]+A)|0;H[1]=(H[1]+B)|0;H[2]=(H[2]+C)|0;H[3]=(H[3]+D)|0;H[4]=(H[4]+E)|0;H[5]=(H[5]+F)|0;H[6]=(H[6]+G)|0;H[7]=(H[7]+I)|0}
+var o=[];for(i=0;i<8;i++)o.push((H[i]>>>24)&255,(H[i]>>>16)&255,(H[i]>>>8)&255,H[i]&255);return o}
+function u8(s){s=unescape(encodeURIComponent(s));var o=[];for(var i=0;i<s.length;i++)o.push(s.charCodeAt(i));return o}
+function hmac(k,msg){k=u8(k);if(k.length>64)k=sha256(k);var ip=[],op=[];for(var i=0;i<64;i++){var c=k[i]||0;ip.push(c^54);op.push(c^92)}return sha256(op.concat(sha256(ip.concat(u8(msg))))).map(function(x){return(x<16?'0':'')+x.toString(16)}).join('')}
 var $=function(i){return document.getElementById(i)};var last={};var busy=false;
+function hello(){return fetch('/adas/rchello',{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){nonce=j.n||''})}
+function signed(p){ctr=Math.max(Date.now(),ctr+1);return '/adas/rc/'+ctr+'.'+(key?'k':'p')+'.'+hmac(key||pin,nonce+'|'+ctr+'|'+p).slice(0,32)+'/'+p}
 // (időkorláttal: egy elakadt kérés ne tartsa fel a parancsok sorát)
-function api(p){var c=window.AbortController?new AbortController():null,t=setTimeout(function(){if(c)c.abort()},6000);return fetch('/adas/rc/'+pin+'/'+p,{cache:'no-store',signal:c?c.signal:undefined}).then(function(r){clearTimeout(t);if(r.status===403)throw new Error('pin');return r.json()},function(e){clearTimeout(t);throw e})}
+function api(p,again){if(!nonce){if(again)return Promise.reject(new Error('pin'));return hello().then(function(){return api(p,true)})}var c=window.AbortController?new AbortController():null,t=setTimeout(function(){if(c)c.abort()},6000);return fetch(signed(p),{cache:'no-store',signal:c?c.signal:undefined}).then(function(r){clearTimeout(t);if(r.status===403){if(!again){nonce='';return hello().then(function(){return api(p,true)})}throw new Error('pin')}if(r.status===429)throw new Error('wait');return r.json()},function(e){clearTimeout(t);throw e})}
 function ask(msg){$('ui').hidden=true;$('tabs').hidden=true;$('pin').hidden=false;$('pinErr').textContent=msg||''}
 function esc(s){return String(s||'').replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function toast(t){var e=$('toast');e.textContent=t;e.className='toast show';clearTimeout(e._t);e._t=setTimeout(function(){e.className='toast'},1400)}
@@ -101,7 +131,7 @@ function render(s){last=s;$('pin').hidden=true;$('ui').hidden=false;$('tabs').hi
 $('now').innerHTML=n?((n.logo?'<img src="'+esc(n.logo)+'" alt="" onerror="this.remove()">':'')+'<div class="tx"><b>'+esc(n.name)+'</b><small>'+esc(n.title||'')+'</small>'+(n.next?'<small>Utána: '+esc(n.next)+'</small>':'')+(n.progress!=null?'<div class="bar"><i style="width:'+Math.round(n.progress*100)+'%"></i></div>':'')+'</div>'):'<div class="tx"><b>'+esc(s.profile||'Adás')+'</b><small>Most nem megy semmi – válassz csatornát a Csatornák fülön, vagy nyomd meg a CH gombot.</small></div>';
 if(document.activeElement!==$('vol'))$('vol').value=s.volume==null?1:s.volume;$('muteBtn').className=s.muted?'on':'';
 $('favs').innerHTML=chBtns(s.favs,'Nincs kedvenc csatorna.');$('recent').innerHTML=chBtns(s.recent,'Még nincs.');if(s.results)$('results').innerHTML=chBtns(s.results,'Nincs találat.')}
-function state(){if(!pin)return ask();api('state').then(render).catch(function(e){if(e.message==='pin'){try{localStorage.removeItem('adasPin')}catch(x){}pin='';ask('Hibás PIN.')}})}
+function state(){if(!pin&&!key)return ask();api('state').then(render).catch(function(e){if(e.message==='wait')return ask('Túl sok hibás próbálkozás – várj néhány percet.');if(e.message==='pin'){try{localStorage.removeItem('adasPin');localStorage.removeItem('adasKey')}catch(x){}pin='';key='';ask('Hibás PIN, vagy a tévén / gépen új PIN készült. Olvasd be újra a QR-kódot, vagy írd be a PIN-t.')}})}
 // A parancsok sorban mennek ki (egymás után, nem párhuzamosan) – így gyors mozdulatnál sem keverednek össze
 var q0=Promise.resolve(),stT=0;
 function send(c,a){q0=q0.then(function(){return api('cmd?c='+encodeURIComponent(c)+'&a='+encodeURIComponent(a==null?'':a))}).then(function(){clearTimeout(stT);stT=setTimeout(state,350)}).catch(function(){toast('Nincs kapcsolat')});return q0}
@@ -137,7 +167,7 @@ function drain(){if(acc[0]||acc[1]){var a=acc;acc=[0,0];send('mouse',Math.round(
 function end(e){if(!t0)return;e.preventDefault();if(e.touches&&e.touches.length)return;clearTimeout(lp);dot.style.display='none';if(!moved&&!two&&Date.now()-t0<500){if(mode==='mouse'){drain();cmd('click','')}else cmd('key','Enter')}t0=0}
 pad.addEventListener('touchstart',start,{passive:false});pad.addEventListener('touchmove',move,{passive:false});pad.addEventListener('touchend',end,{passive:false});
 pad.addEventListener('mousedown',start);window.addEventListener('mousemove',move);window.addEventListener('mouseup',end)})();
-$('pinOk').onclick=function(){pin=$('pinIn').value.replace(/\\D/g,'');try{localStorage.setItem('adasPin',pin)}catch(e){}state()};
+$('pinOk').onclick=function(){pin=$('pinIn').value.replace(/\\D/g,'');key='';try{localStorage.setItem('adasPin',pin);localStorage.removeItem('adasKey')}catch(e){}state()};
 $('pinIn').addEventListener('keydown',function(e){if(e.key==='Enter')$('pinOk').click()});
 state();setInterval(function(){if(document.visibilityState!=='hidden')state()},2500);
 </script></body></html>`;
@@ -327,8 +357,9 @@ async function command({ c, a }) {
       if (/^\d$/.test(a)) live ? player.digit(a) : key(a);
       break;
     case 'play': {
+      // csak a profilban látható csatornák (gyerekprofil, felnőtt tartalom) – a lejátszás őre is ellenőrzi
       const ch = catalog.byId.get(a);
-      if (ch) player.play(ch);
+      if (ch && visible([ch]).length) player.play(ch);
       break;
     }
     case 'nav':
@@ -371,7 +402,11 @@ export async function startRemote() {
     s.remotePin = newPin();
     store.save();
   }
-  info = await api.rcStart(pageHtml(), s.remotePin);
+  if (!/^[0-9a-f]{32}$/.test(s.remoteKey || '')) {
+    s.remoteKey = newKey();
+    store.save();
+  }
+  info = await api.rcStart(pageHtml(), s.remotePin, s.remoteKey);
   pushState();
   return info;
 }
@@ -432,13 +467,13 @@ export function renderRemoteSettings(box) {
                 <div class="rc-qr" title="Olvasd be a telefon kamerájával">${(() => {
                   if (!urls.length) return ''; // nincs hálózati cím: üres QR-t nem rajzolunk
                   try {
-                    return qrSvg(`${urls[0]}#pin=${s.remotePin}`, { px: 5 });
+                    return qrSvg(`${urls[0]}#k=${s.remoteKey}`, { px: 5 });
                   } catch {
                     return '';
                   }
                 })()}</div>
                 <div class="rc-text">
-                  <div><b>Olvasd be a QR-kódot a telefon kamerájával</b> – a lap megnyílik, és a PIN-t is megkapja, nem kell begépelni.</div>
+                  <div><b>Olvasd be a QR-kódot a telefon kamerájával</b> – a lap megnyílik, és egy titkos kulcsot is megkap (ez a legbiztonságosabb, semmit nem kell begépelni).</div>
                   ${urls.length ? `<div class="muted small">Vagy nyisd meg a telefon böngészőjében:</div>${urls.map((u) => `<code class="rc-url">${esc(u)}</code>`).join('')}` : '<div class="warn small">⚠ Nem található hálózati cím – csatlakozz egy (otthoni) hálózathoz, majd kapcsold ki és be a távirányítót.</div>'}
                   <div>PIN: <span class="share-code rc-pin">${esc(s.remotePin)}</span></div>
                   <div class="muted small">Tipp: a telefonon tedd ki a lapot a kezdőképernyőre, így alkalmazásként indul. Első alkalommal a Windows tűzfal engedélyt kérhet. Ha több cím látszik, azt válaszd, amelyik a telefonéval egy hálózaton van (a QR-kód az elsőt tartalmazza).</div>
@@ -467,6 +502,7 @@ export function renderRemoteSettings(box) {
     if (e.target.closest('[data-rc="pin"]')) {
       e.stopPropagation();
       s.remotePin = newPin();
+      s.remoteKey = newKey(); // a régi QR-kóddal párosított telefonok is kiesnek
       store.save();
       await startRemote();
       draw();

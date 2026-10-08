@@ -116,6 +116,10 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - **Beállítások:** 15 kisebb csoport, mindegyik egy-két mondatos leírással; Androidon csak csempék
 - **Lejátszó:** a kiegészítő gombok egyenként elrejthetők; a kép a képben mód megszűnt
 - **Erőforrások:** a sorok fokozatosan töltődnek (fele annyi elem és kép induláskor), a Főoldal élő előnézete egy perc után megáll, kis puffer a többképes nézetben és az előnézetben
+- **Új profilképek:** 29 új avatár (a betűs változattal 30 lehetőség); a szerkesztőben 2 sornyi, véletlenszerűen válogatva, a többi a *Több…* gombbal nyílik le
+- **VOD-kártyák** a csatornakártyák mintájára (keret, jelvények, felugró panel Lejátszás / Kedvenc / Részletek gombbal) – álló borítóval
+- **Indítóképernyő:** a logó pulzál, balra úszik, közben előtűnik az ADÁS felirat; a jobb alsó sarokban minden indításkor más vicces, tévés hangulatú sorok
+- **Biztonság:** titkosított szinkron eszközök között (12 jegyű kód, a kulcs nem utazik a hálózaton); a telefonos távirányító QR-kulccsal aláírt kéréseket küld (a PIN nem megy át a hálózaton, címenkénti hibakorlát); a frissítés csak https-ről és SHA-256-egyezéssel települ; gyerekprofil: a külső lejátszó, a távirányító és a kivetítés is a szülői szabályok szerint; méretkorlátok és lineáris feldolgozás a listákhoz, műsorújsághoz, ZIP-hez, feliratokhoz; a mentésből importált profilok ellenőrzése
 - Electron 44 (biztonsági javítások)
 
 **Felvételek a TV alatt, ajánlósáv nélkül (1.24.1)**
@@ -171,7 +175,7 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - Rögzített sormagasság, így a stílus betűtípusa sem tolja el az elemeket
 
 **Szinkron kóddal, távirányító, felvétel és sok új funkció (1.19)**
-- Szinkronizálás eszközök között (asztali ↔ Android TV ↔ Android telefon, bármelyik irányba): az egyik eszköz 6 jegyű kódot ad, a másikon csak a kódot kell beírni – magától megtalálja a helyi hálózaton (Android: új LanServer)
+- Szinkronizálás eszközök között (asztali ↔ Android TV ↔ Android telefon, bármelyik irányba): az egyik eszköz 12 jegyű kódot ad (az 1.25-től titkosított), a másikon csak a kódot kell beírni – magától megtalálja a helyi hálózaton (Android: új LanServer)
 - Távirányító telefonról: böngészős vezérlőlap PIN-nel (csatorna, hangerő, nyilak, OK / Vissza, számok, kedvencek)
 - Felvétel (asztali): azonnal a lejátszóból vagy ütemezve a műsor-adatlapról, újrakódolás nélkül (.ts)
 - Gyerekprofilok: „Nézheti” kapcsoló gyerekprofilonként külön; napi nézési idő és korhatár (a műsorújság korhatár-adatai alapján), szülői PIN-nel feloldható

@@ -10,6 +10,67 @@ var urlm = require('url');
 var DEFAULT_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 
+// Méretkorlátok (kicsomagolva is): egy kicsi, de erősen tömörített válasz se foglalhasson sokszoros memóriát.
+var MAX_DOC = 256 * 1024 * 1024; // lista, műsorújság
+var MAX_API = 32 * 1024 * 1024; // API-válasz, mentés
+
+/** gzip kicsomagolása folyamként, a kimenet méretének korlátjával (a régi Node-ban nincs maxOutputLength). */
+function gunzipLimited(buf, max, cb) {
+  var g = zlib.createGunzip();
+  var out = [];
+  var size = 0;
+  var ended = false;
+  function fin(err, b) {
+    if (ended) return;
+    ended = true;
+    cb(err, b);
+  }
+  g.on('data', function (c) {
+    if (ended) return;
+    size += c.length;
+    if (size > max) {
+      g.removeAllListeners('data');
+      g.on('error', function () {});
+      if (g.close) g.close();
+      return fin(new Error('A kicsomagolt adat túl nagy'));
+    }
+    out.push(c);
+  });
+  g.on('end', function () {
+    fin(null, Buffer.concat(out));
+  });
+  g.on('error', function (e) {
+    fin(e);
+  });
+  g.end(buf);
+}
+
+/** A válasz törzse legfeljebb `max` bájtig; afölött a kérés megszakad. cb(err, buf) */
+function collect(res, req, max, cb) {
+  var chunks = [];
+  var size = 0;
+  var ended = false;
+  function fin(err, b) {
+    if (ended) return;
+    ended = true;
+    cb(err, b);
+  }
+  res.on('data', function (c) {
+    size += c.length;
+    if (size > max) {
+      if (req) req.abort();
+      return fin(new Error('Túl nagy válasz'));
+    }
+    chunks.push(c);
+  });
+  res.on('error', fin);
+  res.on('end', function () {
+    fin(null, Buffer.concat(chunks));
+  });
+}
+
+var TLS_ERR = /CERT|SSL|TLS|SELF_SIGNED|UNABLE_TO|DEPTH_ZERO/i;
+
 function request(url, opts, cb, redirects) {
   redirects = redirects || 0;
   var u = urlm.parse(url);
@@ -30,8 +91,9 @@ function request(url, opts, cb, redirects) {
       path: u.path,
       method: opts.method || 'GET',
       headers: headers,
-      // A régi tévék tanúsítványtára elavult lehet; nyilvános adatokat töltünk le.
-      rejectUnauthorized: false,
+      // Alapból ellenőrzött tanúsítvány. Csak a nyilvános listák / műsorújság letöltése próbálja újra
+      // ellenőrzés nélkül, ha a régi tévé tanúsítványtára elavult (download: insecure).
+      rejectUnauthorized: !opts.insecure,
     },
     function (res) {
       var loc = res.headers.location;
@@ -61,21 +123,17 @@ function httpText(opts, cb) {
     finished = true;
     cb(err, res);
   }
-  request(opts.url, { method: opts.method, headers: opts.headers, body: opts.body, timeout: 30000 }, function (err, res) {
+  // (API-hívás, mentés: mindig ellenőrzött tanúsítvánnyal)
+  request(opts.url, { method: opts.method, headers: opts.headers, body: opts.body, timeout: 30000 }, function (err, res, req) {
     if (err) return done(err);
-    var chunks = [];
-    res.on('data', function (c) {
-      chunks.push(c);
-    });
-    res.on('error', done);
-    res.on('end', function () {
-      var buf = Buffer.concat(chunks);
+    collect(res, req, MAX_API, function (e, buf) {
+      if (e) return done(e);
       var fin = function (b) {
         done(null, { status: res.statusCode, text: b.toString('utf8') });
       };
       if (buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b) {
-        zlib.gunzip(buf, function (e, out) {
-          if (e) return done(e);
+        gunzipLimited(buf, MAX_API, function (e2, out) {
+          if (e2) return done(e2);
           fin(out);
         });
       } else fin(buf);
@@ -91,22 +149,30 @@ function download(url, opts, cb) {
     finished = true;
     cb(err, text);
   }
-  request(url, opts || {}, function (err, res) {
-    if (err) return done(err);
+  opts = opts || {};
+  request(url, opts, function (err, res, req) {
+    if (err) {
+      // elavult tanúsítványtár (régi tévé): a nyilvános letöltés még egyszer, ellenőrzés nélkül
+      if (!opts.insecure && TLS_ERR.test(String(err.code || err.message))) {
+        var o2 = {};
+        Object.keys(opts).forEach(function (k) {
+          o2[k] = opts[k];
+        });
+        o2.insecure = true;
+        finished = true;
+        return download(url, o2, cb);
+      }
+      return done(err);
+    }
     if (res.statusCode >= 400) {
       res.resume();
       return done(new Error('HTTP ' + res.statusCode));
     }
-    var chunks = [];
-    res.on('data', function (c) {
-      chunks.push(c);
-    });
-    res.on('error', done);
-    res.on('end', function () {
-      var buf = Buffer.concat(chunks);
+    collect(res, req, MAX_DOC, function (e, buf) {
+      if (e) return done(e);
       if (buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b) {
-        zlib.gunzip(buf, function (e, out) {
-          if (e) return done(e);
+        gunzipLimited(buf, MAX_DOC, function (e2, out) {
+          if (e2) return done(e2);
           done(null, out.toString('utf8'));
         });
       } else {
@@ -128,7 +194,8 @@ function probe(item, cb, depth) {
     finished = true;
     cb(ok);
   }
-  request(item.url, { ua: item.ua, referrer: item.referrer, timeout: 8000 }, function (err, res, req, finalUrl) {
+  // (az elérhetőség-próba csak azt nézi, jön-e adat – a régi tévék elavult tanúsítványtára miatt ellenőrzés nélkül)
+  request(item.url, { ua: item.ua, referrer: item.referrer, timeout: 8000, insecure: true }, function (err, res, req, finalUrl) {
     if (err || !res) return done(false);
     var base = finalUrl || item.url;
     if (res.statusCode >= 400) {
@@ -143,9 +210,12 @@ function probe(item, cb, depth) {
     var stream = res;
     if (/gzip/.test(String(res.headers['content-encoding'] || ''))) stream = res.pipe(zlib.createGunzip());
     var got = '';
+    var checked = false; // a lista feldolgozása (és a további kérés) csak egyszer indulhat el
     stream.on('data', function (c) {
+      if (checked) return;
       got += c.toString('latin1');
       if (got.length >= 262144) {
+        got = got.slice(0, 262144);
         req.abort();
         check();
       }
@@ -155,7 +225,11 @@ function probe(item, cb, depth) {
       done(false);
     });
     function check() {
-      if (finished) return;
+      if (finished || checked) return;
+      checked = true;
+      // a megszakított kérés kicsomagolójában maradt adat se érkezzen már ide
+      stream.removeAllListeners('data');
+      stream.on('error', function () {});
       if (got.indexOf('<MPD') >= 0) return done(true);
       if (got.indexOf('#EXTM3U') < 0) return done(false);
       var lines = got.split(/\r?\n/).map(function (l) {
@@ -190,7 +264,7 @@ function probeSegment(url, item, cb) {
     finished = true;
     cb(ok);
   }
-  request(url, { ua: item.ua, referrer: item.referrer, timeout: 8000, headers: { Range: 'bytes=0-4095' } }, function (err, res, req) {
+  request(url, { ua: item.ua, referrer: item.referrer, timeout: 8000, insecure: true, headers: { Range: 'bytes=0-4095' } }, function (err, res, req) {
     if (err || !res) return done(false);
     if (res.statusCode !== 200 && res.statusCode !== 206) {
       res.resume();

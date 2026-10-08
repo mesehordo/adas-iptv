@@ -13,9 +13,18 @@
 <body>
   <!-- Indítóképernyő -->
   <div id="splash">
-    <div class="brand big">ADÁS</div>
-    <div class="spinner"></div>
-    <div id="splash-msg">Betöltés…</div>
+    <!-- a logó pulzál, majd balra úszik, és közben előtűnik az ADÁS felirat -->
+    <div class="sp-logo" aria-label="Adás">
+      <svg class="sp-icon" viewBox="0 0 512 512" aria-hidden="true">
+        <rect x="20" y="20" width="472" height="472" rx="96" fill="#141414" />
+        <path d="M186 74l70 52 70-52" fill="none" stroke="var(--accent)" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
+        <rect x="82" y="137" width="348" height="250" rx="40" fill="none" stroke="var(--accent)" stroke-width="26" />
+        <path d="M220 205v120l100-60z" fill="#fff" />
+        <rect x="176" y="425" width="160" height="20" rx="10" fill="var(--accent)" />
+      </svg>
+      <span class="sp-word"><span>A</span><span>D</span><span>Á</span><span>S</span></span>
+    </div>
+    <div id="splash-msg" aria-hidden="true"></div>
   </div>
 
   <!-- Profilválasztó -->

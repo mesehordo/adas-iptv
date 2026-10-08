@@ -81,10 +81,39 @@ function cachePath(url) {
 // Kicsomagolás a háttérben (a libuv szálkészletén): a több tíz MB-os műsorújságnál a szinkron
 // változat másodpercekre megállította a főfolyamatot – és vele az ablakot is.
 const gunzipAsync = require('util').promisify(zlib.gunzip);
+// Letöltött dokumentum (lista, műsorújság) felső mérete – kicsomagolva is: egy kicsi, de erősen
+// tömörített válasz se foglalhasson le sokszoros memóriát. (A legnagyobb műsorújságok is jóval alatta.)
+const MAX_DOC = 512 * 1024 * 1024;
 /** gzip-tömörített bájtok kicsomagolása (ha az); különben változatlanul adja vissza. */
 async function maybeGunzip(buf) {
-  if (buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b) return gunzipAsync(buf);
+  if (buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b) {
+    try {
+      return await gunzipAsync(buf, { maxOutputLength: MAX_DOC });
+    } catch (err) {
+      if (err.code === 'ERR_BUFFER_TOO_LARGE' || /larger than/i.test(err.message)) throw new Error('A kicsomagolt fájl túl nagy');
+      throw err;
+    }
+  }
   return buf;
+}
+
+/** fetch-válasz törzse bájtokként, legfeljebb `max` bájtig (a kapcsolat maga is kicsomagolhat). */
+async function readLimited(res, max = MAX_DOC) {
+  if (!res.body) return Buffer.alloc(0);
+  const reader = res.body.getReader();
+  const parts = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.length;
+    if (size > max) {
+      reader.cancel().catch(() => {});
+      throw new Error('A letöltött fájl túl nagy');
+    }
+    parts.push(Buffer.from(value.buffer, value.byteOffset, value.length));
+  }
+  return Buffer.concat(parts, size);
 }
 
 /**
@@ -100,7 +129,7 @@ async function download(url, { ua, referrer, timeoutMs = 90000, onlyHttp = false
     const res = await net.fetch(url, { signal: ctrl.signal, headers, bypassCustomProtocolHandlers: true });
     if (onlyHttp && !/^https?:\/\//i.test(res.url || url)) throw new Error('Nem engedélyezett átirányítás');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return Buffer.from(await res.arrayBuffer());
+    return await readLimited(res);
   } finally {
     clearTimeout(t);
   }
@@ -219,11 +248,11 @@ let checkRun = 0;
  * Kérés az átirányítások követésével: a végső címre szükség van a lejátszólista relatív
  * hivatkozásaihoz (pl. jmp2.uk → pluto.tv), és a net.fetch válasza ezt nem mindig adja meg.
  */
-async function fetchFollow(url, opts) {
-  // A Node saját fetch-e (undici) követi az átirányítást és megadja a végső címet
-  // (az Electron net.fetch-nél a „manual” mód nem működik, a „follow” pedig nem adja vissza a címet).
-  const res = await fetch(url, { ...opts, redirect: 'follow' });
-  return { res, finalUrl: res.url || url };
+async function fetchFollow(url, opts, root = url) {
+  // A Node saját fetch-e (undici), kézi átirányítás-követéssel: így megvan a végső cím, és minden lépés
+  // ellenőrizhető – egy internetes forrás (átirányítással, listahivatkozással) ne küldhessen helyi címre
+  // (pl. a távirányító kiszolgálójára). A `root` a felhasználó választotta forrás.
+  return lan.fetchPolicy(url, opts, root);
 }
 
 /**
@@ -231,14 +260,15 @@ async function fetchFollow(url, opts) {
  * egy valódi videószegmens elejét is letölti (földrajzi korlát, lejárt kulcs, üres adás kiszűrése).
  * trace: hibakereséshez a lépések naplója (probe-one { debug: true }).
  */
-async function probeStream({ url, ua, referrer, trace }, depth = 0) {
+async function probeStream({ url, ua, referrer, trace, root }, depth = 0) {
+  if (!depth) root = url; // a gyökér mindig a kért cím (a felülettől jövő érték nem számít)
   const T = (m) => trace && trace.push(m);
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 8000);
   const headers = { 'User-Agent': ua || CHROME_UA };
   if (referrer) headers.Referer = referrer;
   try {
-    const { res, finalUrl } = await fetchFollow(url, { signal: ctrl.signal, headers });
+    const { res, finalUrl } = await fetchFollow(url, { signal: ctrl.signal, headers }, root);
     T(depth + ' ' + res.status + ' ' + finalUrl.slice(0, 90) + ' ' + res.headers.get('content-type'));
     // 403 / 451: a szerver elutasította – jellemzően földrajzi korlátozás
     if (!res.ok) return res.status === 403 || res.status === 451 ? 'geo' : false;
@@ -265,13 +295,13 @@ async function probeStream({ url, ua, referrer, trace }, depth = 0) {
       if (depth > 1) return false;
       const i = lines.findIndex((l) => l.startsWith('#EXT-X-STREAM-INF'));
       const variant = lines.slice(i + 1).find((l) => l && !l.startsWith('#'));
-      return variant ? probeStream({ url: abs(variant), ua, referrer, trace }, depth + 1) : false;
+      return variant ? probeStream({ url: abs(variant), ua, referrer, trace, root }, depth + 1) : false;
     }
     // Médialista: a legutolsó (legfrissebb) szegmens eleje.
     const segs = lines.filter((l) => l && !l.startsWith('#'));
     if (!segs.length) return false; // üres lista: most nem sugároz
     T('seg ' + abs(segs[segs.length - 1]).slice(0, 90));
-    return await probeSegment(abs(segs[segs.length - 1]), headers, T);
+    return await probeSegment(abs(segs[segs.length - 1]), headers, T, root);
   } catch (e) {
     T('HIBA ' + e.message);
     return false;
@@ -280,11 +310,11 @@ async function probeStream({ url, ua, referrer, trace }, depth = 0) {
   }
 }
 
-async function probeSegment(url, headers, T = () => {}) {
+async function probeSegment(url, headers, T = () => {}, root = url) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 8000);
   try {
-    const { res } = await fetchFollow(url, { signal: ctrl.signal, headers: { ...headers, Range: 'bytes=0-4095' } });
+    const { res } = await fetchFollow(url, { signal: ctrl.signal, headers: { ...headers, Range: 'bytes=0-4095' } }, root);
     T('seg status ' + res.status);
     if (res.status === 403 || res.status === 451) return 'geo';
     if (res.status !== 200 && res.status !== 206) return false;
@@ -306,17 +336,19 @@ async function probeSegment(url, headers, T = () => {}) {
 async function checkStreams(event, list) {
   const run = ++checkRun;
   const results = {};
+  let fresh = {}; // a legutóbbi jelentés óta elkészült eredmények (csak ezek mennek ki – nem az összes újra)
   let index = 0;
   let done = 0;
   const workers = Array.from({ length: 16 }, async () => {
     while (index < list.length && run === checkRun) {
       const item = list[index++];
-      results[item.url] = await probeStream(item);
+      results[item.url] = fresh[item.url] = await probeStream(item);
       done++;
       if (done % 10 === 0 || done === list.length) {
         if (!event.sender.isDestroyed()) {
-          event.sender.send('check-progress', { done, total: list.length, partial: results });
+          event.sender.send('check-progress', { done, total: list.length, partial: fresh });
         }
+        fresh = {};
       }
     }
   });
@@ -609,7 +641,9 @@ ipcMain.handle('scan-folder', async (_e, dir) => {
  * versenyhelyzet a kettő között). Ha nagyobb a korlátnál, vagy nem közönséges fájl → null.
  */
 async function readSmallFile(p, max) {
-  const fh = await fs.promises.open(p, 'r');
+  // Nem közönséges fájl (pl. névvel ellátott cső / FIFO) megnyitása blokkolna: a megnyitás nem blokkoló
+  // (Unixon), és a típust a már megnyitott leíróból ellenőrizzük (külön előzetes vizsgálat nélkül – nincs rés).
+  const fh = await fs.promises.open(p, fs.constants.O_RDONLY | (process.platform === 'win32' ? 0 : fs.constants.O_NONBLOCK || 0));
   try {
     const st = await fh.stat();
     if (!st.isFile() || st.size > max) return null;
@@ -721,7 +755,8 @@ ipcMain.handle('packs-scan', async () => {
     let fh = null;
     try {
       // egyetlen megnyitott leíróból vizsgálunk és olvasunk (a kettő között a fájl nem cserélődhet ki)
-      fh = await fs.promises.open(path.join(packsDir(), name), 'r');
+      // nem blokkoló megnyitás (FIFO ne akassza meg), a típus a megnyitott leíróból
+      fh = await fs.promises.open(path.join(packsDir(), name), fs.constants.O_RDONLY | (process.platform === 'win32' ? 0 : fs.constants.O_NONBLOCK || 0));
       const st = await fh.stat();
       if (!st.isFile()) continue;
       if (st.size > 64e6) out.push({ name, error: 'túl nagy (legfeljebb 64 MB)' });
@@ -800,13 +835,17 @@ ipcMain.handle('open-external', (_e, url) => {
 ipcMain.handle('open-in-player', async (_e, { items, name }) => {
   const list = (items || []).filter((x) => /^(https?|file):\/\//i.test(x?.url || ''));
   if (!list.length) return 'Nincs megnyitható cím.';
-  const dir = path.join(app.getPath('temp'), 'adas-player');
-  fs.mkdirSync(dir, { recursive: true });
+  // Saját, egyedi nevű ideiglenes mappa (csak a felhasználó érheti el), benne új fájl ('wx': meglévőt –
+  // pl. egy más által odatett hivatkozást – nem ír felül). Kilépéskor törlődik.
+  const dir = fs.mkdtempSync(path.join(app.getPath('temp'), 'adas-player-'));
+  playerTmpDirs.push(dir);
   const file = path.join(dir, String(name || 'adas').replace(/[\\/:*?"<>|\r\n]+/g, '_').slice(0, 80) + '.m3u');
   const clean = (s) => String(s || '').replace(/[\r\n]+/g, ' ');
-  fs.writeFileSync(file, '#EXTM3U\n' + list.map((x) => `#EXTINF:-1,${clean(x.title)}\n${clean(x.url)}`).join('\n') + '\n', 'utf8');
+  fs.writeFileSync(file, '#EXTM3U\n' + list.map((x) => `#EXTINF:-1,${clean(x.title)}\n${clean(x.url)}`).join('\n') + '\n', { encoding: 'utf8', flag: 'wx', mode: 0o600 });
   return shell.openPath(file); // '' = sikerült; különben pl. „nincs társított alkalmazás”
 });
+const playerTmpDirs = [];
+app.on('will-quit', () => playerTmpDirs.forEach((d) => fs.rmSync(d, { recursive: true, force: true })));
 
 ipcMain.handle('set-fullscreen', (_e, on) => {
   if (win) win.setFullScreen(!!on);
@@ -846,8 +885,10 @@ const lan = require('./lan');
 lan.init({
   headersFor: (url) => hostHeaders.get(hostOf(url)),
   emit: (ch, data) => win && !win.isDestroyed() && win.webContents.send(ch, data),
+  pinsFile: path.join(app.getPath('userData'), 'cast-pins.json'),
 });
 ipcMain.handle('cast-discover', () => lan.discover());
+ipcMain.handle('cast-forget', (_e, id) => lan.castForget(id));
 
 // Lejátszási híd (FFmpeg): AC3/DTS hang, beágyazott feliratok, régi videóformátumok, borítókép
 const media = require('./media');
@@ -917,11 +958,11 @@ ipcMain.handle('rec-original', (_e, p) => (inRecDir(p) ? { source: media.recSour
 ipcMain.handle('rec-restore', (_e, p) => (inRecDir(p) ? media.recRestore(path.resolve(p)) : false));
 ipcMain.handle('cast-play', (_e, opts) => lan.castPlay(opts));
 ipcMain.handle('cast-control', (_e, action, value) => lan.castControl(action, value));
-ipcMain.handle('share-start', (_e, data) => lan.shareStart(data));
+ipcMain.handle('share-start', (_e, data, id) => lan.shareStart(data, 15, id));
 ipcMain.handle('share-stop', () => lan.shareStop());
 ipcMain.handle('lan-ips', () => lan.sortedIPs());
 ipcMain.handle('lan-get', (_e, urls, timeout) => lan.lanGet(Array.isArray(urls) ? urls.slice(0, 1100) : [], timeout));
-ipcMain.handle('rc-start', (_e, html, pin) => lan.rcStart(html, pin));
+ipcMain.handle('rc-start', (_e, html, pin, key) => lan.rcStart(html, pin, key));
 ipcMain.handle('rc-stop', () => lan.rcStop());
 ipcMain.on('rc-state', (_e, json) => lan.rcState(json));
 

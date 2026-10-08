@@ -13,6 +13,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
+const lan = require('./lan'); // hálózati szabály (fetchPolicy) és korlátos olvasás (readBody)
 
 let opts = { headersFor: () => null, emit: () => {} };
 let server = null;
@@ -60,13 +61,16 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
  */
 const srcKeys = new Map(); // eredeti cím -> kulcs
 const srcUrls = new Map(); // kulcs -> eredeti cím
-function inputOf(url) {
+const srcRoots = new Map(); // kulcs -> a felhasználó választotta forrás (a hálózati szabályhoz, lásd lan.fetchPolicy)
+/** root: a lista, amelyik erre a címre hivatkozik, a gyökérforrással (üres: ez maga a választott forrás) */
+function inputOf(url, root = '') {
   if (/^https?:/i.test(url)) {
     let k = srcKeys.get(url);
     if (!k) {
       k = crypto.randomBytes(8).toString('hex');
       srcKeys.set(url, k);
       srcUrls.set(k, url);
+      srcRoots.set(k, root || url);
     }
     return `http://127.0.0.1:${port}/${token}/src/${k}`;
   }
@@ -83,6 +87,9 @@ function headerArgs(url) {
   return /^https?:/i.test(url) ? ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '4'] : [];
 }
 
+// A naplóba írható hibakódok (rögzített lista – a távoli forrásból jövő szöveg nem kerülhet a naplóba)
+const LOG_CODES = ['ECONNREFUSED', 'ECONNRESET', 'ENOTFOUND', 'ETIMEDOUT', 'EHOSTUNREACH', 'ENETUNREACH', 'EAI_AGAIN', 'EPROTO', 'ABORT_ERR', '403', 'CERT_HAS_EXPIRED', 'UND_ERR_SOCKET'];
+
 /** Helyi továbbító: GET /<token>/src/<kulcs> → az eredeti cím (Range, átirányítás, fejlécek). */
 async function relay(key, req, res) {
   const target = srcUrls.get(key);
@@ -97,7 +104,9 @@ async function relay(key, req, res) {
   const ac = new AbortController();
   res.on('close', () => ac.abort());
   try {
-    const up = await fetch(target, { method: req.method === 'HEAD' ? 'HEAD' : 'GET', headers, redirect: 'follow', signal: ac.signal });
+    // átirányítás és a listában hivatkozott címek: internetes forrásból nem vezethetnek helyi címre
+    const root = srcRoots.get(key) || target;
+    const { res: up, finalUrl } = await lan.fetchPolicy(target, { method: req.method === 'HEAD' ? 'HEAD' : 'GET', headers, signal: ac.signal }, root);
     const out = { 'Content-Type': up.headers.get('content-type') || 'application/octet-stream' };
     for (const k of ['content-length', 'content-range', 'accept-ranges', 'last-modified', 'etag']) {
       const v = up.headers.get(k);
@@ -105,13 +114,13 @@ async function relay(key, req, res) {
     }
     if (up.headers.get('content-encoding') && up.headers.get('content-encoding') !== 'identity') delete out['content-length'];
     // HLS-lista (élő adás felvétele): a benne lévő címek is a továbbítón át menjenek
-    const looksList = /mpegurl/i.test(out['Content-Type']) || /\.m3u8?(\?|$)/i.test(new URL(up.url).pathname);
+    const looksList = /mpegurl/i.test(out['Content-Type']) || /\.m3u8?(\?|$)/i.test(new URL(finalUrl).pathname);
     if (looksList && up.ok && req.method !== 'HEAD') {
-      const text = await up.text();
+      const text = await lan.readBody(up, 4 * 1024 * 1024); // a lista legfeljebb 4 MB (kicsomagolva)
       if (text.trimStart().startsWith('#EXTM3U')) {
         const abs = (x) => {
           try {
-            return new URL(x, up.url).href;
+            return new URL(x, finalUrl).href;
           } catch {
             return x;
           }
@@ -121,8 +130,8 @@ async function relay(key, req, res) {
           .map((line) => {
             const l = line.trim();
             if (!l) return line;
-            if (l.startsWith('#')) return line.replace(/URI="([^"]+)"/g, (_m, x) => `URI="${inputOf(abs(x))}"`);
-            return inputOf(abs(l));
+            if (l.startsWith('#')) return line.replace(/URI="([^"]+)"/g, (_m, x) => `URI="${inputOf(abs(x), root)}"`);
+            return inputOf(abs(l), root);
           })
           .join('\n');
         res.writeHead(200, { 'Content-Type': 'application/vnd.apple.mpegurl', 'Cache-Control': 'no-cache' });
@@ -140,7 +149,10 @@ async function relay(key, req, res) {
   } catch (err) {
     if (res.headersSent) return res.destroy();
     res.statusCode = 502;
-    console.warn('Továbbító – a forrás nem érhető el:', err.cause?.message || err.message || err);
+    // csak a hibakód kerül a naplóba (az üzenet a távoli címet / választ is tartalmazhatná)
+    const got = String(err.cause?.code || err.code || '');
+    const code = LOG_CODES.find((c) => c === got) || 'egyéb';
+    console.warn('Továbbító – a forrás nem érhető el, hibakód:', code);
     res.end('A forrás nem érhető el');
   }
 }

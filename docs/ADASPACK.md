@@ -14,6 +14,11 @@ Két fajtája van:
 
 (A program az elírt `.adaspak` kiterjesztést is elfogadja.)
 
+**Minden változat kezeli** (Windows / macOS / Linux, Android telefon és Android TV, böngésző, LG webOS):
+fájlból (*Kiegészítő csomag betöltése*), **webcímről** (*Betöltés webcímről* – GitHub `blob` oldalcím is jó;
+a tévén, ahol nincs fájlválasztó, ez az egyszerű út), vagy egy másik eszközről szinkronnal / mentésből. Az
+asztali változat a *Csomagok mappája* tartalmát indításkor magától is betölti.
+
 ---
 
 ## 1. A fájl felépítése

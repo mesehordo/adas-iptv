@@ -223,10 +223,11 @@ export const DEFAULT_FEEDS = [
   { name: '444', url: 'https://444.hu/feed' },
 ];
 const feeds = () => (store.settings.rssFeeds ?? DEFAULT_FEEDS).filter((f) => f.enabled !== false);
+// Inert elemzés (DOMParser): a hírcsatorna HTML-je nem az élő dokumentumban értelmeződik, így a benne
+// lévő eseménykezelők (pl. <img onerror>) a szöveg kinyerése közben sem futhatnak le.
 const stripHtml = (s) => {
-  const d = document.createElement('div');
-  d.innerHTML = String(s || '');
-  return (d.textContent || '').replace(/\s+/g, ' ').trim();
+  const d = new DOMParser().parseFromString(String(s || ''), 'text/html');
+  return (d.body?.textContent || '').replace(/\s+/g, ' ').trim();
 };
 
 function parseFeed(text, feed) {
@@ -367,7 +368,7 @@ const prettyCat = (c) => (/-/.test(c || '') ? c.split('-').map((w) => CAT_FIX[w]
 
 const remBtn = (id, start) => {
   const on = store.hasReminder(id, start);
-  return `<button class="round small ${on ? 'on' : ''}" data-rem="${esc(id)}|${start}" title="${on ? 'Emlékeztető törlése' : 'Emlékeztető'}">${ICON.bell}</button>`;
+  return `<button class="round small ${on ? 'on' : ''}" data-rem="${esc(id)}|${Number(start) || 0}" title="${on ? 'Emlékeztető törlése' : 'Emlékeztető'}">${ICON.bell}</button>`;
 };
 const dayTime = (t) => {
   const d = new Date(t);
@@ -542,14 +543,14 @@ export const UNITS = {
     mobile: 260,
     render(b, { w, h }) {
       const t = Date.now();
-      const list = store.profile.reminders.filter((r) => r.stop > t);
+      const list = store.profile.reminders.filter((r) => Number.isFinite(r.start) && r.stop > t);
       if (!list.length) return note('Nincs beállított emlékeztető. A műsorok mellett a csengő gombbal kérhetsz.');
       return `<ul class="d-tonight d-trim">${list
         .slice(0, fit(h, 40))
         .map((r) => {
           const ch = catalog.byId.get(r.channelId);
           const live = r.start <= t;
-          return `<li><button class="d-row" ${live ? `data-play="${esc(r.channelId)}"` : `data-prog="${esc(r.channelId)}|${r.start}"`}>
+          return `<li><button class="d-row" ${live ? `data-play="${esc(r.channelId)}"` : `data-prog="${esc(r.channelId)}|${Number(r.start)}"`}>
             <span class="d-time ${live ? 'live' : ''}">${live ? 'MOST' : dayTime(r.start)}</span>
             <span class="d-txt"><b>${esc(r.title)}</b><small class="muted">${esc(ch?.name || '')}</small></span>
           </button>${remBtn(r.channelId, r.start)}</li>`;
@@ -935,7 +936,16 @@ function dashCfg() {
   const p = store.profile;
   const part = !editing && p.dashAuto && dayPart();
   const c = part && presets()[part] ? presets()[part].cfg : p.dash && Array.isArray(p.dash.units) ? p.dash : p.kids ? DEFAULT_KIDS : DEFAULT_DASH;
-  return { cols: c.cols, rows: c.rows, units: c.units.filter((u) => allowed(u.id)).map((u) => ({ ...u })) };
+  // importált profilból is csak korlátos egész számok kerülhetnek a HTML-be
+  const int = (v, [lo, hi]) => Math.min(hi, Math.max(lo, Math.round(Number(v)) || lo));
+  const cols = int(c.cols, LIMITS.cols), rows = int(c.rows, LIMITS.rows);
+  return {
+    cols,
+    rows,
+    units: c.units
+      .filter((u) => u && Object.prototype.hasOwnProperty.call(UNITS, u.id) && allowed(u.id))
+      .map((u) => ({ id: u.id, w: int(u.w, [1, cols]), h: int(u.h, [1, rows]) })),
+  };
 }
 
 /** Első-szabad-hely elhelyezés; a nem férő egységek `fail`-t kapnak. */

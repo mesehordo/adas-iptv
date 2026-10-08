@@ -146,8 +146,19 @@ jobs:
             exit 1
           fi
           mkdir -p android/keystore
-          printf '%s' "$KEYSTORE_B64" | base64 -d > android/keystore/adas.jks
-          printf '%s' "$KEYSTORE_PASSWORD" > android/keystore/password.txt
+          # a base64 szövegből a sortörések, kocsivisszák, szóközök és az esetleges
+          # „-----BEGIN …-----” / „-----END …-----” sorok (pl. certutil -encode) kimaradnak
+          if ! printf '%s' "$KEYSTORE_B64" | tr -d '\r' | sed '/^-----/d' | tr -d '\n\t ' | base64 -d > android/keystore/adas.jks; then
+            echo "::error::Az ANDROID_KEYSTORE_B64 titok nem érvényes base64 – az android/keystore/adas.jks fájl base64-kódolt tartalma kell (egy sorban)."
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_PASSWORD" | tr -d '\r\n' > android/keystore/password.txt
+          # azonnali ellenőrzés: megnyitható-e a kulcstár ezzel a jelszóval, és megvan-e benne az „adas” kulcs
+          # (a jelszó a fájlból – nem a parancssorban, ahol a folyamatlistában látszana)
+          if ! keytool -list -keystore android/keystore/adas.jks -storepass:file android/keystore/password.txt -alias adas > /dev/null 2>&1; then
+            echo "::error::A kulcstár nem nyitható meg az ANDROID_KEYSTORE_PASSWORD jelszóval, vagy nincs benne „adas” kulcs."
+            exit 1
+          fi
       - name: Fordítás
         run: |
           export ANDROID_HOME="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"

@@ -12,6 +12,7 @@ import { epg } from './epg.js';
 import { player } from './player.js';
 import { programExtras, confirmDialog, ICON, emptyState, tvTabs } from './components.js';
 import { playVod, pathToUrl } from './vod.js';
+import { allowOutsidePlayback } from './watchtime.js';
 
 export const canRecord = !!api.recStart;
 const active = new Map(); // felvétel-azonosító → { chId, title, file, sched }
@@ -169,12 +170,14 @@ function recInfo(f) {
     title: m?.title || (parts.length >= 3 ? parts.slice(1, -1).join(' – ') : base),
     chName: ch?.name || (parts.length >= 3 ? parts[0] : ''),
     logo: ch?.logo || '',
+    chId: ch?.id || '',
     at: m?.at || f.mtime,
   };
 }
 const recItem = (f, info = recInfo(f)) => ({
   id: 'rec:' + f.path,
   rec: true,
+  srcChannel: info.chId, // a felvétel forráscsatornája: a gyerekprofil szabálya erre vonatkozik
   type: 'movie',
   lib: 'rec',
   title: info.title,
@@ -471,7 +474,8 @@ export async function renderRecordingsPage(view) {
     if (!t) return;
     const files = view._files || [];
     if (t.dataset.rPlay) return playRecording(files[Number(t.dataset.rPlay)]);
-    if (t.dataset.rTrim) return openTrimEditor(files[Number(t.dataset.rTrim)], () => setTimeout(draw, 300));
+    // a szerkesztő előnézete külön videóelemben fut (a nézési idő ott nem számolódik)
+    if (t.dataset.rTrim) return (await allowOutsidePlayback('A vágószerkesztőben')) && openTrimEditor(files[Number(t.dataset.rTrim)], () => setTimeout(draw, 300));
     if (!(await recAction(t, files))) return;
     setTimeout(draw, 300);
   };
@@ -488,6 +492,7 @@ async function recAction(t, files) {
     store.settings.recSchedule = schedule().filter((s) => s.id !== t.dataset.rCancel);
     store.save();
   } else if (t.dataset.rOpen) {
+    if (!(await allowOutsidePlayback())) return false;
     const err = await api.recOpen(files[Number(t.dataset.rOpen)].path);
     if (err) toast(err);
   } else if (t.dataset.rDel) {

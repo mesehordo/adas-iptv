@@ -8,7 +8,7 @@ import { ICON, openModal, confirmDialog, promptDialog } from './components.js';
 import { player } from './player.js';
 import { refreshAll, refreshing } from './refresh.js';
 import { readPickedFiles } from './vod.js';
-import { packsOf, pickAndImportPacks, removePack } from './packs.js';
+import { packsOf, pickAndImportPacks, promptImportPackUrl, removePack } from './packs.js';
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 const isUrl = (u) => /^https?:\/\/\S+$/i.test(u || '');
@@ -47,6 +47,7 @@ export function renderLists(box) {
     }).join('')}</ul>
     <div class="inline">
       ${api.caps.files ? `<button class="btn small" data-l="pack-add">${ICON.plus} Kiegészítő csomag betöltése (…_tv.adaspack)</button>` : ''}
+      <button class="btn small" data-l="pack-url">${api.caps.files ? '' : ICON.plus + ' Kiegészítő csomag '}Betöltés webcímről</button>
       ${api.packsDir ? '<button class="btn small" data-l="pack-dir">Csomagok mappája</button>' : ''}
       <button class="btn small" data-help="adaspack">Mi ez, és hogyan készíthetek ilyet?</button>
     </div>
@@ -141,6 +142,9 @@ export function renderLists(box) {
       case 'pack-add':
         // a betöltés után a katalógus magától újraépül (bus 'packs'), utána frissül ez a rész is
         if ((await pickAndImportPacks())?.ok.length) setTimeout(() => box.isConnected && renderLists(box), 300);
+        break;
+      case 'pack-url':
+        if ((await promptImportPackUrl())?.ok.length) setTimeout(() => box.isConnected && renderLists(box), 300);
         break;
       case 'pack-dir':
         api.packsDir();
