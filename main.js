@@ -129,15 +129,20 @@ function decodeText(buf) {
  * Gyorsítótár-fájl írása atomikusan: egyedi átmeneti fájlba írunk, majd átnevezzük – így egy közben
  * futó olvasás soha nem lát félig megírt (hibás) fájlt. A hibát elnyeljük: a gyorsítótár nem kötelező.
  */
-async function writeCacheAtomically(file, data, encoding) {
-  const tmp = `${file}.${process.pid}.${crypto.randomBytes(6).toString('hex')}.tmp`;
-  try {
-    await fs.promises.writeFile(tmp, data, encoding);
-    await fs.promises.rename(tmp, file);
-  } catch {
-    await fs.promises.unlink(tmp).catch(() => {});
-  }
+function writeCacheAtomically(file, data, encoding) {
+  // a fájl saját sorában (queueFileOp): a párhuzamos írások sorban futnak, és a következő olvasás megvárja
+  return queueFileOp(file, async () => {
+    const tmp = `${file}.${process.pid}.${crypto.randomBytes(6).toString('hex')}.tmp`;
+    try {
+      await fs.promises.writeFile(tmp, data, encoding);
+      await fs.promises.rename(tmp, file);
+    } catch {
+      await fs.promises.unlink(tmp).catch(() => {});
+    }
+  });
 }
+/** Megvárja a fájl függő írását (hogy egy azonnali olvasás ne a régi gyorsítótárat lássa). */
+const pendingWrite = (file) => (writeChains.get(file) || Promise.resolve()).catch(() => {});
 
 /**
  * Mint a fetchText, de UTF-8 bájtokként adja vissza (a nagy műsorújság-fájlokhoz): a bájtok az IPC-n
@@ -148,6 +153,7 @@ async function fetchBytes(url, opts = {}) {
   const { maxAgeHours = 24, force = false } = opts;
   await fs.promises.mkdir(cacheDir(), { recursive: true });
   const file = cachePath(url);
+  await pendingWrite(file);
   let stat = null;
   try {
     stat = await fs.promises.stat(file);
@@ -178,6 +184,7 @@ async function fetchText(url, opts = {}) {
   // Minden fájlművelet aszinkron: a nagy (műsorújság) fájloknál a szinkron írás / olvasás az ablakot is megakasztotta.
   await fs.promises.mkdir(cacheDir(), { recursive: true });
   const file = cachePath(url);
+  await pendingWrite(file);
   let stat = null;
   try {
     stat = await fs.promises.stat(file);

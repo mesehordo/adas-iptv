@@ -594,7 +594,8 @@ export function openInfo(ch) {
       e.target.textContent = 'Ellenőrzés…';
       try {
         const { results } = await api.checkStreams(ch.streams.map((s) => ({ url: s.url, ua: s.ua, referrer: s.referrer })));
-        for (const [url, ok] of Object.entries(results)) store.setHealth(url, ok, 'probe');
+        // ok: true / false, vagy 'geo' (403 / 451) – a szöveg „igaz” lenne, ezért külön adjuk át
+      for (const [url, ok] of Object.entries(results)) store.setHealth(url, ok === true, 'probe', ok === 'geo');
         bus.emit('health');
       } catch (err) {
         toast('Az ellenőrzés nem sikerült: ' + (err.message || err));
