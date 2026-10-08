@@ -33,7 +33,7 @@ export function setKidsMark(kind, item, value) {
 
 /**
  * Nézheti-e a (gyerek)profil? Felnőtt profilnál mindig igen. Gyerekprofilnál a profil saját beállítása
- * (Beállítások → Gyerekprofilok), ennek híján az, hogy gyerektartalom-e.
+ * (Beállítások → Tartalom és gyerekek → Gyerekprofilok), ennek híján az, hogy gyerektartalom-e.
  */
 export function kidsAllowed(profile, kind, item) {
   if (!profile?.kids) return true;

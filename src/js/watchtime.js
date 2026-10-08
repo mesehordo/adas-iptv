@@ -92,7 +92,7 @@ setInterval(async () => {
   }
 }, TICK * 1000);
 
-/** Beállítások → Gyerekprofilok: napi keret és korhatár profilonként. */
+/** Beállítások → Tartalom és gyerekek → Gyerekprofilok: napi keret és korhatár profilonként. */
 export function limitsHtml(profs) {
   return `<div class="kids-limits">${profs
     .map((p) => {

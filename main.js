@@ -835,14 +835,43 @@ app.on('will-quit', (e) => {
 // ADAS_REC_DIR: más mappa (pl. teszteléshez, a valódi Videók mappa érintése nélkül)
 const recDir = () => process.env.ADAS_REC_DIR || path.join(app.getPath('videos'), 'Adás felvételek');
 ipcMain.handle('rec-start', (_e, o) => media.recStart({ ...o, dir: recDir() }));
+// Ütemezett felvételek indítási ideje: a főfolyamat időzítője pontos (a tálcára rejtett ablak időzítőit a
+// böngészőmotor akár percekre is visszafogja). Időben szól a felületnek, az indítja a felvételt.
+const recTimers = new Map(); // id -> időzítő
+ipcMain.handle('rec-schedule', (_e, list) => {
+  for (const t of recTimers.values()) clearTimeout(t);
+  recTimers.clear();
+  for (const s of Array.isArray(list) ? list.slice(0, 200) : []) {
+    const wait = Number(s.at) - Date.now();
+    if (!s.id || !(wait > -3600e3) || wait > 7 * 864e5) continue;
+    recTimers.set(String(s.id), setTimeout(() => win && !win.isDestroyed() && win.webContents.send('rec-due', String(s.id)), Math.max(0, wait)));
+  }
+  return recTimers.size;
+});
 ipcMain.handle('rec-stop', (_e, id) => media.recStop(id));
 ipcMain.handle('rec-list', () => ({ dir: recDir(), files: media.recList(recDir()) }));
-ipcMain.handle('rec-open', (_e, p) => (String(p).startsWith(recDir()) ? shell.openPath(p) : 'Érvénytelen fájl'));
+ipcMain.handle('rec-open', (_e, p) => (inRecDir(p) ? shell.openPath(path.resolve(p)) : 'Érvénytelen fájl'));
 ipcMain.handle('rec-folder', () => {
   fs.mkdirSync(recDir(), { recursive: true });
   return shell.openPath(recDir());
 });
-ipcMain.handle('rec-trash', (_e, p) => (String(p).startsWith(recDir()) ? shell.trashItem(p).then(() => true) : false));
+// csak a felvételek mappájában lévő fájl (útvonal-normalizálással: „..” nem vezethet ki belőle)
+const inRecDir = (p) => {
+  const full = path.resolve(String(p || ''));
+  return full.startsWith(path.resolve(recDir()) + path.sep) && /\.(ts|mkv|mp4)$/i.test(full);
+};
+ipcMain.handle('rec-trash', async (_e, p) => {
+  if (!inRecDir(p) || media.isRecording(p)) return false; // futó felvétel nem mehet a Lomtárba
+  p = path.resolve(p);
+  await shell.trashItem(p);
+  // a vágás előtti eredeti is megy (külön nem játszható le, csak újravágáshoz kellett)
+  const orig = media.originalOf(p);
+  if (fs.existsSync(orig)) await shell.trashItem(orig).catch(() => {});
+  return true;
+});
+ipcMain.handle('rec-trim', (_e, { path: p, start, end } = {}) => (inRecDir(p) ? media.recTrim(path.resolve(p), start, end) : Promise.reject(new Error('Érvénytelen fájl'))));
+ipcMain.handle('rec-original', (_e, p) => (inRecDir(p) ? { source: media.recSource(path.resolve(p)), trimmed: fs.existsSync(media.originalOf(path.resolve(p))) } : null));
+ipcMain.handle('rec-restore', (_e, p) => (inRecDir(p) ? media.recRestore(path.resolve(p)) : false));
 ipcMain.handle('cast-play', (_e, opts) => lan.castPlay(opts));
 ipcMain.handle('cast-control', (_e, action, value) => lan.castControl(action, value));
 ipcMain.handle('share-start', (_e, data) => lan.shareStart(data));

@@ -1,6 +1,7 @@
 // Lejátszómotor: HLS (hls.js), MPEG-TS/FLV (mpegts.js), DASH (dash.js), natív videó, vagy (asztali
 // változatban) az FFmpeg-híd az AC3/DTS hangú, beágyazott feliratú, régi formátumú fájlokhoz.
 import { api } from './api.js';
+import { store } from './store.js';
 import { MediaBridge } from './bridge.js';
 import { ExoEngine } from './exo.js';
 
@@ -10,6 +11,22 @@ const MEM_BUDGET = 110e6; // bájt: a böngésző videópufferének (kb. 150 MB)
 const HEAD_TIMEOUT = 6000; // élő adás: ennyi idő alatt meg kell érkeznie a listának / metaadatoknak
 const HEAD_TIMEOUT_VOD = 15000; // film: a lassabb tárhelyeknél (pl. archive.org) több idő kell
 const HEAD_TIMEOUT_NATIVE = 12000; // a beépített lejátszó (tévé) csak az első szegmens után ad metaadatot
+
+/**
+ * A beállított legnagyobb minőség (Beállítások → Lejátszás): az ennél nagyobb felbontású szinteket a
+ * hls.js nem választja (adatkímélés, lassú kapcsolat). 'auto': csak az ablakméret korlátoz.
+ */
+export function applyQualityCap(hls) {
+  if (!hls?.levels?.length) return;
+  const max = Number(store.settings.maxQuality) || 0;
+  if (!max) return void (hls.autoLevelCapping = -1);
+  let cap = -1;
+  hls.levels.forEach((l, i) => {
+    if (l.height > 0 && l.height <= max) cap = Math.max(cap, i); // ismeretlen magasságú szint nem számít bele
+  });
+  // ha minden szint nagyobb (vagy ismeretlen a magasság), a legkisebbet engedjük
+  hls.autoLevelCapping = cap >= 0 ? cap : 0;
+}
 
 function detectType(url) {
   const u = url.split(/[?#]/)[0].toLowerCase();
@@ -173,6 +190,8 @@ export class Engine {
           // Óvatosabb minőségváltás: felfelé csak bőséges sávszélességnél, lefelé hamarabb.
           abrBandWidthFactor: 0.8,
           abrBandWidthUpFactor: 0.6,
+          // Legfeljebb az ablak méretének megfelelő felbontás (kis ablakban, mini lejátszóban nem tölt Full HD-t)
+          capLevelToPlayerSize: true,
         });
         this.hls = hls;
         this.timeshift = timeshift;
@@ -186,6 +205,7 @@ export class Engine {
           if (bytes && dur > 0.5 && d.frag.type === 'main') this.fragBitrate = this.fragBitrate ? this.fragBitrate * 0.7 + ((bytes * 8) / dur) * 0.3 : (bytes * 8) / dur;
         });
         hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
+          applyQualityCap(hls);
           tryPlay();
           this.onTracks();
         });

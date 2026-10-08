@@ -1,4 +1,4 @@
-// Beállítások → Gyerekprofilok: mit nézhetnek a gyerekprofilok (csatornák, VOD) – profilonként külön
+// Beállítások → Tartalom és gyerekek → Gyerekprofilok: mit nézhetnek a gyerekprofilok (csatornák, VOD) – profilonként külön
 // kapcsolóval –, és a közös gyerektartalom-jelölés.
 import { esc, norm, toast, debounce } from './util.js';
 import { store } from './store.js';

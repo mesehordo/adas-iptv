@@ -724,6 +724,10 @@ export function renderSettings(view) {
       ${api.setBackgroundPrefs && api.caps.pip ? toggle('autoPip', 'Kis ablak kilépéskor (kép a képben)', 'Ha lejátszás közben a Kezdőképernyőre vagy másik alkalmazásba lépsz, az adás egy lebegő kis ablakban szól tovább minden más fölött. Kézzel: a lejátszó kép a képben gombja.') : ''}
       ${api.setBackgroundPrefs ? toggle('bgAudio', 'Háttérlejátszás (csak hang)', 'Másik alkalmazásra váltva az adás hangja tovább szól (értesítéssel, onnan leállítható). Ha a kis ablak is be van kapcsolva, az az elsődleges.') : ''}
       ${toggle('perChannelVolume', 'Hangerő csatornánként', 'Minden csatorna megjegyzi a saját hangerejét (a halkabb és hangosabb adók miatt).')}
+      <label class="setting"><span><b>Legnagyobb minőség</b><small>A több minőségben elérhető adásoknál: lassú vagy mobil kapcsolaton kisebb felbontással kevesebbet akad, és kevesebb adatot használ. Automatikusan az ablak méretéhez igazodik. (Az egyetlen minőségű adásokon nem változtat.)</small></span>
+        <select data-set="maxQuality">${[['', 'Automatikus (az ablakmérethez)'], ['1080', 'Legfeljebb 1080p (Full HD)'], ['720', 'Legfeljebb 720p (HD)'], ['480', 'Legfeljebb 480p (SD)'], ['360', 'Legfeljebb 360p (adatkímélő)']]
+          .map(([v, l]) => `<option value="${v}" ${String(s.maxQuality || '') === v ? 'selected' : ''}>${l}</option>`)
+          .join('')}</select></label>
       <label class="setting"><span><b>Feliratok mérete</b></span><select data-set="subsSize">${[['small', 'Kicsi'], ['normal', 'Közepes'], ['large', 'Nagy'], ['huge', 'Óriás']].map(([v, l]) => `<option value="${v}" ${(s.subsSize || 'normal') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
       <label class="setting stack"><span><b>Feliratok színe és háttere</b><small>Filmeknél, sorozatoknál és az élő adások feliratainál.</small></span><div class="inline sub-style"><select data-set="subColor" aria-label="Szín">${[['white', 'Fehér'], ['yellow', 'Sárga'], ['cyan', 'Világoskék']].map(([v, l]) => `<option value="${v}" ${(s.subColor || 'white') === v ? 'selected' : ''}>${l}</option>`).join('')}</select><select data-set="subBg" aria-label="Háttér">${[['box', 'Sötét sáv'], ['shadow', 'Árnyék'], ['none', 'Nincs']].map(([v, l]) => `<option value="${v}" ${(s.subBg || 'box') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></label>
       <label class="setting"><span><b>Lejátszómotor</b><small>Automatikus: tévén a beépített lejátszó, máshol a hls.js. Ha egy adás nem indul, érdemes átváltani.</small></span>
@@ -806,7 +810,7 @@ export function renderSettings(view) {
         .join('')}</select></label>
     </section>
 
-    <section class="set-section" id="data" data-g="data"><h2>Profilok és adatok <button class="help-link" data-help="backup" title="Súgó">?</button></h2>
+    <section class="set-section" id="data" data-g="data"><h2>Profilok és mentés <button class="help-link" data-help="backup" title="Súgó">?</button></h2>
       <div class="inline"><a class="btn" href="#/profiles">Profilok kezelése</a>
       ${api.caps.files ? `<button class="btn" data-act="export">Mentés fájlba</button>
       <button class="btn" data-act="import">Visszaállítás fájlból</button>
@@ -1009,6 +1013,8 @@ const SET_GROUPS = [
   ['data', '💾', 'Profilok és mentés', 'Profilok, mentés és visszaállítás, automatikus mentések'],
   ['about', 'ℹ️', 'Frissítés és névjegy', 'Verzió, frissítések, adatforrások'],
 ];
+let refocusSetTab = false;
+/** A beállítások csoportnavigációja (csempék / fülek), kereső, kártyás elrendezés. */
 function settingsNav(view) {
   const nav = $('.set-nav', view);
   const params = new URLSearchParams(location.hash.split('?')[1] || '');
@@ -1031,7 +1037,7 @@ function settingsNav(view) {
   // Nézetváltó a fejlécben
   $('.set-head', view).insertAdjacentHTML(
     'beforeend',
-    `<div class="seg set-view" role="group" aria-label="Elrendezés"><button class="${mode === 'tiles' ? 'on' : ''}" data-sv="tiles" title="Csempés kezdőlap">▦ Csempék</button><button class="${mode === 'tabs' ? 'on' : ''}" data-sv="tabs" title="Fülek">☰ Fülek</button></div>`
+    `<div class="seg set-view" role="group" aria-label="Elrendezés"><button class="tab ${mode === 'tiles' ? 'active' : ''}" data-sv="tiles" title="Csempés kezdőlap">▦ Csempék</button><button class="tab ${mode === 'tabs' ? 'active' : ''}" data-sv="tabs" title="Fülek">☰ Fülek</button></div>`
   );
   nav.innerHTML = `<input class="input set-search" type="search" placeholder="Keresés a beállítások között (pl. felirat, téma, szinkron)…" aria-label="Keresés a beállítások között" />
     ${
@@ -1050,9 +1056,20 @@ function settingsNav(view) {
   show();
   // a kiválasztott fül látszódjon a vízszintesen görgethető sorban (telefonon)
   const at = nav.querySelector('.set-tabs .active');
+  if (at && refocusSetTab) {
+    refocusSetTab = false;
+    at.focus({ preventScroll: true });
+  }
   if (at) at.parentElement.scrollLeft = at.offsetLeft - (at.parentElement.clientWidth - at.offsetWidth) / 2;
   const page = $('.page.settings', view);
   page.classList.toggle('set-hub', hub);
+  page.classList.add(mode === 'tabs' ? 'set-mode-tabs' : 'set-mode-tiles');
+  // A részek egy közös tárolóba kerülnek: széles képernyőn kártyákként, két oszlopban rendeződnek
+  // (a DOM-ban áthelyezve – az eseménykezelők megmaradnak)
+  const body = document.createElement('div');
+  body.className = 'set-body';
+  nav.after(body);
+  for (const s of view.querySelectorAll('.page.settings > .set-section')) body.append(s);
   if (secEl && !hub) requestAnimationFrame(() => secEl.scrollIntoView({ block: 'start' }));
   const search = nav.querySelector('.set-search');
   const parts = [...nav.children].filter((el) => !el.matches('.set-search, .set-noresult'));
@@ -1082,7 +1099,10 @@ function settingsNav(view) {
   );
   nav.addEventListener('click', (e) => {
     const t = e.target.closest('[data-sg]');
-    if (t) go(t.dataset.sg, true);
+    if (t) {
+      refocusSetTab = true; // az újrarajzolás után a kijelölés az új aktív fülre áll vissza
+      go(t.dataset.sg, true);
+    }
   });
   $('.set-view', view).addEventListener('click', (e) => {
     const b = e.target.closest('[data-sv]');

@@ -55,7 +55,7 @@ async function loadWeather() {
   return { loc, data: JSON.parse(text) };
 }
 
-/** A mai időjárás megjelenése (Beállítások → Főoldal). */
+/** A mai időjárás megjelenése (Beállítások → Megjelenés és főoldal → Főoldal). */
 export const WEATHER_STYLES = [
   ['line', 'Vonaldiagram'],
   ['area', 'Terület + csapadék'],
@@ -456,7 +456,7 @@ export const UNITS = {
     mobile: 460,
     render(b, { w, h }) {
       if (!newsCache) return '<div class="spinner small"></div>';
-      if (!feeds().length) return note('Nincs bekapcsolt hírforrás. A Beállítások → Főoldal alatt adhatsz hozzá RSS-címet.');
+      if (!feeds().length) return note('Nincs bekapcsolt hírforrás. A Beállítások → Megjelenés és főoldal → Főoldal alatt adhatsz hozzá RSS-címet.');
       if (!newsCache.length) return note('A hírek most nem érhetők el.');
       const thumbs = w >= 300;
       const desc = w >= 560;
@@ -490,7 +490,7 @@ export const UNITS = {
     title: 'Utoljára nézett csatorna',
     link: ['#/tv', 'TV ›'],
     mobile: 250,
-    // asztali gépen és Androidon néhány másodperc után a csatorna némított élő képe (Beállítások → Előnézet)
+    // asztali gépen és Androidon néhány másodperc után a csatorna némított élő képe (Beállítások → Lejátszás → Előnézet a főoldalon)
     after(b) {
       clearTimeout(previewTimer);
       const logo = b.querySelector('.d-last-logo');
@@ -1236,7 +1236,7 @@ function editAction(view, a, id, addId, targetId) {
 }
 
 // ---------------------------------------------------------------------------
-// Beállítások → Főoldal: elrendezés, település (időjárás), megjelenés, hírforrások (RSS)
+// Beállítások → Megjelenés és főoldal → Főoldal: elrendezés, település (időjárás), megjelenés, hírforrások (RSS)
 // ---------------------------------------------------------------------------
 export function renderDashSettings(box) {
   const s = store.settings;

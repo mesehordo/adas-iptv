@@ -132,7 +132,7 @@ function osHeaders(auth) {
 
 async function osReq(method, path, body, { auth = false, retry = true } = {}) {
   if (!(store.settings.osApiKey || '').trim()) {
-    throw new Error('Nincs megadva OpenSubtitles API-kulcs (Beállítások → Magyar információk és feliratok).');
+    throw new Error('Nincs megadva OpenSubtitles API-kulcs (Beállítások → Lejátszás → Magyar információk és feliratok).');
   }
   const base = auth && store.settings.osBaseUrl ? `https://${store.settings.osBaseUrl}/api/v1` : OS_BASE;
   const r = await api.request({ method, url: base + path, headers: osHeaders(auth), body: body ? JSON.stringify(body) : undefined });

@@ -100,6 +100,14 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - Mentés és visszaállítás fájlba (beállítások, profilok, kedvencek, emlékeztetők)
 - Teljes billentyűzetes / távirányítós vezérlés (nyilak, Enter, Esc / Backspace)
 
+**Felvétel vágása, megbízható felvétel, új távirányító QR-kóddal, levegős Beállítások (1.24)**
+- **Felvétel vágása** (VOD → Felvételek → ✂): előnézet, idővonal a műsorújság szerinti kezdet / vég jelével, léptetés, „Kezdet ide” / „Vége ide” (I / O), beírható időpontok; vágás újrakódolás nélkül. A vágott változatot játssza le az Adás, az eredeti megmarad (újravágható, visszaállítható, külön nem jelenik meg)
+- **Ütemezett felvétel:** beállítható ráhagyás (alapból 3 perc előtte, 10 perc utána); az indítást a főfolyamat időzítője adja (a tálcán is pontos); ha az adás megszakad, a felvétel magától folytatódik ugyanabba a fájlba (folytonos időbélyegekkel)
+- **Távirányító telefonról:** QR-kóddal csatlakozik (a PIN-t is átadja); érintőpad (húzás = nyilak, koppintás = OK, hosszan = Vissza), tekerés, hangerő-csúszka, felirat / minőség / lista / teljes képernyő, csatornakereső, kedvencek és előzmények, szöveg küldése, ugrás bármelyik oldalra; a lap nem kerül gyorsítótárba
+- **Beállítások:** a részek kártyákon; széles képernyőn két oszlop, füles módban bal oldali csoportlista; egységes „Beállítások → csoport → rész” hivatkozások a súgóban és a felületen
+- **Legnagyobb minőség** beállítás (1080p / 720p / 480p / 360p, vagy az ablakmérethez igazodó automatikus)
+- Nyilas / távirányítós kezelés: a kijelölés a tartalommal kezd, oldalsávról jobbra a tartalomra lép, fülváltás után nem vész el
+
 **Földrajzi korlát jelzése, adás adatai, nincs befagyás, kevesebb akadás (1.23)**
 - **🌐 Földrajzi korlát:** a kártyákon, az adatlapon és a lejátszó hibaüzenetében; a háttér-ellenőrzés és a lejátszás a 403 / 451 választ felismeri („innen nem nézhető”), a lista `[Geo-blocked]` címkéje „korlátozott lehet” jelzés, amely eltűnik, ha az adás innen mégis működik; szűrő a Böngészésben
 - **Adás adatai** panel (⚙ → 📊, vagy `D`): lejátszómotor, kiszolgáló, felbontás, kodekek, bitráta (mért is), letöltési sebesség és annak aránya a bitrátához, puffer, késés az élőtől, eldobott képkockák, akadások, hálózat – tanáccsal, ha akadhat
