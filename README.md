@@ -100,6 +100,14 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - Mentés és visszaállítás fájlba (beállítások, profilok, kedvencek, emlékeztetők)
 - Teljes billentyűzetes / távirányítós vezérlés (nyilak, Enter, Esc / Backspace)
 
+**Földrajzi korlát jelzése, adás adatai, nincs befagyás, kevesebb akadás (1.23)**
+- **🌐 Földrajzi korlát:** a kártyákon, az adatlapon és a lejátszó hibaüzenetében; a háttér-ellenőrzés és a lejátszás a 403 / 451 választ felismeri („innen nem nézhető”), a lista `[Geo-blocked]` címkéje „korlátozott lehet” jelzés, amely eltűnik, ha az adás innen mégis működik; szűrő a Böngészésben
+- **Adás adatai** panel (⚙ → 📊, vagy `D`): lejátszómotor, kiszolgáló, felbontás, kodekek, bitráta (mért is), letöltési sebesség és annak aránya a bitrátához, puffer, késés az élőtől, eldobott képkockák, akadások, hálózat – tanáccsal, ha akadhat
+- **Műsorújság frissítése / ki-be kapcsolása:** a felület nem fagy be (eddig akár 4–5 mp-re): a letöltés, kicsomagolás és fájlkezelés aszinkron, a feldolgozás és a csatornapárosítás a háttérszálon, az adatok bájtként és részletekben érkeznek, a műsorok csak használatkor jönnek létre; a frissítés kb. kétszer gyorsabb
+- **Kevesebb akadás:** az élő adás 4 résznyivel a széle mögött indul (a még készülő részt sok szerver csak valós időben küldi), a kis időbélyeg-réseken a lejátszó átlép, óvatosabb minőségváltás; a háttér-ellenőrzés lejátszás közben szünetel
+- Beállítások, gyorsítótár és listák mentése aszinkron (kilépéskor megvárja)
+- Biztonság (1.22.1-ből): LAN-továbbító engedélylistával és kapcsolódáskori IP-ellenőrzéssel, korlátos fájlolvasás, HTML-tisztítás, Android allowBackup=false
+
 **Felvételek az alkalmazásban, új Beállítások, minden ablakméret (1.22)**
 - **VOD → Felvételek** fül (asztali): a saját tévéfelvételek csatornalogóval, dátummal, mérettel; lejátszás az Adás saját lejátszójában (tekerhetően, folytatással), külső lejátszó, törlés; a most rögzített és az ütemezett felvételek is itt
 - A lejátszási híd az MPEG-TS fájlokat (.ts) is lejátssza (AAC / MP2 hang, nem nulláról induló időbélyegek)

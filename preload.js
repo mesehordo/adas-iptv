@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('api', {
   docGet: (key) => ipcRenderer.invoke('doc-get', key),
   docSet: (key, value) => ipcRenderer.invoke('doc-set', key, value),
   fetchText: (url, opts) => ipcRenderer.invoke('fetch-text', url, opts),
+  fetchBytes: (url, opts) => ipcRenderer.invoke('fetch-bytes', url, opts),
   setStreamHeaders: (url, headers) => ipcRenderer.invoke('set-stream-headers', url, headers),
   checkStreams: (list) => ipcRenderer.invoke('check-streams', list),
   probe: (item) => ipcRenderer.invoke('probe-one', item),

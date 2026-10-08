@@ -37,9 +37,60 @@ const tag = (s, name) => {
   return m ? decode(m[1]) : '';
 };
 
+// ---------------------------------------------------------------------------
+// Párosítás a csatornalistával (itt, a háttérszálon – a felületre csak a párosított műsorok mennek
+// vissza). Sorrend: pontos tvg-id → azonosító-kulcs országgal → név országgal → név.
+// ---------------------------------------------------------------------------
+let index = null;
+/** Összevetési kulcs: ékezet nélkül, kisbetűvel, csak betű és szám. */
+const key = (s) =>
+  String(s || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+/** A minőségjelölő végződés (HD, FHD, 4K...) levágása. */
+const stripSuffix = (k) => k.replace(/(uhd|fhd|hd|sd|4k)$/, '') || k;
+/** XMLTV-azonosító -> { k: névkulcs, cc: országkód } (pl. M1.hu -> m1, hu). */
+function idKey(id) {
+  const base = id.split('@')[0];
+  const m = base.match(/^(.*)\.([a-z]{2,3})$/i);
+  return { k: stripSuffix(key(m ? m[1] : base)), cc: m ? m[2].toLowerCase() : '' };
+}
+/** Egy XMLTV-csatorna párosítása a csatornalistával (a fenti sorrendben). -> csatorna-id vagy null */
+function resolve(epgId, names, idx) {
+  const lower = epgId.toLowerCase();
+  if (idx.exact.has(lower)) return idx.exact.get(lower);
+  const base = lower.split('@')[0];
+  if (idx.exact.has(base)) return idx.exact.get(base);
+  const { k, cc } = idKey(epgId);
+  const ccs = cc === 'uk' ? ['gb', 'uk'] : [cc];
+  for (const c of ccs) {
+    const hit = idx.withCc.get(k + '.' + c);
+    if (hit) return hit;
+  }
+  for (const n of names) {
+    const nk = stripSuffix(key(n));
+    for (const c of ccs) {
+      const hit = idx.nameCc.get(nk + '.' + c);
+      if (hit) return hit;
+    }
+  }
+  for (const n of [k, ...names.map((x) => stripSuffix(key(x)))]) {
+    const hit = idx.nameOnly.get(n);
+    if (hit) return hit;
+  }
+  return null;
+}
+
 self.onmessage = (e) => {
-  const { id, text, from, to } = e.data;
+  if (e.data.type === 'index') {
+    index = e.data.index;
+    return;
+  }
+  const { id, from, to } = e.data;
   try {
+    const text = e.data.text ?? new TextDecoder('utf-8').decode(e.data.bytes);
     // prototípus nélküli objektumok: a fájlból jövő azonosító (pl. „__proto__”) ne írhasson felül semmit
     const channels = Object.create(null);
     for (const m of text.matchAll(/<channel\s+id="([^"]*)"[^>]*>([\s\S]*?)<\/channel>/g)) {
@@ -70,7 +121,33 @@ self.onmessage = (e) => {
       for (let i = 0; i < list.length; i++) if (!list[i][1]) list[i][1] = list[i + 1] ? list[i + 1][0] : list[i][0] + 3600e3;
       programs[k] = list.filter((p, i) => p[1] > from && p[0] < to && (i === 0 || p[0] !== list[i - 1][0]));
     }
-    self.postMessage({ id, channels, programs, count });
+    // Párosítás: csak a csatornalistában megtalált csatornák műsorai mennek vissza [[csatorna-id, műsorok], …]
+    const matched = [];
+    if (index) {
+      const seen = new Set();
+      for (const epgId of new Set([...Object.keys(channels), ...Object.keys(programs)])) {
+        const progs = programs[epgId];
+        if (!progs || !progs.length) continue;
+        const chId = resolve(epgId, channels[epgId] || [], index);
+        if (!chId || seen.has(chId)) continue;
+        seen.add(chId);
+        matched.push([chId, progs]);
+      }
+    }
+    // Részletekben küldjük vissza (kb. 15 000 műsoronként): egyetlen nagy üzenet kicsomagolása a felület
+    // szálát akár egy másodpercre is megakasztotta.
+    let part = [];
+    let size = 0;
+    for (const m of matched) {
+      part.push(m);
+      size += m[1].length;
+      if (size >= 15000) {
+        self.postMessage({ id, chunk: part });
+        part = [];
+        size = 0;
+      }
+    }
+    self.postMessage({ id, chunk: part, done: true, nChannels: Object.keys(channels).length, count });
   } catch (err) {
     self.postMessage({ id, error: String(err) });
   }

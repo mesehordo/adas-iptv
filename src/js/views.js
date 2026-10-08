@@ -6,7 +6,7 @@ import { epg } from './epg.js';
 import { health } from './health.js';
 import {
   catalog, visible, getChannels, search, countryName, countryFlag, categoryName, rankScore, loadCatalog,
-  KIDS_CATEGORIES, channelStatus, bestQuality, MINE, activeLists, homeRank, homeFirst, COUNTRY_LANG,
+  KIDS_CATEGORIES, channelStatus, bestQuality, MINE, activeLists, homeRank, homeFirst, COUNTRY_LANG, geoState,
 } from './catalog.js';
 import {
   ICON, rowEl, gridEl, cardHtml, registerContext, openInfo, openProgram, openModal, confirmDialog, promptDialog,
@@ -275,6 +275,7 @@ export function renderBrowse(view, params) {
     lang: params.get('lang') || '',
     status: params.get('status') || '',
     quality: params.get('quality') || '',
+    geo: params.get('geo') || '',
     sort: params.get('sort') || 'popular',
     pl: params.get('pl') || '',
     q: params.get('q') || '',
@@ -299,6 +300,8 @@ export function renderBrowse(view, params) {
       (!f.pl || c.lists?.includes(f.pl)) &&
       (!f.status || channelStatus(c) === f.status) &&
       (!f.quality || bestQuality(c) >= Number(f.quality)) &&
+      // földrajzi korlát: ellenőrizve innen elutasított, vagy a lista szerint minden forrása korlátozott
+      (!f.geo || (f.geo === 'only') === !!geoState(c)) &&
       // a kereső szövege minden szűrővel együtt érvényes (név, más név, ország, kategória)
       (!qTokens.length || qTokens.every((t) => c.search.includes(t)))
   );
@@ -319,6 +322,7 @@ export function renderBrowse(view, params) {
       <select name="country" aria-label="Ország">${opts(countries.map((c) => [c.code, `${countryFlag(c.code)} ${c.name} (${c.count})`.trim()]), f.country, 'Minden ország')}</select>
       <select name="lang" aria-label="Nyelv">${opts(langs.map((l) => [l.code, `${l.name} (${l.count})`]), f.lang, 'Minden nyelv')}</select>
       <select name="quality" aria-label="Minőség">${opts([['720', 'HD vagy jobb'], ['1080', 'Full HD vagy jobb']], f.quality, 'Bármilyen minőség')}</select>
+          <select name="geo" aria-label="Földrajzi korlát">${opts([['hide', 'Földrajzi korlát nélkül'], ['only', 'Csak a földrajzilag korlátozottak']], f.geo, 'Földrajzi korláttól függetlenül')}</select>
       ${health.available || Object.keys(store.health).length ? `<select name="status" aria-label="Állapot">${opts([['ok', 'Működő'], ['unknown', 'Nem ellenőrzött'], ['bad', 'Nem elérhető']], f.status, 'Bármilyen állapot')}</select>` : ''}
       <select name="sort" aria-label="Rendezés">
         <option value="popular" ${f.sort === 'popular' ? 'selected' : ''}>Ajánlott sorrend</option>
@@ -846,6 +850,7 @@ export function renderSettings(view) {
         <tr><td>M / F / P / N / S</td><td>Némítás / teljes képernyő / kép a képben / mini lejátszó / kedvenc</td></tr>
         <tr><td>Shift+← / Shift+→, End</td><td>Élő adás: 30 mp vissza / előre, ugrás élőbe</td></tr>
         <tr><td>C / V</td><td>Hang és felirat / több adás egyszerre</td></tr>
+        <tr><td>D</td><td>Adás adatai (minőség, sebesség, puffer)</td></tr>
         <tr><td>R</td><td>Vissza az előző csatornára</td></tr>
       </table>
     </section>
@@ -910,8 +915,10 @@ export function renderSettings(view) {
     if (t.dataset.epgToggle !== undefined) {
       s.epgSources[Number(t.dataset.epgToggle)].enabled = t.checked;
       store.save();
+      // A teljes oldalt csak a betöltés végén rajzoljuk újra (közben a kapcsoló már mutatja az állapotot)
+      const info = t.closest('li')?.querySelector('small');
+      if (info) info.textContent = t.checked ? 'betöltés…' : 'kikapcsolva';
       epg.load().then(() => location.hash.startsWith('#/settings') && renderSettings(view));
-      renderSettings(view);
     }
   };
 

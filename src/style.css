@@ -429,6 +429,10 @@ select { cursor: pointer; }
 .setting select { max-width: 280px; }
 /* Keskeny képernyőn a választó a leírás alá kerül, ha nem fér mellé (ne vágódjon le a szövege) */
 .setting:has(> select) { flex-wrap: wrap; row-gap: 8px; }
+/* gombos beállítássor: a gombok a leírás alá kerülnek, ha nem férnek mellé (ne törjön a gomb felirata) */
+.setting:has(> .inline) { flex-wrap: wrap; row-gap: 8px; }
+.setting:has(> .inline) > span:first-child { flex: 1 1 200px; min-width: 0; }
+.setting > .inline .btn { white-space: nowrap; }
 .setting:has(> select) > span { flex: 1 1 200px; min-width: 0; }
 .setting > select { flex: 0 1 auto; min-width: min(100%, 11em); }
 @media (max-width: 600px) { .setting > select { max-width: 100%; } }
@@ -642,6 +646,9 @@ mark { background: rgba(255, 213, 74, 0.45); color: inherit; border-radius: 2px;
 
 /* ------------------------------------------------------------------ Nem elérhető csatornák */
 .off-badge { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 2; padding: 2px 9px; border-radius: 3px; background: rgba(0, 0, 0, 0.78); color: #fff; font-size: 10px; font-weight: 800; letter-spacing: 0.12em; white-space: nowrap; border: 1px solid rgba(255, 255, 255, 0.3); }
+.off-badge.geo { background: rgba(120, 70, 0, 0.88); border-color: rgba(255, 190, 80, 0.7); }
+/* földrajzilag korlátozott lehet (a lista szerint) – kis jel a kártya sarkában */
+.geo-mark { position: absolute; left: 6px; bottom: 6px; z-index: 2; font-size: 13px; line-height: 1; padding: 3px 4px; border-radius: 4px; background: rgba(0, 0, 0, 0.6); }
 .card.is-off .thumb .logo, .card.is-off .thumb .initials { filter: grayscale(1) brightness(0.75); opacity: 0.75; }
 .card.is-off .thumb { background: radial-gradient(circle at 30% 20%, hsl(var(--h) 6% 32%), hsl(var(--h) 6% 16%)); }
 .card.is-off .thumb .bar { display: none; }
@@ -1365,3 +1372,16 @@ body.pip #player .exo-subs { font-size: 12px; bottom: 4%; }
   .set-tile { padding: 14px; flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: 12px; }
   .set-tile small { flex-basis: 100%; }
 }
+
+/* Lejátszó: Adás adatai panel */
+.p-stats { position: absolute; top: 72px; left: 16px; z-index: 30; width: min(380px, calc(100% - 32px)); max-height: calc(100% - 160px); overflow: auto; padding: 10px 14px 12px; border-radius: 10px; background: rgba(8, 8, 12, 0.82); color: #eee; font-size: 12.5px; line-height: 1.35; backdrop-filter: blur(6px); border: 1px solid rgba(255, 255, 255, 0.12); pointer-events: auto; }
+.p-stats .ps-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 13.5px; }
+.p-stats .ps-close { background: none; border: 0; color: inherit; font-size: 15px; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+.p-stats .ps-close:hover, .p-stats .ps-close:focus-visible { background: rgba(255, 255, 255, 0.15); outline: none; }
+.p-stats dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px 12px; margin: 0; }
+.p-stats dt { color: #9aa; }
+.p-stats dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.p-stats dd.warn { color: #ffb347; }
+.p-stats .ps-hint { color: #ffb347; margin: 8px 0 0; }
+.p-stats .ps-hint:empty { display: none; }
+@media (max-width: 600px) { .p-stats { top: 64px; left: 8px; width: calc(100% - 16px); font-size: 12px; } }

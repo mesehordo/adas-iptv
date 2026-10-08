@@ -78,18 +78,27 @@ function cachePath(url) {
   return path.join(cacheDir(), crypto.createHash('sha1').update(url).digest('hex') + '.dat');
 }
 
-function maybeGunzip(buf) {
-  if (buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b) return zlib.gunzipSync(buf);
+// Kicsomagolás a háttérben (a libuv szálkészletén): a több tíz MB-os műsorújságnál a szinkron
+// változat másodpercekre megállította a főfolyamatot – és vele az ablakot is.
+const gunzipAsync = require('util').promisify(zlib.gunzip);
+/** gzip-tömörített bájtok kicsomagolása (ha az); különben változatlanul adja vissza. */
+async function maybeGunzip(buf) {
+  if (buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b) return gunzipAsync(buf);
   return buf;
 }
 
-async function download(url, { ua, referrer, timeoutMs = 90000 } = {}) {
+/**
+ * Letöltés a főfolyamatból. onlyHttp: az átirányítások végén is csak http(s) cím fogadható el (a
+ * műsorújság-források gyakran átirányítanak, ezért azt nem tiltjuk – de helyi erőforrásra nem vezethet).
+ */
+async function download(url, { ua, referrer, timeoutMs = 90000, onlyHttp = false } = {}) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const headers = { 'User-Agent': ua || CHROME_UA };
     if (referrer) headers.Referer = referrer;
     const res = await net.fetch(url, { signal: ctrl.signal, headers, bypassCustomProtocolHandlers: true });
+    if (onlyHttp && !/^https?:\/\//i.test(res.url || url)) throw new Error('Nem engedélyezett átirányítás');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return Buffer.from(await res.arrayBuffer());
   } finally {
@@ -105,37 +114,98 @@ function decodeText(buf) {
   if (buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) return buf.subarray(3).toString('utf8');
   if (buf[0] === 0xff && buf[1] === 0xfe) return new TextDecoder('utf-16le').decode(buf.subarray(2));
   if (buf[0] === 0xfe && buf[1] === 0xff) return new TextDecoder('utf-16be').decode(buf.subarray(2));
-  try {
-    return new TextDecoder('utf-8', { fatal: true }).decode(buf);
-  } catch {
+  // Érvényes UTF-8? – gyors natív ellenőrzés (a hibát dobó TextDecoder nagy fájlon sokkal lassabb)
+  const { isUtf8 } = require('buffer');
+  let utf8 = false;
+  if (isUtf8) utf8 = isUtf8(buf);
+  else
     try {
-      return new TextDecoder('windows-1250').decode(buf);
-    } catch {
-      return buf.toString('latin1');
-    }
+      return new TextDecoder('utf-8', { fatal: true }).decode(buf);
+    } catch {}
+  if (utf8) return buf.toString('utf8');
+  try {
+    return new TextDecoder('windows-1250').decode(buf);
+  } catch {
+    return buf.toString('latin1');
   }
 }
 
-async function fetchText(url, opts = {}) {
+/**
+ * Gyorsítótár-fájl írása atomikusan: egyedi átmeneti fájlba írunk, majd átnevezzük – így egy közben
+ * futó olvasás soha nem lát félig megírt (hibás) fájlt. A hibát elnyeljük: a gyorsítótár nem kötelező.
+ */
+function writeCacheAtomically(file, data, encoding) {
+  // a fájl saját sorában (queueFileOp): a párhuzamos írások sorban futnak, és a következő olvasás megvárja
+  return queueFileOp(file, async () => {
+    const tmp = `${file}.${process.pid}.${crypto.randomBytes(6).toString('hex')}.tmp`;
+    try {
+      await fs.promises.writeFile(tmp, data, encoding);
+      await fs.promises.rename(tmp, file);
+    } catch {
+      await fs.promises.unlink(tmp).catch(() => {});
+    }
+  });
+}
+/** Megvárja a fájl függő írását (hogy egy azonnali olvasás ne a régi gyorsítótárat lássa). */
+const pendingWrite = (file) => (writeChains.get(file) || Promise.resolve()).catch(() => {});
+
+/**
+ * Mint a fetchText, de UTF-8 bájtokként adja vissza (a nagy műsorújság-fájlokhoz): a bájtok az IPC-n
+ * gyorsan átmennek, és a felület másolás nélkül adja tovább a háttérszálnak – a több tíz MB-os
+ * szöveg átvétele a felületet közel egy másodpercre megakasztotta.
+ */
+async function fetchBytes(url, opts = {}) {
   const { maxAgeHours = 24, force = false } = opts;
-  fs.mkdirSync(cacheDir(), { recursive: true });
+  await fs.promises.mkdir(cacheDir(), { recursive: true });
   const file = cachePath(url);
+  await pendingWrite(file);
   let stat = null;
   try {
-    stat = fs.statSync(file);
+    stat = await fs.promises.stat(file);
+  } catch {}
+  if (stat && !force && Date.now() - stat.mtimeMs < maxAgeHours * 3600e3) return { bytes: await fs.promises.readFile(file), cachedAt: stat.mtimeMs, fromCache: true };
+  try {
+    const buf = await maybeGunzip(await download(url, { onlyHttp: true }));
+    const bytes = isUtf8Text(buf) ? stripBom(buf) : Buffer.from(decodeText(buf), 'utf8');
+    writeCacheAtomically(file, bytes); // nem várjuk meg: a válasz ne késsen az írás miatt
+    return { bytes, cachedAt: Date.now(), fromCache: false };
+  } catch (err) {
+    if (stat) return { bytes: await fs.promises.readFile(file), cachedAt: stat.mtimeMs, fromCache: true, stale: true };
+    throw err;
+  }
+}
+/** UTF-8 BOM levágása (ha van). */
+const stripBom = (b) => (b[0] === 0xef && b[1] === 0xbb && b[2] === 0xbf ? b.subarray(3) : b);
+/** Érvényes UTF-8 szöveg-e (UTF-16 BOM esetén nem). */
+function isUtf8Text(buf) {
+  if ((buf[0] === 0xff && buf[1] === 0xfe) || (buf[0] === 0xfe && buf[1] === 0xff)) return false;
+  const { isUtf8 } = require('buffer');
+  return isUtf8 ? isUtf8(stripBom(buf)) : false;
+}
+
+/** Szöveges letöltés lemezes gyorsítótárral; hálózati hibánál a régi példányt adja (stale). */
+async function fetchText(url, opts = {}) {
+  const { maxAgeHours = 24, force = false } = opts;
+  // Minden fájlművelet aszinkron: a nagy (műsorújság) fájloknál a szinkron írás / olvasás az ablakot is megakasztotta.
+  await fs.promises.mkdir(cacheDir(), { recursive: true });
+  const file = cachePath(url);
+  await pendingWrite(file);
+  let stat = null;
+  try {
+    stat = await fs.promises.stat(file);
   } catch {}
   const fresh = stat && Date.now() - stat.mtimeMs < maxAgeHours * 3600e3;
   if (fresh && !force) {
-    return { text: fs.readFileSync(file, 'utf8'), cachedAt: stat.mtimeMs, fromCache: true };
+    return { text: await fs.promises.readFile(file, 'utf8'), cachedAt: stat.mtimeMs, fromCache: true };
   }
   try {
-    const buf = maybeGunzip(await download(url));
+    const buf = await maybeGunzip(await download(url));
     const text = decodeText(buf);
-    fs.writeFileSync(file, text, 'utf8');
+    writeCacheAtomically(file, text, 'utf8');
     return { text, cachedAt: Date.now(), fromCache: false };
   } catch (err) {
     // Hálózati hiba esetén a régi példány is jobb a semminél.
-    if (stat) return { text: fs.readFileSync(file, 'utf8'), cachedAt: stat.mtimeMs, fromCache: true, stale: true };
+    if (stat) return { text: await fs.promises.readFile(file, 'utf8'), cachedAt: stat.mtimeMs, fromCache: true, stale: true };
     throw err;
   }
 }
@@ -170,7 +240,8 @@ async function probeStream({ url, ua, referrer, trace }, depth = 0) {
   try {
     const { res, finalUrl } = await fetchFollow(url, { signal: ctrl.signal, headers });
     T(depth + ' ' + res.status + ' ' + finalUrl.slice(0, 90) + ' ' + res.headers.get('content-type'));
-    if (!res.ok) return false;
+    // 403 / 451: a szerver elutasította – jellemzően földrajzi korlátozás
+    if (!res.ok) return res.status === 403 || res.status === 451 ? 'geo' : false;
     const type = (res.headers.get('content-type') || '').toLowerCase();
     if (/video|mp2t|octet-stream|dash|audio/.test(type) && !/mpegurl/.test(type)) {
       ctrl.abort();
@@ -215,6 +286,7 @@ async function probeSegment(url, headers, T = () => {}) {
   try {
     const { res } = await fetchFollow(url, { signal: ctrl.signal, headers: { ...headers, Range: 'bytes=0-4095' } });
     T('seg status ' + res.status);
+    if (res.status === 403 || res.status === 451) return 'geo';
     if (res.status !== 200 && res.status !== 206) return false;
     // A tartalom számít, nem a típusa: egyes adók .htm / text/html álcával küldik a videót.
     // Hibás csak az, ami HTML / XML hibaoldal (vagy üres).
@@ -404,6 +476,15 @@ ipcMain.handle('notify', (_e, { title, body, channelId }) => {
 // IPC
 // ---------------------------------------------------------------------------
 ipcMain.handle('fetch-text', (_e, url, opts) => fetchText(url, opts));
+// csak http(s): a felület által adott cím ne olvashasson helyi fájlt (file:) a net.fetch-csel
+ipcMain.handle('fetch-bytes', (_e, url, opts) => {
+  let protocol = '';
+  try {
+    protocol = new URL(String(url)).protocol;
+  } catch {}
+  if (protocol !== 'http:' && protocol !== 'https:') throw new Error('Érvénytelen cím');
+  return fetchBytes(url, opts);
+});
 
 ipcMain.handle('set-stream-headers', (_e, url, headers) => {
   const host = hostOf(url);
@@ -431,19 +512,36 @@ ipcMain.handle('cancel-check', () => {
   checkRun++;
 });
 
-ipcMain.handle('store-load', () => {
+ipcMain.handle('store-load', async () => {
   try {
-    return JSON.parse(fs.readFileSync(storeFile(), 'utf8'));
+    return JSON.parse(await fs.promises.readFile(storeFile(), 'utf8'));
   } catch {
     return null;
   }
 });
 
-ipcMain.handle('store-save', (_e, data) => {
-  const tmp = storeFile() + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(data), 'utf8');
-  fs.renameSync(tmp, storeFile());
-});
+// Fájlba írás aszinkron, fájlonként sorban (a nagy JSON-ok szinkron írása az ablakot is megakasztotta).
+// Átmeneti fájlba írunk, majd átnevezzük – így megszakadt írás után sem sérül a régi.
+const writeChains = new Map();
+/** Egy fájlművelet sorba állítása: ugyanarra a fájlra az előző (írás / törlés) befejezése után fut. */
+function queueFileOp(file, op) {
+  const prev = writeChains.get(file) || Promise.resolve();
+  const next = prev.catch(() => {}).then(op);
+  writeChains.set(file, next);
+  next.finally(() => writeChains.get(file) === next && writeChains.delete(file)).catch(() => {});
+  return next;
+}
+/** JSON-fájl írása sorban, átmeneti fájlon és átnevezésen át (megszakadt írás után sem sérül a régi). */
+function writeJsonFile(file, value) {
+  return queueFileOp(file, async () => {
+    await fs.promises.mkdir(path.dirname(file), { recursive: true });
+    const tmp = `${file}.${process.pid}.tmp`;
+    await fs.promises.writeFile(tmp, JSON.stringify(value), 'utf8');
+    await fs.promises.rename(tmp, file);
+  });
+}
+
+ipcMain.handle('store-save', (_e, data) => writeJsonFile(storeFile(), data));
 
 // Általános HTTP-kérés (pl. OpenSubtitles, TMDB): a főfolyamatból nincs CORS, és a
 // User-Agent fejléc is beállítható.
@@ -573,32 +671,29 @@ ipcMain.handle('sidecar-subs', async (_e, videoPath) => {
 
 // Feldolgozott adatok (pl. a csatornakatalógus) gyors újratöltéshez.
 const kvFile = (key) => path.join(cacheDir(), 'kv-' + crypto.createHash('sha1').update(key).digest('hex') + '.json');
-ipcMain.handle('kv-get', (_e, key) => {
+ipcMain.handle('kv-get', async (_e, key) => {
   try {
-    return JSON.parse(fs.readFileSync(kvFile(key), 'utf8'));
+    return JSON.parse(await fs.promises.readFile(kvFile(key), 'utf8'));
   } catch {
     return undefined;
   }
 });
-ipcMain.handle('kv-set', (_e, key, value) => {
-  fs.mkdirSync(cacheDir(), { recursive: true });
-  fs.writeFileSync(kvFile(key), JSON.stringify(value), 'utf8');
-});
+ipcMain.handle('kv-set', (_e, key, value) => writeJsonFile(kvFile(key), value));
 
 // Tartós dokumentumok (pl. fájlból felvett nagy listák) a felhasználói adatok mellett, „lists” mappában.
 const docFile = (key) => path.join(app.getPath('userData'), 'lists', String(key).replace(/[^\w.-]+/g, '_') + '.json');
-ipcMain.handle('doc-get', (_e, key) => {
+ipcMain.handle('doc-get', async (_e, key) => {
   try {
-    return JSON.parse(fs.readFileSync(docFile(key), 'utf8'));
+    return JSON.parse(await fs.promises.readFile(docFile(key), 'utf8'));
   } catch {
     return undefined;
   }
 });
 ipcMain.handle('doc-set', (_e, key, value) => {
   const f = docFile(key);
-  if (value == null) return fs.rmSync(f, { force: true });
-  fs.mkdirSync(path.dirname(f), { recursive: true });
-  fs.writeFileSync(f, JSON.stringify(value), 'utf8');
+  // a törlés is a fájl írási sorába áll (különben egy még futó írás átnevezése visszahozná a dokumentumot)
+  if (value == null) return queueFileOp(f, () => fs.promises.rm(f, { force: true }));
+  return writeJsonFile(f, value);
 });
 
 ipcMain.handle('clear-cache', () => {
@@ -723,7 +818,15 @@ ipcMain.handle('media-probe', (_e, url) => media.probe(url));
 ipcMain.handle('media-start', (_e, plan) => media.start(plan));
 ipcMain.handle('media-stop', (_e, id) => media.stop(id));
 ipcMain.handle('media-cover', (_e, url) => media.cover(url));
-app.on('will-quit', () => {
+let writesFlushed = false;
+app.on('will-quit', (e) => {
+  // A még folyamatban lévő mentések (beállítások, gyorsítótár) megvárása kilépés előtt (legfeljebb 3 mp)
+  if (!writesFlushed && writeChains.size) {
+    e.preventDefault();
+    writesFlushed = true;
+    Promise.race([Promise.allSettled([...writeChains.values()]), new Promise((r) => setTimeout(r, 3000))]).then(() => app.quit());
+    return;
+  }
   media.recStopAll();
   media.stopAll();
 });
