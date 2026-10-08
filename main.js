@@ -87,13 +87,18 @@ async function maybeGunzip(buf) {
   return buf;
 }
 
-async function download(url, { ua, referrer, timeoutMs = 90000 } = {}) {
+/**
+ * Letöltés a főfolyamatból. onlyHttp: az átirányítások végén is csak http(s) cím fogadható el (a
+ * műsorújság-források gyakran átirányítanak, ezért azt nem tiltjuk – de helyi erőforrásra nem vezethet).
+ */
+async function download(url, { ua, referrer, timeoutMs = 90000, onlyHttp = false } = {}) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const headers = { 'User-Agent': ua || CHROME_UA };
     if (referrer) headers.Referer = referrer;
     const res = await net.fetch(url, { signal: ctrl.signal, headers, bypassCustomProtocolHandlers: true });
+    if (onlyHttp && !/^https?:\/\//i.test(res.url || url)) throw new Error('Nem engedélyezett átirányítás');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return Buffer.from(await res.arrayBuffer());
   } finally {
@@ -160,7 +165,7 @@ async function fetchBytes(url, opts = {}) {
   } catch {}
   if (stat && !force && Date.now() - stat.mtimeMs < maxAgeHours * 3600e3) return { bytes: await fs.promises.readFile(file), cachedAt: stat.mtimeMs, fromCache: true };
   try {
-    const buf = await maybeGunzip(await download(url));
+    const buf = await maybeGunzip(await download(url, { onlyHttp: true }));
     const bytes = isUtf8Text(buf) ? stripBom(buf) : Buffer.from(decodeText(buf), 'utf8');
     writeCacheAtomically(file, bytes); // nem várjuk meg: a válasz ne késsen az írás miatt
     return { bytes, cachedAt: Date.now(), fromCache: false };

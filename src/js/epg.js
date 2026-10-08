@@ -13,6 +13,8 @@ try {
 }
 let reqId = 0;
 let indexFor = null; // melyik csatornalistához készült a háttérszálnak elküldött index
+let reloadAfter = false; // betöltés közben újabb kérés érkezett
+let reloadForce = false;
 const pending = new Map();
 const onWorkerMessage = (e) => {
   const p = pending.get(e.data.id);
@@ -139,7 +141,12 @@ export const epg = {
   },
 
   async load({ force = false } = {}) {
-    if (this.loading) return;
+    // betöltés közben érkező kérés (pl. közben cserélődött a csatornalista): a végén újra lefut
+    if (this.loading) {
+      reloadAfter = true;
+      reloadForce ||= force;
+      return;
+    }
     this.loading = true;
     bus.emit('epg-loading', true);
     // A párosításhoz szükséges index a háttérszálba megy – csak ha a csatornalista azóta változott
@@ -188,6 +195,13 @@ export const epg = {
     this.loadedAt = Date.now();
     bus.emit('epg-loading', false);
     bus.emit('epg');
+    // ha közben kérték, vagy a csatornalista cserélődött (régi indexszel párosítottunk): még egy kör
+    if (reloadAfter || indexFor !== catalog.channels) {
+      const f = reloadForce;
+      reloadAfter = false;
+      reloadForce = false;
+      return this.load({ force: f });
+    }
   },
 };
 
