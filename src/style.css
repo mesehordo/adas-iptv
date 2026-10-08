@@ -51,7 +51,29 @@ h1, h2, h3, h4 { margin: 0; color: var(--text-strong); }
 /* ------------------------------------------------------------------ Indítóképernyő */
 #splash { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; transition: opacity 0.5s; }
 #splash.hide { opacity: 0; pointer-events: none; }
-#splash-msg { color: var(--muted); min-height: 1.2em; }
+/* Indítóanimáció: a logó kétszer pulzál, majd a felirat kinyílik mellette (a középre igazított sorban
+   ettől úszik balra), a betűk egymás után tűnnek elő */
+.sp-logo { display: flex; align-items: center; justify-content: center; }
+.sp-icon { width: 112px; height: 112px; flex: none; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.45)); animation: sp-pulse 0.6s ease-in-out 2; }
+.sp-word { display: flex; overflow: hidden; max-width: 0; color: var(--accent); font-weight: 900; font-size: 84px; letter-spacing: 0.06em; line-height: 1; padding: 0.3em 0 0.12em; margin-top: -0.18em; /* hely az Á ékezetének (a rejtett túlnyúlás levágná) */ text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); animation: sp-open 0.8s cubic-bezier(0.3, 0, 0.2, 1) 1.2s forwards; }
+.sp-word span { display: inline-block; opacity: 0; transform: translateX(-24px) scaleY(1.15); animation: sp-letter 0.4s ease-out forwards; }
+.sp-word span:nth-child(1) { animation-delay: 1.35s; padding-left: 22px; }
+.sp-word span:nth-child(2) { animation-delay: 1.5s; }
+.sp-word span:nth-child(3) { animation-delay: 1.65s; }
+.sp-word span:nth-child(4) { animation-delay: 1.8s; }
+@keyframes sp-pulse { 50% { transform: scale(1.1); } }
+@keyframes sp-open { to { max-width: 4.2em; } }
+@keyframes sp-letter { to { opacity: 1; transform: translateX(0) scaleY(1.15); } }
+/* állapot a jobb alsó sarokban (betöltés, frissítéskeresés – vagy vicces sorok) */
+#splash-msg { position: absolute; right: 24px; bottom: 20px; color: var(--muted); font-size: 0.9rem; min-height: 1.2em; max-width: calc(100vw - 48px); text-align: right; }
+@media (max-width: 600px) {
+  .sp-icon { width: 76px; height: 76px; }
+  .sp-word { font-size: 56px; }
+  .sp-word span:nth-child(1) { padding-left: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sp-icon, .sp-word, .sp-word span { animation-duration: 0.01s; animation-delay: 0s; }
+}
 .splash-error { text-align: center; }
 .spinner { width: 46px; height: 46px; border: 4px solid rgba(255, 255, 255, 0.15); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.9s linear infinite; margin: 0 auto; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -662,11 +684,13 @@ mark { background: rgba(255, 213, 74, 0.45); color: inherit; border-radius: 2px;
 
 /* ------------------------------------------------------------------ Profilképek */
 .avatar.img { background-size: cover; background-position: center; color: transparent; }
-.avatar-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.avatar-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
 .avatar-opt { aspect-ratio: 1; border-radius: 10px; border: 3px solid transparent; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.4rem; color: #fff; transition: transform 0.15s, border-color 0.15s; }
 .avatar-opt:hover, .avatar-opt:focus-visible { transform: scale(1.06); }
 .avatar-opt.sel { border-color: var(--text-strong); box-shadow: 0 0 0 2px var(--accent); }
-@media (max-width: 560px) { .avatar-grid { grid-template-columns: repeat(4, 1fr); } }
+.avatar-grid:not(.open) .avatar-opt.extra { display: none; }
+.avatar-more { justify-self: start; align-self: start; }
+@media (max-width: 560px) { .avatar-grid { grid-template-columns: repeat(5, 1fr); gap: 6px; } }
 
 /* ------------------------------------------------------------------ Főoldal (irányítópult) */
 .page.dash-page { padding-bottom: 14px; }
@@ -916,20 +940,36 @@ mark { background: rgba(255, 213, 74, 0.45); color: inherit; border-radius: 2px;
 .vod-quick .vod-tabs { margin-bottom: 0; }
 .page > .vod-tabs { display: flex; margin: 0 0 18px; }
 :root { --poster-w: calc(var(--card-w) * 0.66); }
-.vcard { position: relative; flex: none; width: var(--poster-w); cursor: pointer; border-radius: var(--radius); transition: transform 0.25s; scroll-margin: 90px var(--gutter) 60px; }
-.vcard:hover, .vcard:focus-visible { transform: scale(1.06); z-index: 5; outline: none; }
-.vcard:focus-visible .vposter { outline: 3px solid var(--focus, #fff); outline-offset: 2px; }
-.vposter { position: relative; aspect-ratio: 2 / 3; border-radius: var(--radius); overflow: hidden; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35); }
+/* VOD-kártya: a csatornakártya mintájára (közös .thumb keret, .meta név / alcím, jelvények, felugró
+   panel) – így a felületstílusok egyformán díszítik –, csak a borítókép álló (2:3) */
+.vcard { position: relative; flex: none; width: var(--poster-w); cursor: pointer; border-radius: var(--radius); transition: transform 0.28s cubic-bezier(0.3, 0, 0.2, 1) 0s, box-shadow 0.28s; scroll-margin: 90px var(--gutter) 60px; container-type: inline-size; }
+.thumb.vthumb { display: block; aspect-ratio: 2 / 3; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35); }
 .poster { position: absolute; inset: 0; display: flex; align-items: flex-end; padding: 10px; background: linear-gradient(160deg, hsl(var(--h) 45% 34%), hsl(var(--h) 40% 12%)); }
 .poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .poster .ptitle { position: relative; font-weight: 800; font-size: 0.95rem; line-height: 1.2; color: #fff; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }
 .poster img + .ptitle { display: none; }
-.vbadge { position: absolute; top: 8px; left: 8px; font-size: 9px; font-weight: 800; letter-spacing: 0.1em; padding: 2px 6px; border-radius: 3px; background: var(--accent); color: #fff; }
-.vdone { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 50%; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; color: #46d369; font-size: 16px; }
-.vposter .bar { position: absolute; left: 8px; right: 8px; bottom: 8px; }
-.vmeta { padding: 6px 2px 0; }
-.vmeta .name { font-size: 0.86rem; font-weight: 600; color: var(--text-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.vmeta .sub { font-size: 0.75rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vdone { position: absolute; top: 8px; left: 8px; width: 22px; height: 22px; border-radius: 50%; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; color: #46d369; font-size: 14px; }
+.vcard .meta { padding: 6px 2px 0; }
+.vcard .name { font-size: 0.88rem; font-weight: 600; color: #e5e5e5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vcard .sub { font-size: 0.76rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+/* felugró panel a borító alján (a kártya saját szélességéből: 150cqw = a 2:3-as borító magassága) */
+.vcard .pop { position: absolute; left: 0; right: 0; top: calc(150cqw - 4px); background: var(--bg-2); border-radius: 0 0 var(--radius) var(--radius); padding: 10px 10px 12px; opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.7); font-size: 0.72rem; display: flex; flex-direction: column; gap: 6px; }
+.vcard .pop-btns { display: flex; gap: 6px; align-items: center; }
+.vcard .pop .round { width: 30px; height: 30px; font-size: 15px; }
+.vcard .pop-line { color: #ddd; font-weight: 600; }
+.vcard .pop-now { color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (hover: hover) {
+  .vcard:hover { transition-delay: 0.35s; }
+  .vcard:hover .pop { transition-delay: 0.35s; }
+}
+.vcard:hover, .vcard:focus-visible { transform: scale(1.18); z-index: 10; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.75); outline: none; }
+.vcard:hover .thumb, .vcard:focus-visible .thumb { border-radius: var(--radius) var(--radius) 0 0; }
+.vcard:hover .meta, .vcard:focus-visible .meta { visibility: hidden; }
+.vcard:hover .pop, .vcard:focus-visible .pop { opacity: 1; visibility: visible; }
+.vcard:focus-visible .thumb { outline: 2px solid #fff; outline-offset: -2px; }
+body.rc-nav .vcard:focus-within { transform: scale(1.18); z-index: 10; }
+body.rc-nav .vcard:focus-within .pop { opacity: 1; visibility: visible; }
+body.rc-nav .vcard:focus-within .meta { visibility: hidden; }
 .vrow .row-track { gap: 12px; padding-top: 20px; padding-bottom: 40px; margin-top: -20px; margin-bottom: -40px; }
 .vgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 26px 14px; }
 .vgrid .vcard { width: auto; }

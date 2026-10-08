@@ -634,7 +634,6 @@ export function renderSettings(view) {
     <div class="set-nav"></div>
 
     <section class="set-section appearance" id="appearance" data-g="look"></section>
-
     <section class="set-section" id="dashboard" data-g="home"></section>
 
     <section class="set-section" id="playback" data-g="play"><h2>Lejátszás <button class="help-link" data-help="engines" title="Súgó">?</button></h2>
@@ -1204,6 +1203,16 @@ export function avatarFromFile(file) {
   });
 }
 
+/** Az avatárok sorrendje a szerkesztőben: a kiválasztott elöl, a többi véletlenszerűen (minden megnyitáskor más). */
+function avatarOrder(selected) {
+  const rest = Array.from({ length: AVATAR_COUNT }, (_, i) => i).filter((i) => i !== selected);
+  for (let i = rest.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [rest[i], rest[j]] = [rest[j], rest[i]];
+  }
+  return Number.isInteger(selected) ? [selected, ...rest] : rest;
+}
+
 function editProfile(prof, done) {
   const isNew = !prof;
   let color = prof?.color || PROFILE_COLORS[store.profiles.length % PROFILE_COLORS.length];
@@ -1213,9 +1222,11 @@ function editProfile(prof, done) {
     <h2>${isNew ? 'Új profil' : 'Profil szerkesztése'}</h2>
     <label>Név<input class="input" name="name" value="${esc(prof?.name || '')}" maxlength="20" required autofocus /></label>
     <div><b>Profilkép</b></div>
-    <div class="avatar-grid">${Array.from({ length: AVATAR_COUNT }, (_, i) => `<button type="button" class="avatar-opt ${i === avatar ? 'sel' : ''}" data-av="${i}" style="background-image:url('${avatarUrl(i)}')" aria-label="${i + 1}. profilkép"></button>`).join('')}
+    <div class="avatar-grid">
+      <button type="button" class="avatar-opt custom ${avatar === 'custom' ? 'sel' : ''}" data-av="custom" ${avatarData ? `style="background-image:url('${avatarData}')"` : 'hidden'} aria-label="Saját kép"></button>
       <button type="button" class="avatar-opt letter ${avatar === null ? 'sel' : ''}" data-av="" style="background-color:${esc(color)}" aria-label="Betű, kép nélkül">${esc((prof?.name || 'A').slice(0, 1).toUpperCase())}</button>
-      <button type="button" class="avatar-opt custom ${avatar === 'custom' ? 'sel' : ''}" data-av="custom" ${avatarData ? `style="background-image:url('${avatarData}')"` : 'hidden'} aria-label="Saját kép"></button></div>
+      ${avatarOrder(avatar).map((i) => `<button type="button" class="avatar-opt ${i === avatar ? 'sel' : ''}" data-av="${i}" style="background-image:url('${avatarUrl(i)}')" aria-label="${i + 1}. profilkép"></button>`).join('')}</div>
+    <button type="button" class="btn small avatar-more" hidden></button>
     ${api.caps.files ? `<div class="inline"><button type="button" class="btn small" data-upload>Saját kép feltöltése…</button><span class="muted small">PNG (vagy JPG, WebP) – négyzetesre vágjuk, 256×256 pontra kicsinyítjük.</span></div>` : ''}
     <div><b>Szín</b> <small class="muted">(a betűs profilképhez és a kiemelésekhez)</small></div>
     <div class="swatches">${PROFILE_COLORS.map((c) => `<button type="button" class="swatch ${c === color ? 'sel' : ''}" data-c="${c}" style="background:${c}" aria-label="Szín"></button>`).join('')}</div>
@@ -1228,6 +1239,22 @@ function editProfile(prof, done) {
       ${!isNew && store.profiles.length > 1 ? '<button class="btn danger" type="button" data-del>Profil törlése</button>' : ''}</div>
   </form>`);
   const close = openModal(el, { cls: 'medium' });
+  // Alapból csak két sornyi avatár látszik (a többi a „Több…” gombbal nyílik le)
+  const grid = el.querySelector('.avatar-grid');
+  const more = el.querySelector('.avatar-more');
+  const fold = () => {
+    const cols = getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length || 6;
+    const tiles = [...grid.querySelectorAll('.avatar-opt')].filter((b) => !b.hidden);
+    tiles.forEach((b, i) => b.classList.toggle('extra', i >= cols * 2));
+    const rest = tiles.length - cols * 2;
+    more.hidden = rest <= 0;
+    more.textContent = `Több… (még ${rest})`;
+  };
+  requestAnimationFrame(fold);
+  more.onclick = () => {
+    grid.classList.add('open');
+    more.hidden = true;
+  };
   // PIN: mentéskor érvényesül. undefined = nem változik, null = törlés, '1234' = új
   let newPin;
   const pinState = () => {
@@ -1275,6 +1302,7 @@ function editProfile(prof, done) {
       tile.hidden = false;
       tile.style.backgroundImage = `url('${data}')`;
       pick(tile);
+      if (!grid.classList.contains('open')) fold(); // a saját kép is a két sorba kerül
     } catch (err) {
       toast('A kép nem olvasható be: ' + (err.message || err));
     }

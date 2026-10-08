@@ -611,8 +611,69 @@ setInterval(() => {
 // ---------------------------------------------------------------------------
 // Indítás
 // ---------------------------------------------------------------------------
-function splashMsg(m) {
-  $('#splash-msg').textContent = m;
+// Az indítóképernyő jobb alsó sarka: csak vicces, tévés hangulatú sorok – minden indításkor más
+// sorrendben (véletlen keverés), egy indításon belül ismétlés nélkül.
+const FUN_LINES = [
+  'Antenna irányba állítása…',
+  'Távirányító keresése a kanapé párnái között…',
+  'Képcső bemelegítése…',
+  'Reklámok óvatos kikerülése…',
+  'Csatornák sorba állítása magasság szerint…',
+  'Műsorújság kisimítása…',
+  'Pattogatott kukorica pattogtatása…',
+  'Hangerő egyeztetése a szomszédokkal…',
+  'Hangyás kép elhessegetése…',
+  'Időjárás-jelentő felébresztése…',
+  'Kábelek kibogozása…',
+  'Bemondó nyakkendőjének megigazítása…',
+  'Spoilerek elrejtése a sorozatokból…',
+  'Mesecsatorna lefektetése…',
+  'Szinkronhangok bemelegítése…',
+  'Végtelen sorozatok megszámolása…',
+  'Tesztkép kifényesítése…',
+  'Rossz adás jobb belátásra bírása…',
+  'Elemcsere a távirányítóban…',
+  'Képernyő letörlése (porrongy előkészítve)…',
+  'Főcímdalok dúdolása…',
+  'A „mindjárt kezdődik” jelentésének kutatása…',
+  'Kanapé bemelegítése…',
+  'Hűtő bejárása reklámszünetre…',
+  'Ismétlések ismétlésének ellenőrzése…',
+  'Műholdak udvarias megszólítása…',
+  'Felirat-fordítók kávéval ellátása…',
+  'Csatornaszámok fejben tartása…',
+  'Szappanopera-szereplők családfájának kibogozása…',
+  'Sportközvetítő torkának olajozása…',
+  'Késő esti filmek ébren tartása…',
+  'Pixelek egyenként beállítása…',
+  'Az „utolsó rész, és megyek aludni” ígéret előkészítése…',
+  'Rajzfilmfigurák sorakoztatása…',
+  'Nagymama kedvenc csatornájának megkeresése…',
+  'Kvízműsor helyes válaszainak elrejtése…',
+];
+const splashState = { lines: [], i: 0, timer: 0 };
+function renderSplash() {
+  const el = $('#splash-msg');
+  if (el) el.textContent = splashState.lines[splashState.i % splashState.lines.length] || '';
+}
+/** (A betöltés technikai lépései nem jelennek meg – a sarokban csak a vicces sorok váltakoznak.) */
+function splashMsg() {}
+function startSplashStatus() {
+  const l = FUN_LINES.slice();
+  for (let i = l.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [l[i], l[j]] = [l[j], l[i]];
+  }
+  splashState.lines = l;
+  splashState.i = 0;
+  renderSplash();
+  splashState.timer = setInterval(() => {
+    splashState.i++;
+    renderSplash();
+  }, 1800);
+}
+function stopSplashStatus() {
+  clearInterval(splashState.timer);
 }
 
 async function loadWithRetry() {
@@ -639,7 +700,9 @@ async function boot() {
   applyTheme();
   applySubStyle();
   updateProfileButton();
-  splashMsg('Csatornalista betöltése…');
+  startSplashStatus();
+  // frissítéskeresés már indításkor, csendben a háttérben (ha van új verzió, értesítés jön)
+  autoCheckUpdate().catch(() => {});
   const loading = loadWithRetry();
   if (store.profiles.length > 1) await showProfiles(false);
   else if (hasPin(store.profile)) await showProfiles(false); // egyetlen, de zárolt profil
@@ -647,6 +710,7 @@ async function boot() {
   await loading;
 
   started = true;
+  stopSplashStatus();
   splash.classList.add('hide');
   setTimeout(() => splash.remove(), 600);
   nav.hidden = false;
@@ -676,7 +740,6 @@ async function boot() {
   try {
     launchChannel(window.AdasAndroid?.takeLaunchChannel?.());
   } catch {}
-  setTimeout(autoCheckUpdate, 15000);
   // A VOD-listák a háttérben töltődnek be (az első megnyitáskor már készen legyenek).
   // Előtte az asztali „packs” mappa kiegészítő csomagjai (ha közben a VOD már betöltött, újratölt).
   syncPackFolder();

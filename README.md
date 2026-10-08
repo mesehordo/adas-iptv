@@ -116,6 +116,9 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - **Beállítások:** 15 kisebb csoport, mindegyik egy-két mondatos leírással; Androidon csak csempék
 - **Lejátszó:** a kiegészítő gombok egyenként elrejthetők; a kép a képben mód megszűnt
 - **Erőforrások:** a sorok fokozatosan töltődnek (fele annyi elem és kép induláskor), a Főoldal élő előnézete egy perc után megáll, kis puffer a többképes nézetben és az előnézetben
+- **Új profilképek:** 29 új avatár (a betűs változattal 30 lehetőség); a szerkesztőben 2 sornyi, véletlenszerűen válogatva, a többi a *Több…* gombbal nyílik le
+- **VOD-kártyák** a csatornakártyák mintájára (keret, jelvények, felugró panel Lejátszás / Kedvenc / Részletek gombbal) – álló borítóval
+- **Indítóképernyő:** a logó pulzál, balra úszik, közben előtűnik az ADÁS felirat; a jobb alsó sarokban minden indításkor más vicces, tévés hangulatú sorok
 - Electron 44 (biztonsági javítások)
 
 **Felvételek a TV alatt, ajánlósáv nélkül (1.24.1)**

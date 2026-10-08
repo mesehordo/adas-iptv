@@ -108,10 +108,15 @@ export const VOD_BUILTIN = [
 /** Ajánlott kiegészítő lejátszólisták (a beépítetteken felül). */
 export const PLAYLIST_PRESETS = [];
 
-/** Választható profilképek: src/avatars/0.png … 10.png */
-export const AVATAR_COUNT = 11;
+/**
+ * Választható profilképek: src/avatars/0.png … 28.png (256×256) – 0–19 szereplők (állatok, emberek,
+ * robotok), 20–28 arc nélküli tárgyak (bájital, kontroller, fejhallgató, ecset…). A betűs változattal
+ * együtt pontosan 30 választási lehetőség.
+ */
+export const AVATAR_COUNT = 29;
 export const avatarUrl = (n) => `avatars/${n}.png`;
-const DEFAULT_AVATARS = [3, 2, 1, 5, 4, 7, 8, 0, 9, 10];
+// új profilok alapértelmezett képei, változatosan (róka, kisfiú, ezüsthajú, béka, elf, robot…)
+const DEFAULT_AVATARS = [3, 16, 4, 11, 18, 8, 1, 19, 9, 0];
 
 export const PROFILE_COLORS =['#e50914', '#2f80ed', '#27ae60', '#f2994a', '#9b51e0', '#eb5757', '#00b8a9', '#f2c94c'];
 
@@ -149,8 +154,7 @@ const DEFAULT_SETTINGS = {
   playbackEngine: 'auto', // 'auto' | 'native' | 'hlsjs' – auto: TV-n a beépített lejátszó, máshol hls.js
   hideOffline: false,
   autoCheck: true,
-  heroPreview: true,
-  resumeLast: false,
+  heroPreview: true,  resumeLast: false,
   showAdult: false,
   mediaBridge: true, // asztali: FFmpeg-híd az AC3/DTS hanghoz, beágyazott feliratokhoz, régi formátumokhoz
   volume: 0.8,

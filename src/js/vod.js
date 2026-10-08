@@ -1000,13 +1000,29 @@ export function vcardHtml(x) {
     x.type === 'series'
       ? `${x.seasons.length > 1 ? x.seasons.length + ' évad · ' : ''}${x.episodes.length} rész`
       : [x.year || '', fmtDur(x.duration), catsOf(x)[0] || ''].filter(Boolean).join(' · ');
+  // Ugyanaz a felépítés, mint a tévécsatornák kártyájáé (keret, név, alcím, jelvények, felugró panel) –
+  // így minden felületstílus egyformán díszíti; a borítókép álló marad.
+  const fav = isVodFav(x);
+  const nextEp = x.type === 'series' ? nextEpisodeOf(x) : null;
+  const line = (x.type === 'series' ? [`${x.seasons.length > 1 ? x.seasons.length + ' évad · ' : ''}${x.episodes.length} rész`] : [x.year || '', fmtDur(x.duration)]).concat(catsOf(x).slice(0, 2)).filter(Boolean).join(' · ');
   return `<div class="vcard" tabindex="0" data-vid="${esc(x.id)}">
-    <div class="vposter">${posterHtml(x)}
-      ${x.type === 'series' ? '<span class="vbadge">SOROZAT</span>' : ''}
+    <div class="thumb vthumb" style="--h:${hashHue(x.title)}">${posterHtml(x)}
+      <span class="q">${x.type === 'series' ? 'SOROZAT' : 'FILM'}</span>
       ${pr?.done && x.type === 'movie' ? `<span class="vdone" title="Megnézve">${ICON.check}</span>` : ''}
+      ${fav ? '<span class="fav-mark" title="Kedvenc">★</span>' : ''}
       ${ratio > 0.01 && !(pr?.done && x.type === 'movie') ? `<div class="bar"><i style="width:${(ratio * 100).toFixed(1)}%"></i></div>` : ''}
     </div>
-    <div class="vmeta"><div class="name" title="${esc(displayTitle(x) !== x.title ? x.title : '')}">${esc(displayTitle(x))}</div><div class="sub">${esc(sub)}</div></div>
+    <div class="meta"><div class="name" title="${esc(displayTitle(x) !== x.title ? x.title : '')}">${esc(displayTitle(x))}</div><div class="sub">${esc(sub)}</div></div>
+    <div class="pop">
+      <div class="pop-btns">
+        <button class="round white" data-vact="play" title="Lejátszás" tabindex="-1">${ICON.play}</button>
+        <button class="round" data-vact="fav" title="${fav ? 'Eltávolítás a kedvencekből' : 'Kedvencekhez'}" tabindex="-1">${fav ? ICON.check : ICON.plus}</button>
+        <span class="grow"></span>
+        <button class="round" data-vact="info" title="Részletek" tabindex="-1">${ICON.chevron}</button>
+      </div>
+      <div class="pop-line">${esc(line)}</div>
+      ${nextEp?.ep ? `<div class="pop-now">${nextEp.resume ? 'Folytatás' : 'Következő'}: ${esc(epLabel(nextEp.ep))}</div>` : ''}
+    </div>
   </div>`;
 }
 
@@ -1041,7 +1057,17 @@ document.addEventListener('click', (e) => {
   const card = e.target.closest('.vcard');
   if (!card) return;
   const x = findItem(card.dataset.vid);
-  if (x) openVodDetail(x);
+  if (!x) return;
+  // a felugró panel gombjai (mint a csatornakártyán): lejátszás, kedvenc, részletek
+  const act = e.target.closest('[data-vact]')?.dataset.vact;
+  if (act === 'play') return playVod(x);
+  if (act === 'fav') {
+    toggleVodFav(x);
+    toast(isVodFav(x) ? 'Hozzáadva a kedvencekhez' : 'Eltávolítva a kedvencek közül');
+    card.outerHTML = vcardHtml(x);
+    return;
+  }
+  openVodDetail(x);
 });
 document.addEventListener('keydown', (e) => {
   const card = document.activeElement?.closest?.('.vcard');
@@ -1163,7 +1189,7 @@ function fillTitles(root) {
       if (changed)
         document.querySelectorAll(`.vcard[data-vid="${CSS.escape(x.id)}"]`).forEach((card) => {
           card.querySelector('.poster').outerHTML = posterHtml(x);
-          const n = card.querySelector('.vmeta .name');
+          const n = card.querySelector('.meta .name');
           if (n) {
             n.textContent = displayTitle(x);
             n.title = displayTitle(x) !== x.title ? x.title : '';
@@ -1596,7 +1622,7 @@ export function openVodDetail(x) {
 function refreshCards(x) {
   document.querySelectorAll(`.vcard[data-vid="${CSS.escape(x.id)}"]`).forEach((card) => {
     card.querySelector('.poster').outerHTML = posterHtml(x);
-    const n = card.querySelector('.vmeta .name');
+    const n = card.querySelector('.meta .name');
     if (n) n.textContent = displayTitle(x);
   });
 }
