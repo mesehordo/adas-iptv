@@ -708,21 +708,28 @@ ipcMain.handle('doc-set', (_e, key, value) => {
 // beépített listaként jelenik meg (a programmal nem szállítjuk őket).
 const packsDir = () => path.join(app.getPath('userData'), 'packs');
 ipcMain.handle('packs-scan', async () => {
+  const MAX = 200;
   let names = [];
   try {
-    names = (await fs.promises.readdir(packsDir())).filter((n) => /\.adaspa(c)?k$/i.test(n)).slice(0, 20);
+    names = (await fs.promises.readdir(packsDir())).filter((n) => /\.adaspa(c)?k$/i.test(n)).sort();
   } catch {
     return [];
   }
-  const out = [];
-  for (const name of names) {
-    const f = path.join(packsDir(), name);
+  // → [{ name, text }] vagy [{ name, error }] – a kihagyott fájl oka is visszamegy (a felület jelzi)
+  const out = names.slice(MAX).map((name) => ({ name, error: `túl sok csomag a mappában (legfeljebb ${MAX})` }));
+  for (const name of names.slice(0, MAX)) {
+    let fh = null;
     try {
-      const st = await fs.promises.stat(f);
-      if (!st.isFile() || st.size > 64e6) continue;
-      out.push({ name, text: await fs.promises.readFile(f, 'utf8') });
-    } catch {
-      // olvashatatlan fájl: kimarad
+      // egyetlen megnyitott leíróból vizsgálunk és olvasunk (a kettő között a fájl nem cserélődhet ki)
+      fh = await fs.promises.open(path.join(packsDir(), name), 'r');
+      const st = await fh.stat();
+      if (!st.isFile()) continue;
+      if (st.size > 64e6) out.push({ name, error: 'túl nagy (legfeljebb 64 MB)' });
+      else out.push({ name, text: await fh.readFile('utf8') });
+    } catch (err) {
+      out.push({ name, error: `nem olvasható (${err.code || err.message})` });
+    } finally {
+      await fh?.close().catch(() => {});
     }
   }
   return out;

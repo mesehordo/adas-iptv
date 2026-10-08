@@ -91,7 +91,8 @@ input.q{width:100%;font:inherit;font-size:17px;padding:12px 14px;border-radius:1
 <script>
 var pin='';try{var m=/[#&]pin=(\\d{4})/.exec(location.hash);if(m){pin=m[1];localStorage.setItem('adasPin',pin);history.replaceState(null,'',location.pathname)}else pin=localStorage.getItem('adasPin')||''}catch(e){}
 var $=function(i){return document.getElementById(i)};var last={};var busy=false;
-function api(p){return fetch('/adas/rc/'+pin+'/'+p,{cache:'no-store'}).then(function(r){if(r.status===403)throw new Error('pin');return r.json()})}
+// (időkorláttal: egy elakadt kérés ne tartsa fel a parancsok sorát)
+function api(p){var c=window.AbortController?new AbortController():null,t=setTimeout(function(){if(c)c.abort()},6000);return fetch('/adas/rc/'+pin+'/'+p,{cache:'no-store',signal:c?c.signal:undefined}).then(function(r){clearTimeout(t);if(r.status===403)throw new Error('pin');return r.json()},function(e){clearTimeout(t);throw e})}
 function ask(msg){$('ui').hidden=true;$('tabs').hidden=true;$('pin').hidden=false;$('pinErr').textContent=msg||''}
 function esc(s){return String(s||'').replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function toast(t){var e=$('toast');e.textContent=t;e.className='toast show';clearTimeout(e._t);e._t=setTimeout(function(){e.className='toast'},1400)}
@@ -131,7 +132,9 @@ if(mode==='mouse'){if(Math.abs(dx)+Math.abs(dy)>2){moved=true;clearTimeout(lp)}
 // gyorsítás: lassú mozdulat = pontos, gyors = nagy ugrás
 var sp=Math.sqrt(dx*dx+dy*dy),k=1.6+Math.min(3,sp/12);if(two){sacc[0]+=dx*3;sacc[1]+=dy*3}else{acc[0]+=dx*k;acc[1]+=dy*k}sx=p[0];sy=p[1];flush();return}
 if(Math.abs(dx)>STEP||Math.abs(dy)>STEP){moved=true;clearTimeout(lp);var key=Math.abs(dx)>Math.abs(dy)?(dx>0?'ArrowRight':'ArrowLeft'):(dy>0?'ArrowDown':'ArrowUp');cmd('key',key);sx=p[0];sy=p[1]}}
-function end(e){if(!t0)return;e.preventDefault();if(e.touches&&e.touches.length)return;clearTimeout(lp);dot.style.display='none';if(!moved&&!two&&Date.now()-t0<500)cmd(mode==='mouse'?'click':'key',mode==='mouse'?'':'Enter');t0=0}
+// a még el nem küldött mozgás a sorba (a sor sorrendje garantálja, hogy a kattintás utána jön)
+function drain(){if(acc[0]||acc[1]){var a=acc;acc=[0,0];send('mouse',Math.round(a[0])+','+Math.round(a[1]))}}
+function end(e){if(!t0)return;e.preventDefault();if(e.touches&&e.touches.length)return;clearTimeout(lp);dot.style.display='none';if(!moved&&!two&&Date.now()-t0<500){if(mode==='mouse'){drain();cmd('click','')}else cmd('key','Enter')}t0=0}
 pad.addEventListener('touchstart',start,{passive:false});pad.addEventListener('touchmove',move,{passive:false});pad.addEventListener('touchend',end,{passive:false});
 pad.addEventListener('mousedown',start);window.addEventListener('mousemove',move);window.addEventListener('mouseup',end)})();
 $('pinOk').onclick=function(){pin=$('pinIn').value.replace(/\\D/g,'');try{localStorage.setItem('adasPin',pin)}catch(e){}state()};

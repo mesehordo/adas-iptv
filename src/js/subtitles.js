@@ -180,7 +180,9 @@ export async function osLogin() {
 const FE = 'https://feliratok.eu/index.php';
 const FE_LANG = { hu: 'Magyar', en: 'Angol' };
 const feOn = () => store.settings.subsFeliratok !== false;
-const unHtml = (s) => String(s || '').replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim();
+// HTML-részlet → sima szöveg (a böngésző saját feldolgozójával: a címkék és a jelölések egy lépésben,
+// szkript nem fut le). A kapott szöveget megjelenítéskor mindig escape-eljük.
+const unHtml = (s) => (new DOMParser().parseFromString(String(s || ''), 'text/html').body.textContent || '').replace(/\s+/g, ' ').trim();
 const foldT = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
 async function feGet(url) {
@@ -257,7 +259,13 @@ export async function searchSubs(ch, lang) {
   const tasks = [];
   if (feOn()) {
     const { item, ep } = ch.vod;
-    tasks.push((ep ? feSearchEpisode(item, ep, lang) : feSearchMovie(item, lang)).catch((err) => (console.warn('Feliratok.eu', err), [])));
+    // (a hibát nem nyeljük el: ha ez az egyetlen forrás, a felhasználó a valódi okot látja, ne „nincs felirat”-ot)
+    tasks.push(
+      (ep ? feSearchEpisode(item, ep, lang) : feSearchMovie(item, lang)).catch((err) => {
+        console.warn('Feliratok.eu', err);
+        throw err;
+      })
+    );
   }
   if ((store.settings.osApiKey || '').trim()) tasks.push(osSearch(ch, lang));
   if (!tasks.length) throw new Error('Nincs bekapcsolt feliratforrás (Beállítások → Feliratok és információk → Magyar információk és feliratok).');
@@ -323,6 +331,8 @@ async function downloadText(fileId) {
 
 async function useResult(video, ch, res) {
   const text = res.src === 'fe' ? await feDownload(res) : await downloadText(res.fileId);
+  // a letöltés közben másik videóra válthattak: a régi felirat ne kerüljön az újra
+  if (player.channel !== ch) return;
   const cues = parseSubs(text);
   if (!cues.length) throw new Error('A feliratfájl üres vagy nem értelmezhető.');
   const label = `${LANGS[res.lang] || res.lang} – ${res.release}`;

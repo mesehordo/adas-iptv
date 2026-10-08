@@ -293,6 +293,11 @@ export const player = {
       if (preferNative && this.engine.type === 'native' && window.Hls?.isSupported()) {
         return this.tryStream(stream, { forceHlsJs: true });
       }
+      // internet nélkül nem a forrás a hibás: várunk (az „online” esemény újraindítja), nem jelöljük hibásnak
+      if (navigator.onLine === false) {
+        wentOffline = true;
+        return this.setLoading(true, 'Nincs internetkapcsolat – várakozás…');
+      }
       store.setHealth(stream.url, false, 'play', err.httpStatus === 403 || err.httpStatus === 451);
       this.fallback(err);
     }
@@ -1098,9 +1103,17 @@ export const player = {
 // ---------------------------------------------------------------------------
 // Eseménykezelés
 // ---------------------------------------------------------------------------
+// megszakadt internetkapcsolat (a visszatérésekor a lejátszás magától újraindul – lásd lent)
+let wentOffline = false;
 player.engine = new Engine(video, {
   onFail: (err) => {
     if (!player.active) return;
+    // internet nélkül nem a forrás a hibás: nem jelöljük hibásnak, és nem próbáljuk végig a többit
+    if (navigator.onLine === false) {
+      wentOffline = true;
+      player.setLoading(true, 'Nincs internetkapcsolat – várakozás…');
+      return;
+    }
     if (player.stream) store.setHealth(player.stream.url, false);
     player.fallback(err);
   },
@@ -1121,7 +1134,6 @@ player.engine = new Engine(video, {
 });
 
 // Megszakadt / visszatért internetkapcsolat: kiírjuk, és visszatéréskor az adás magától újraindul.
-let wentOffline = false;
 window.addEventListener('offline', () => {
   if (!player.active) return;
   wentOffline = true;

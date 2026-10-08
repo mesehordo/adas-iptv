@@ -31,14 +31,16 @@ const lines = text.split(/\r?\n/);
 let entries = 0;
 let missing = 0;
 for (let i = 0; i < lines.length; i++) {
-  if (!/^#EXTINF/i.test(lines[i])) continue;
+  if (!/^\s*#EXTINF/i.test(lines[i])) continue;
   entries++;
+  // a cím a következő nem üres, nem # sor – de a következő #EXTINF előtt kell lennie
   let j = i + 1;
-  while (j < lines.length && (!lines[j].trim() || lines[j].startsWith('#'))) j++;
-  if (j >= lines.length || !/^[a-z][a-z0-9+.-]*:\/\//i.test(lines[j].trim())) missing++;
+  while (j < lines.length && !/^\s*#EXTINF/i.test(lines[j]) && (!lines[j].trim() || lines[j].trim().startsWith('#'))) j++;
+  if (j >= lines.length || /^\s*#EXTINF/i.test(lines[j]) || !/^[a-z][a-z0-9+.-]*:\/\//i.test(lines[j].trim())) missing++;
 }
 if (!entries) fail('Nincs egyetlen #EXTINF bejegyzés sem.');
-if (missing) console.warn(`Figyelem: ${missing} bejegyzésnél nincs érvényes cím (http://, https://, file://…) a #EXTINF után.`);
+// (a program is elutasítja az ilyen csomagot – itt már készítéskor kiderül)
+if (missing) fail(`${missing} bejegyzésnél nincs érvényes cím (http://, https://, file://…) az #EXTINF sor után.`);
 
 const pack = { adasPack: 1, kind, id, name: opt('name') || id, desc: opt('desc') || '', off: args.includes('--off'), text };
 let out = opt('out') || path.dirname(src);

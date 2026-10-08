@@ -38,14 +38,26 @@ export function parsePack(text, fileName = '') {
   }
   if (j?.adasPack !== 1) return { error: 'hiányzik az "adasPack": 1 jelölés' };
   const kind = j.kind || kindFromName(fileName) || 'vod';
-  if (!PACK_KINDS[kind]) return { error: `ismeretlen fajta: "${kind}" (tv vagy vod lehet)` };
+  // (közvetlen összevetés: pl. a "__proto__" nem csúszhat át az objektum örökölt kulcsaként)
+  if (kind !== 'tv' && kind !== 'vod') return { error: `ismeretlen fajta: "${String(kind).slice(0, 20)}" (tv vagy vod lehet)` };
   if (!/^[a-z0-9_-]{1,40}$/i.test(j.id || '')) return { error: 'az "id" csak betűt, számot, - és _ jelet tartalmazhat (legfeljebb 40)' };
   if (typeof j.text !== 'string' || !j.text.trim()) return { error: 'hiányzik a "text" (a lejátszólista szövege)' };
   if (j.text.length > MAX_TEXT) return { error: 'túl nagy (legfeljebb 60 MB)' };
   // beépített listát nem írhat felül
   if ((kind === 'vod' ? VOD_BUILTIN : BUILTIN_PLAYLISTS).some((b) => b.id === j.id)) return { error: `az "${j.id}" azonosító foglalt (beépített lista)` };
-  if (!parseM3U(j.text).entries.length) return { error: 'a lejátszólistában nincs lejátszható bejegyzés' };
+  const parsed = parseM3U(j.text).entries.length;
+  if (!parsed) return { error: 'a lejátszólistában nincs lejátszható bejegyzés' };
+  // minden #EXTINF-hez kell cím (a feldolgozó a cím nélküli bejegyzést csendben elhagyná)
+  const extinf = (j.text.match(/^\s*#EXTINF/gim) || []).length;
+  if (parsed < extinf) return { error: `${extinf - parsed} bejegyzésnél hiányzik a cím az #EXTINF sor után` };
   return { kind, id: j.id, name: String(j.name || j.id).slice(0, 80), desc: String(j.desc || '').slice(0, 600), off: !!j.off, text: j.text };
+}
+
+/** A tartalom lenyomata (FNV-1a, 32 bit) – a mappaszinkron ebből látja, ha a lista megváltozott. */
+export function packHash(text) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  return (h >>> 0).toString(16) + ':' + text.length;
 }
 
 export async function installPack(pk) {
@@ -53,7 +65,10 @@ export async function installPack(pk) {
   const k = PACK_KINDS[pk.kind];
   await api.docSet(k.doc + pk.id, { text: pk.text });
   const s = store.settings;
-  const meta = { id: pk.id, name: pk.name, desc: pk.desc, off: pk.off, size: pk.text.length, at: Date.now() };
+  const cur = (s[k.setting] || []).find((p) => p.id === pk.id);
+  // frissítéskor a kapcsoló addigi alapállása megmarad (a felhasználó által állított érték külön tárolódik)
+  const off = cur ? cur.off : pk.off;
+  const meta = { id: pk.id, name: pk.name, desc: pk.desc, off, size: pk.text.length, hash: packHash(pk.text), at: Date.now() };
   s[k.setting] = [...(s[k.setting] || []).filter((p) => p.id !== pk.id), meta];
   store.save();
   bus.emit('packs', pk.kind);
@@ -108,21 +123,25 @@ export async function pickAndImportPacks() {
 export async function syncPackFolder() {
   const n = { tv: 0, vod: 0 };
   if (!api.packsScan) return n;
+  const bad = [];
   for (const f of await api.packsScan().catch(() => [])) {
-    const pk = parsePack(f.text, f.name);
+    const pk = f.error ? f : parsePack(f.text, f.name);
     if (pk.error) {
       console.warn('Kiegészítő csomag', f.name, pk.error);
+      bad.push(`„${f.name}”: ${pk.error}`);
       continue;
     }
     const cur = (store.settings[PACK_KINDS[pk.kind].setting] || []).find((p) => p.id === pk.id);
-    if (cur && cur.size === pk.text.length && cur.name === pk.name && cur.desc === pk.desc) continue;
+    // változatlan tartalom (lenyomat), név és leírás: nincs teendő
+    if (cur && cur.hash === packHash(pk.text) && cur.name === pk.name && cur.desc === pk.desc) continue;
     try {
       await installPack(pk);
       n[pk.kind]++;
-    } catch {
-      // hibás csomag: kimarad
+    } catch (err) {
+      bad.push(`„${f.name}”: ${err.message || err}`);
     }
   }
+  if (bad.length) toast(`A Csomagok mappájában ${bad.length} csomag nem tölthető be – ${bad.slice(0, 3).join('; ')}${bad.length > 3 ? ' …' : ''}`, { timeout: 12000 });
   return n;
 }
 

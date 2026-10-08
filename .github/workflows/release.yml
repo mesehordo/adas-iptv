@@ -31,16 +31,28 @@ jobs:
     outputs:
       tag: ${{ steps.v.outputs.tag }}
       version: ${{ steps.v.outputs.version }}
+      sha: ${{ steps.v.outputs.sha }}
     steps:
+      # Csak címke lehet a forrás: minősített refs/tags/… hivatkozás (egy azonos nevű ág nem kerülhet a
+      # helyébe), és ha a címke nem létezik, a letöltés hibával leáll.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', github.event.inputs.tag) || github.ref }}
           persist-credentials: false
       - id: v
         name: A címke és a package.json verziója egyezik?
         env:
           TAG: ${{ github.event.inputs.tag || github.ref_name }}
+          REF: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', github.event.inputs.tag) || github.ref }}
         run: |
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Érvénytelen címke: $TAG (v1.2.3 formájú legyen)."
+            exit 1
+          fi
+          if [[ "$REF" != refs/tags/* ]]; then
+            echo "::error::A kiadás csak címkéből indulhat (most: $REF)."
+            exit 1
+          fi
           VERSION=$(node -p "require('./package.json').version")
           if [ "$TAG" != "v$VERSION" ]; then
             echo "::error::A címke ($TAG) nem egyezik a package.json verziójával (v$VERSION)."
@@ -48,6 +60,8 @@ jobs:
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          # a többi feladat pontosan ezt a commitot fordítja (közben áthelyezett címke sem számít)
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   desktop:
     name: Asztali (${{ matrix.name }})
@@ -81,7 +95,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.verify.outputs.tag }}
+          ref: ${{ needs.verify.outputs.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -114,7 +128,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.verify.outputs.tag }}
+          ref: ${{ needs.verify.outputs.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:

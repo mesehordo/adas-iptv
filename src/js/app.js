@@ -679,7 +679,8 @@ async function boot() {
   // Előtte az asztali „packs” mappa kiegészítő csomagjai (ha közben a VOD már betöltött, újratölt).
   syncPackFolder();
   // betöltött / eltávolított csomag: a csatornalista, illetve a VOD újraépül
-  bus.on('packs', (kind) => (kind === 'tv' ? refreshAll({ force: false, epgToo: true, quiet: true }) : (vod.ready || vod.loading) && loadVod()));
+  // (ha a VOD épp töltődik, a futó betöltés még a régi listákkal dolgozik: utána még egyszer)
+  bus.on('packs', (kind) => (kind === 'tv' ? refreshAll({ force: false, epgToo: true, quiet: true }) : vod.loading ? vod.loading.then(() => loadVod()) : vod.ready && loadVod()));
   setTimeout(() => vodLists().length && loadVod(), 8000);
   // A VOD-listákban talált élő adások a csatornák közé kerülnek: ilyenkor újrafésüljük a csatornalistát.
   bus.on('vod-live', () => refreshAll({ force: false, epgToo: false, quiet: true }));
