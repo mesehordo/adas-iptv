@@ -248,12 +248,27 @@ async function feDownload(res) {
  * Ha a letöltés ZIP: a benne lévő .srt / .vtt közül a kért részé (évadcsomagnál kötelezően), különben
  * az első. Nem ZIP: maga a felirat. → bájtok
  */
+const NUM_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
+/**
+ * A rész felismerése egy csomagbeli fájlnévben, a legbiztosabbtól a lazábbig: S01E02 / 1x02, majd
+ * E02 / Ep 2 / Episode 2 / Part 2, „Episode.Two”, végül a név végi „- 02”.
+ */
+function episodeMatchers(season, episode) {
+  const n = `0*${episode}(?!\\d)`;
+  const out = [new RegExp(`(?:s0*${season}[ ._-]?e${n}|\\b${season}x${n})`, 'i'), new RegExp(`(?:^|[^a-z])(?:e|ep|episode|part|rész)[ ._-]*${n}`, 'i')];
+  out.push(new RegExp(`(?:^|\\D)0*${episode}\\.\\s*rész`, 'i')); // „2. rész”
+  if (NUM_WORDS[episode]) out.push(new RegExp(`(?:episode|ep|part)[ ._-]*${NUM_WORDS[episode]}(?![a-z])`, 'i'));
+  out.push(new RegExp(`[ ._-]-?[ ._-]*${n}[ ._-]*(?:\\[[^\\]]*\\])?\\.(srt|vtt)$`, 'i'));
+  return out;
+}
+
 async function pickFromZip(bytes, { season = 0, episode = 0, pack = false } = {}) {
   if (!isZip(bytes)) return bytes;
   const files = (await unzip(bytes, (p) => /\.(srt|vtt|sub|txt)$/i.test(p))).filter((f) => /\.(srt|vtt)$/i.test(f.name));
   if (!files.length) throw new Error('A letöltött csomagban nincs .srt felirat.');
-  const rx = episode ? new RegExp(`(?:s0*${season}[ ._-]?e0*${episode}|\\b${season}x0*${episode})(?!\\d)`, 'i') : null;
-  const hit = (rx && files.find((f) => rx.test(f.name))) || (pack ? null : files[0]);
+  let hit = null;
+  if (episode) for (const rx of episodeMatchers(season || 1, episode)) if ((hit = files.find((f) => rx.test(f.name)))) break;
+  hit ||= pack ? null : files[0];
   if (!hit) throw new Error(`Az évadcsomagban nincs felirat a(z) ${season}. évad ${episode}. részéhez.`);
   return hit.bytes;
 }
@@ -284,7 +299,11 @@ async function sdlSearch(ch, lang) {
   if (r.status === 403 || r.status === 401) throw new Error('Érvénytelen SubDL API-kulcs. Ellenőrizd a Beállításokban.');
   if (r.status === 429) throw new Error('SubDL: túl sok kérés – várj egy kicsit.');
   if (r.status >= 400) throw new Error(`SubDL: ${j.error || j.message || 'HTTP ' + r.status}`);
-  if (j.status === false) return []; // nincs találat
+  if (j.status === false) {
+    // „nincs ilyen cím / nincs felirat” = üres találat; minden más valódi hiba (a felület kiírja)
+    if (!j.error || /not found|can.?t find|no (subtitle|result|movie|show)|nincs/i.test(j.error)) return [];
+    throw new Error(`SubDL: ${j.error}`);
+  }
   return (j.subtitles || [])
     .filter((x) => x.url)
     .map((x) => ({
@@ -599,7 +618,7 @@ player.subsHooks = {
               ? res.list
                   .map(
                     (x, i) => `<button class="menu-item sub-hit" data-s="pick" data-i="${i}">
-                      <span><b>${esc(x.release)}</b><small>${esc(LANGS[x.lang] || x.lang)} · ${esc(SOURCE_NAME[x.src] || x.src)}${x.src === 'os' ? ` · ${x.downloads.toLocaleString('hu-HU')} letöltés` : ''}${x.hi ? ' · hallássérülteknek' : ''}${x.ai ? ' · gépi fordítás' : ''}</small></span></button>`
+                      <span><b>${esc(x.release)}</b><small>${esc(LANGS[x.lang] || x.lang)} · ${esc(SOURCE_NAME[x.src] || x.src)}${x.src === 'os' ? ` · ${esc((Number(x.downloads) || 0).toLocaleString('hu-HU'))} letöltés` : ''}${x.hi ? ' · hallássérülteknek' : ''}${x.ai ? ' · gépi fordítás' : ''}</small></span></button>`
                   )
                   .join('')
               : `<p class="muted small">Nem található felirat ehhez a címhez (magyar és angol nyelven sem).</p>`
