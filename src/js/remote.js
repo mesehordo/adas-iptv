@@ -74,7 +74,7 @@ input.q{width:100%;font:inherit;font-size:17px;padding:12px 14px;border-radius:1
  <h2>Ugrás</h2>
  <div class="row r3"><button data-c="nav" data-a="home" class="sm">⌂ Főoldal</button><button data-c="nav" data-a="tv" class="sm">📺 TV</button><button data-c="nav" data-a="guide" class="sm">☰ Műsorújság</button>
  <button data-c="nav" data-a="favorites" class="sm">★ Kedvencek</button><button data-c="nav" data-a="vod" class="sm">🎬 VOD</button><button data-c="nav" data-a="recordings" class="sm">● Felvételek</button>
- <button data-c="nav" data-a="browse" class="sm">⌕ Böngészés</button><button data-c="nav" data-a="help" class="sm">? Súgó</button><button data-c="menu" data-a="close" class="sm">✕ Lejátszó be</button></div>
+ <button data-c="nav" data-a="browse" class="sm">⌕ Böngészés</button><button data-c="nav" data-a="help" class="sm">? Súgó</button><button data-c="menu" data-a="close" class="sm">✕ Lejátszó bezárása</button></div>
  <h2>Szöveg küldése</h2>
  <input class="q" id="txt" type="text" placeholder="Keresés az Adásban / gépelés a kijelölt mezőbe" autocomplete="off">
  <div class="row r3"><button id="sendTxt" class="ok sm">Küldés</button><button id="searchTxt" class="sm">⌕ Keresés</button><button data-c="key" data-a="Backspace" class="sm">⌫ Törlés</button></div>
@@ -303,6 +303,7 @@ export function renderRemoteSettings(box) {
           ? info
             ? `<div class="share-box rc-box">
                 <div class="rc-qr" title="Olvasd be a telefon kamerájával">${(() => {
+                  if (!urls.length) return ''; // nincs hálózati cím: üres QR-t nem rajzolunk
                   try {
                     return qrSvg(`${urls[0]}#pin=${s.remotePin}`, { px: 5 });
                   } catch {
@@ -311,7 +312,7 @@ export function renderRemoteSettings(box) {
                 })()}</div>
                 <div class="rc-text">
                   <div><b>Olvasd be a QR-kódot a telefon kamerájával</b> – a lap megnyílik, és a PIN-t is megkapja, nem kell begépelni.</div>
-                  <div class="muted small">Vagy nyisd meg a telefon böngészőjében:</div>${urls.map((u) => `<code class="rc-url">${esc(u)}</code>`).join('')}
+                  ${urls.length ? `<div class="muted small">Vagy nyisd meg a telefon böngészőjében:</div>${urls.map((u) => `<code class="rc-url">${esc(u)}</code>`).join('')}` : '<div class="warn small">⚠ Nem található hálózati cím – csatlakozz egy (otthoni) hálózathoz, majd kapcsold ki és be a távirányítót.</div>'}
                   <div>PIN: <span class="share-code rc-pin">${esc(s.remotePin)}</span></div>
                   <div class="muted small">Tipp: a telefonon tedd ki a lapot a kezdőképernyőre, így alkalmazásként indul. Első alkalommal a Windows tűzfal engedélyt kérhet. Ha több cím látszik, azt válaszd, amelyik a telefonéval egy hálózaton van (a QR-kód az elsőt tartalmazza).</div>
                   <div class="inline"><button class="btn small" data-rc="pin">Új PIN</button></div>

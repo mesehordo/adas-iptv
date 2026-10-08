@@ -22,7 +22,7 @@ export function applyQualityCap(hls) {
   if (!max) return void (hls.autoLevelCapping = -1);
   let cap = -1;
   hls.levels.forEach((l, i) => {
-    if ((l.height || 0) <= max) cap = Math.max(cap, i);
+    if (l.height > 0 && l.height <= max) cap = Math.max(cap, i); // ismeretlen magasságú szint nem számít bele
   });
   // ha minden szint nagyobb (vagy ismeretlen a magasság), a legkisebbet engedjük
   hls.autoLevelCapping = cap >= 0 ? cap : 0;

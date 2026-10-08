@@ -539,6 +539,14 @@ function recList(dir) {
 
 /** A vágás forrása: a megőrzött eredeti, ha már vágtuk, különben maga a felvétel. */
 const recSource = (p) => (fs.existsSync(originalOf(p)) ? originalOf(p) : p);
+/** Futó felvétel fájlja nem vágható és nem állítható vissza (az FFmpeg még ír bele). */
+const isRecording = (p) => {
+  const abs = path.resolve(p);
+  return [...recordings.values()].some((r) => path.resolve(r.file) === abs);
+};
+function assertNotRecording(p) {
+  if (isRecording(p)) throw new Error('A felvétel még fut – a vágás a leállítása után lehetséges.');
+}
 
 /**
  * Vágás start és end (mp, a forrás idejében) között, újrakódolás nélkül. → { ok, size }
@@ -549,6 +557,7 @@ async function recTrim(p, start, end) {
   start = Math.max(0, +start || 0);
   end = +end || 0;
   if (!(end > start + 1)) throw new Error('A vége legyen a kezdet után.');
+  assertNotRecording(p);
   const orig = originalOf(p);
   await fs.promises.mkdir(path.dirname(orig), { recursive: true });
   if (!fs.existsSync(orig)) await fs.promises.rename(p, orig); // első vágás: az eredeti félretéve
@@ -562,12 +571,17 @@ async function recTrim(p, start, end) {
     proc.on('close', (code) => (code ? reject(new Error(err.trim().split('\n').pop() || `kilépési kód: ${code}`)) : resolve()));
   }).catch(async (e) => {
     await fs.promises.rm(tmp, { force: true });
-    // ha még nem volt vágott változat, az eredeti visszakerül a helyére
-    if (!fs.existsSync(p)) await fs.promises.rename(orig, p).catch(() => {});
+    // ha még nem volt vágott változat, az eredeti visszakerül a helyére (ha ez sem sikerül, azt jelezzük)
+    if (!fs.existsSync(p)) {
+      try {
+        await fs.promises.rename(orig, p);
+      } catch (e2) {
+        throw new Error(`${e.message} – az eredeti a(z) ${orig} helyen maradt (${e2.message})`);
+      }
+    }
     throw e;
   });
-  await fs.promises.rm(p, { force: true });
-  await fs.promises.rename(tmp, p);
+  await fs.promises.rename(tmp, p); // a rename felülírja a régi vágott változatot (nincs fájl nélküli pillanat)
   forgetFile(p);
   return { ok: true, size: (await fs.promises.stat(p)).size };
 }
@@ -576,7 +590,7 @@ async function recTrim(p, start, end) {
 async function recRestore(p) {
   const orig = originalOf(p);
   if (!fs.existsSync(orig)) return false;
-  await fs.promises.rm(p, { force: true });
+  assertNotRecording(p);
   await fs.promises.rename(orig, p);
   forgetFile(p);
   return true;
@@ -584,5 +598,5 @@ async function recRestore(p) {
 
 module.exports = {
   init, available: () => !!FF, status, probe, start, stop, stopAll, cover, parseInfo,
-  recStart, recStop, recList, recTrim, recRestore, recSource, originalOf, recStopAll: () => [...recordings.keys()].forEach(recStop),
+  recStart, recStop, recList, recTrim, recRestore, recSource, originalOf, isRecording, recStopAll: () => [...recordings.keys()].forEach(recStop),
 };

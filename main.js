@@ -861,7 +861,8 @@ const inRecDir = (p) => {
   return full.startsWith(path.resolve(recDir()) + path.sep) && /\.(ts|mkv|mp4)$/i.test(full);
 };
 ipcMain.handle('rec-trash', async (_e, p) => {
-  if (!inRecDir(p)) return false;
+  if (!inRecDir(p) || media.isRecording(p)) return false; // futó felvétel nem mehet a Lomtárba
+  p = path.resolve(p);
   await shell.trashItem(p);
   // a vágás előtti eredeti is megy (külön nem játszható le, csak újravágáshoz kellett)
   const orig = media.originalOf(p);

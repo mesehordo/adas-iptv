@@ -322,7 +322,20 @@ export async function openTrimEditor(f, onDone) {
     } else if (a === 'cancel') close();
     else if (a === 'restore') {
       if (!(await confirmDialog('Visszaállítod az eredeti, vágatlan felvételt? (A mostani vágott változat törlődik.)', { ok: 'Visszaállítás' }))) return;
-      await api.recRestore(f.path);
+      // az előnézet az eredetit olvassa – Windowson nyitott fájl nem nevezhető át
+      bridge?.destroy();
+      bridge = null;
+      let ok = false;
+      try {
+        ok = await api.recRestore(f.path);
+      } catch (err) {
+        toast('A visszaállítás nem sikerült: ' + (err.message || err), { timeout: 9000 });
+        return close();
+      }
+      if (!ok) {
+        toast('A visszaállítás nem sikerült: nincs meg az eredeti felvétel.', { timeout: 9000 });
+        return close();
+      }
       forgetProbe(pathToUrl(f.path));
       delete meta.trim;
       store.save();
