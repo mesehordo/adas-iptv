@@ -15,7 +15,7 @@ import {
 import { player, stopPreview, PLAYER_BUTTONS } from './player.js';
 import { THEMES, currentTheme, applyTheme, profileRows, defaultRows, rowLabel } from './themes.js';
 import { renderLists } from './lists.js';
-import { renderVodLists, renderOwnLists, searchVod, vcardHtml, vod } from './vod.js';
+import { renderVodLists, renderOwnLists, searchVod, vcardHtml, vod, vodFavItems, loadVod } from './vod.js';
 import { renderHuSettings } from './subtitles.js';
 import { exoAvailable } from './exo.js';
 import { renderKidsSettings } from './kidsui.js';
@@ -274,6 +274,9 @@ export function renderFavorites(view) {
   const favs = getChannels(p.favorites).filter((c) => vis.has(c));
   const recent = getChannels(p.recent).filter((c) => vis.has(c));
   const ctx = registerContext('Kedvencek', favs);
+  const vodFavs = vodFavItems();
+  // (a kedvenc filmekhez a filmlisták kellenek: ha még nem töltődtek be, most – a „vod” esemény újrarajzol)
+  if ((p.vodFavs || []).length && !vod.ready) loadVod();
   view.innerHTML = `<div class="page">
     <div class="page-head"><h1>Kedvencek</h1><span class="muted">${favs.length} csatorna · a sorrend adja a csatornaszámokat; áthelyezés: húzással, ${IS_TV ? 'CH+ / CH− gombbal' : /Mac/.test(navigator.platform) ? '⌘← / ⌘→ billentyűvel' : 'Ctrl+← / Ctrl+→ billentyűvel'}</span></div>
     ${
@@ -281,7 +284,13 @@ export function renderFavorites(view) {
         ? `<div class="grid fav-grid">${favs
             .map((c, i) => cardHtml(c, { context: ctx }).replace('<div class="card"', `<div class="card" draggable="true" data-num="${i + 1}"`))
             .join('')}</div>`
-        : emptyState('Még nincsenek kedvenceid', 'A csatornák kártyáján a + gombbal, vagy kijelölve az F billentyűvel jelölhetsz kedvencet.', '<a class="btn primary" href="#/browse">Csatornák böngészése</a>')
+        : emptyState('Még nincsenek kedvenc csatornáid', 'A csatornák kártyáján a + gombbal, vagy kijelölve az F billentyűvel jelölhetsz kedvencet.', '<a class="btn primary" href="#/browse">Csatornák böngészése</a>')
+    }
+    <div class="page-head sub"><h2>Filmek és sorozatok</h2>${vodFavs.length ? `<span class="muted">${vodFavs.length} cím</span>` : ''}</div>
+    ${
+      vodFavs.length
+        ? `<div class="vgrid fav-vod">${vodFavs.map(vcardHtml).join('')}</div>`
+        : `<p class="muted">${(store.profile.vodFavs || []).length && !vod.ready ? 'A filmlisták betöltése…' : 'Egy film vagy sorozat adatlapján a <b>☆ Kedvenc</b> gombbal teheted ide.'}</p>`
     }
     ${recent.length ? `<div class="page-head sub"><h2>Legutóbb nézett</h2><button class="btn small" id="clear-recent">Előzmények törlése</button></div>` : ''}
   </div>`;
@@ -937,7 +946,7 @@ const SET_GROUPS = [
   ['look', '🎨', 'Megjelenés', 'A felület stílusa, a saját témák és a TV oldal sorainak sorrendje. Itt adhatod meg azt is, mennyire legyenek kiemelve az elemek.'],
   ['home', '🏠', 'Főoldal', 'A Főoldal csempéi: melyik látsszon, mekkora legyen, és mit mutasson. Itt állíthatod be az időjárás városát és a hírforrásokat is.'],
   ['play', '▶️', 'Lejátszás', 'Hogyan induljanak és szóljanak az adások: tartalék forrás, minőség, lejátszómotor, hangerő. Itt választhatod ki azt is, mely gombok látszanak a lejátszóban.'],
-  ['subs', '💬', 'Feliratok és információk', 'Feliratforrások (Feliratok.eu, OpenSubtitles), a felirat nyelve és kinézete, a kedvenc hangsáv. A filmek és sorozatok magyar leírásai és borítóképei is innen jönnek.'],
+  ['subs', '💬', 'Feliratok és információk', 'Feliratforrások (Feliratok.eu, OpenSubtitles, SubDL), a felirat nyelve és kinézete, a kedvenc hangsáv. A filmek és sorozatok magyar leírásai és borítóképei is innen jönnek.'],
   ['rec', '⏺', 'Felvételek', 'Hová kerüljenek a felvételek, és mennyivel előbb kezdődjenek, illetve később érjenek véget a műsornál. Itt látod a legutóbbi felvételeidet is.'],
   ['tvlists', '📺', 'Csatornalisták', 'A tévécsatornák forrásai: beépített és saját lejátszólisták, saját csatornák. Itt ellenőrizheted azt is, mely adások élnek.'],
   ['vod', '🎬', 'VOD és médiatár', 'Film- és sorozatlisták, kiegészítő csomagok és a saját (NAS-) médiatár mappái. Itt rendezheted a VOD oldal sorait is.'],

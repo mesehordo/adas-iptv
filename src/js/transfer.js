@@ -9,7 +9,7 @@ import { store } from './store.js';
 import { confirmDialog } from './components.js';
 import { packDocs } from './packs.js';
 
-const SECRET_KEYS = ['osApiKey', 'osUser', 'osPass', 'osToken', 'tmdbKey', 'omdbKey', 'tsdbKey'];
+const SECRET_KEYS = ['osApiKey', 'osUser', 'osPass', 'osToken', 'subdlKey', 'tmdbKey', 'omdbKey', 'tsdbKey'];
 let shareTimer = null;
 
 /** A fájlból felvett nagy listák szövege külön tárban van – a mentésbe ezeket is beletesszük. */

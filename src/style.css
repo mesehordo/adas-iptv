@@ -675,6 +675,14 @@ mark { background: rgba(255, 213, 74, 0.45); color: inherit; border-radius: 2px;
 /* oszlop × sor rács; a magasságot a fitDash() állítja a képernyő maradékára, a helyeket a packDash() */
 .dash { display: grid; gap: 16px; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); grid-template-rows: repeat(var(--rows, 2), minmax(0, 1fr)); }
 .dash-head .dash-edit-btn { margin-left: auto; align-self: center; }
+/* a Távirányító gomb a Testreszabás előtt (együtt a sor végén) */
+.dash-head .dash-rc-btn { margin-left: auto; align-self: center; }
+.dash-head .dash-rc-btn + .dash-edit-btn { margin-left: 0; }
+.rc-modal { width: min(760px, calc(100vw - 32px)); }
+.rc-dialog { padding: 22px 24px 20px; }
+.rc-dialog > h2, .rc-dialog > .setting { padding-right: 48px; } /* a bezárás gomb ne takarja a kapcsolót */
+.rc-dialog .rc-box { margin-top: 10px; }
+.dash-rc-btn svg { width: 1.05em; height: 1.05em; vertical-align: -0.15em; margin-right: 4px; fill: currentColor; }
 .dash-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 10px 14px; margin-bottom: 8px; border-radius: 10px; background: var(--bg-2); border: 1px dashed var(--accent); }
 .dt-group { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; }
 .dt-group b { min-width: 1.2em; text-align: center; }

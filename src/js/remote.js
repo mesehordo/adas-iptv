@@ -7,7 +7,7 @@ import { store } from './store.js';
 import { catalog, getChannels, visible } from './catalog.js';
 import { epg } from './epg.js';
 import { player } from './player.js';
-import { openInfo } from './components.js';
+import { openInfo, openModal } from './components.js';
 import { toggleStreamInfo } from './streaminfo.js';
 import { qrSvg } from './qr.js';
 
@@ -386,6 +386,32 @@ if (canRemote) {
   setInterval(pushState, 15000);
   // bekapcsolt távirányító: indításkor elindul (kicsit később, hogy a lista betöltődjön)
   setTimeout(() => store.settings.remoteOn && startRemote().catch(() => {}), 4000);
+}
+
+/**
+ * Gyorscsatlakozás (Főoldal → 📱 Távirányító): kis ablak a QR-kóddal, címmel és PIN-nel. Ha a
+ * távirányító ki volt kapcsolva, bekapcsolja (és bekapcsolva is marad, mint a Beállításokban).
+ */
+export async function openRemoteDialog() {
+  if (!canRemote) return;
+  const s = store.settings;
+  const box = document.createElement('div');
+  box.className = 'rc-dialog';
+  box.innerHTML = '<p class="muted">Indítás…</p>';
+  openModal(box, { cls: 'rc-modal' });
+  if (!s.remoteOn || !info) {
+    s.remoteOn = true;
+    store.save();
+    try {
+      await startRemote();
+    } catch (err) {
+      s.remoteOn = false;
+      store.save();
+      box.innerHTML = `<p class="warn">A távirányító nem indult el: ${esc(err.message || err)}</p>`;
+      return;
+    }
+  }
+  if (box.isConnected) renderRemoteSettings(box);
 }
 
 // ---------------------------------------------------------------------------

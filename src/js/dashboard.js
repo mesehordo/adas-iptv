@@ -8,6 +8,7 @@ import { catalog, visible, getChannels, homeRank, rankScore } from './catalog.js
 import { ICON, logoHtml, openModal, openProgram, emptyState } from './components.js';
 import { player, startPreview, stopPreview } from './player.js';
 import { minutesLeft as watchLeft } from './watchtime.js';
+import { canRemote, openRemoteDialog } from './remote.js';
 import { watchList, loadSportEvents, sportEventsCached, sportStale, eventRowHtml } from './sports.js';
 import { vod, own, continueItems, playVod, loadVod, vodLists, findItem, displayTitle } from './vod.js';
 
@@ -1014,6 +1015,7 @@ export function renderDashboard(view) {
 
   view.innerHTML = `<div class="page dash-page ${editing ? 'editing' : ''}">
     <div class="dash-head"><h1>${esc(greeting())}, ${esc(p.name)}!</h1><span class="muted">${d.toLocaleDateString('hu-HU', { month: 'long', day: 'numeric' })}, ${DAYS[d.getDay()]}</span>
+      ${canRemote && !editing ? '<button class="btn small dash-rc-btn" data-dash-rc title="Telefon csatlakoztatása távirányítóként (QR-kód)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H8a3 3 0 0 0-3 3v16a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V4a3 3 0 0 0-3-3Zm1 19a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16Zm-5-3a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Z"/></svg>Távirányító</button>' : ''}
       <button class="btn small dash-edit-btn" data-ed="toggle">${editing ? `${ICON.check} Kész` : 'Testreszabás'}</button></div>
     ${
       editing
@@ -1053,6 +1055,10 @@ export function renderDashboard(view) {
     </div>
   </div>`;
 
+  view.querySelector('[data-dash-rc]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openRemoteDialog();
+  });
   const box = view.querySelector('.dash');
   fitDash(box);
   renderAll(box);

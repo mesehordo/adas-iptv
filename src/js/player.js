@@ -914,7 +914,7 @@ export const player = {
   handleKey(e) {
     if (!this.active) return false;
     if (modalOpen()) return false;
-    const inInput = e.target.matches('input:not([type=range]), textarea, select');
+    const inInput = !!e.target.matches?.('input:not([type=range]), textarea, select');
     if (inInput && e.key !== 'Escape') return false;
     const sideOpen = !$('.p-side', root).hidden;
     const menuOpen = !$('.p-menu', root).hidden;

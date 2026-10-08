@@ -1,24 +1,21 @@
 # Kiadás: egy v* címke (pl. v1.25.0) pusholásakor – vagy kézzel – lefordítja az Adást minden
 # platformra, és a fájlokat egy GitHub Release-be tölti fel (automatikus kiadási megjegyzésekkel,
 # SHA256SUMS.txt-vel). A címkének egyeznie kell a package.json verziójával.
+# Kézi indítás: Actions → Kiadás → Run workflow, és a „Use workflow from” mezőben a CÍMKÉT válaszd
+# (pl. v1.25.0) – ágról nem indul. Minden feladat ugyanazt a commitot (github.sha) fordítja.
 name: Kiadás
 
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'A kiadás címkéje (pl. v1.25.0) – a címkének már léteznie kell, és egyeznie a package.json verziójával'
-        required: true
-        type: string
 
 # alapból csak olvasás; írni csak a feltöltő (release) feladat tud
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -31,26 +28,23 @@ jobs:
     outputs:
       tag: ${{ steps.v.outputs.tag }}
       version: ${{ steps.v.outputs.version }}
-      sha: ${{ steps.v.outputs.sha }}
     steps:
-      # Csak címke lehet a forrás: minősített refs/tags/… hivatkozás (egy azonos nevű ág nem kerülhet a
-      # helyébe), és ha a címke nem létezik, a letöltés hibával leáll.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', github.event.inputs.tag) || github.ref }}
           persist-credentials: false
       - id: v
-        name: A címke és a package.json verziója egyezik?
+        name: Címkéről indult, és egyezik a package.json verziójával?
         env:
-          TAG: ${{ github.event.inputs.tag || github.ref_name }}
-          REF: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', github.event.inputs.tag) || github.ref }}
+          REF: ${{ github.ref }}
+          TAG: ${{ github.ref_name }}
         run: |
-          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::Érvénytelen címke: $TAG (v1.2.3 formájú legyen)."
+          # csak címke lehet a forrás (kézi indításnál is): azonos nevű ág nem kerülhet a helyébe
+          if [[ "$REF" != refs/tags/* ]]; then
+            echo "::error::A kiadás csak címkéből indulhat (most: $REF). Kézi indításnál a „Use workflow from” mezőben a címkét válaszd."
             exit 1
           fi
-          if [[ "$REF" != refs/tags/* ]]; then
-            echo "::error::A kiadás csak címkéből indulhat (most: $REF)."
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Érvénytelen címke: $TAG (v1.2.3 formájú legyen)."
             exit 1
           fi
           VERSION=$(node -p "require('./package.json').version")
@@ -60,8 +54,6 @@ jobs:
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          # a többi feladat pontosan ezt a commitot fordítja (közben áthelyezett címke sem számít)
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   desktop:
     name: Asztali (${{ matrix.name }})
@@ -95,12 +87,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.verify.outputs.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
+          # (kiadásnál nincs npm-gyorsítótár: tiszta telepítés a lockfájlból)
       - run: npm ci
       - name: FFmpeg (lejátszási híd)
         env:
@@ -128,12 +119,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.verify.outputs.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
+          # (kiadásnál nincs npm-gyorsítótár: tiszta telepítés a lockfájlból)
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin

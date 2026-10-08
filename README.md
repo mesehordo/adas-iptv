@@ -107,11 +107,11 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 **Kiadás a GitHubról, egérkurzor a távirányítón, új feliratforrás, egységes műfajok (1.25)**
 - **Kiadások:** a `v*` címke pusholásakor a GitHub Actions minden platformra lefordít, és GitHub Release-be tölti a fájlokat (Windows: telepítő, hordozható, MSI · Linux: AppImage, deb · macOS: dmg, zip · Android: APK), SHA256SUMS.txt-vel; az asztali változat innen frissül (induláskor keres, kikapcsolható)
 - **Kiegészítő csomagok** (`.adaspack`): nem nyilvános listák a programmal nem szállítva, beépítettként megjelenve – betöltés fájlból vagy az asztali „packs” mappából; a mentés és az átvitel is viszi. Készítés: `tools/make-pack.mjs`
-- **Távirányító:** egér mód (kurzor a képernyőn, koppintás = kattintás, két ujjal görgetés), a parancsok sorban mennek (nem ugrál), a kijelölés mindig látszik; gyorsgombok: TV, Műsorújság, Böngészés, VOD
-- **Feliratok.eu:** magyar és angol feliratok fiók és napi korlát nélkül, sorozatnál évadcsomagból is; a régi (Windows-1250) magyar feliratok ékezetei is helyesek
+- **Távirányító:** egér mód (kurzor a képernyőn, koppintás = kattintás, két ujjal görgetés), a parancsok sorban mennek (nem ugrál), a kijelölés mindig látszik; gyorsgombok: TV, Műsorújság, Böngészés, VOD; a Főoldalon *Távirányító* gomb – egy kis ablakban QR-kóddal csatlakoztat
+- **Feliratok.eu:** magyar és angol feliratok fiók és napi korlát nélkül, sorozatnál évadcsomagból is; a régi (Windows-1250) magyar feliratok ékezetei is helyesek; **SubDL** ingyenes kulccsal; a CC-menüben egyetlen *Felirat keresése* gomb (alatta az aktív adatbázisok), magyarul és angolul is keres
 - **VOD:** egységes műfajok az AnimeAddicts műfajlistája szerint (a magyar és angol, témacsatorna-szerű csoportok ezekre fordítva), egy cím több műfajban is; alapból a 12 legnépszerűbb műfaj kap sort
 - **Hálózatfigyelő:** a letöltés sebessége, a forrás válaszideje és a valós idejűség mérése; ismételt akadásnál másik forrás, kisebb minőség vagy nagyobb tartalék; megszakadt internetnél magától folytatja
-- **Menü:** Főoldal · TV · VOD · Kedvencek; a TV alatt fülek: Csatornák, Műsorújság, Böngészés, Felvételek
+- **Menü:** Főoldal · TV · VOD · Kedvencek (a kedvenc filmek és sorozatok is); a TV alatt fülek: Csatornák, Műsorújság, Böngészés, Felvételek
 - **Keresés:** fekvő, széles képernyőn a tévé- és a VOD-találatok két hasábban egymás mellett; Androidon egymás alatt, elöl a csatornákkal
 - **Beállítások:** 15 kisebb csoport, mindegyik egy-két mondatos leírással; Androidon csak csempék
 - **Lejátszó:** a kiegészítő gombok egyenként elrejthetők; a kép a képben mód megszűnt

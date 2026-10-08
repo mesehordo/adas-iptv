@@ -831,6 +831,22 @@ export function toggleWatchlist(x) {
   else p.watchlist.unshift(x.id);
   store.save();
 }
+// Kedvenc filmek és sorozatok (profilonként; a Kedvencek oldalon a csatornák alatt jelennek meg)
+export const isVodFav = (x) => (store.profile.vodFavs || []).includes(x.id);
+export function toggleVodFav(x) {
+  const p = store.profile;
+  p.vodFavs ||= [];
+  const i = p.vodFavs.indexOf(x.id);
+  if (i >= 0) p.vodFavs.splice(i, 1);
+  else p.vodFavs.unshift(x.id);
+  store.save();
+  bus.emit('vod-favs');
+}
+/** A kedvenc filmek / sorozatok a betöltött médiatárakból (online és saját), a jelölés sorrendjében. */
+export function vodFavItems() {
+  const ids = store.profile.vodFavs || [];
+  return ids.map((id) => vod.byId?.get(id) || own.byId?.get(id)).filter(Boolean);
+}
 const inWatchlist = (items) => {
   const ids = store.profile.watchlist || [];
   const by = new Map(items.map((x) => [x.id, x]));
@@ -1418,7 +1434,9 @@ const kidsBtn = (x) =>
     ? ''
     : `<button class="btn ${isKidsVod(x) ? 'on' : ''}" data-v="kids" title="Minden profilban: a gyerekprofilok alapból a gyerektartalmat nézhetik">${isKidsVod(x) ? ICON.check + ' ' : ''}Gyerektartalom</button>`;
 // Megnézendő lista (profilonként)
-const wlBtn = (x) => `<button class="btn ${isWatchlisted(x) ? 'on' : ''}" data-v="wl">${isWatchlisted(x) ? ICON.check : ICON.plus} Megnézendő</button>`;
+const wlBtn = (x) =>
+  `<button class="btn ${isVodFav(x) ? 'on' : ''}" data-v="fav" title="A Kedvencek oldalon is megjelenik">${isVodFav(x) ? '★' : '☆'} Kedvenc</button>` +
+  `<button class="btn ${isWatchlisted(x) ? 'on' : ''}" data-v="wl">${isWatchlisted(x) ? ICON.check : ICON.plus} Megnézendő</button>`;
 // Borítókép és cím szerkesztése egy helyen (minden profilban közös)
 const editBtns = () => `<button class="btn" data-v="edit" title="Cím és borítókép – keresés az adatbázisokban, saját kép">✎ Cím és borító</button>`;
 const externalBtn = () =>
@@ -1534,6 +1552,10 @@ export function openVodDetail(x) {
     } else if (a === 'wl') {
       toggleWatchlist(x);
       toast(isWatchlisted(x) ? 'Felkerült a Megnézendő listára' : 'Lekerült a Megnézendő listáról');
+      render();
+    } else if (a === 'fav') {
+      toggleVodFav(x);
+      toast(isVodFav(x) ? 'Hozzáadva a kedvencekhez' : 'Eltávolítva a kedvencek közül');
       render();
     } else if (a === 'season-done') {
       const eps = x.episodes.filter((y) => y.season === season);

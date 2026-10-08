@@ -7,7 +7,7 @@ import { epg } from './epg.js';
 import { player } from './player.js';
 import { ICON, closeTopModal, modalOpen, topModalEl, openProgram, openInfo, confirmDialog, avatarHtml } from './components.js';
 import { applyTheme } from './themes.js';
-import { refreshAll } from './refresh.js';
+import { refreshAll, refreshing } from './refresh.js';
 import { channelDialog } from './lists.js';
 import { renderHelp, helpTopicForRoute } from './help.js';
 import { renderVod, renderOwn, loadVod, loadOwn, vodLists, vod } from './vod.js';
@@ -136,7 +136,9 @@ const rerender = debounce(() => {
   if (['home', 'tv', 'guide', 'search', 'favorites', 'browse'].includes(name)) route({ keepScroll: true });
 }, 300);
 bus.on('epg', rerender);
-bus.on('vod', () => ['vod', 'search', 'home'].includes(parseHash().name) && !player.active && route({ keepScroll: true }));
+bus.on('vod', () => ['vod', 'search', 'home', 'favorites'].includes(parseHash().name) && !player.active && route({ keepScroll: true }));
+// kedvenc film / sorozat jelölése (pl. a Kedvencek oldalról nyitott adatlapon): a Kedvencek oldal frissül
+bus.on('vod-favs', () => parseHash().name === 'favorites' && !player.active && route({ keepScroll: true }));
 bus.on('own', () => ['own', 'search', 'home'].includes(parseHash().name) && !player.active && route({ keepScroll: true }));
 bus.on('catalog', rerender);
 bus.on('profile', () => {
@@ -679,8 +681,12 @@ async function boot() {
   // Előtte az asztali „packs” mappa kiegészítő csomagjai (ha közben a VOD már betöltött, újratölt).
   syncPackFolder();
   // betöltött / eltávolított csomag: a csatornalista, illetve a VOD újraépül
-  // (ha a VOD épp töltődik, a futó betöltés még a régi listákkal dolgozik: utána még egyszer)
-  bus.on('packs', (kind) => (kind === 'tv' ? refreshAll({ force: false, epgToo: true, quiet: true }) : vod.loading ? vod.loading.then(() => loadVod()) : vod.ready && loadVod()));
+  // (ha a csatornalista vagy a VOD épp töltődik, a futó művelet még a régi listákkal dolgozik: utána még egyszer)
+  const tvReload = () => refreshAll({ force: false, epgToo: true, quiet: true });
+  bus.on('packs', (kind) => {
+    if (kind === 'tv') refreshing() ? refreshAll({ quiet: true }).then(tvReload) : tvReload();
+    else vod.loading ? vod.loading.then(() => loadVod()) : vod.ready && loadVod();
+  });
   setTimeout(() => vodLists().length && loadVod(), 8000);
   // A VOD-listákban talált élő adások a csatornák közé kerülnek: ilyenkor újrafésüljük a csatornalistát.
   bus.on('vod-live', () => refreshAll({ force: false, epgToo: false, quiet: true }));

@@ -32,7 +32,7 @@ export const ARTICLES = [
 <tr><td><b>Műsorújság</b> (a TV alatt)</td><td>Idővonalas rács: mi megy most és később az egyes csatornákon. ${t('guide-grid', 'Részletek')}</td></tr>
 <tr><td><b>Böngészés</b> (a TV alatt)</td><td>Az összes tévécsatorna kategória, ország, nyelv és minőség szerint szűrve. ${t('browse', 'Részletek')}</td></tr>
 <tr><td><b>VOD</b></td><td>Filmek és sorozatok: online listák és a saját médiatár, egységes műfajok szerint rendezett sorokkal. ${t('vod-lists', 'Részletek')}</td></tr>
-<tr><td><b>Kedvencek</b></td><td>A megjelölt csatornáid – a sorrendjük adja a csatornaszámokat. ${t('favorites', 'Részletek')}</td></tr>
+<tr><td><b>Kedvencek</b></td><td>A megjelölt csatornáid – a sorrendjük adja a csatornaszámokat –, alattuk a kedvenc filmjeid és sorozataid (adatlap → ☆ Kedvenc). ${t('favorites', 'Részletek')}</td></tr>
 <tr><td><b>Keresés</b> (nagyító)</td><td>Csatornák és műsorok keresése. ${t('search', 'Részletek')}</td></tr>
 <tr><td><b>Csengő</b></td><td>A beállított műsor-emlékeztetők. ${t('reminders', 'Részletek')}</td></tr>
 <tr><td><b>Profilkép</b></td><td>Profilváltás, csatornalista frissítése, csatorna hozzáadása, súgó, beállítások.</td></tr>
@@ -401,11 +401,11 @@ ${go('#/settings?section=ownlists', 'Saját médiatár beállítása')}`,
   {
     id: 'subtitles',
     cat: 'vod',
-    title: 'Feliratok (Feliratok.eu, OpenSubtitles – magyar és angol)',
-    keywords: 'felirat subtitle feliratok.eu feliratok eu opensubtitles srt vtt magyar angol időeltolás méret api kulcs évadcsomag',
+    title: 'Feliratok (Feliratok.eu, OpenSubtitles, SubDL – magyar és angol)',
+    keywords: 'felirat subtitle feliratok.eu feliratok eu opensubtitles subdl srt vtt magyar angol időeltolás méret api kulcs évadcsomag',
     body: `
 <p>Filmekhez és sorozatokhoz <b>magyar vagy angol feliratot</b> tölthetsz be a <b>Feliratok.eu</b> (magyar feliratoldal) és az <b>OpenSubtitles</b> gyűjteményéből, vagy egy saját <code>.srt</code> / <code>.vtt</code> fájlból.</p>
-<h2>Feliratok.eu – beállítás nélkül</h2><p>Alapból be van kapcsolva: nem kell fiók, kulcs, és nincs napi korlát. Sorozatoknál a rész feliratát az évadcsomagból (ZIP) is kiveszi; a régi, nem UTF-8 kódolású magyar feliratok ékezetei is helyesek. Kikapcsolható: Beállítások → Feliratok és információk → Magyar információk és feliratok.</p><h2>OpenSubtitles (nem kötelező, egyszer kell beállítani)</h2>
+<h2>Feliratok.eu – beállítás nélkül</h2><p>Alapból be van kapcsolva: nem kell fiók, kulcs, és nincs napi korlát. Sorozatoknál a rész feliratát az évadcsomagból (ZIP) is kiveszi; a régi, nem UTF-8 kódolású magyar feliratok ékezetei is helyesek. Kikapcsolható: Beállítások → Feliratok és információk → Magyar információk és feliratok.</p><h2>SubDL (nem kötelező)</h2><p>További találatok ingyenes kulccsal: regisztrálj a <b>subdl.com</b> oldalon, a profilodban másold ki az API-kulcsot, és add meg: Beállítások → Feliratok és információk → <i>SubDL API-kulcs</i>. Jelszó nem kell.</p><h2>OpenSubtitles (nem kötelező, egyszer kell beállítani)</h2>
 <ol>
 <li>Regisztrálj ingyenesen az <b>opensubtitles.com</b> oldalon.</li>
 <li>Bejelentkezve a profilodban keresd meg az <b>API consumers</b> részt, és hozz létre egy új kulcsot (bármilyen név jó, pl. „Adás”).</li>
@@ -415,7 +415,7 @@ ${go('#/settings?section=ownlists', 'Saját médiatár beállítása')}`,
 <h2>Használat lejátszás közben</h2>
 <ul>
 <li>A lejátszó <b>CC</b> gombja vagy a <kbd>C</kbd> billentyű nyitja a <b>Hang és felirat</b> menüt (hangsáv, beágyazott és külső felirat). ${t('audio-subs', 'Részletek')}</li>
-<li><i>Magyar felirat keresése</i> / <i>Angol felirat keresése</i>: minden bekapcsolt forrásból – elöl a Feliratok.eu találatai (az évben és címben egyezők legelöl), utána az OpenSubtitles-é a letöltések száma szerint, a gépi fordításúak hátul; minden találatnál látszik a forrás. Kattints a kívántra – letöltődik és azonnal megjelenik.</li>
+<li><b>Felirat keresése</b> (alatta kisebb betűvel a jelenleg aktív adatbázisok): egy gombnyomással minden bekapcsolt forrásban keres, magyarul és angolul is – a beállított nyelv találatai elöl. Elöl a Feliratok.eu találatai (az évben és címben egyezők legelöl), utána az OpenSubtitles (a letöltések száma szerint, a gépi fordításúak hátul) és a SubDL; minden találatnál látszik a nyelv és a forrás. Kattints a kívántra – letöltődik és azonnal megjelenik.</li>
 
 <li><b>Időeltolás</b>: ha a felirat elcsúszik, ±0,5 másodpercenként igazíthatod.</li>
 <li><b>Méret</b>: kicsi, közepes, nagy, óriás.</li>
@@ -859,7 +859,7 @@ ${go('#/settings', 'Megjelenés beállítása')}`,
 <tr><td><b>🎨 Megjelenés</b></td><td>Felületstílus, saját témák, a TV oldal sorainak sorrendje. ${t('themes', 'Stílusok')}</td></tr>
 <tr><td><b>🏠 Főoldal</b></td><td>A Főoldal csempéi, időjárás, hírforrások, élő előnézet. ${t('dashboard', 'Főoldal')}</td></tr>
 <tr><td><b>▶️ Lejátszás</b></td><td>Tartalék forrás, legnagyobb minőség, hangerő, lejátszómotor és lejátszási híd, a lejátszó gombjai. ${t('engines', 'Motorok')}</td></tr>
-<tr><td><b>💬 Feliratok és információk</b></td><td>Feliratforrások (Feliratok.eu, OpenSubtitles), a feliratok kinézete, kedvenc hangsáv, magyar leírások és borítóképek. ${t('subtitles', 'Feliratok')}</td></tr>
+<tr><td><b>💬 Feliratok és információk</b></td><td>Feliratforrások (Feliratok.eu, OpenSubtitles, SubDL), a feliratok kinézete, kedvenc hangsáv, magyar leírások és borítóképek. ${t('subtitles', 'Feliratok')}</td></tr>
 <tr><td><b>⏺ Felvételek</b></td><td>A felvételek mappája, ráhagyás a műsor előtt / után, a legutóbbi felvételek (asztali változat). ${t('recording', 'Felvétel')}</td></tr>
 <tr><td><b>📺 Csatornalisták</b></td><td>Beépített és saját lejátszólisták, saját csatornák, elérhetőség-ellenőrzés. ${t('lists', 'Listák')}</td></tr>
 <tr><td><b>🎬 VOD és médiatár</b></td><td>Film- és sorozatlisták, kiegészítő csomagok, saját (NAS-) médiatár, a VOD oldal sorai. ${t('vod-lists', 'VOD-listák')}</td></tr>
@@ -1369,7 +1369,7 @@ ${go('#/settings?section=transfer', 'Szinkronizálás eszközök között')}`,
     body: `
 <p>Az asztali alkalmazás és az Android (TV) változat a telefonodról – vagy bármelyik eszköz böngészőjéből – is vezérelhető ugyanazon a (otthoni) hálózaton:</p>
 <ol>
-<li>Beállítások → Távirányító és billentyűk → <b>Távirányító telefonról</b> → kapcsold be. Megjelenik egy <b>QR-kód</b>, egy cím (pl. <code>http://192.168.1.20:47800/adas/remote</code>) és egy 4 jegyű PIN.</li>
+<li>A leggyorsabb: a <b>Főoldal</b> tetején a <b>Távirányító</b> gomb (a Testreszabás mellett) – bekapcsolja, és egy kis ablakban megmutatja a QR-kódot. Vagy: Beállítások → Távirányító és billentyűk → <b>Távirányító telefonról</b> → kapcsold be. Megjelenik egy <b>QR-kód</b>, egy cím (pl. <code>http://192.168.1.20:47800/adas/remote</code>) és egy 4 jegyű PIN.</li>
 <li>Olvasd be a QR-kódot a telefon kamerájával: a vezérlő megnyílik, és a PIN-t is megkapja. (Vagy nyisd meg a címet a böngészőben, és írd be a PIN-t – a telefon megjegyzi.) Tipp: tedd ki a lapot a kezdőképernyőre, így alkalmazásként indul.</li>
 </ol>
 <p>Felül mindig látszik, mi megy éppen (logóval, a műsor haladásával és a következő műsorral). A vezérlő három fülből áll:</p>
