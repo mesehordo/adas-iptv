@@ -271,8 +271,9 @@ async function pickFromZip(bytes, { season = 0, episode = 0, pack = false } = {}
     const want = season || 1;
     // a fájlnév évadjelölése (S02E…, 2x…, Season 2, 2. évad) – ha van
     const seasonOf = (name) => {
-      const m = /s0*(\d{1,2})[ ._-]?e\d|\b(\d{1,2})x\d{1,3}\b|season[ ._-]*0*(\d{1,2})|(\d{1,2})\.\s*évad/i.exec(name);
-      return m ? Number(m[1] || m[2] || m[3] || m[4]) : 0;
+      // (S02E02 · önálló S2 · 2x02 · Season 2 · 2. évad)
+      const m = /s0*(\d{1,2})[ ._-]?e\d|\bs0*(\d{1,2})\b|\b(\d{1,2})x\d{1,3}\b|season[ ._-]*0*(\d{1,2})|(\d{1,2})\.\s*évad/i.exec(name);
+      return m ? Number(m[1] || m[2] || m[3] || m[4] || m[5]) : 0;
     };
     // a lazább (csak részszámos) mintáknál a más évadot jelölő fájl nem jöhet szóba
     const sameSeason = files.filter((f) => [0, want].includes(seasonOf(f.name)));
