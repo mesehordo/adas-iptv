@@ -56,7 +56,8 @@ async function parse(data) {
 }
 /** Letöltés (gyorsítótárral): ahol lehet, bájtként. */
 const fetchSource = (url, opts) =>
-  api.fetchBytes ? api.fetchBytes(url, opts).then((r) => ({ data: r.bytes, cachedAt: r.cachedAt })) : api.fetchText(url, opts).then((r) => ({ data: r.text, cachedAt: r.cachedAt }));
+  // (a bájtos út csak http(s); a helyi – file:// – forrás a szöveges úton megy)
+  api.fetchBytes && /^https?:\/\//i.test(url) ? api.fetchBytes(url, opts).then((r) => ({ data: r.bytes, cachedAt: r.cachedAt })) : api.fetchText(url, opts).then((r) => ({ data: r.text, cachedAt: r.cachedAt }));
 
 /** Program: { start, stop, title, desc, category, subtitle, episode, age (korhatár, 0 = nincs adat) } */
 const toProg = (r) => ({ start: r[0], stop: r[1], title: r[2] || 'Műsor', desc: r[3], category: r[4], subtitle: r[5], episode: r[6], age: r[7] || 0 });
@@ -126,7 +127,7 @@ export const epg = {
         const stop = conv ? x.stop : x[1];
         if (stop < now || start > until) continue;
         const hay = conv ? x._n || (x._n = fold(x.title + ' ' + (x.subtitle || ''))) : fold((x[2] || 'Műsor') + ' ' + (x[5] || ''));
-        if (tokens.every((t) => hay.includes(t))) out.push({ channelId: id, prog: conv ? x : this.list(id)[i] });
+        if (tokens.every((t) => hay.includes(t))) out.push({ channelId: id, prog: conv ? x : toProg(x) }); // csak a találat lesz objektum
       }
     }
     out.sort((a, b) => a.prog.start - b.prog.start);
