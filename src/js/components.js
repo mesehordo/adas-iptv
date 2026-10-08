@@ -684,6 +684,13 @@ export function openProgram(ch, p) {
   });
 }
 
+/** A TV oldal fülei: csatornák és (asztali változatban) a tévéfelvételek. */
+export function tvTabs(cur) {
+  if (!api.recStart) return '';
+  const tab = (id, href, label) => `<a class="tab ${cur === id ? 'active' : ''}" href="${href}">${label}</a>`;
+  return `<div class="tabs vod-tabs tv-tabs">${tab('tv', '#/tv', 'Csatornák')}${tab('rec', '#/recordings', 'Felvételek')}</div>`;
+}
+
 export function emptyState(title, text, action) {
   return `<div class="empty-state"><h2>${esc(title)}</h2><p>${esc(text)}</p>${action || ''}</div>`;
 }
