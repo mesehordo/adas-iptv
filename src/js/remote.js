@@ -239,7 +239,8 @@ function cursorEl() {
   if (cur.el?.isConnected) return cur.el;
   cur.el = document.createElement('div');
   cur.el.id = 'rc-cursor';
-  cur.el.innerHTML = '<svg viewBox="0 0 24 24" width="28" height="28"><path d="M4 2l16 10-7 1.5 4 8-3 1.5-4-8L4 20z" fill="#fff" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+  // a téma színeire épülő kör, lágyan pulzáló belsővel – „itt jár az ujjam” (a közepe a kattintási pont)
+  cur.el.innerHTML = '<i></i>';
   document.body.append(cur.el);
   cur.x = innerWidth / 2;
   cur.y = innerHeight / 2;

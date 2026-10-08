@@ -1285,8 +1285,15 @@ body.mini .p-ts { display: none; }
 body.rc-nav :focus { outline: 3px solid #fff; outline-offset: 2px; }
 body.rc-nav .card:focus-within { transform: scale(1.32); z-index: 10; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.75); outline: none; }
 body.rc-nav .tile:focus, body.rc-nav .see-all:focus { transform: scale(1.06); z-index: 2; }
-#rc-cursor { position: fixed; left: 0; top: 0; z-index: 2147483647; pointer-events: none; opacity: 0; transition: opacity 0.3s; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)); will-change: transform; }
+/* Távirányító-„ujj”: a téma kiemelőszínű gyűrűje, benne a második kiemelőszín világosabb, lágyan pulzáló pöttye.
+   A kör közepe a pont (a negatív margó miatt a translate a középpontot viszi). */
+#rc-cursor { position: fixed; left: 0; top: 0; width: 34px; height: 34px; margin: -17px 0 0 -17px; z-index: 2147483647; pointer-events: none; opacity: 0; transition: opacity 0.3s; will-change: transform;
+  border-radius: 50%; border: 3px solid var(--accent); box-sizing: border-box; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45), 0 0 14px var(--accent), inset 0 0 0 1px rgba(0, 0, 0, 0.35); }
+/* a belső: világos mag, kifelé a második kiemelőszín kissé eltolt árnyalata (ahol a két kiemelőszín azonos, ott is elüt) */
+#rc-cursor i { position: absolute; inset: 4px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0 22%, var(--accent-2) 72%); filter: hue-rotate(28deg) brightness(1.3) saturate(1.15); opacity: 0.75; animation: rc-finger 1.6s ease-in-out infinite; }
 #rc-cursor.show { opacity: 1; }
+@keyframes rc-finger { 0%, 100% { transform: scale(0.55); opacity: 0.45; } 50% { transform: scale(0.95); opacity: 0.9; } }
+@media (prefers-reduced-motion: reduce) { #rc-cursor i { animation: none; transform: scale(0.75); } }
 
 /* A lejátszó gombjainak kapcsolói (Beállítások → Lejátszás) */
 .pb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px 14px; margin-top: 8px; }
