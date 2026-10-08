@@ -59,6 +59,33 @@ import java.util.zip.GZIPInputStream;
  */
 public class MainActivity extends Activity {
   static final String HOST = "appassets.androidplatform.net";
+  static final long MAX_GUNZIP = 256L * 1024 * 1024;
+
+  /** Bemenet, amely `max` bájt után hibával leáll. */
+  static final class Limited extends java.io.FilterInputStream {
+    long left;
+
+    Limited(InputStream in, long max) {
+      super(in);
+      left = max;
+    }
+
+    @Override
+    public int read() throws java.io.IOException {
+      if (left <= 0) throw new java.io.IOException("Túl nagy kicsomagolt adat");
+      int r = super.read();
+      if (r >= 0) left--;
+      return r;
+    }
+
+    @Override
+    public int read(byte[] b, int off, int len) throws java.io.IOException {
+      if (left <= 0) throw new java.io.IOException("Túl nagy kicsomagolt adat");
+      int r = super.read(b, off, (int) Math.min(len, left));
+      if (r > 0) left -= r;
+      return r;
+    }
+  }
   static final String CHROME_UA =
       "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36";
   static final int REQ_FILE = 1;
@@ -412,11 +439,11 @@ public class MainActivity extends Activity {
           else if ("probe".equals(method)) out = probeAll(a.getJSONArray("items")).toString();
           else if ("lanGet".equals(method)) out = lanGet(a.getJSONArray("urls"), a.optInt("timeout", 2500)).toString();
           else if ("lanIps".equals(method)) out = new JSONArray(LanServer.localIps()).toString();
-          else if ("shareStart".equals(method)) out = lan().shareStart(a.getString("data"), a.optInt("minutes", 15)).toString();
+          else if ("shareStart".equals(method)) out = lan().shareStart(a.getString("data"), a.optInt("minutes", 15), a.optString("id", "")).toString();
           else if ("shareStop".equals(method)) {
             lan().shareStop();
             out = "true";
-          } else if ("rcStart".equals(method)) out = lan().rcStart(a.getString("html"), a.getString("pin")).toString();
+          } else if ("rcStart".equals(method)) out = lan().rcStart(a.getString("html"), a.getString("pin"), a.optString("key", "")).toString();
           else if ("rcStop".equals(method)) {
             lan().rcStop();
             out = "true";
@@ -750,7 +777,8 @@ public class MainActivity extends Activity {
           int b1 = b.read();
           int b2 = b.read();
           b.reset();
-          in = (b1 == 0x1f && b2 == 0x8b) ? new GZIPInputStream(b) : b;
+          // kicsomagolva is korlátos méret (egy kicsi, de erősen tömörített fájl se fújódhasson fel)
+          in = (b1 == 0x1f && b2 == 0x8b) ? new Limited(new GZIPInputStream(b), MAX_GUNZIP) : b;
           if (b1 == 0x1f && b2 == 0x8b) {
             mime = "text/xml";
             charset = "utf-8";

@@ -965,7 +965,7 @@ mark { background: rgba(255, 213, 74, 0.45); color: inherit; border-radius: 2px;
 .vcard:hover, .vcard:focus-visible { transform: scale(1.18); z-index: 10; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.75); outline: none; }
 .vcard:hover .thumb, .vcard:focus-visible .thumb { border-radius: var(--radius) var(--radius) 0 0; }
 .vcard:hover .meta, .vcard:focus-visible .meta { visibility: hidden; }
-.vcard:hover .pop, .vcard:focus-visible .pop { opacity: 1; visibility: visible; }
+.vcard:hover .pop, .vcard:focus-visible .pop, .vcard:focus-within .pop { opacity: 1; visibility: visible; }
 .vcard:focus-visible .thumb { outline: 2px solid #fff; outline-offset: -2px; }
 body.rc-nav .vcard:focus-within { transform: scale(1.18); z-index: 10; }
 body.rc-nav .vcard:focus-within .pop { opacity: 1; visibility: visible; }

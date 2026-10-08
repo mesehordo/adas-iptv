@@ -124,7 +124,11 @@ export function askPin({ title, text, accept }) {
 
 /** Profil megnyitása: ha PIN-nel védett, bekéri. */
 export async function unlockProfile(p) {
-  if (!hasPin(p) || (unlocked.has(p.id) && !store.profile?.kids)) {
+  const cur = store.profile;
+  // gyerekprofilból kilépni (nem gyerekprofilra) csak felnőtt jóváhagyásával lehet – akkor is, ha a cél nincs zárolva
+  const leavingKids = !!cur?.kids && !p.kids && p.id !== cur.id;
+  if (!hasPin(p) || (unlocked.has(p.id) && !cur?.kids)) {
+    if (leavingKids && !(await requireAdult('A gyerekprofilból való kilépéshez'))) return false;
     markUnlocked(p);
     return true;
   }

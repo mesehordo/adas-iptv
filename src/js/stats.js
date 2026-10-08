@@ -154,7 +154,7 @@ export function renderStats(view) {
       <div class="stat-card"><small>Ma</small><b>${fmtH(sumDays(s, 1))}</b></div>
       <div class="stat-card"><small>Az elmúlt 7 napban</small><b>${fmtH(sumDays(s, 7))}</b></div>
       <div class="stat-card"><small>Az elmúlt 30 napban</small><b>${fmtH(sumDays(s, 30))}</b><small>${active30} napon néztél tévét</small></div>
-      <div class="stat-card"><small>Összesen</small><b>${fmtH(total)}</b><small>${s.plays} indítás</small></div>
+      <div class="stat-card"><small>Összesen</small><b>${fmtH(total)}</b><small>${Math.max(0, Math.round(Number(s.plays) || 0))} indítás</small></div>
       <div class="stat-card"><small>Napi átlag (30 nap)</small><b>${fmtH(sumDays(s, 30) / 30)}</b></div>
       <div class="stat-card"><small>Kedvenc időszak</small><b>${total ? `${peak}:00–${(peak + 1) % 24}:00` : '–'}</b></div>
     </div>

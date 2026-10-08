@@ -567,6 +567,9 @@ export function infoBoxHtml(m, { kind = 'film' } = {}) {
   const NAMES = { tmdb: 'TMDB', wikidata: 'Wikidata', wikipedia: 'Wikipédia', enwiki: 'angol Wikipédia', anilist: 'AniList', tvmaze: 'TVmaze', animeaddicts: 'AnimeAddicts' };
   const srcName = (s) => (s.source === 'wikidata' && /wikipedia/.test(s.url) ? (/\/\/hu\./.test(s.url) ? 'Wikipédia' : 'angol Wikipédia') : NAMES[s.source] || s.source);
   const sources = (m.sources || [{ source: m.source, url: m.url }]).filter((s) => s.url);
+  // a távoli forrásból jött értékelés csak véges szám lehet (mentett / hamisított válaszból se kerülhessen jelölő a HTML-be)
+  const rating = Number.isFinite(Number(m.rating)) ? Math.round(Number(m.rating) * 10) / 10 : 0;
+  const votes = Number.isFinite(Number(m.votes)) ? Math.round(Number(m.votes)) : 0;
   return `<div class="hu-info">
     <h3>Információk</h3>
     ${m.huTitle ? `<div class="hu-title">Magyar cím: <b>${esc(m.huTitle)}</b></div>` : ''}
@@ -574,7 +577,7 @@ export function infoBoxHtml(m, { kind = 'film' } = {}) {
     ${m.description ? `<p class="hu-desc">${esc(m.description)}</p>` : ''}
     ${m.descLang === 'en' ? '<p class="muted small">Magyar leírás nem érhető el, ez az angol nyelvű leírás.</p>' : ''}
     <dl class="facts">
-      ${m.rating ? `<dt>Értékelés</dt><dd>★ ${m.rating} / 10${m.votes ? ` (${m.votes} szavazat)` : ''}</dd>` : ''}
+      ${rating ? `<dt>Értékelés</dt><dd>★ ${rating} / 10${votes ? ` (${votes} szavazat)` : ''}</dd>` : ''}
       ${row('Műfaj', m.genres)}${row('Rendező', m.directors)}${row('Stúdió', m.studios)}${row('Szereplők', m.cast)}${row('Ország', m.countries)}
       ${m.year ? row('Év', String(m.year)) : ''}${row('Tulajdonos', m.owners)}${m.launched ? row('Indulás', String(m.launched)) : ''}
     </dl>

@@ -52,12 +52,37 @@ const idbClear = () => idb('readwrite', (s) => s.clear()).catch(() => {});
 
 import { bytesToText } from './unzip.js';
 
+// Letöltött dokumentum (lista, műsorújság) felső mérete – kicsomagolva is (egy kicsi, de erősen tömörített
+// válasz se foglalhasson sokszoros memóriát).
+const MAX_DOC = 256 * 1024 * 1024;
+
+/** Folyam beolvasása legfeljebb `max` bájtig → Uint8Array (afölött hiba, a folyam leáll). */
+async function readCapped(stream, max = MAX_DOC) {
+  const reader = stream.getReader();
+  const parts = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.length;
+    if (size > max) {
+      reader.cancel().catch(() => {});
+      throw new Error('A letöltött fájl túl nagy');
+    }
+    parts.push(value);
+  }
+  const out = new Uint8Array(size);
+  let o = 0;
+  for (const p of parts) out.set(p, (o += p.length) - p.length);
+  return out;
+}
+
 async function gunzipIfNeeded(buf) {
   const b = new Uint8Array(buf);
   if (b[0] === 0x1f && b[1] === 0x8b) {
     if (!('DecompressionStream' in window)) throw new Error('A tömörített fájl itt nem bontható ki');
     const stream = new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'));
-    return new Response(stream).text();
+    return bytesToText(await readCapped(stream));
   }
   return bytesToText(b);
 }
@@ -83,7 +108,7 @@ async function cachedFetchText(url, { maxAgeHours = 24, force = false } = {}, do
 async function directDownload(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return gunzipIfNeeded(await res.arrayBuffer());
+  return gunzipIfNeeded(res.body ? await readCapped(res.body) : await res.arrayBuffer());
 }
 
 // ---------------------------------------------------------------------------
@@ -270,13 +295,15 @@ const tvApi = {
     const results = {};
     for (let i = 0; i < list.length && run === tvCheckRun; i += 24) {
       const part = list.slice(i, i + 24);
+      let r;
       try {
-        const r = await luna(WEBOS_SERVICE + 'probe', { items: part });
+        r = await luna(WEBOS_SERVICE + 'probe', { items: part });
         Object.assign(results, r.results);
       } catch {
         break; // a szolgáltatás nem érhető el
       }
-      tvProgress({ done: Math.min(i + 24, list.length), total: list.length, partial: results });
+      // csak az új eredmények (a felület összegyűjti őket)
+      tvProgress({ done: Math.min(i + 24, list.length), total: list.length, partial: r.results || {} });
     }
     return { results, cancelled: run !== tvCheckRun };
   },
@@ -362,12 +389,14 @@ const androidApi = {
     const run = ++androidCheckRun;
     const results = {};
     for (let i = 0; i < list.length && run === androidCheckRun; i += 30) {
+      let part;
       try {
-        Object.assign(results, await native('probe', { items: list.slice(i, i + 30) }));
+        part = await native('probe', { items: list.slice(i, i + 30) });
+        Object.assign(results, part);
       } catch {
         break;
       }
-      androidProgress({ done: Math.min(i + 30, list.length), total: list.length, partial: results });
+      androidProgress({ done: Math.min(i + 30, list.length), total: list.length, partial: part || {} });
     }
     return { results, cancelled: run !== androidCheckRun };
   },
@@ -390,14 +419,14 @@ const androidApi = {
     } catch {}
   },
   // Helyi hálózat: beállítások átadása kóddal, távirányító (a keret LanServer-e)
-  shareStart: (data) => native('shareStart', { data: JSON.stringify(data) }),
+  shareStart: (data, id) => native('shareStart', { data: JSON.stringify(data), id: id || '' }),
   shareStop: () => native('shareStop'),
   onShareUsed(cb) {
     window.__adasShareUsed = (from) => cb({ from });
   },
   lanIps: () => native('lanIps'),
   lanGet: (urls, timeout) => native('lanGet', { urls, timeout }),
-  rcStart: (html, pin) => native('rcStart', { html, pin }),
+  rcStart: (html, pin, key) => native('rcStart', { html, pin, key: key || '' }),
   rcStop: () => native('rcStop'),
   rcState(json) {
     try {

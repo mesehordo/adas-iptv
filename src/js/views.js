@@ -10,7 +10,7 @@ import {
 } from './catalog.js';
 import {
   ICON, rowEl, gridEl, cardHtml, registerContext, openProgram, openModal, confirmDialog, promptDialog,
-  logoHtml, emptyState, avatarHtml, rowTitleHtml, seeAllHtml, rowOrderEditor, tvTabs,
+  logoHtml, emptyState, avatarHtml, rowTitleHtml, seeAllHtml, rowOrderEditor, tvTabs, safeImgData,
 } from './components.js';
 import { player, stopPreview, PLAYER_BUTTONS } from './player.js';
 import { THEMES, currentTheme, applyTheme, profileRows, defaultRows, rowLabel } from './themes.js';
@@ -1217,13 +1217,13 @@ function editProfile(prof, done) {
   const isNew = !prof;
   let color = prof?.color || PROFILE_COLORS[store.profiles.length % PROFILE_COLORS.length];
   let avatar = prof ? (Number.isInteger(prof.avatar) || prof.avatar === 'custom' ? prof.avatar : null) : store.profiles.length % AVATAR_COUNT;
-  let avatarData = prof?.avatarData || ''; // saját (feltöltött) kép, data: URL
+  let avatarData = safeImgData(prof?.avatarData); // saját (feltöltött) kép, data: URL
   const el = html(`<form class="dialog profile-edit">
     <h2>${isNew ? 'Új profil' : 'Profil szerkesztése'}</h2>
     <label>Név<input class="input" name="name" value="${esc(prof?.name || '')}" maxlength="20" required autofocus /></label>
     <div><b>Profilkép</b></div>
     <div class="avatar-grid">
-      <button type="button" class="avatar-opt custom ${avatar === 'custom' ? 'sel' : ''}" data-av="custom" ${avatarData ? `style="background-image:url('${avatarData}')"` : 'hidden'} aria-label="Saját kép"></button>
+      <button type="button" class="avatar-opt custom ${avatar === 'custom' ? 'sel' : ''}" data-av="custom" ${avatarData ? `style="background-image:url('${esc(avatarData)}')"` : 'hidden'} aria-label="Saját kép"></button>
       <button type="button" class="avatar-opt letter ${avatar === null ? 'sel' : ''}" data-av="" style="background-color:${esc(color)}" aria-label="Betű, kép nélkül">${esc((prof?.name || 'A').slice(0, 1).toUpperCase())}</button>
       ${avatarOrder(avatar).map((i) => `<button type="button" class="avatar-opt ${i === avatar ? 'sel' : ''}" data-av="${i}" style="background-image:url('${avatarUrl(i)}')" aria-label="${i + 1}. profilkép"></button>`).join('')}</div>
     <button type="button" class="btn small avatar-more" hidden></button>

@@ -154,7 +154,8 @@ jobs:
           fi
           printf '%s' "$KEYSTORE_PASSWORD" | tr -d '\r\n' > android/keystore/password.txt
           # azonnali ellenőrzés: megnyitható-e a kulcstár ezzel a jelszóval, és megvan-e benne az „adas” kulcs
-          if ! keytool -list -keystore android/keystore/adas.jks -storepass "$(cat android/keystore/password.txt)" -alias adas > /dev/null 2>&1; then
+          # (a jelszó a fájlból – nem a parancssorban, ahol a folyamatlistában látszana)
+          if ! keytool -list -keystore android/keystore/adas.jks -storepass:file android/keystore/password.txt -alias adas > /dev/null 2>&1; then
             echo "::error::A kulcstár nem nyitható meg az ANDROID_KEYSTORE_PASSWORD jelszóval, vagy nincs benne „adas” kulcs."
             exit 1
           fi

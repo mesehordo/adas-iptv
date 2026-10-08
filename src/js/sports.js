@@ -63,6 +63,14 @@ export const SPORTS = [
 const SPORT = Object.fromEntries(SPORTS.map(([id, name, ico, espn, kw]) => [id, { id, name, ico, espn, kw }]));
 const ESPN_TO = { 'australian-football': 'aussie', baseball: 'baseball', basketball: 'basketball', cricket: 'cricket', 'field-hockey': 'floorball', football: 'americanfootball', golf: 'golf', hockey: 'hockey', lacrosse: 'aussie', mma: 'combat', racing: 'motorsport', rugby: 'rugby', 'rugby-league': 'rugby', soccer: 'soccer', tennis: 'tennis', volleyball: 'volleyball', 'water-polo': 'waterpolo' };
 const sportOf = (id) => SPORT[id] || SPORT.other;
+const userKw = (s) =>
+  String(s || '')
+    .slice(0, 200)
+    .split('|')
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .map((x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|');
 const kwRx = (s) => {
   try {
     return s ? new RegExp(s, 'i') : null;
@@ -261,9 +269,11 @@ function epgIndex() {
 }
 
 function loadEpgWatch(w) {
-  const rx = kwRx(w.kw ? w.kw : sportOf(w.sport).kw);
+  // a saját kulcsszó (beírt vagy mentésből jött) nem lehet tetszőleges reguláris kifejezés (katasztrofális
+  // visszalépés): csak „|”-lal elválasztott szavak, a többi karakter szó szerint számít
+  const rx = kwRx(w.kw ? userKw(w.kw) : sportOf(w.sport).kw);
   if (!rx) return [];
-  const nrx = kwRx(norm(w.kw ? w.kw : sportOf(w.sport).kw));
+  const nrx = kwRx(w.kw ? userKw(norm(w.kw)) : norm(sportOf(w.sport).kw));
   const head = new RegExp('^(?:' + rx.source + ')', 'i'); // a cím a sportággal kezdődik (pl. „Tenisz: ATP 500”)
   const now = Date.now();
   // Egy műsor csak egyszer (a legközelebbi adás, a jobb csatornán), csatornánként legfeljebb 2, összesen 12 –
@@ -496,10 +506,11 @@ export function openSportWatch(onChange) {
   const drawOpts = () => {
     const s = store.settings;
     body.innerHTML = `<label class="setting stack"><span><b>TheSportsDB API-kulcs</b><small>A thesportsdb.com támogatói kulcsával szinte minden sportág bajnokságai elérhetők (darts, snooker, kézilabda, kerékpár, e-sport…). Kulcs nélkül ez a forrás nem működik.</small></span>
-        <div class="inline"><input class="input" data-sw-key value="${esc(s.tsdbKey || '')}" placeholder="kulcs" autocomplete="off" /><button class="btn small" data-sw="savekey">Mentés</button></div></label>
+        <div class="inline"><input class="input" data-sw-key placeholder="kulcs" autocomplete="off" /><button class="btn small" data-sw="savekey">Mentés</button></div></label>
       <label class="setting"><span><b>Eredmények ennyi napra visszamenőleg</b></span><select data-sw-back>${[1, 2, 3, 5, 7].map((d) => `<option value="${d}" ${(s.sportBack ?? 2) === d ? 'selected' : ''}>${d} nap</option>`).join('')}</select></label>
       <label class="setting"><span><b>Közelgő események ennyi napra előre</b></span><select data-sw-ahead>${[1, 3, 7, 14].map((d) => `<option value="${d}" ${(s.sportAhead ?? 7) === d ? 'selected' : ''}>${d} nap</option>`).join('')}</select></label>
       <label class="setting"><span><b>Csatornaajánlás</b><small>Az eseményekhez a műsorújságból keres csatornát (csapatnév, bajnokság, sportág és időpont alapján). A bizonytalan találat halványan látszik.</small></span><input type="checkbox" class="switch" data-sw-chan ${s.sportChannels === false ? '' : 'checked'} /></label>`;
+    body.querySelector('[data-sw-key]').value = s.tsdbKey || ''; // tulajdonságként, nem attribútumként
   };
 
   const draw = () => {

@@ -4,7 +4,7 @@
 import { $, html, esc, toast, errText } from './util.js';
 import { api } from './api.js';
 import { player } from './player.js';
-import { openModal } from './components.js';
+import { openModal, confirmDialog } from './components.js';
 import { epg } from './epg.js';
 
 const state = { device: null, status: '', paused: false, devices: [], scanning: false };
@@ -154,18 +154,30 @@ const hooks = {
     const n = !ch.vod ? epg.now(ch.id) : null;
     state.status = 'LOADING';
     drawOverlay();
+    const opts = {
+      deviceId: state.device.id,
+      url: stream.url,
+      type: '',
+      live: !ch.vod,
+      title: ch.vod ? ch.vod.title : ch.name,
+      subtitle: ch.vod ? ch.vod.subtitle || '' : n?.cur?.title || '',
+      image: ch.vod?.item?.poster || ch.logo || '',
+    };
     try {
-      await api.castPlay({
-        deviceId: state.device.id,
-        url: stream.url,
-        type: '',
-        live: !ch.vod,
-        title: ch.vod ? ch.vod.title : ch.name,
-        subtitle: ch.vod ? ch.vod.subtitle || '' : n?.cur?.title || '',
-        image: ch.vod?.item?.poster || ch.logo || '',
-      });
+      await api.castPlay(opts);
     } catch (err) {
-      throw new Error('Kivetítés: ' + errText(err));
+      // A Chromecast tanúsítványa más, mint amit első kapcsolódáskor megjegyeztünk: csak a felhasználó
+      // jóváhagyásával fogadjuk el az újat (pl. gyári visszaállítás után) – különben egy álcázott eszköz lehet.
+      if (/CERT_CHANGED/.test(errText(err)) && api.castForget) {
+        const ok = await confirmDialog(`A(z) „${state.device.name}” eszköz azonosító tanúsítványa megváltozott az előző kapcsolódás óta. Ez gyári visszaállítás után normális, de jelentheti azt is, hogy egy másik eszköz adja ki magát érte. Megbízol benne, és kivetíted rá?`, { ok: 'Megbízom benne', danger: true });
+        if (!ok) throw new Error('Kivetítés: az eszköz tanúsítványa megváltozott – megszakítva.');
+        await api.castForget(state.device.id);
+        try {
+          await api.castPlay(opts);
+        } catch (err2) {
+          throw new Error('Kivetítés: ' + errText(err2));
+        }
+      } else throw new Error('Kivetítés: ' + errText(err));
     }
     if (at > 30) setTimeout(() => api.castControl('seek', at), 1500);
     state.paused = false;

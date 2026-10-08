@@ -132,6 +132,41 @@ export const categoryName = (id) => CATEGORY_HU[id] || id;
 const PREFIX2 = new Set('HU RO SK RS HR SI AT DE UK GB US IT FR ES PL CZ UA NL BE CH PT TR GR BG AL BA MK ME RU SE NO DK FI IE CA AU IN BR MX AR'.split(' '));
 const PREFIX3 = { HUN: 'HU', GER: 'DE', DEU: 'DE', ENG: 'UK', GBR: 'UK', USA: 'US', ROU: 'RO', ROM: 'RO', SVK: 'SK', CZE: 'CZ', POL: 'PL', AUT: 'AT', SRB: 'RS', HRV: 'HR', CRO: 'HR', ITA: 'IT', FRA: 'FR', ESP: 'ES', UKR: 'UA', SLO: 'SI', SVN: 'SI' };
 
+// A lista sorainak feldolgozása lineáris időben: a reguláris kifejezések egy hosszú, hibás #EXTINF sornál
+// (sok nyitott „[”, határoló nélküli hosszú szó) négyzetesen futottak, és megakasztották a felületet.
+
+/** kulcs="érték" párok (egyetlen menet; a kulcs betű, szám, _ és -) */
+function parseAttrs(s, out) {
+  let i = 0;
+  for (;;) {
+    const eq = s.indexOf('="', i);
+    if (eq < 0) return out;
+    let k = eq;
+    while (k > i && /[\w-]/.test(s[k - 1])) k--;
+    const end = s.indexOf('"', eq + 2);
+    if (end < 0) return out;
+    if (k < eq) out[s.slice(k, eq).toLowerCase()] = s.slice(eq + 2, end);
+    i = end + 1;
+  }
+}
+
+/** A [címkék] kigyűjtése és eltávolítása (egyetlen menet; záratlan „[” után nincs több címke). */
+function bracketLabels(s) {
+  const labels = [];
+  let rest = '';
+  let i = 0;
+  for (;;) {
+    const a = s.indexOf('[', i);
+    const b = a < 0 ? -1 : s.indexOf(']', a + 1);
+    if (b < 0) return { labels, rest: rest + s.slice(i) };
+    if (b > a + 1) {
+      labels.push(s.slice(a + 1, b));
+      rest += s.slice(i, a);
+    } else rest += s.slice(i, b + 1); // üres „[]” marad (mint eddig)
+    i = b + 1;
+  }
+}
+
 export function parseM3U(text) {
   const lines = text.split(/\r?\n/);
   const entries = [];
@@ -151,7 +186,7 @@ export function parseM3U(text) {
       cur = { attrs: {}, opts: {} };
       const body = line.slice(line.indexOf(':') + 1);
       cur.duration = parseFloat(body) || 0; // filmeknél a hossz másodpercben (élő adásnál -1)
-      for (const m of body.matchAll(/([\w-]+)="([^"]*)"/g)) cur.attrs[m[1].toLowerCase()] = m[2];
+      parseAttrs(body, cur.attrs);
       const lastQuote = body.lastIndexOf('"');
       const comma = body.indexOf(',', lastQuote >= 0 ? lastQuote : 0);
       cur.title = comma >= 0 ? body.slice(comma + 1).trim() : '';
@@ -184,8 +219,8 @@ export function parseM3U(text) {
         }
       }
       const a = cur.attrs;
-      let title = cur.title || '';
-      const labels = [...title.matchAll(/\[([^\]]+)\]/g)].map((m) => m[1]);
+      let title = String(cur.title || '').slice(0, 500);
+      const { labels } = bracketLabels(title);
       // A Free-TV körbe írt betűkkel jelöl: Ⓖ = földrajzilag korlátozott.
       if (title.includes('Ⓖ')) labels.push('Geo-blocked');
       const q = title.match(/\((\d{3,4}[pi])\)/);
@@ -197,7 +232,7 @@ export function parseM3U(text) {
         prefixCc = code.length === 2 ? (PREFIX2.has(code) ? (code === 'GB' ? 'UK' : code) : '') : PREFIX3[code] || '';
         if (prefixCc) title = title.slice(pm[0].length);
       }
-      title = title.replace(/\[[^\]]+\]/g, '').replace(/\(\d{3,4}[pi]\)/g, '').replace(/[Ⓐ-ⓩ]/g, '').trim();
+      title = bracketLabels(title).rest.replace(/\(\d{3,4}[pi]\)/g, '').replace(/[Ⓐ-ⓩ]/g, '').trim();
       entries.push({
         tvgId: a['tvg-id'] || '',
         country: a['tvg-country'] || prefixCc || '',

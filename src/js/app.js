@@ -41,21 +41,22 @@ let settingsGrant = 0; // a felnőtt jóváhagyás eddig érvényes (gyerekprofi
 // ---------------------------------------------------------------------------
 // Útvonalak
 // ---------------------------------------------------------------------------
-const ROUTES = {
-  home: renderDashboard,
-  tv: renderTv,
-  browse: renderBrowse,
-  countries: renderCountries,
-  favorites: renderFavorites,
-  search: renderSearch,
-  guide: renderGuide,
-  settings: renderSettings,
-  help: renderHelp,
-  vod: renderVod,
-  own: renderOwn,
-  recordings: renderRecordingsPage,
-  stats: renderStats,
-};
+// Map: a címből jövő név csak a felsorolt kulcsokat érheti el (pl. a „constructor”-t nem)
+const ROUTES = new Map([
+  ['home', renderDashboard],
+  ['tv', renderTv],
+  ['browse', renderBrowse],
+  ['countries', renderCountries],
+  ['favorites', renderFavorites],
+  ['search', renderSearch],
+  ['guide', renderGuide],
+  ['settings', renderSettings],
+  ['help', renderHelp],
+  ['vod', renderVod],
+  ['own', renderOwn],
+  ['recordings', renderRecordingsPage],
+  ['stats', renderStats],
+]);
 
 // Külső hivatkozások bárhonnan (súgó, beállítások, adatlap): <a|button data-ext="https://…"> – a rendszer böngészőjében
 document.addEventListener('click', (e) => {
@@ -109,8 +110,7 @@ function route({ keepScroll = false } = {}) {
     });
     return;
   }
-  // csak a saját útvonalak (a címből jövő név ne érhesse el pl. a „constructor”-t)
-  const fn = Object.prototype.hasOwnProperty.call(ROUTES, name) ? ROUTES[name] : renderDashboard;
+  const fn = ROUTES.get(name) || renderDashboard;
   if (name !== 'tv') leaveHome();
   const full = location.hash;
   const sameRoute = full === currentRoute;
@@ -701,8 +701,6 @@ async function boot() {
   applySubStyle();
   updateProfileButton();
   startSplashStatus();
-  // frissítéskeresés már indításkor, csendben a háttérben (ha van új verzió, értesítés jön)
-  autoCheckUpdate().catch(() => {});
   const loading = loadWithRetry();
   if (store.profiles.length > 1) await showProfiles(false);
   else if (hasPin(store.profile)) await showProfiles(false); // egyetlen, de zárolt profil
@@ -712,7 +710,12 @@ async function boot() {
   started = true;
   stopSplashStatus();
   splash.classList.add('hide');
-  setTimeout(() => splash.remove(), 600);
+  setTimeout(() => {
+    splash.remove();
+    // frissítéskeresés indításkor, csendben a háttérben – az indítóképernyő után, hogy az esetleges
+    // értesítés ne takarásban jelenjen meg
+    autoCheckUpdate().catch(() => {});
+  }, 600);
   nav.hidden = false;
   updateReminders();
   if (!location.hash || location.hash.startsWith('#/profiles')) location.replace('#/home');

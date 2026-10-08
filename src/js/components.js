@@ -55,9 +55,14 @@ document.addEventListener(
 // ---------------------------------------------------------------------------
 // Profilkép (kép, vagy ha nincs, színes betű)
 // ---------------------------------------------------------------------------
+/** Feltöltött profilkép: csak base64 data:image URL (importált profilból se kerülhessen más a style-ba). */
+export const safeImgData = (s) => (typeof s === 'string' && /^data:image\/(png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/]+=*$/.test(s) ? s : '');
+const safeColor = (c) => (typeof c === 'string' && /^(#[0-9a-f]{3,8}|[a-z]+|(rgb|hsl)a?\([\d.,%\s]+\))$/i.test(c) ? c : '#888');
+
 export function avatarHtml(p, cls = '', inner = '') {
-  const img = p.avatar === 'custom' && p.avatarData ? p.avatarData : Number.isInteger(p.avatar) ? avatarUrl(p.avatar) : '';
-  return `<span class="avatar ${cls} ${img ? 'img' : ''}" style="background-color:${esc(p.color)};${img ? `background-image:url('${img}')` : ''}">${img ? '' : esc((p.name || '?').slice(0, 1).toUpperCase())}${inner}</span>`;
+  const custom = p.avatar === 'custom' ? safeImgData(p.avatarData) : '';
+  const img = custom || (Number.isInteger(p.avatar) ? avatarUrl(p.avatar) : '');
+  return `<span class="avatar ${esc(cls)} ${img ? 'img' : ''}" style="background-color:${esc(safeColor(p.color))};${img ? `background-image:url('${esc(img)}')` : ''}">${img ? '' : esc((p.name || '?').slice(0, 1).toUpperCase())}${inner}</span>`;
 }
 
 // ---------------------------------------------------------------------------

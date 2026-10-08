@@ -132,19 +132,26 @@ if (!fs.existsSync(ks) && process.env.CI) {
   console.error('Hiányzik az aláírókulcs (android/keystore/adas.jks) – a CI-on az ANDROID_KEYSTORE_B64 és ANDROID_KEYSTORE_PASSWORD titkokból kell visszaállítani.');
   process.exit(1);
 }
+// A jelszó környezeti változóban megy át az eszközöknek (nem a parancssorban, amit más felhasználók
+// folyamatlistája is mutathat); a kulcsmappa és a jelszófájl csak a tulajdonosé.
+const signEnv = (p) => ({ env: { ...env, ADAS_KS_PASS: p } });
 if (!fs.existsSync(ks)) {
-  fs.mkdirSync(ksDir, { recursive: true });
+  fs.mkdirSync(ksDir, { recursive: true, mode: 0o700 });
   const pass = crypto.randomBytes(18).toString('base64url');
-  fs.writeFileSync(passFile, pass);
+  fs.writeFileSync(passFile, pass, { mode: 0o600 });
   run(jbin('keytool'), [
-    '-genkeypair', '-keystore', ks, '-storepass', pass, '-keypass', pass, '-alias', 'adas',
+    '-genkeypair', '-keystore', ks, '-storepass:env', 'ADAS_KS_PASS', '-keypass:env', 'ADAS_KS_PASS', '-alias', 'adas',
     '-keyalg', 'RSA', '-keysize', '3072', '-validity', '10000', '-dname', 'CN=Adás, O=Adás, C=HU',
-  ]);
+  ], signEnv(pass));
   console.log('  Új aláírókulcs: android/keystore (őrizd meg!)');
 }
+try {
+  fs.chmodSync(ksDir, 0o700);
+  fs.chmodSync(passFile, 0o600);
+} catch {}
 const pass = fs.readFileSync(passFile, 'utf8').trim();
 const apk = path.join(out, `Adas-${pkg.version}.apk`);
-run(exe(BT, 'apksigner'), ['sign', '--ks', ks, '--ks-pass', `pass:${pass}`, '--key-pass', `pass:${pass}`, '--ks-key-alias', 'adas', '--out', apk, aligned]);
+run(exe(BT, 'apksigner'), ['sign', '--ks', ks, '--ks-pass', 'env:ADAS_KS_PASS', '--key-pass', 'env:ADAS_KS_PASS', '--ks-key-alias', 'adas', '--out', apk, aligned], signEnv(pass));
 run(exe(BT, 'apksigner'), ['verify', '--min-sdk-version', String(MIN_SDK), apk]);
 fs.rmSync(apk + '.idsig', { force: true });
 console.log(`Kész: ${path.relative(root, apk)} (${(fs.statSync(apk).size / 1048576).toFixed(1)} MB)`);

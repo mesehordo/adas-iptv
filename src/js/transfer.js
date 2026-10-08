@@ -1,24 +1,26 @@
 // Szinkronizálás eszközök között (asztali, Android TV, Android telefon), a helyi hálózaton:
-//  - bármelyik eszköz 6 jegyű kódot ad (a címe utolsó száma + titok), és elérhetővé teszi a beállításait;
+//  - bármelyik eszköz 12 jegyű kódot ad (a címe utolsó száma + 9 jegyű titok), és elérhetővé teszi a
+//    beállításait – titkosítva: a titok nem megy át a hálózaton, csak a belőle származtatott azonosító;
 //  - a másik eszközön csak a kódot beírva megkeresi és egy lépésben átveszi:
 //    listák, profilok, kedvencek, előzmények, emlékeztetők, (kérésre) kulcsok és jelszavak;
 //  - webcímről (pl. NAS-ra vagy GitHubra tett mentésből) is betölthető.
 import { esc, toast, errText, bus } from './util.js';
 import { api } from './api.js';
-import { store } from './store.js';
+import { store, cleanProfile } from './store.js';
 import { confirmDialog } from './components.js';
 import { packDocs } from './packs.js';
 
-const SECRET_KEYS = ['osApiKey', 'osUser', 'osPass', 'osToken', 'subdlKey', 'tmdbKey', 'omdbKey', 'tsdbKey'];
+const SECRET_KEYS = ['osApiKey', 'osUser', 'osPass', 'osToken', 'subdlKey', 'tmdbKey', 'omdbKey', 'tsdbKey', 'remoteKey'];
 let shareTimer = null;
 
 /** A fájlból felvett nagy listák szövege külön tárban van – a mentésbe ezeket is beletesszük. */
 export async function attachDocs(data) {
   const docs = {};
   for (const p of data.settings?.vodCustom || []) {
-    if (!p.textKey) continue;
+    // csak a fájlból felvett listák szövege – egy (importált) lista ne hivatkozhasson más tárolt dokumentumra
+    if (typeof p?.textKey !== 'string' || !/^vodtext:[\w-]+$/.test(p.textKey)) continue;
     const v = await api.docGet?.(p.textKey).catch(() => null);
-    if (v) docs[p.textKey] = v;
+    if (v && typeof v.text === 'string') docs[p.textKey] = v;
   }
   // a kiegészítő csomagok (tévé és VOD) is mennek – így a másik eszközön is megjelennek
   Object.assign(docs, await packDocs(data.settings));
@@ -57,10 +59,12 @@ async function applyData(data, source, { profilesOnly = false } = {}) {
   if (!ok) return false;
   const cur = store.serialize();
   const settings = { ...data.settings };
-  // A titkos adatok, ha nem jöttek át, maradnak a régiek.
+  // A titkos adatok, ha nem jöttek át, maradnak a régiek – a hozzájuk tartozó kiszolgálócím is (egy importált
+  // cím ne kaphassa meg a helyben megmaradt kulcsot és tokent).
   SECRET_KEYS.forEach((k) => {
     if (!(k in settings) && cur.settings[k]) settings[k] = cur.settings[k];
   });
+  if (!('osToken' in data.settings)) settings.osBaseUrl = cur.settings.osBaseUrl || '';
   await restoreDocs(data);
   await store.replaceAll({
     version: data.version || 1,
@@ -93,8 +97,9 @@ async function mergeProfiles(data, source) {
   if (!ok) return false;
   for (const p of incoming) {
     const i = store.profiles.findIndex((x) => x.id === p.id);
-    if (i >= 0) store.profiles[i] = { ...store.profiles[i], ...p };
-    else store.profiles.push(p);
+    // a beérkező profil mezői típus szerint rendbe téve (a HTML-sablonokba ne kerülhessen jelölőkód)
+    if (i >= 0) store.profiles[i] = cleanProfile({ ...store.profiles[i], ...p });
+    else store.profiles.push(cleanProfile({ ...p }));
   }
   store.flush();
   bus.emit('profile');
@@ -105,6 +110,48 @@ async function mergeProfiles(data, source) {
 /** Fájlból vagy más forrásból érkező mentés feldolgozása (a beállítások oldal is ezt használja). */
 export const importData = (data, source, opts) => applyData(data, source, opts);
 
+// ---------------------------------------------------------------------------
+// Titkosított átadás. A titokból (9 számjegy) PBKDF2-vel származik a kérés azonosítója és az AES-GCM kulcs:
+// a hálózaton csak az azonosító és a titkosított adat látszik, a kód (és így a kulcs) nem.
+// ---------------------------------------------------------------------------
+const SHARE_ENC = 'adas-share-v2';
+const SHARE_ITER = 310000;
+const te = new TextEncoder();
+const toB64 = (u8) => {
+  let s = '';
+  for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  return btoa(s);
+};
+const fromB64 = (s) => Uint8Array.from(atob(String(s || '')), (c) => c.charCodeAt(0));
+
+async function shareKeys(secret) {
+  const base = await crypto.subtle.importKey('raw', te.encode(secret), 'PBKDF2', false, ['deriveBits']);
+  const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: te.encode(SHARE_ENC), iterations: SHARE_ITER }, base, 384));
+  const key = await crypto.subtle.importKey('raw', bits.slice(0, 32), 'AES-GCM', false, ['encrypt', 'decrypt']);
+  const id = [...bits.slice(32)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return { key, id };
+}
+
+/** → { secret, id, env } – env: a kiszolgálóra kerülő, titkosított csomag */
+async function sealShare(data) {
+  const rnd = crypto.getRandomValues(new Uint32Array(3));
+  const secret = [...rnd].map((n) => String(n % 1000).padStart(3, '0')).join('');
+  const { key, id } = await shareKeys(secret);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, te.encode(JSON.stringify(data))));
+  return { secret, id, env: { app: 'adas', enc: SHARE_ENC, iv: toB64(iv), ct: toB64(ct) } };
+}
+
+async function openShare(env, key) {
+  if (env?.enc !== SHARE_ENC) throw new Error('A válasz nem titkosított Adás-átadás.');
+  try {
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(env.iv) }, key, fromB64(env.ct));
+    return JSON.parse(new TextDecoder().decode(pt));
+  } catch {
+    throw new Error('Hibás vagy lejárt kód.');
+  }
+}
+
 async function getJson(url) {
   const r = await api.request({ url, headers: { Accept: 'application/json' } });
   if (r.status === 404) throw new Error('Hibás vagy lejárt kód.');
@@ -113,23 +160,36 @@ async function getJson(url) {
 }
 
 const PORTS = [47800, 47801, 47802, 47803];
-const fmtCode = (c) => `${c.slice(0, 3)} ${c.slice(3)}`;
+const fmtCode = (c) => c.replace(/(\d{3})(?=\d)/g, '$1 ');
 
 /**
- * Csak kóddal: a 6 jegyű kód első 3 jegye a megosztó eszköz címének utolsó száma. A saját címünk első
- * három részével együtt ez megadja a címét; ha ott nem válaszol, a teljes helyi alhálózatot végignézzük.
+ * A beírt kódból a kérés útvonala és (titkosított átadásnál) a kulcs. 12 jegy: cím + titok (titkosított);
+ * 6 jegy: régebbi változat (cím + 3 jegyű titok, titkosítás nélkül).
+ */
+async function codeAuth(code) {
+  if (code.length === 12) {
+    const { key, id } = await shareKeys(code.slice(3));
+    return { path: `/adas/share/${id}`, key };
+  }
+  return { path: `/adas/share/${encodeURIComponent(code.slice(3))}`, key: null };
+}
+const unseal = async (data, key) => (key ? openShare(data, key) : data);
+
+/**
+ * Csak kóddal: a kód első 3 jegye a megosztó eszköz címének utolsó száma. A saját címünk első három
+ * részével együtt ez megadja a címét; ha ott nem válaszol, a teljes helyi alhálózatot végignézzük.
  */
 async function fetchByCode(code, onStatus) {
   const oct = Number(code.slice(0, 3));
-  const secret = code.slice(3);
   if (!(oct >= 1 && oct <= 254)) throw new Error('Hibás kód.');
   const ips = (await api.lanIps()) || [];
   const prefixes = [...new Set(ips.map((ip) => ip.split('.').slice(0, 3).join('.')))];
   if (!prefixes.length) throw new Error('Ez az eszköz nincs helyi hálózaton.');
-  const path = `/adas/share/${secret}`;
+  onStatus('A kód ellenőrzése…');
+  const { path, key } = await codeAuth(code);
   const tryUrls = async (urls, timeout) => {
     const r = await api.lanGet(urls, timeout);
-    if (r?.status === 200) return { data: JSON.parse(r.text), from: new URL(r.url).hostname };
+    if (r?.status === 200) return { data: await unseal(JSON.parse(r.text), key), from: new URL(r.url).hostname };
     if (r?.status === 404) throw new Error('Hibás vagy lejárt kód.');
     return null;
   };
@@ -149,10 +209,12 @@ async function fetchByCode(code, onStatus) {
 async function fetchShared(addr, code) {
   addr = addr.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
   const ports = /:\d+$/.test(addr) ? [''] : [':47800', ':47801', ':47802', ':47803'];
+  // a cím mellé a teljes kód (12 vagy régebbi 6 jegy), vagy csak a titok része (9 jegy; 3 – régi)
+  const { path, key } = await codeAuth(code.length === 9 || code.length === 3 ? '000' + code : code);
   let last;
   for (const p of ports) {
     try {
-      return await getJson(`http://${addr}${p}/adas/share/${encodeURIComponent(code.length === 6 ? code.slice(3) : code)}`);
+      return await unseal(await getJson(`http://${addr}${p}${path}`), key);
     } catch (err) {
       last = err;
       if (/kód/.test(err.message)) throw err;
@@ -178,7 +240,7 @@ export function renderTransfer(box) {
     <h3>${canShare ? '2. ' : ''}Szinkronizálás kóddal – a másik eszköz beállításait veszem át</h3>
     ${
       canCode
-        ? `<div class="inline sync-row"><input class="input sync-code" data-tr-in="code" inputmode="numeric" maxlength="7" placeholder="123 456" autocomplete="off" aria-label="Kód" /><button class="btn primary" data-tr-act="sync">Szinkronizálás</button></div>
+        ? `<div class="inline sync-row"><input class="input sync-code" data-tr-in="code" inputmode="numeric" maxlength="15" placeholder="123 456 789 012" autocomplete="off" aria-label="Kód" /><button class="btn primary" data-tr-act="sync">Szinkronizálás</button></div>
     <label class="setting"><span><b>Csak a profilok</b><small>A mostani beállítások, listák és profilok megmaradnak; a beérkező profilok hozzáadódnak (ami már megvan, frissül).</small></span>
       <input type="checkbox" class="switch" data-tr="onlyProfiles" /></label>
     <p class="muted small tr-status" aria-live="polite"></p>`
@@ -188,7 +250,7 @@ export function renderTransfer(box) {
       <p class="muted small">Ha a két eszköz más alhálózaton van, add meg a másik eszköz címét is (a kódot kérő eszköz kiírja). Webcímről (pl. a NAS-ra tett mentésből) is betöltheted: ilyenkor a teljes címet írd be, kód nélkül.</p>
       <div class="form-row">
         <label class="setting col"><span><b>Cím</b></span><input class="input" data-tr-in="addr" value="${esc(lastAddr())}" placeholder="pl. 192.168.1.20 vagy https://…/adas-mentes.json" autocomplete="off" /></label>
-        <label class="setting col"><span><b>Kód</b></span><input class="input" data-tr-in="code2" inputmode="numeric" maxlength="7" placeholder="123 456" autocomplete="off" /></label>
+        <label class="setting col"><span><b>Kód</b></span><input class="input" data-tr-in="code2" inputmode="numeric" maxlength="15" placeholder="123 456 789 012" autocomplete="off" /></label>
       </div>
       <div class="inline"><button class="btn" data-tr-act="fetch">Átvétel</button><span class="muted small tr-status2"></span></div>
     </details>`;
@@ -204,7 +266,9 @@ export function renderTransfer(box) {
     if (a === 'share') {
       const opts = { profiles: box.querySelector('[data-tr="profiles"]').checked, secrets: box.querySelector('[data-tr="secrets"]').checked };
       try {
-        const r = await api.shareStart(await payload(opts));
+        const sealed = await sealShare(await payload(opts));
+        const r = await api.shareStart(sealed.env, sealed.id);
+        r.code = r.code.slice(0, 3) + sealed.secret; // a titok csak a képernyőn látszik, a kiszolgáló nem ismeri
         const sb = box.querySelector('.share-box');
         sb.hidden = false;
         box.querySelector('[data-tr-act="stop"]').hidden = false;
@@ -235,7 +299,7 @@ export function renderTransfer(box) {
       box.querySelector('[data-tr-act="stop"]').hidden = true;
     } else if (a === 'sync') {
       const code = digits(box.querySelector('[data-tr-in="code"]').value);
-      if (code.length !== 6) return (status.textContent = 'A kód 6 számjegy (pl. 123 456).');
+      if (code.length !== 12 && code.length !== 6) return (status.textContent = 'A kód 12 számjegy (pl. 123 456 789 012).');
       const btn = e.target.closest('button');
       btn.disabled = true;
       try {
@@ -257,7 +321,7 @@ export function renderTransfer(box) {
         let data;
         if (/^https?:\/\/.+\.json(\?|$)/i.test(addr) || (/^https?:\/\//i.test(addr) && !code)) data = await getJson(addr);
         else {
-          if (!/^(\d{4}|\d{6})$/.test(code)) return (status2.textContent = 'A kód 6 számjegy.');
+          if (!/^(\d{3}|\d{6}|\d{9}|\d{12})$/.test(code)) return (status2.textContent = 'A kód 12 számjegy.');
           data = await fetchShared(addr, code);
         }
         if (!data.app) data.app = 'adas'; // régebbi, fájlba mentett beállítás

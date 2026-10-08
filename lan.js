@@ -19,11 +19,33 @@ const CHROME_UA =
 
 let headersFor = () => null; // (url) => { ua, referrer } – a főfolyamat adja meg
 let emit = () => {}; // (csatorna, adat) → a felületnek
+let pinsFile = ''; // a Chromecast-eszközök megjegyzett tanúsítvány-ujjlenyomatai (JSON)
 
 function init(opts) {
   headersFor = opts.headersFor || headersFor;
   emit = opts.emit || emit;
+  pinsFile = opts.pinsFile || '';
+  try {
+    if (pinsFile) for (const [k, v] of Object.entries(JSON.parse(require('fs').readFileSync(pinsFile, 'utf8')))) if (typeof v === 'string') castPins.map.set(k, v);
+  } catch {}
 }
+
+const castPins = {
+  map: new Map(),
+  get(id) {
+    return this.map.get(id);
+  },
+  set(id, fp) {
+    if (fp) this.map.set(id, fp);
+    else this.map.delete(id);
+    if (!pinsFile) return;
+    try {
+      require('fs').writeFileSync(pinsFile, JSON.stringify(Object.fromEntries(this.map)));
+    } catch {}
+  },
+};
+/** Egy eszköz megjegyzett tanúsítványának elfelejtése (a felhasználó jóváhagyásával, pl. gyári visszaállítás után). */
+const castForget = (id) => castPins.set(String(id || ''), '');
 
 // ---------------------------------------------------------------------------
 // Hálózati címek
@@ -98,7 +120,7 @@ async function handle(req, res) {
   const u = new URL(req.url, 'http://x');
   const parts = u.pathname.split('/').filter(Boolean);
 
-  // Beállítások átadása: /adas/share/<titok> (a kód = a gép címének utolsó száma + a titok)
+  // Beállítások átadása: /adas/share/<azonosító> (a kódból számolt azonosító; a válasz titkosított)
   if (parts[0] === 'adas' && parts[1] === 'share') {
     if (!share || Date.now() > share.expires || parts[2] !== share.secret) {
       // találgatás ellen: 10 hibás kód után az átadás leáll
@@ -127,12 +149,19 @@ async function handle(req, res) {
   if (parts[0] === 'adas' && parts[1] === 'rc') {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
-    if (!rc || rc.fails >= 30 || parts[2] !== rc.pin) {
-      if (rc) rc.fails++;
+    if (!rc) {
       res.statusCode = 403;
-      return res.end(JSON.stringify({ error: 'Hibás PIN' }));
+      return res.end(JSON.stringify({ error: 'A távirányító ki van kapcsolva' }));
     }
-    rc.fails = 0;
+    if (parts[2] === 'hello') return res.end(JSON.stringify({ n: rc.nonce }));
+    // az aláírt rész: az útvonal hitelesítő utáni része, ahogy a kérésben áll (kódolva, lekérdezéssel együtt)
+    const prefix = `/adas/rc/${parts[2]}/`;
+    const tail = req.url.startsWith(prefix) ? req.url.slice(prefix.length) : '';
+    const st = rcAuth(req.socket.remoteAddress, parts[2], tail);
+    if (st !== 200) {
+      res.statusCode = st;
+      return res.end(JSON.stringify({ error: st === 429 ? 'Túl sok hibás próbálkozás' : 'Hibás PIN' }));
+    }
     if (parts[3] === 'state') return res.end(rc.state);
     if (parts[3] === 'cmd') {
       emit('remote-cmd', { c: u.searchParams.get('c') || '', a: u.searchParams.get('a') || '' });
@@ -141,7 +170,13 @@ async function handle(req, res) {
   }
 
   // Adástovábbító: /p/<kulcs>?u=<eredeti cím>
-  if (parts[0] === 'p' && parts[1] === TOKEN) return proxy(req, res, u.searchParams.get('u'));
+  if (parts[0] === 'p' && parts[1] === TOKEN) {
+    // A továbbított tartalom a vezérlőlappal azonos címről jön: aktív dokumentumként ne futhasson
+    // (ne férhessen hozzá a telefonon tárolt távirányító-kulcshoz).
+    res.setHeader('Content-Security-Policy', "sandbox; default-src 'none'");
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    return proxy(req, res, u.searchParams.get('u'));
+  }
   res.statusCode = 404;
   res.end('Nem található');
 }
@@ -230,6 +265,10 @@ const isAllowed = (url) => {
 };
 const proxied = (abs, parent = null) => (allowOrigin(abs, parent) ? `/p/${TOKEN}?u=${encodeURIComponent(abs)}` : '#tiltott');
 
+const MAX_LIST = 4 * 1024 * 1024; // lejátszólista: ennél nagyobbat nem dolgozunk fel
+const MAX_REWRITTEN = 16 * 1024 * 1024; // az átírt lista felső határa (a hivatkozások a teljes címet ismétlik)
+
+/** → az átírt lista, vagy null, ha túl nagy lenne */
 function rewritePlaylist(text, base) {
   const abs = (x) => {
     try {
@@ -238,15 +277,16 @@ function rewritePlaylist(text, base) {
       return x;
     }
   };
-  return text
-    .split(/\r?\n/)
-    .map((line) => {
-      const l = line.trim();
-      if (!l) return line;
-      if (l.startsWith('#')) return line.replace(/URI="([^"]+)"/g, (_m, x) => `URI="${proxied(abs(x), base)}"`);
-      return proxied(abs(l), base);
-    })
-    .join('\n');
+  const out = [];
+  let size = 0;
+  for (const line of text.split(/\r?\n/)) {
+    const l = line.trim();
+    const v = !l ? line : l.startsWith('#') ? line.replace(/URI="([^"]+)"/g, (_m, x) => `URI="${proxied(abs(x), base)}"`) : proxied(abs(l), base);
+    size += v.length + 1;
+    if (size > MAX_REWRITTEN) return null;
+    out.push(v);
+  }
+  return out.join('\n');
 }
 
 /**
@@ -264,6 +304,45 @@ function checkedLookup(remote) {
       cb(null, ok[0].address, ok[0].family);
     });
   };
+}
+
+/**
+ * Hálózati szabály a láncolt kérésekhez (elérhetőség-ellenőrzés, FFmpeg-továbbító): amit a felhasználó maga
+ * választott (`root`), az bármi lehet (pl. a NAS). Ha az internetes, akkor amire átirányít vagy amire a
+ * listája hivatkozik, az nem lehet helyi / belső cím (név esetén a feloldott címeket nézzük).
+ */
+async function hopAllowed(url, root) {
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    return false;
+  }
+  if (!/^https?:$/.test(u.protocol)) return false;
+  if (!root || url === root) return true;
+  try {
+    if (isPrivateHost(new URL(root).hostname)) return true;
+  } catch {}
+  if (isPrivateHost(u.hostname)) return false;
+  if (net.isIP(u.hostname.replace(/^\[|\]$/g, ''))) return true;
+  const addrs = await dns.promises.lookup(u.hostname, { all: true }).catch(() => []);
+  return addrs.length > 0 && !addrs.some((a) => isPrivateHost(a.address));
+}
+
+/** fetch kézi átirányítás-kezeléssel; minden lépés a fenti szabály szerint. → { res, finalUrl } */
+async function fetchPolicy(url, opts = {}, root = url) {
+  let cur = url;
+  for (let i = 0; i <= 5; i++) {
+    if (!(await hopAllowed(cur, root))) throw Object.assign(new Error('Nem engedélyezett cím'), { code: 403 });
+    const res = await fetch(cur, { ...opts, redirect: 'manual' });
+    const loc = res.status >= 300 && res.status < 400 && res.headers.get('location');
+    if (!loc) return { res, finalUrl: cur };
+    try {
+      await res.body?.cancel();
+    } catch {}
+    cur = new URL(loc, cur).href;
+  }
+  throw new Error('Túl sok átirányítás');
 }
 
 /** Egy kérés (átirányítás követése nélkül) → a válasz (IncomingMessage) */
@@ -295,10 +374,19 @@ async function fetchChecked(target, { headers, signal }) {
   throw new Error('Túl sok átirányítás');
 }
 
-const readAll = (stream) =>
+/** A teljes törzs szövegként, legfeljebb `max` bájtig (afölött hiba, és a kapcsolat bezárul). */
+const readAll = (stream, max = MAX_LIST) =>
   new Promise((resolve, reject) => {
     const parts = [];
-    stream.on('data', (c) => parts.push(c));
+    let size = 0;
+    stream.on('data', (c) => {
+      size += c.length;
+      if (size > max) {
+        stream.destroy();
+        return reject(new Error('Túl nagy válasz'));
+      }
+      parts.push(c);
+    });
     stream.on('end', () => resolve(Buffer.concat(parts).toString('utf8')));
     stream.on('error', reject);
   });
@@ -326,19 +414,28 @@ async function proxy(req, res, target) {
   const type = String(up.headers['content-type'] || '').toLowerCase();
   const looksList = /mpegurl/.test(type) || /\.m3u8?(\?|$)/i.test(new URL(finalUrl).pathname);
   if (looksList && status >= 200 && status < 300) {
-    const text = await readAll(up).catch(() => '');
+    const text = await readAll(up).catch(() => null);
+    if (text === null) {
+      res.statusCode = 502;
+      return res.end('A lista túl nagy');
+    }
     if (text.trimStart().startsWith('#EXTM3U')) {
-      res.statusCode = 200;
+      const out = rewritePlaylist(text, finalUrl);
+      res.statusCode = out === null ? 502 : 200;
+      if (out === null) return res.end('A lista túl nagy');
       res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
       res.setHeader('Cache-Control', 'no-cache');
-      return res.end(rewritePlaylist(text, finalUrl));
+      return res.end(out);
     }
     res.statusCode = status;
     return res.end(text);
   }
   res.statusCode = status;
   for (const k of ['content-type', 'content-length', 'content-range', 'accept-ranges', 'last-modified', 'etag']) {
-    const v = up.headers[k];
+    let v = up.headers[k];
+    // aktív dokumentumtípus (HTML, SVG, XML, szkript) nem mehet tovább – a lejátszónak csak média kell
+    // (a DASH-leíró XML marad; a fenti sandbox-szabály miatt az sem futtathat semmit)
+    if (k === 'content-type' && v && (/html|svg|javascript|ecmascript/i.test(v) || (/xml/i.test(v) && !/dash\+xml/i.test(v)))) v = 'application/octet-stream';
     if (v) res.setHeader(k, v);
   }
   if (req.method === 'HEAD') {
@@ -361,16 +458,18 @@ const ipRank = (ip) => (ip.startsWith('192.168.') ? 0 : ip.startsWith('10.') ? 1
 const sortedIPs = () => localIPv4s().sort((a, b) => ipRank(a) - ipRank(b));
 
 /**
- * Átadás indítása. A 6 jegyű kód első 3 számjegye a gép címének utolsó száma (a másik eszköz ebből és
- * a saját címéből tudja, hol keresse), a többi a titok. → { code, port, addresses, expires }
+ * Átadás indítása. A kód első 3 számjegye a gép címének utolsó száma (a másik eszköz ebből és a saját
+ * címéből tudja, hol keresse). A felület a titkosított adatot és a kódjából számolt azonosítót adja át
+ * (`id`); a kód többi része (a titok) ide sem jut el. → { code, port, addresses, expires }
  */
-async function shareStart(data, minutes = 15) {
+async function shareStart(data, minutes = 15, id = '') {
   const port = await ensureServer();
   const ips = sortedIPs();
-  const last = (ips[0] || '0.0.0.0').split('.').pop();
-  const secret = String(crypto.randomInt(0, 1000)).padStart(3, '0');
+  const last = (ips[0] || '0.0.0.0').split('.').pop().padStart(3, '0');
+  const strong = /^[0-9a-f]{32}$/.test(String(id || ''));
+  const secret = strong ? id : String(crypto.randomInt(0, 1000)).padStart(3, '0');
   share = { secret, json: JSON.stringify(data), fails: 0, expires: Date.now() + minutes * 60e3 };
-  return { code: last.padStart(3, '0') + secret, port, addresses: ips, expires: share.expires };
+  return { code: strong ? last : last + secret, port, addresses: ips, expires: share.expires };
 }
 
 function shareStop() {
@@ -380,17 +479,87 @@ function shareStop() {
 // ---------------------------------------------------------------------------
 // Távirányító
 // ---------------------------------------------------------------------------
-let rc = null; // { pin, html, state, fails }
-async function rcStart(html, pin) {
+// A telefon minden kérést HMAC-SHA256-tal ír alá: kulcs a QR-kódból kapott 128 bites kulcs ('k'), vagy a
+// beírt PIN ('p'). Az aláírt üzenet: alkalmi szám | számláló | útvonal. A számláló egyszer használható
+// (visszajátszás ellen). Hibás próbálkozás: címenként korlátozva (nincs mindenkit kizáró közös számláló).
+let rc = null; // { pin, key, html, state, nonce, seen, floor, ipFails, pinFails }
+const RC_WINDOW = 10 * 60e3;
+async function rcStart(html, pin, key) {
   const port = await ensureServer();
-  rc = { pin: String(pin), html: String(html), state: rc?.state || '{}', fails: 0 };
+  rc = {
+    pin: String(pin),
+    key: /^[0-9a-f]{32}$/.test(String(key || '')) ? String(key) : '',
+    html: String(html),
+    state: rc?.state || '{}',
+    nonce: crypto.randomBytes(12).toString('hex'),
+    seen: new Set(),
+    floor: 0,
+    ipFails: new Map(),
+    pinFails: 0,
+  };
   return { port, addresses: sortedIPs() };
+}
+
+/** → 200 (rendben), 403 (hibás aláírás) vagy 429 (erről a címről túl sok hibás próbálkozás) */
+function rcAuth(ip, auth, tail) {
+  const now = Date.now();
+  let f = rc.ipFails.get(ip);
+  if (f && now - f.first > RC_WINDOW && f.until < now) rc.ipFails.delete(ip), (f = null);
+  if (f && f.until > now) return 429;
+  const m = /^(\d{1,16})\.([kp])\.([0-9a-f]{32})$/.exec(String(auth || ''));
+  let ok = false;
+  if (m) {
+    // PIN-nel (4 jegy) csak korlátozott számú hibáig; a QR-kulcsos telefonokat ez nem érinti
+    const secret = m[2] === 'k' ? rc.key : rc.pinFails < 200 ? rc.pin : '';
+    if (secret) {
+      const want = crypto.createHmac('sha256', secret).update(`${rc.nonce}|${m[1]}|${tail}`).digest('hex').slice(0, 32);
+      ok = crypto.timingSafeEqual(Buffer.from(want), Buffer.from(m[3]));
+    }
+    const ctr = Number(m[1]);
+    if (ok && (ctr <= rc.floor || rc.seen.has(ctr))) ok = false; // már felhasznált számláló
+    if (ok) {
+      rc.seen.add(ctr);
+      if (rc.seen.size > 2000) {
+        const old = rc.seen.values().next().value;
+        rc.seen.delete(old);
+        rc.floor = Math.max(rc.floor, old);
+      }
+    }
+  }
+  if (ok) return 200;
+  if (m && m[2] === 'p') rc.pinFails++;
+  if (!f) {
+    if (rc.ipFails.size > 500) rc.ipFails.clear();
+    f = { n: 0, first: now, until: 0 };
+    rc.ipFails.set(ip, f);
+  }
+  if (++f.n >= 20) f.until = now + RC_WINDOW;
+  return 403;
 }
 function rcStop() {
   rc = null;
 }
 function rcState(json) {
   if (rc) rc.state = String(json);
+}
+
+/** fetch-válasz törzse szövegként, a kicsomagolt méret korlátjával (a tömörített válasz se fújódhasson fel). */
+async function readBody(r, max) {
+  if (!r.body) return '';
+  const reader = r.body.getReader();
+  const parts = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.length;
+    if (size > max) {
+      reader.cancel().catch(() => {});
+      throw new Error('Túl nagy válasz');
+    }
+    parts.push(value);
+  }
+  return Buffer.concat(parts.map((p) => Buffer.from(p.buffer, p.byteOffset, p.length))).toString('utf8');
 }
 
 /**
@@ -401,14 +570,18 @@ async function lanGet(urls, timeout = 2500) {
   let miss = null;
   const one = async (url) => {
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), timeout);
+    // a határidő a törzs olvasására is vonatkozik (nem csak a fejlécekre)
+    const t = setTimeout(() => ctrl.abort(), Math.max(timeout, 2000) + 20000);
+    const head = setTimeout(() => ctrl.abort(), timeout);
     try {
-      const r = await fetch(url, { signal: ctrl.signal });
+      const r = await fetch(url, { signal: ctrl.signal, redirect: 'error' });
+      clearTimeout(head);
+      const text = await readBody(r, 64 * 1024 * 1024); // a beállítások (listaszövegekkel) is beleférnek
       clearTimeout(t);
-      const text = await r.text();
       if (r.status === 200) return { status: 200, text, url };
       if (!miss && /kód/.test(text)) miss = { status: r.status, text, url };
     } catch {
+      clearTimeout(head);
       clearTimeout(t);
     }
     throw new Error('x');
@@ -460,7 +633,12 @@ function parseDns(buf) {
   const qd = buf.readUInt16BE(4);
   const rrCount = buf.readUInt16BE(6) + buf.readUInt16BE(8) + buf.readUInt16BE(10);
   let off = 12;
-  for (let i = 0; i < qd; i++) off = readName(buf, off).end + 4;
+  // a kérdések száma a csomagból jön: csak addig olvasunk, amíg van mit (egy apró, hamis csomag ne pörgessen)
+  for (let i = 0; i < qd && off < buf.length; i++) {
+    const next = readName(buf, off).end + 4;
+    if (next <= off || next > buf.length) return [];
+    off = next;
+  }
   const records = [];
   for (let i = 0; i < rrCount && off < buf.length; i++) {
     const n = readName(buf, off);
@@ -510,9 +688,10 @@ function discoverChromecast(ms) {
       }
       const txt = recs.find((r) => r.txt && (r.txt.fn || r.txt.id));
       const srv = recs.find((r) => r.type === 33);
-      const a = recs.find((r) => r.a);
       if (!txt && !srv) return;
-      const host = a?.a || rinfo.address;
+      // az eszköz címe a válaszoló saját címe (a csomagban hirdetett más cím nem számít), és helyi hálózati
+      const host = rinfo.address;
+      if (!isPrivateHost(host)) return;
       const id = 'cc:' + (txt?.txt.id || host);
       found.set(id, {
         id,
@@ -545,28 +724,86 @@ function discoverChromecast(ms) {
   });
 }
 
-const xmlTag = (xml, tag) => {
-  const m = xml.match(new RegExp(`<(?:\\w+:)?${tag}[^>]*>([\\s\\S]*?)</(?:\\w+:)?${tag}>`, 'i'));
-  return m ? m[1].trim() : '';
-};
+/**
+ * XML-elemek tartalma név szerint (névtér-előtaggal is), lineáris kereséssel – a hiányzó záróelemek ne
+ * okozzanak négyzetes visszakeresést (a reguláris kifejezéssel ez megtörtént). Ha nincs záróelem, megáll.
+ */
+function xmlAll(xml, tag, max = 64) {
+  const low = xml.toLowerCase();
+  const t = tag.toLowerCase();
+  const isName = (c) => !!c && /[\w.-]/.test(c);
+  // a `tag` egy előfordulása elemnévként (előtte „<” vagy „</” és esetleg „előtag:”, utána nem névkarakter)
+  const find = (from, close) => {
+    for (let p = low.indexOf(t, from); p >= 0; p = low.indexOf(t, p + 1)) {
+      if (isName(low[p + t.length])) continue;
+      let s = p - 1;
+      if (low[s] === ':') {
+        let k = 0;
+        s--;
+        while (s >= 0 && k < 32 && isName(low[s])) s--, k++;
+      }
+      if (close ? low[s] === '/' && low[s - 1] === '<' : low[s] === '<') return { start: close ? s - 1 : s, end: p + t.length };
+    }
+    return null;
+  };
+  const out = [];
+  let i = 0;
+  while (out.length < max) {
+    const o = find(i, false);
+    if (!o) break;
+    const gt = low.indexOf('>', o.end);
+    if (gt < 0) break;
+    if (low[gt - 1] === '/') {
+      out.push('');
+      i = gt + 1;
+      continue;
+    }
+    const c = find(gt + 1, true);
+    if (!c) break;
+    out.push(xml.slice(gt + 1, c.start));
+    i = low.indexOf('>', c.end) + 1 || xml.length;
+  }
+  return out;
+}
+const xmlTag = (xml, tag) => (xmlAll(xml, tag, 1)[0] || '').trim();
 const xmlUnescape = (s) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
 
-async function describeDlna(location) {
+/**
+ * A DLNA-eszköz leírása. Csak a választ küldő eszköz saját (helyi hálózati) címéről, átirányítás nélkül,
+ * korlátozott méretben; a vezérlőcímeknek is ugyanarra az eszközre kell mutatniuk.
+ */
+async function describeDlna({ location, from }) {
+  let loc;
+  try {
+    loc = new URL(location);
+  } catch {
+    return null;
+  }
+  const host = loc.hostname;
+  if (!/^https?:$/.test(loc.protocol) || host !== from || net.isIP(host) !== 4 || !isPrivateHost(host)) return null;
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 4000);
   try {
-    const xml = await (await fetch(location, { signal: ctrl.signal })).text();
-    const base = xmlTag(xml, 'URLBase') || location;
-    const services = xml.match(/<service>[\s\S]*?<\/service>/gi) || [];
+    const xml = await readBody(await fetch(loc.href, { signal: ctrl.signal, redirect: 'error' }), 256 * 1024);
+    const base = xmlTag(xml, 'URLBase') || loc.href;
+    const services = xmlAll(xml, 'service');
+    const sameDevice = (u) => {
+      try {
+        const x = new URL(u, base);
+        return /^https?:$/.test(x.protocol) && x.hostname === host ? x.href : null;
+      } catch {
+        return null;
+      }
+    };
     const svc = (kind) => {
-      const s = services.find((x) => new RegExp(`service:${kind}:`, 'i').test(xmlTag(x, 'serviceType')));
-      return s ? { type: xmlTag(s, 'serviceType'), control: new URL(xmlTag(s, 'controlURL'), base).href } : null;
+      const s = services.find((x) => xmlTag(x, 'serviceType').toLowerCase().includes(`service:${kind.toLowerCase()}:`));
+      const control = s && sameDevice(xmlTag(s, 'controlURL'));
+      return control ? { type: xmlTag(s, 'serviceType'), control } : null;
     };
     const av = svc('AVTransport');
     if (!av) return null;
-    const host = new URL(location).hostname;
     return {
-      id: 'dlna:' + (xmlTag(xml, 'UDN') || location),
+      id: 'dlna:' + (xmlTag(xml, 'UDN') || loc.href),
       kind: 'dlna',
       name: xmlUnescape(xmlTag(xml, 'friendlyName')) || host,
       model: xmlUnescape([xmlTag(xml, 'manufacturer'), xmlTag(xml, 'modelName')].filter(Boolean).join(' ')),
@@ -583,20 +820,20 @@ async function describeDlna(location) {
 
 function discoverDlna(ms) {
   return new Promise((resolve) => {
-    const locations = new Set();
+    const locations = new Map(); // leírás címe → a válaszoló eszköz címe
     const sock = dgram.createSocket({ type: 'udp4', reuseAddr: true });
     const finish = async () => {
       try {
         sock.close();
       } catch {}
-      const list = (await Promise.all([...locations].map(describeDlna))).filter(Boolean);
+      const list = (await Promise.all([...locations].map(([location, from]) => describeDlna({ location, from })))).filter(Boolean);
       const uniq = new Map(list.map((d) => [d.id, d]));
       resolve([...uniq.values()]);
     };
     sock.on('error', () => finish());
-    sock.on('message', (msg) => {
-      const m = msg.toString().match(/^location:\s*(\S+)/im);
-      if (m) locations.add(m[1]);
+    sock.on('message', (msg, rinfo) => {
+      const m = msg.toString().match(/^location:[ \t]*(\S+)/im);
+      if (m && locations.size < 64) locations.set(m[1], rinfo.address);
     });
     sock.bind(0, () => {
       const q = Buffer.from(
@@ -707,7 +944,18 @@ class CastSession {
 
   connect() {
     return new Promise((resolve, reject) => {
+      // A Chromecast saját aláírású tanúsítványt használ, ezért az első kapcsolódáskor megjegyezzük az
+      // ujjlenyomatát (eszközönként), és később csak ugyanazzal kapcsolódunk – egy közbeékelődő vagy
+      // álcázott eszköz így nem kaphatja meg a továbbító címét és kulcsát.
       const sock = tls.connect({ host: this.dev.host, port: this.dev.port, rejectUnauthorized: false }, () => {
+        const fp = sock.getPeerCertificate()?.fingerprint256 || '';
+        const known = castPins.get(this.dev.id);
+        if (!fp || (known && known !== fp)) {
+          const err = new Error('CERT_CHANGED: az eszköz tanúsítványa megváltozott');
+          reject(err);
+          return sock.destroy(err);
+        }
+        if (!known) castPins.set(this.dev.id, fp);
         this.send(NS.conn, 'receiver-0', { type: 'CONNECT' });
         this.beat = setInterval(() => this.send(NS.beat, 'receiver-0', { type: 'PING' }), 5000);
         resolve();
@@ -718,6 +966,8 @@ class CastSession {
         buf = Buffer.concat([buf, chunk]);
         while (buf.length >= 4) {
           const len = buf.readUInt32BE(0);
+          // a Cast-üzenet legfeljebb 64 KB – a nagyobbat jelző (vagy félbehagyott óriás) keret hibás
+          if (len > 65536) return sock.destroy(new Error('hibás üzenet az eszköztől'));
           if (buf.length < 4 + len) break;
           const msg = buf.slice(4, 4 + len);
           buf = buf.slice(4 + len);
@@ -860,12 +1110,17 @@ async function soap(svc, action, args) {
     `<s:Body><u:${action} xmlns:u="${svc.type}">` +
     Object.entries(args).map(([k, v]) => `<${k}>${xmlEscape(v)}</${k}>`).join('') +
     `</u:${action}></s:Body></s:Envelope>`;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 10000);
+  // a vezérlőcím a felderítéskor ellenőrzött (ugyanaz az eszköz); átirányítást nem követünk
   const res = await fetch(svc.control, {
     method: 'POST',
     headers: { 'Content-Type': 'text/xml; charset="utf-8"', SOAPACTION: `"${svc.type}#${action}"` },
     body,
-  });
-  const text = await res.text();
+    redirect: 'error',
+    signal: ctrl.signal,
+  }).finally(() => clearTimeout(t));
+  const text = await readBody(res, 256 * 1024);
   if (!res.ok) throw new Error(xmlTag(text, 'errorDescription') || `${action}: HTTP ${res.status}`);
   return text;
 }
@@ -961,4 +1216,4 @@ function castControl(action, value) {
   return active.control(action, value);
 }
 
-module.exports = { init, discover, castPlay, castControl, shareStart, shareStop, rcStart, rcStop, rcState, lanGet, sortedIPs, localIPv4s, proxyUrl };
+module.exports = { fetchPolicy, readBody, isPrivateHost, init, discover, castPlay, castControl, castForget, shareStart, shareStop, rcStart, rcStop, rcState, lanGet, sortedIPs, localIPv4s, proxyUrl };

@@ -10,6 +10,7 @@ import { filmInfo, infoBoxHtml, metaPaused, posters, titleInfo, posterCandidates
 import { isZip, unzip, bytesToText } from './unzip.js';
 import { packsOf, pickAndImportPacks, removePack } from './packs.js';
 import { kidsAllowed, isKidsVod, setKidsMark } from './kids.js';
+import { allowOutsidePlayback } from './watchtime.js';
 
 // A felismerés változásakor növelni kell, hogy a régi feldolgozott mentés ne töltődjön be.
 const VOD_CACHE_VERSION = 8;
@@ -130,21 +131,48 @@ const safeDecode = (s) => {
   }
 };
 
+// A listából jövő címek feldolgozása lineáris időben (a hosszú elválasztó-sorozatokon és a záratlan
+// zárójeleken a reguláris kifejezések négyzetesen futottak volna), és legfeljebb ennyi karakterig:
+const MAX_TITLE = 400;
+
+/** A nyitó–záró pár közötti részek cseréje szóközre; záratlan nyitónál megáll (egyetlen menet). */
+function dropBracketed(s, open, close) {
+  let out = '';
+  let i = 0;
+  for (;;) {
+    const a = s.indexOf(open, i);
+    if (a < 0) return out + s.slice(i);
+    const b = s.indexOf(close, a + open.length);
+    if (b < 0) return out + s.slice(i);
+    out += s.slice(i, a) + ' ';
+    i = b + close.length;
+  }
+}
+/** A végéről a megadott karakterek levágása (egyetlen menet hátulról). */
+function trimEndChars(s, chars) {
+  let e = s.length;
+  while (e > 0 && chars.includes(s[e - 1])) e--;
+  return s.slice(0, e);
+}
+const TRAIL = '-–:|,._ \t\n\r ';
+
 function cleanName(s) {
-  return String(s || '')
-    .replace(/【[^】]*】/g, ' ')
-    .replace(/[《》「」『』]/g, ' ')
-    .replace(/\[[^\]]*\]/g, ' ')
-    .replace(/\s+[-–:|,]\s*$/, '')
-    .replace(/[-–:|,._\s]+$/, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  let t = String(s || '').slice(0, MAX_TITLE);
+  t = dropBracketed(t, '【', '】').replace(/[《》「」『』]/g, ' ');
+  t = dropBracketed(t, '[', ']');
+  return trimEndChars(t, TRAIL).replace(/\s+/g, ' ').trim();
 }
 
 function splitYear(title) {
-  const m = /^(.*?)[\s.(\[]+((?:19|20)\d{2})[)\]]?\s*$/.exec(title.trim());
-  if (m && m[1].trim()) return { title: cleanName(m[1]), year: parseInt(m[2], 10) };
-  return { title: cleanName(title), year: 0 };
+  const t = String(title || '').slice(0, MAX_TITLE).trim();
+  // a végén évszám (esetleg zárójelben), előtte legalább egy elválasztó: szóköz, pont, ( vagy [
+  const m = /((?:19|20)\d{2})[)\]]?$/.exec(t);
+  if (m) {
+    let p = m.index;
+    while (p > 0 && ' \t.([ '.includes(t[p - 1])) p--;
+    if (p < m.index && t.slice(0, p).trim()) return { title: cleanName(t.slice(0, p)), year: parseInt(m[1], 10) };
+  }
+  return { title: cleanName(t), year: 0 };
 }
 
 const KIDS_RX = /family|kids?|child|cartoon|anim|anime|gyerek|mese|csal[aá]di|matinee|disney|junior/i;
@@ -410,14 +438,14 @@ function detectLooseSeries(bucket) {
  * „Sorozat.S01E02.720p.WEB” → „Sorozat S01E02”), hogy a felismerés és a keresés pontosabb legyen.
  */
 export function cleanRelease(raw) {
-  let t = String(raw || '').trim();
+  let t = String(raw || '').slice(0, MAX_TITLE).trim();
   if (!t) return t;
   t = t.replace(/\.(mkv|mp4|avi|m4v|ts|mov|wmv|webm|m3u8?)$/i, '');
   if (!/\s/.test(t) && /[._]/.test(t)) t = t.replace(/[._]+/g, ' ');
-  t = t.replace(
-    /[\s.([-]+(?:2160p|1080[pi]|720p|576p|480p|4k|uhd|x26[45]|h\.?26[45]|hevc|avc|blu-?ray|brrip|bdrip|web-?dl|web-?rip|hdtv|dvdrip|dvd|xvid|aac|ac3|eac3|dts|hdr10?|dv|remux|proper|repack|extended|unrated|hun|eng|multi|dual|subbed|hunsub)\b.*$/i,
-    ''
-  );
+  // az első kiadási jelölőtől (előtte egy elválasztó) a végéig levágjuk, az előtte álló elválasztókkal együtt –
+  // egyetlen elválasztóval kezdődő minta: nem pörgeti újra a hosszú szóköz-sorozatokat (lineáris)
+  const m = /[\s.([-](?:2160p|1080[pi]|720p|576p|480p|4k|uhd|x26[45]|h\.?26[45]|hevc|avc|blu-?ray|brrip|bdrip|web-?dl|web-?rip|hdtv|dvdrip|dvd|xvid|aac|ac3|eac3|dts|hdr10?|dv|remux|proper|repack|extended|unrated|hun|eng|multi|dual|subbed|hunsub)\b/i.exec(t);
+  if (m) t = trimEndChars(t.slice(0, m.index), ' \t.([-');
   return t.trim() || String(raw).trim();
 }
 
@@ -970,6 +998,9 @@ player.vodHooks = {
  */
 export async function openInExternalPlayer(item, ep = null) {
   if (!api.openInPlayer) return toast('Ezen az eszközön nem nyitható meg külső lejátszóban.');
+  // gyerekprofil: a tartalmi szabály, és mivel a külső lejátszóban a napi keret nem követhető, felnőtt jóváhagyás
+  if (store.profile.kids && !kidsAllowed(store.profile, 'vod', item)) return toast('Ez a tartalom ebben a profilban nem nézhető.');
+  if (!(await allowOutsidePlayback())) return;
   let items;
   if (item.type === 'series') {
     ep ||= nextEpisodeOf(item).ep;
@@ -1015,10 +1046,10 @@ export function vcardHtml(x) {
     <div class="meta"><div class="name" title="${esc(displayTitle(x) !== x.title ? x.title : '')}">${esc(displayTitle(x))}</div><div class="sub">${esc(sub)}</div></div>
     <div class="pop">
       <div class="pop-btns">
-        <button class="round white" data-vact="play" title="Lejátszás" tabindex="-1">${ICON.play}</button>
-        <button class="round" data-vact="fav" title="${fav ? 'Eltávolítás a kedvencekből' : 'Kedvencekhez'}" tabindex="-1">${fav ? ICON.check : ICON.plus}</button>
+        <button class="round white" data-vact="play" title="Lejátszás (P)" tabindex="-1">${ICON.play}</button>
+        <button class="round" data-vact="fav" title="${fav ? 'Eltávolítás a kedvencekből (F)' : 'Kedvencekhez (F)'}" tabindex="-1">${fav ? ICON.check : ICON.plus}</button>
         <span class="grow"></span>
-        <button class="round" data-vact="info" title="Részletek" tabindex="-1">${ICON.chevron}</button>
+        <button class="round" data-vact="info" title="Részletek (I)" tabindex="-1">${ICON.chevron}</button>
       </div>
       <div class="pop-line">${esc(line)}</div>
       ${nextEp?.ep ? `<div class="pop-now">${nextEp.resume ? 'Folytatás' : 'Következő'}: ${esc(epLabel(nextEp.ep))}</div>` : ''}
@@ -1052,29 +1083,35 @@ const warmVod = (e) => {
 document.addEventListener('focusin', warmVod);
 document.addEventListener('mouseover', warmVod);
 
-// Kártyák (delegált események)
-document.addEventListener('click', (e) => {
-  const card = e.target.closest('.vcard');
-  if (!card) return;
+// Kártyák (delegált események). A felugró panel gombjai (mint a csatornakártyán): lejátszás, kedvenc,
+// részletek – egérrel / érintéssel; billentyűzettel és távirányítóval a kártyán állva: Enter / I = részletek,
+// P (vagy a lejátszás gomb) = lejátszás, F = kedvenc. (A gombok a csatornakártyához hasonlóan nincsenek a
+// Tab-sorrendben, hogy a nyilas navigáció kártyáról kártyára lépjen.)
+function vcardAction(card, act) {
   const x = findItem(card.dataset.vid);
   if (!x) return;
-  // a felugró panel gombjai (mint a csatornakártyán): lejátszás, kedvenc, részletek
-  const act = e.target.closest('[data-vact]')?.dataset.vact;
   if (act === 'play') return playVod(x);
   if (act === 'fav') {
     toggleVodFav(x);
     toast(isVodFav(x) ? 'Hozzáadva a kedvencekhez' : 'Eltávolítva a kedvencek közül');
+    const focused = card.contains(document.activeElement);
     card.outerHTML = vcardHtml(x);
+    if (focused) document.querySelector(`.vcard[data-vid="${CSS.escape(card.dataset.vid)}"]`)?.focus({ preventScroll: true });
     return;
   }
   openVodDetail(x);
+}
+document.addEventListener('click', (e) => {
+  const card = e.target.closest('.vcard');
+  if (card) vcardAction(card, e.target.closest('[data-vact]')?.dataset.vact || 'info');
 });
+const VCARD_KEYS = { Enter: 'info', i: 'info', I: 'info', ContextMenu: 'info', p: 'play', P: 'play', MediaPlay: 'play', MediaPlayPause: 'play', f: 'fav', F: 'fav' };
 document.addEventListener('keydown', (e) => {
   const card = document.activeElement?.closest?.('.vcard');
-  if (!card || e.key !== 'Enter') return;
+  const act = card && !e.ctrlKey && !e.metaKey && !e.altKey && VCARD_KEYS[e.key];
+  if (!act) return;
   e.preventDefault();
-  const x = findItem(card.dataset.vid);
-  if (x) openVodDetail(x);
+  vcardAction(card, act);
 });
 
 export const renderOwn = (view, params) => renderVod(view, params, own);

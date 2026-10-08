@@ -16,11 +16,33 @@ function decodeName(bytes, utf8Flag) {
   }
 }
 
-async function inflateRaw(data) {
+// Kibontási korlát tételenként és összesen: egy kicsi, de erősen tömörített ZIP se foglalhasson sokszoros memóriát.
+const MAX_ENTRY = 128 * 1024 * 1024;
+const MAX_TOTAL = 512 * 1024 * 1024;
+
+/** deflate-raw kibontás folyamként, legfeljebb `max` bájtig (afölött hiba, a folyam leáll). */
+async function inflateRaw(data, max = MAX_ENTRY) {
   if (typeof DecompressionStream === 'undefined') throw new Error('Ezen az eszközön a ZIP nem bontható ki – csomagold ki, és a fájlokat add hozzá.');
-  const ds = new DecompressionStream('deflate-raw');
-  const out = new Response(new Blob([data]).stream().pipeThrough(ds));
-  return new Uint8Array(await out.arrayBuffer());
+  const reader = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw')).getReader();
+  const parts = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.length;
+    if (size > max) {
+      reader.cancel().catch(() => {});
+      throw new Error('A ZIP egy fájlja kibontva túl nagy.');
+    }
+    parts.push(value);
+  }
+  const out = new Uint8Array(size);
+  let o = 0;
+  for (const p of parts) {
+    out.set(p, o);
+    o += p.length;
+  }
+  return out;
 }
 
 export const isZip = (bytes) => bytes && bytes.length > 4 && bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 3 && bytes[3] === 4;
@@ -41,6 +63,7 @@ export async function unzip(buf, want = () => true) {
   const count = dv.getUint16(eocd + 10, true);
   let p = dv.getUint32(eocd + 16, true);
   const out = [];
+  let total = 0;
   for (let n = 0; n < count; n++) {
     if (dv.getUint32(p, true) !== 0x02014b50) throw new Error('Hibás ZIP-könyvtár.');
     const flags = dv.getUint16(p + 8, true);
@@ -60,8 +83,10 @@ export async function unzip(buf, want = () => true) {
     const raw = u8.subarray(start, start + csize);
     let bytes;
     if (method === 0) bytes = raw;
-    else if (method === 8) bytes = await inflateRaw(raw);
+    else if (method === 8) bytes = await inflateRaw(raw, Math.min(MAX_ENTRY, MAX_TOTAL - total));
     else throw new Error(`Nem támogatott tömörítés a ZIP-ben (${method}).`);
+    total += bytes.length;
+    if (total > MAX_TOTAL) throw new Error('A ZIP tartalma kibontva túl nagy.');
     out.push({ path, name: path.split('/').pop(), bytes });
   }
   return out;

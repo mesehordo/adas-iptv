@@ -187,6 +187,50 @@ function newProfile(name, color, kids = false) {
   };
 }
 
+const num = (v, d = 0) => (Number.isFinite(Number(v)) && v !== null && v !== '' ? Number(v) : d);
+const str = (v, max = 200) => (typeof v === 'string' ? v.slice(0, max) : v == null ? '' : String(v).slice(0, max));
+const numMap = (o) => {
+  const out = {};
+  if (o && typeof o === 'object') for (const [k, v] of Object.entries(o)) if (Number.isFinite(Number(v))) out[k] = Number(v);
+  return out;
+};
+
+/**
+ * Importált / visszaállított profil típusainak rendbetétele: a számként használt mezők (statisztika, emlékeztetők
+ * időpontjai, főoldali elrendezés) csak véges számok lehetnek, a szövegek szövegek – a HTML-sablonokba így nem
+ * kerülhet a mentésből jelölőkód.
+ */
+export function cleanProfile(p) {
+  p.id = str(p.id, 40) || Math.random().toString(36).slice(2, 10);
+  p.name = str(p.name, 40) || '?';
+  p.color = str(p.color, 40);
+  p.kids = !!p.kids;
+  if (!(p.avatar === undefined || p.avatar === null || p.avatar === 'custom' || Number.isInteger(p.avatar))) p.avatar = null;
+  if (p.avatarData != null && !/^data:image\/(png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/]+=*$/.test(String(p.avatarData))) p.avatarData = '';
+  if (p.avatar === 'custom' && !p.avatarData) p.avatar = null;
+  for (const k of ['favorites', 'recent']) p[k] = Array.isArray(p[k]) ? p[k].filter((x) => typeof x === 'string') : [];
+  p.reminders = (Array.isArray(p.reminders) ? p.reminders : [])
+    .filter((r) => r && typeof r === 'object' && Number.isFinite(Number(r.start)))
+    .map((r) => ({ ...r, channelId: str(r.channelId), title: str(r.title, 300), start: num(r.start), stop: num(r.stop, num(r.start)), notified: !!r.notified }));
+  if (p.stats && typeof p.stats === 'object') {
+    const s = p.stats;
+    const hours = Array.isArray(s.hours) ? s.hours.slice(0, 24).map((h) => num(h)) : [];
+    while (hours.length < 24) hours.push(0);
+    const vod = {};
+    if (s.vod && typeof s.vod === 'object')
+      for (const [k, v] of Object.entries(s.vod))
+        if (v && typeof v === 'object') vod[k] = { t: num(v.t), title: str(v.title, 300), type: str(v.type, 20), poster: str(v.poster, 2000), last: num(v.last) };
+    p.stats = { since: num(s.since, Date.now()), days: numMap(s.days), hours, ch: numMap(s.ch), vod, cat: numMap(s.cat), plays: Math.max(0, Math.round(num(s.plays))) };
+  }
+  if (p.dash != null) {
+    const d = p.dash;
+    p.dash = d && typeof d === 'object' && Array.isArray(d.units)
+      ? { cols: num(d.cols, 3), rows: num(d.rows, 2), units: d.units.filter((u) => u && typeof u.id === 'string').map((u) => ({ id: u.id, w: num(u.w, 1), h: num(u.h, 1) })) }
+      : null;
+  }
+  return p;
+}
+
 export const store = {
   settings: defaults(),
   profiles: [],
@@ -208,7 +252,9 @@ export const store = {
     this.settings.vodBuiltin = { ...DEFAULT_SETTINGS.vodBuiltin, ...(this.settings.vodBuiltin || {}) };
     const builtinUrls = new Set(BUILTIN_PLAYLISTS.map((p) => p.url));
     this.settings.customPlaylists = this.settings.customPlaylists.filter((p) => !p.url || !builtinUrls.has(p.url));
-    this.profiles = (data.profiles || []).map((p) => ({ ...newProfile(p.name, p.color), ...p }));
+    this.profiles = (Array.isArray(data.profiles) ? data.profiles : [])
+      .filter((p) => p && typeof p === 'object')
+      .map((p) => cleanProfile({ ...newProfile(p.name, p.color), ...p }));
     if (!this.profiles.length) {
       this.profiles = [newProfile('Én', PROFILE_COLORS[0]), newProfile('Gyerekek', PROFILE_COLORS[3], true)];
     }

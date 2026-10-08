@@ -2,11 +2,14 @@
 // Frissítés-ellenőrzés az asztali változathoz.
 // Forrás: GitHub-tároló („tulajdonos/tároló” – a legutóbbi kiadás) vagy egy JSON-cím:
 //   { "version": "1.9.0", "notes": "…", "url": "https://…/Adás Setup 1.9.0.exe",
-//     "assets": { "win": "…", "mac": "…", "linux": "…" }, "page": "https://…" }
+//     "assets": { "win": "…", "mac": "…", "linux": "…" }, "page": "https://…",
+//     "sha256": { "win": "<64 hexa jegy>", "mac": "…", "linux": "…" } }
+// Csak https, és csak ellenőrző összeggel egyező fájl telepíthető (GitHubnál a kiadás SHA256SUMS.txt-je).
 
 const { app, shell, net } = require('electron');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { spawn } = require('child_process');
 
 const UA = 'Adas-Updater';
@@ -62,12 +65,33 @@ function pickAsset(names) {
   return process.env.APPIMAGE ? appImage || deb : deb || appImage;
 }
 
+const isHttps = (u) => /^https:\/\//i.test(String(u || ''));
+
 async function getJson(url) {
+  if (!isHttps(url)) throw new Error('A frissítési forrás csak https:// cím lehet.');
   const res = await net.fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' } });
   if (res.status === 404) throw new Error('A megadott forrásban nincs kiadás.');
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
+
+/** A kiadás SHA256SUMS.txt-je → { fájlnév: sha256 } */
+async function getSums(url) {
+  if (!isHttps(url)) return {};
+  const res = await net.fetch(url, { headers: { 'User-Agent': UA } });
+  if (!res.ok) return {};
+  const out = {};
+  for (const line of (await res.text()).slice(0, 200000).split(/\r?\n/)) {
+    const m = /^([0-9a-f]{64})\s+\*?(.+)$/i.exec(line.trim());
+    if (m) out[m[2].trim()] = m[1].toLowerCase();
+  }
+  return out;
+}
+
+// A legutóbb felajánlott fájl (a felülettől csak a címét fogadjuk el – az ellenőrző összeg innen jön),
+// és a letöltött, ellenőrzött fájlok: csak ezek telepíthetők.
+let offered = null;
+const verified = new Set();
 
 /** → { current, latest, newer, notes, page, asset: { name, url, size } | null } */
 async function check(source) {
@@ -85,36 +109,51 @@ async function check(source) {
     notes = rel.body || '';
     page = rel.html_url;
     const a = pickAsset((rel.assets || []).map((x) => ({ name: x.name, url: x.browser_download_url, size: x.size })));
-    if (a) asset = { name: a.name, url: a.url, size: a.size };
-  } else if (/^https?:\/\//i.test(source)) {
+    if (a) {
+      // a kiadás ellenőrző összegei (SHA256SUMS.txt) – a letöltött fájl csak egyezés esetén telepíthető
+      const sums = (rel.assets || []).find((x) => /^sha256sums(\.txt)?$/i.test(x.name));
+      const sha256 = sums ? (await getSums(sums.browser_download_url).catch(() => ({})))[a.name] || '' : '';
+      asset = { name: a.name, url: a.url, size: a.size, sha256 };
+    }
+  } else if (isHttps(source)) {
     const j = await getJson(source);
     latest = j.version;
     notes = j.notes || '';
     page = j.page || '';
     const key = process.platform === 'win32' ? 'win' : process.platform === 'darwin' ? 'mac' : 'linux';
     const url = j.assets?.[key] || j.url;
-    if (url) asset = { name: decodeURIComponent(url.split('/').pop().split('?')[0]), url, size: 0 };
+    // saját forrásnál az ellenőrző összeg a leírásban: "sha256": "…" vagy { "win": "…", … }
+    const sha256 = String((typeof j.sha256 === 'object' ? j.sha256?.[key] : j.sha256) || '').toLowerCase();
+    if (typeof url === 'string' && url) asset = { name: decodeURIComponent(url.split('/').pop().split('?')[0]), url, size: 0, sha256: /^[0-9a-f]{64}$/.test(sha256) ? sha256 : '' };
   } else {
     throw new Error('A forrás „tulajdonos/tároló” (GitHub) vagy egy https:// cím lehet.');
   }
+  if (asset && !isHttps(asset.url)) asset = null; // csak titkosított kapcsolaton letölthető fájl
+  offered = asset;
   if (!latest) throw new Error('A forrás nem adott meg verziószámot.');
   return { current, latest: String(latest).replace(/^v/i, ''), newer: cmpVersion(latest, current) > 0, notes, page, asset, portable: isPortable() };
 }
 
 let downloading = null;
 
-/** Letöltés az ideiglenes mappába; onProgress(0..1). */
-async function download(asset, onProgress) {
+/**
+ * Letöltés egy saját, egyedi nevű ideiglenes mappába (csak a felhasználó érheti el), az ellenőrző összeg
+ * számolásával; eltérés (vagy hiányzó összeg) esetén a fájl törlődik. onProgress(0..1).
+ */
+async function download(req, onProgress) {
   if (downloading) throw new Error('Már folyamatban van egy letöltés.');
-  const dir = path.join(app.getPath('temp'), 'adas-update');
-  fs.mkdirSync(dir, { recursive: true });
+  const asset = offered && req && req.url === offered.url ? offered : null;
+  if (!asset) throw new Error('Előbb keress frissítést.');
+  if (!asset.sha256) throw new Error('Ehhez a kiadáshoz nincs ellenőrző összeg (SHA256SUMS.txt), ezért nem telepíthető automatikusan – töltsd le a kiadás oldaláról.');
+  const dir = fs.mkdtempSync(path.join(app.getPath('temp'), 'adas-update-'));
   const file = path.join(dir, asset.name.replace(/[\\/:*?"<>|]/g, '_'));
   downloading = true;
   try {
     const res = await net.fetch(asset.url, { headers: { 'User-Agent': UA } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const total = Number(res.headers.get('content-length')) || asset.size || 0;
-    const out = fs.createWriteStream(file);
+    const out = fs.createWriteStream(file, { flags: 'wx', mode: 0o700 });
+    const hash = crypto.createHash('sha256');
     const reader = res.body.getReader();
     let got = 0;
     let last = 0;
@@ -122,13 +161,20 @@ async function download(asset, onProgress) {
       const { done, value } = await reader.read();
       if (done) break;
       got += value.length;
-      if (!out.write(Buffer.from(value))) await new Promise((r) => out.once('drain', r));
+      const b = Buffer.from(value);
+      hash.update(b);
+      if (!out.write(b)) await new Promise((r) => out.once('drain', r));
       if (total && Date.now() - last > 250) {
         last = Date.now();
         onProgress(got / total);
       }
     }
     await new Promise((r, j) => out.end((e) => (e ? j(e) : r())));
+    if (hash.digest('hex') !== asset.sha256) {
+      fs.rmSync(dir, { recursive: true, force: true });
+      throw new Error('A letöltött fájl ellenőrző összege nem egyezik a kiadáséval – a frissítés megszakítva.');
+    }
+    verified.add(file);
     onProgress(1);
     return file;
   } finally {
@@ -138,6 +184,13 @@ async function download(asset, onProgress) {
 
 /** A letöltött telepítő indítása, majd kilépés (Windows); máshol megnyitja a fájlt. */
 async function install(file) {
+  // csak az itt letöltött és ellenőrzött fájl (a felülettől kapott tetszőleges útvonal nem)
+  if (!verified.has(file)) throw new Error('Ismeretlen frissítési fájl.');
+  // hordozható változat: nincs telepítés, csak a letöltött fájl mappája nyílik meg (bármi is a neve)
+  if (isPortable()) {
+    shell.showItemInFolder(file);
+    return 'shown';
+  }
   // MSI: a Windows Installer frissíti a meglévő telepítést (azonos UpgradeCode), az Adás közben bezárul
   if (process.platform === 'win32' && /\.msi$/i.test(file)) {
     spawn('msiexec', ['/i', file], { detached: true, stdio: 'ignore' }).unref();

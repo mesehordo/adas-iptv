@@ -1353,10 +1353,10 @@ ${go('#/stats', 'Statisztika megnyitása')}`,
     body: `
 <p>Az asztali gép, az Android TV és az Android telefon között egy kóddal viheted át a beállításokat (listák, profilok, kedvencek, előzmények, emlékeztetők, főoldal) a helyi hálózaton – bármelyik irányba:</p>
 <ol>
-<li>Azon az eszközön, <b>amelyiknek a beállításait át akarod venni</b>: Beállítások → <i>Szinkron eszközök között</i> → <b>Kód kérése</b>. Megjelenik egy 6 jegyű kód (pl. <code>123 456</code>). Kérésre a kulcsok és jelszavak is átmennek.</li>
+<li>Azon az eszközön, <b>amelyiknek a beállításait át akarod venni</b>: Beállítások → <i>Szinkron eszközök között</i> → <b>Kód kérése</b>. Megjelenik egy 12 jegyű kód (pl. <code>123 456 789 012</code>). Kérésre a kulcsok és jelszavak is átmennek.</li>
 <li>A <b>másik eszközön</b>: ugyanitt a <i>Szinkronizálás kóddal</i> mezőbe írd be a kódot, majd <b>Szinkronizálás</b>. Az eszköz magától megkeresi a kódot adó eszközt a hálózaton, és átveszi a beállításait (jóváhagyás után).</li>
 </ol>
-<p>A kód 15 percig érvényes; 10 hibás próbálkozás után leáll, ilyenkor kérj újat. A két eszköz legyen ugyanazon a (otthoni) hálózaton; a Windows tűzfal első alkalommal engedélyt kérhet – a magánhálózaton engedélyezd.</p>
+<p>A beállítások titkosítva mennek át: a kód (és így a kulcs) nem utazik a hálózaton, csak az ebből számolt azonosító. A kód 15 percig érvényes; 10 hibás próbálkozás után leáll, ilyenkor kérj újat. A két eszköz legyen ugyanazon a (otthoni) hálózaton; a Windows tűzfal első alkalommal engedélyt kérhet – a magánhálózaton engedélyezd.</p>
 <p><b>Csak a profilok</b>: a mostani beállítások és listák megmaradnak, a beérkező profilok hozzáadódnak (ami már megvan, frissül).</p>
 <p>A <i>Haladó</i> résznél megadhatod a másik eszköz címét is (ha más alhálózaton van), vagy webcímről (pl. a NAS-ra feltöltött mentésből) is betöltheted a beállításokat – ilyenkor a teljes címet írd be, kód nélkül.</p>
 ${go('#/settings?section=transfer', 'Szinkronizálás eszközök között')}`,
@@ -1370,7 +1370,7 @@ ${go('#/settings?section=transfer', 'Szinkronizálás eszközök között')}`,
 <p>Az asztali alkalmazás és az Android (TV) változat a telefonodról – vagy bármelyik eszköz böngészőjéből – is vezérelhető ugyanazon a (otthoni) hálózaton:</p>
 <ol>
 <li>A leggyorsabb: a <b>Főoldal</b> tetején a <b>Távirányító</b> gomb (a Testreszabás mellett) – bekapcsolja, és egy kis ablakban megmutatja a QR-kódot. Vagy: Beállítások → Távirányító és billentyűk → <b>Távirányító telefonról</b> → kapcsold be. Megjelenik egy <b>QR-kód</b>, egy cím (pl. <code>http://192.168.1.20:47800/adas/remote</code>) és egy 4 jegyű PIN.</li>
-<li>Olvasd be a QR-kódot a telefon kamerájával: a vezérlő megnyílik, és a PIN-t is megkapja. (Vagy nyisd meg a címet a böngészőben, és írd be a PIN-t – a telefon megjegyzi.) Tipp: tedd ki a lapot a kezdőképernyőre, így alkalmazásként indul.</li>
+<li>Olvasd be a QR-kódot a telefon kamerájával: a vezérlő megnyílik, és egy titkos kulcsot is megkap – ez a legbiztonságosabb, mert a kulcs a hálózaton nem utazik, a telefon minden parancsot ezzel ír alá. (Vagy nyisd meg a címet a böngészőben, és írd be a PIN-t – a telefon megjegyzi.) Tipp: tedd ki a lapot a kezdőképernyőre, így alkalmazásként indul.</li>
 </ol>
 <p>Felül mindig látszik, mi megy éppen (logóval, a műsor haladásával és a következő műsorral). A vezérlő három fülből áll:</p>
 <table class="help-table">
@@ -1378,7 +1378,7 @@ ${go('#/settings?section=transfer', 'Szinkronizálás eszközök között')}`,
 <tr><td><b>📺 Csatornák</b></td><td><b>Kereső</b> az összes csatorna között (gépelés közben szűr, a most futó műsort is mutatja), a kedvenceid és a legutóbb nézett csatornák – egy érintéssel indulnak.</td></tr>
 <tr><td><b>☰ Továbbiak</b></td><td>Ugrás bármelyik oldalra (TV, Műsorújság, Kedvencek, VOD, Felvételek, Böngészés, Súgó); <b>szöveg küldése</b> (a telefon billentyűzetével a kijelölt mezőbe gépel, vagy keresést indít); Adás adatai, Több adás egyszerre, elalvási időzítő.</td></tr>
 </table>
-<div class="note">A PIN-t bármikor újra lehet generálni (Új PIN) – a régi telefonnak újra be kell írnia. Rossz PIN-nel a vezérlő nem működik; sok hibás próbálkozás után lezár.</div>
+<div class="note">A PIN-t és a QR-kód kulcsát bármikor újra lehet generálni (Új PIN) – a régi telefonnak újra be kell olvasnia a QR-kódot (vagy be kell írnia az új PIN-t). Rossz PIN-nel a vezérlő nem működik; egy eszközről sok hibás próbálkozás után az az eszköz 10 percre kizáródik (a többi telefon közben is működik).</div>
 ${go('#/settings?section=remote', 'Távirányító telefonról')}`,
   },
   {

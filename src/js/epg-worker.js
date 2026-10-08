@@ -1,10 +1,26 @@
 // XMLTV feldolgozás háttérszálon. Bemenet: { id, text, from, to }.
 // Kimenet: { id, channels: { epgId: [megjelenített nevek] }, programs: { epgId: [[start, stop, cím, leírás, kategória, alcím, epizód]] } }
 
+// A feldolgozás indexOf-alapú, lineáris idejű: a [\s\S]*? mintás reguláris kifejezések egy hibás (záróelem
+// nélküli) műsorújságon újra és újra végigolvasták a dokumentum maradékát (négyzetes idő).
+
 const ENT = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+/** <![CDATA[…]]> → a tartalma (záratlan CDATA-nál a maradék változatlan) */
+function uncdata(s) {
+  let out = '';
+  let i = 0;
+  for (;;) {
+    const a = s.indexOf('<![CDATA[', i);
+    if (a < 0) return out + s.slice(i);
+    const b = s.indexOf(']]>', a + 9);
+    if (b < 0) return out + s.slice(i);
+    out += s.slice(i, a) + s.slice(a + 9, b);
+    i = b + 3;
+  }
+}
 function decode(s) {
   if (!s) return '';
-  s = s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
+  s = uncdata(s);
   return s
     .replace(/&(#x?[0-9a-f]+|\w+);/gi, (m, e) => {
       if (e[0] === '#') {
@@ -32,9 +48,29 @@ const attr = (s, name) => {
   const m = new RegExp('\\b' + name + '="([^"]*)"').exec(s);
   return m ? decode(m[1]) : '';
 };
+/**
+ * Elem keresése `from`-tól: → { attrs, body, end } (önzáró elemnél body: ''), vagy null. Ha az elemnek nincs
+ * záróeleme, null – a hívó ilyenkor abbahagyja (a dokumentum hátralévő része hibás).
+ */
+function element(s, name, from = 0) {
+  const open = '<' + name;
+  const close = '</' + name + '>';
+  for (let p = s.indexOf(open, from); p >= 0; p = s.indexOf(open, p + 1)) {
+    const c = s[p + open.length];
+    if (c !== '>' && c !== '/' && c !== ' ' && c !== '\t' && c !== '\n' && c !== '\r') continue; // pl. <titles
+    const gt = s.indexOf('>', p);
+    if (gt < 0) return null;
+    const attrs = s.slice(p + open.length, s[gt - 1] === '/' ? gt - 1 : gt);
+    if (s[gt - 1] === '/') return { attrs, body: '', end: gt + 1 };
+    const e = s.indexOf(close, gt + 1);
+    if (e < 0) return null;
+    return { attrs, body: s.slice(gt + 1, e), end: e + close.length };
+  }
+  return null;
+}
 const tag = (s, name) => {
-  const m = new RegExp('<' + name + '\\b[^>]*>([\\s\\S]*?)</' + name + '>').exec(s);
-  return m ? decode(m[1]) : '';
+  const el = element(s, name);
+  return el ? decode(el.body) : '';
 };
 
 // ---------------------------------------------------------------------------
@@ -93,24 +129,28 @@ self.onmessage = (e) => {
     const text = e.data.text ?? new TextDecoder('utf-8').decode(e.data.bytes);
     // prototípus nélküli objektumok: a fájlból jövő azonosító (pl. „__proto__”) ne írhasson felül semmit
     const channels = Object.create(null);
-    for (const m of text.matchAll(/<channel\s+id="([^"]*)"[^>]*>([\s\S]*?)<\/channel>/g)) {
-      const names = [...m[2].matchAll(/<display-name[^>]*>([\s\S]*?)<\/display-name>/g)].map((x) => decode(x[1]));
-      channels[decode(m[1])] = names;
+    for (let el, i = 0; (el = element(text, 'channel', i)); i = el.end) {
+      const id = attr(el.attrs, 'id');
+      if (!id) continue;
+      const names = [];
+      for (let d, j = 0; (d = element(el.body, 'display-name', j)); j = d.end) names.push(decode(d.body));
+      channels[id] = names;
     }
     const programs = Object.create(null);
     let count = 0;
-    for (const m of text.matchAll(/<programme\s([^>]*?)(?:\/>|>([\s\S]*?)<\/programme>)/g)) {
-      const a = m[1];
+    for (let el, i = 0; (el = element(text, 'programme', i)); i = el.end) {
+      const a = el.attrs;
       const start = parseTime(attr(a, 'start'));
       let stop = parseTime(attr(a, 'stop'));
       if (!Number.isFinite(start)) continue;
       if (!Number.isFinite(stop)) stop = 0; // a „stop” elhagyható: a következő műsor kezdete lesz
       if (stop && !(stop > from && start < to)) continue;
       const ch = attr(a, 'channel');
-      const body = m[2] || '';
+      const body = el.body;
       // korhatár: <rating><value>12</value></rating> („16+”, „PG-13” is) → szám
-      const rt = /<rating\b[^>]*>[\s\S]*?<value>\s*([^<]*?)\s*<\/value>/.exec(body);
-      const age = rt ? Number((/(\d{1,2})/.exec(rt[1]) || [])[1]) || 0 : 0;
+      const rating = element(body, 'rating');
+      const rv = rating ? tag(rating.body, 'value') : '';
+      const age = rv ? Number((/(\d{1,2})/.exec(rv) || [])[1]) || 0 : 0;
       const row = [start, stop, tag(body, 'title'), tag(body, 'desc'), tag(body, 'category'), tag(body, 'sub-title'), tag(body, 'episode-num'), age];
       (programs[ch] ||= []).push(row);
       count++;
