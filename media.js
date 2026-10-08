@@ -87,6 +87,9 @@ function headerArgs(url) {
   return /^https?:/i.test(url) ? ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '4'] : [];
 }
 
+// A naplóba írható hibakódok (rögzített lista – a távoli forrásból jövő szöveg nem kerülhet a naplóba)
+const LOG_CODES = ['ECONNREFUSED', 'ECONNRESET', 'ENOTFOUND', 'ETIMEDOUT', 'EHOSTUNREACH', 'ENETUNREACH', 'EAI_AGAIN', 'EPROTO', 'ABORT_ERR', '403', 'CERT_HAS_EXPIRED', 'UND_ERR_SOCKET'];
+
 /** Helyi továbbító: GET /<token>/src/<kulcs> → az eredeti cím (Range, átirányítás, fejlécek). */
 async function relay(key, req, res) {
   const target = srcUrls.get(key);
@@ -147,7 +150,8 @@ async function relay(key, req, res) {
     if (res.headersSent) return res.destroy();
     res.statusCode = 502;
     // csak a hibakód kerül a naplóba (az üzenet a távoli címet / választ is tartalmazhatná)
-    const code = /^[A-Z0-9_]{1,40}$/.test(String(err.cause?.code || err.code || '')) ? String(err.cause?.code || err.code) : 'ismeretlen';
+    const got = String(err.cause?.code || err.code || '');
+    const code = LOG_CODES.find((c) => c === got) || 'egyéb';
     console.warn('Továbbító – a forrás nem érhető el, hibakód:', code);
     res.end('A forrás nem érhető el');
   }
