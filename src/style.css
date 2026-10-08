@@ -915,11 +915,6 @@ mark { background: rgba(255, 213, 74, 0.45); color: inherit; border-radius: 2px;
 .vod-tabs { display: inline-flex; margin: 0 14px 12px 0; vertical-align: middle; }
 .vod-quick .vod-tabs { margin-bottom: 0; }
 .page > .vod-tabs { display: flex; margin: 0 0 18px; }
-/* A felső menüben a VOD a tévés részektől elválasztva */
-@media (min-width: 701px) {
-  body:not([data-layout="rail"]) #nav .links .nav-vod { margin-left: 14px; position: relative; }
-  body:not([data-layout="rail"]) #nav .links .nav-vod::before { content: ''; position: absolute; left: -16px; top: 22%; bottom: 22%; border-left: 1px solid currentColor; opacity: 0.3; }
-}
 :root { --poster-w: calc(var(--card-w) * 0.66); }
 .vcard { position: relative; flex: none; width: var(--poster-w); cursor: pointer; border-radius: var(--radius); transition: transform 0.25s; scroll-margin: 90px var(--gutter) 60px; }
 .vcard:hover, .vcard:focus-visible { transform: scale(1.06); z-index: 5; outline: none; }
