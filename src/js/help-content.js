@@ -1413,7 +1413,8 @@ ${go('#/recordings', 'Felvételek')}`,
 </table>
 <h2>Betöltés</h2>
 <ul>
-<li><b>Kiegészítő csomag betöltése</b> gomb (Csatornalisták vagy VOD-listák) – a csomag maga dönti el, hová kerül.</li>
+<li><b>Kiegészítő csomag betöltése</b> gomb (Csatornalisták vagy VOD-listák) – a csomag maga dönti el, hová kerül. A <code>.adaspack</code> és a <code>.adaspak</code> kiterjesztést is elfogadja, <b>minden változatban</b> (asztali, Android telefon és TV, böngésző, LG webOS).</li>
+<li><b>Betöltés webcímről</b> – pl. GitHubról (a <code>github.com/…/blob/…</code> oldalcím is jó) vagy a NAS-ról. A tévén, ahol nincs fájlválasztó, ez a legegyszerűbb.</li>
 <li>Asztali változat: a <b>Csomagok mappája</b> (a felhasználói adatmappa <code>packs</code> almappája) tartalmát indításkor magától betölti, és ha a fájl változik, frissíti.</li>
 <li>A mentés és az eszközök közti átvitel a csomagokat is viszi (pl. gépről a telefonra).</li>
 <li>Azonos azonosítójú csomag újratöltése frissíti a régit; az <b>Eltávolítás</b> csak erről az eszközről törli.</li>

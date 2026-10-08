@@ -105,18 +105,54 @@ export async function importPackFiles(files) {
   return { ok, bad };
 }
 
-/** Fájlválasztó → betöltés → visszajelzés (bármelyik beállítási részből; a fajtát a csomag dönti el). */
-export async function pickAndImportPacks() {
-  const filters = [{ name: 'Adás kiegészítő csomag (.adaspack)', extensions: ['adaspack', 'adaspak'] }];
-  const picked = api.openFiles ? await api.openFiles(filters) : [await api.openFile(filters)].filter(Boolean);
-  if (!picked?.length) return null;
-  const res = await importPackFiles(picked);
+/** Visszajelzés a betöltés eredményéről. */
+function reportImport(res) {
   for (const b of res.bad) toast(`„${b.file}” nem tölthető be: ${b.error}.`, { timeout: 9000 });
   if (res.ok.length) {
     const where = [...new Set(res.ok.map((x) => (x.kind === 'tv' ? 'Csatornalisták' : 'VOD és médiatár')))].join(' és a ');
     toast(`Betöltve: ${res.ok.map((x) => `„${x.name}”`).join(', ')}. A ${where} beépített listái között kapcsolhatod be / ki.`, { timeout: 8000 });
   }
   return res;
+}
+
+/** Fájlválasztó → betöltés → visszajelzés (bármelyik beállítási részből; a fajtát a csomag dönti el). */
+export async function pickAndImportPacks() {
+  // Androidon és mobilböngészőben a rendszer fájlválasztója az ismeretlen kiterjesztést (.adaspack) gyakran
+  // kiszürkíti – ott szűrő nélkül nyílik, a tartalmat úgyis ellenőrizzük.
+  const mobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+  const filters = mobile ? [] : [{ name: 'Adás kiegészítő csomag (.adaspack)', extensions: ['adaspack', 'adaspak'] }];
+  const picked = api.openFiles ? await api.openFiles(filters) : [await api.openFile(filters)].filter(Boolean);
+  if (!picked?.length) return null;
+  return reportImport(await importPackFiles(picked));
+}
+
+/** GitHub-oldal címe → a nyers fájl címe (github.com/…/blob/… → raw.githubusercontent.com/…). */
+const rawUrl = (u) => u.replace(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\//i, 'https://raw.githubusercontent.com/$1/$2/');
+
+/**
+ * Csomag betöltése webcímről – minden változatban működik (a tévén is, ahol nincs fájlválasztó).
+ * → { ok, bad } vagy null (mégse)
+ */
+export async function importPackFromUrl(url) {
+  url = rawUrl(String(url || '').trim());
+  if (!/^https?:\/\/\S+$/i.test(url)) throw new Error('Adj meg egy http(s):// címet.');
+  const r = await api.request({ url, headers: { Accept: '*/*' } });
+  if (r.status !== 200) throw new Error(`a cím nem érhető el (HTTP ${r.status})`);
+  const name = decodeURIComponent(new URL(url).pathname.split('/').pop() || 'csomag.adaspack');
+  return reportImport(await importPackFiles([{ name, text: r.text }]));
+}
+
+/** Webcím bekérése → betöltés (a beállítások „Betöltés webcímről” gombja). */
+export async function promptImportPackUrl() {
+  const { promptDialog } = await import('./components.js');
+  const url = await promptDialog('Az .adaspack (vagy .adaspak) fájl webcíme (pl. GitHub, NAS):', 'https://');
+  if (!url || url === 'https://') return null;
+  try {
+    return await importPackFromUrl(url);
+  } catch (err) {
+    toast(`A csomag nem tölthető be: ${err.message || err}`, { timeout: 9000 });
+    return null;
+  }
 }
 
 /** Asztali változat: a „packs” mappában talált csomagok betöltése (új vagy megváltozott) → { tv, vod } darabszám */

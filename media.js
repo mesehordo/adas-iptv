@@ -146,9 +146,9 @@ async function relay(key, req, res) {
   } catch (err) {
     if (res.headersSent) return res.destroy();
     res.statusCode = 502;
-    // a hibaüzenet a távoli címet / választ is tartalmazhatja: sortörés és vezérlőkarakter nélkül, rövidítve
-    const why = String(err.cause?.message || err.message || err).replace(/\r|\n/g, ' ').replace(/[\x00-\x1f\x7f]+/g, ' ').slice(0, 200);
-    console.warn('Továbbító – a forrás nem érhető el:', why);
+    // csak a hibakód kerül a naplóba (az üzenet a távoli címet / választ is tartalmazhatná)
+    const code = /^[A-Z0-9_]{1,40}$/.test(String(err.cause?.code || err.code || '')) ? String(err.cause?.code || err.code) : 'ismeretlen';
+    console.warn('Továbbító – a forrás nem érhető el, hibakód:', code);
     res.end('A forrás nem érhető el');
   }
 }

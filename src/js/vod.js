@@ -8,7 +8,7 @@ import { ICON, openModal, confirmDialog, promptDialog, emptyState, rowTitleHtml,
 import { player } from './player.js';
 import { filmInfo, infoBoxHtml, metaPaused, posters, titleInfo, posterCandidates } from './meta.js';
 import { isZip, unzip, bytesToText } from './unzip.js';
-import { packsOf, pickAndImportPacks, removePack } from './packs.js';
+import { packsOf, pickAndImportPacks, promptImportPackUrl, removePack } from './packs.js';
 import { kidsAllowed, isKidsVod, setKidsMark } from './kids.js';
 import { allowOutsidePlayback } from './watchtime.js';
 
@@ -1962,10 +1962,11 @@ export function renderVodLists(box) {
     }).join('')}</ul>
     <div class="inline">
       ${api.caps.files ? `<button class="btn small" data-vl="pack-add">${ICON.plus} Kiegészítő csomag betöltése (…_vod.adaspack)</button>` : ''}
+      <button class="btn small" data-vl="pack-url">${api.caps.files ? '' : ICON.plus + ' Kiegészítő csomag '}Betöltés webcímről</button>
       ${api.packsDir ? '<button class="btn small" data-vl="pack-dir">Csomagok mappája</button>' : ''}
       <button class="btn small" data-help="adaspack">Mi ez, és hogyan készíthetek ilyet?</button>
     </div>
-    <p class="muted small">Kiegészítő csomag: egy <code>.adaspack</code> fájlba csomagolt lista, amely beépítettként jelenik meg, de a programmal nem érkezik – csak azon az eszközön lesz meg, ahová betöltöd (a mentés és az eszközök közti átvitel is viszi). Az asztali változat a <i>Csomagok mappája</i> tartalmát indításkor magától betölti.</p>
+    <p class="muted small">Kiegészítő csomag: egy <code>.adaspack</code> fájlba csomagolt lista, amely beépítettként jelenik meg, de a programmal nem érkezik – csak azon az eszközön lesz meg, ahová betöltöd (a mentés és az eszközök közti átvitel is viszi). Minden változat betölti: fájlból, webcímről (a tévén is), vagy szinkronnal egy másik eszközről; az asztali változat a <i>Csomagok mappája</i> tartalmát indításkor magától is.</p>
     <h3>Saját listák</h3>
     <ul class="src-list">${(s.vodCustom || [])
       .map((p) => {
@@ -2030,6 +2031,9 @@ export function renderVodLists(box) {
     switch (b.dataset.vl) {
       case 'pack-add':
         if ((await pickAndImportPacks())?.ok.length) reload();
+        break;
+      case 'pack-url':
+        if ((await promptImportPackUrl())?.ok.length) reload();
         break;
       case 'pack-del': {
         const pid = b.closest('[data-vb]').dataset.vb;
