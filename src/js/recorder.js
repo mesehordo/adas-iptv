@@ -17,7 +17,7 @@ export const canRecord = !!api.recStart;
 const active = new Map(); // felvétel-azonosító → { chId, title, file, sched }
 const schedule = () => (store.settings.recSchedule ||= []);
 const fmtSize = (b) => (b > 1e9 ? `${(b / 1e9).toFixed(2)} GB` : `${Math.max(0.1, b / 1e6).toFixed(1)} MB`);
-/** Ráhagyás percben a műsor előtt / után (Beállítások → Lejátszás → Felvételek) */
+/** Ráhagyás percben a műsor előtt / után (Beállítások → Felvételek) */
 export const recPre = () => Math.max(0, Number(store.settings.recPre ?? 3));
 export const recPost = () => Math.max(0, Number(store.settings.recPost ?? 10));
 
@@ -500,7 +500,7 @@ async function recAction(t, files) {
 }
 
 // ---------------------------------------------------------------------------
-// Beállítások → Lejátszás → Felvételek
+// Beállítások → Felvételek
 // ---------------------------------------------------------------------------
 let recBox = null;
 bus.on('rec', () => recBox?.box.isConnected && recBox.draw());

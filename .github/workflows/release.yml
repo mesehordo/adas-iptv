@@ -1,0 +1,184 @@
+# Kiadás: egy v* címke (pl. v1.25.0) pusholásakor – vagy kézzel – lefordítja az Adást minden
+# platformra, és a fájlokat egy GitHub Release-be tölti fel (automatikus kiadási megjegyzésekkel,
+# SHA256SUMS.txt-vel). A címkének egyeznie kell a package.json verziójával.
+name: Kiadás
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'A kiadás címkéje (pl. v1.25.0) – a címkének már léteznie kell, és egyeznie a package.json verziójával'
+        required: true
+        type: string
+
+# alapból csak olvasás; írni csak a feltöltő (release) feladat tud
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  verify:
+    name: Verzió ellenőrzése
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          persist-credentials: false
+      - id: v
+        name: A címke és a package.json verziója egyezik?
+        env:
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "::error::A címke ($TAG) nem egyezik a package.json verziójával (v$VERSION)."
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  desktop:
+    name: Asztali (${{ matrix.name }})
+    needs: verify
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            ffmpeg: win32-x64
+            script: dist:win
+            files: |
+              dist/*.exe
+              dist/*.msi
+          - name: Linux
+            os: ubuntu-latest
+            ffmpeg: linux-x64
+            script: dist:linux
+            files: |
+              dist/*.AppImage
+              dist/*.deb
+          - name: macOS
+            os: macos-latest
+            ffmpeg: darwin-x64 darwin-arm64
+            script: dist:mac
+            files: |
+              dist/*.dmg
+              dist/*-mac-*.zip
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.verify.outputs.tag }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: FFmpeg (lejátszási híd)
+        env:
+          TARGETS: ${{ matrix.ffmpeg }}
+        shell: bash
+        run: npm run ffmpeg -- $TARGETS
+      - name: Fordítás
+        env:
+          SCRIPT: ${{ matrix.script }}
+          # macOS: nincs aláíró tanúsítvány – ne keressen (az arm64-es változat ad-hoc aláírást kap)
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        shell: bash
+        run: npm run "$SCRIPT" -- --publish never
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: adas-${{ matrix.os }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+          retention-days: 3
+
+  android:
+    name: Android
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.verify.outputs.tag }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: 'platforms;android-34 build-tools;34.0.0'
+      - name: Függőségek
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1' # az Androidhoz nem kell az Electron
+        run: npm ci
+      - run: npm run android-deps
+      - name: Aláírókulcs visszaállítása (GitHub Secrets)
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::Hiányzik az ANDROID_KEYSTORE_B64 vagy az ANDROID_KEYSTORE_PASSWORD titok."
+            exit 1
+          fi
+          mkdir -p android/keystore
+          printf '%s' "$KEYSTORE_B64" | base64 -d > android/keystore/adas.jks
+          printf '%s' "$KEYSTORE_PASSWORD" > android/keystore/password.txt
+      - name: Fordítás
+        run: |
+          export ANDROID_HOME="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          npm run android
+      - name: Az aláírókulcs törlése
+        if: always()
+        run: rm -rf android/keystore
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: adas-android
+          path: dist-android/*.apk
+          if-no-files-found: error
+          retention-days: 3
+
+  release:
+    name: GitHub Release
+    needs: [verify, desktop, android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: adas-*
+          merge-multiple: true
+          path: out
+      - name: SHA256SUMS.txt
+        working-directory: out
+        run: |
+          sha256sum -- * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: ${{ needs.verify.outputs.tag }}
+          name: Adás ${{ needs.verify.outputs.version }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: out/*

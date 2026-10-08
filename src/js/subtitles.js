@@ -1,4 +1,4 @@
-// Feliratok filmekhez és sorozatokhoz: OpenSubtitles (magyar és angol), helyi .srt / .vtt fájl,
+// Feliratok filmekhez és sorozatokhoz: Feliratok.eu és OpenSubtitles (magyar és angol), helyi .srt / .vtt fájl,
 // időeltolás, betűméret. A kiválasztott felirat profilonként megmarad az adott filmhez / részhez.
 import { api } from './api.js';
 import { store } from './store.js';
@@ -6,6 +6,7 @@ import { esc, toast, bus } from './util.js';
 import { player } from './player.js';
 import { isHuLang, isEnLang } from './engine.js';
 import { nightAvailable, nightOn, setNight } from './audiofx.js';
+import { isZip, unzip, bytesToText } from './unzip.js';
 
 // Éjszakai hang: a profil beállítása minden adás indulásakor érvényesül.
 player.audioHooks = {
@@ -16,7 +17,7 @@ player.audioHooks = {
 };
 
 const OS_BASE = 'https://api.opensubtitles.com/api/v1';
-const UA = 'Adas v1.5';
+const UA = 'Adas v1.25';
 const LANGS = { hu: 'magyar', en: 'angol' };
 
 const state = {
@@ -132,7 +133,7 @@ function osHeaders(auth) {
 
 async function osReq(method, path, body, { auth = false, retry = true } = {}) {
   if (!(store.settings.osApiKey || '').trim()) {
-    throw new Error('Nincs megadva OpenSubtitles API-kulcs (Beállítások → Lejátszás → Magyar információk és feliratok).');
+    throw new Error('Nincs megadva OpenSubtitles API-kulcs (Beállítások → Feliratok és információk → Magyar információk és feliratok).');
   }
   const base = auth && store.settings.osBaseUrl ? `https://${store.settings.osBaseUrl}/api/v1` : OS_BASE;
   const r = await api.request({ method, url: base + path, headers: osHeaders(auth), body: body ? JSON.stringify(body) : undefined });
@@ -171,8 +172,104 @@ export async function osLogin() {
   return j.user || {};
 }
 
-/** Feliratok keresése az aktuális filmhez / részhez. */
+// ---------------------------------------------------------------------------
+// Feliratok.eu – magyar feliratoldal, fiók és kulcs nélkül (magyar és angol feliratok)
+// Filmek: a keresőoldal találati táblája; sorozatrészek: a sorozat azonosítója (automatikus
+// kiegészítés), majd a Kodi-kiegészítőknek szóló JSON-felület (évad, rész). Az évadcsomagok ZIP-ek.
+// ---------------------------------------------------------------------------
+const FE = 'https://feliratok.eu/index.php';
+const FE_LANG = { hu: 'Magyar', en: 'Angol' };
+const feOn = () => store.settings.subsFeliratok !== false;
+const unHtml = (s) => String(s || '').replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim();
+const foldT = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+async function feGet(url) {
+  const r = await api.request({ url, headers: { 'User-Agent': UA } });
+  if (r.status >= 400) throw new Error(`Feliratok.eu: HTTP ${r.status}`);
+  return r.text;
+}
+
+/** Film: a keresőoldal találatai. */
+async function feSearchMovie(item, lang) {
+  const html = await feGet(`${FE}?search=${encodeURIComponent(item.title)}&nyelv=${FE_LANG[lang]}`);
+  const out = [];
+  for (const block of html.split(/<tr id="vilagit"/).slice(1)) {
+    const link = /action=letolt&fnev=([^"&]*)&felirat=(\d+)/.exec(block);
+    if (!link) continue;
+    const l = unHtml(/class="lang"[^>]*>([\s\S]*?)<\/td>/.exec(block)?.[1]);
+    if (l && l !== FE_LANG[lang]) continue;
+    const eredeti = unHtml(/class="eredeti">([\s\S]*?)<\/div>/.exec(block)?.[1]);
+    const magyar = unHtml(/class="magyar">([\s\S]*?)<\/div>/.exec(block)?.[1]);
+    const year = Number(/\((19|20)\d{2}\)/.exec(eredeti)?.[0].slice(1, 5)) || 0;
+    // csak a címben egyező találatok (a kereső szótöredékre is talál)
+    if (!foldT(eredeti + ' ' + magyar).includes(foldT(item.title))) continue;
+    out.push({ src: 'fe', fe: { fnev: link[1], id: link[2] }, lang, release: eredeti || magyar, title: magyar, year, downloads: 0 });
+  }
+  // az évben és a pontos címben egyezők elöl (pl. a „… – The Making of” hátrébb)
+  const exact = (x) => foldT(x.release.replace(/\s*\(.*$/, '')) === foldT(item.title);
+  const score = (x) => (item.year && x.year === item.year ? 2 : 0) + (exact(x) ? 1 : 0);
+  return out.sort((a, b) => score(b) - score(a));
+}
+
+/** Sorozatrész: sorozat-azonosító, majd a rész (vagy évadcsomag) feliratai. */
+async function feSearchEpisode(item, ep, lang) {
+  const shows = JSON.parse((await feGet(`${FE}?action=autoname&nyelv=0&term=${encodeURIComponent(item.title)}`)) || '[]');
+  const want = foldT(item.title);
+  const show = shows.find((s) => foldT(s.name.replace(/\(\d{4}\)\s*$/, '')) === want) || shows.find((s) => foldT(s.name).startsWith(want));
+  if (!show) return [];
+  const list = JSON.parse((await feGet(`${FE}?action=xbmc&sid=${encodeURIComponent(show.ID)}&ev=${ep.season || 1}&rtol=${ep.episode}`)) || '[]');
+  return (Array.isArray(list) ? list : [])
+    .filter((x) => x.language === FE_LANG[lang] && x.felirat)
+    .map((x) => ({
+      src: 'fe',
+      fe: { fnev: x.fnev, id: String(x.felirat), pack: x.evadpakk === '1', season: ep.season || 1, episode: ep.episode },
+      lang,
+      release: x.nev + (x.evadpakk === '1' ? ' · évadcsomag' : ''),
+      downloads: Number(x.pontos_talalat) || 0,
+    }));
+}
+
+/** Letöltés: SRT közvetlenül, vagy ZIP-ből (évadcsomagnál a kért rész fájlja); a kódolást felismerjük. */
+async function feDownload(res) {
+  const key = 'sub:fe:' + res.fe.id + (res.fe.pack ? `:${res.fe.season}x${res.fe.episode}` : '');
+  const cached = await api.kvGet?.(key).catch(() => null);
+  if (cached?.text) return cached.text;
+  const url = `${FE}?action=letolt&fnev=${res.fe.fnev}&felirat=${encodeURIComponent(res.fe.id)}`;
+  const r = await api.requestBytes(url, { 'User-Agent': UA });
+  if (r.status >= 400) throw new Error(`A felirat nem tölthető le (HTTP ${r.status}).`);
+  let bytes = new Uint8Array(r.bytes);
+  if (isZip(bytes)) {
+    const files = (await unzip(bytes, (p) => /\.(srt|vtt|sub|txt)$/i.test(p))).filter((f) => /\.(srt|vtt)$/i.test(f.name));
+    if (!files.length) throw new Error('A letöltött csomagban nincs .srt felirat.');
+    const { season, episode } = res.fe;
+    const rx = new RegExp(`(?:s0*${season}[ ._-]?e0*${episode}|\\b${season}x0*${episode})(?!\\d)`, 'i');
+    const hit = files.find((f) => rx.test(f.name)) || (res.fe.pack ? null : files[0]);
+    if (!hit) throw new Error(`Az évadcsomagban nincs felirat a(z) ${season}. évad ${episode}. részéhez.`);
+    bytes = hit.bytes;
+  }
+  const text = bytesToText(bytes);
+  api.kvSet?.(key, { text, at: Date.now() })?.catch?.(() => {});
+  return text;
+}
+
+/** Feliratok keresése az aktuális filmhez / részhez – minden bekapcsolt forrásból. */
 export async function searchSubs(ch, lang) {
+  const tasks = [];
+  if (feOn()) {
+    const { item, ep } = ch.vod;
+    tasks.push((ep ? feSearchEpisode(item, ep, lang) : feSearchMovie(item, lang)).catch((err) => (console.warn('Feliratok.eu', err), [])));
+  }
+  if ((store.settings.osApiKey || '').trim()) tasks.push(osSearch(ch, lang));
+  if (!tasks.length) throw new Error('Nincs bekapcsolt feliratforrás (Beállítások → Feliratok és információk → Magyar információk és feliratok).');
+  const parts = await Promise.allSettled(tasks);
+  const ok = parts.filter((p) => p.status === 'fulfilled').flatMap((p) => p.value);
+  if (!ok.length && parts.some((p) => p.status === 'rejected')) throw parts.find((p) => p.status === 'rejected').reason;
+  // a Feliratok.eu találatai elöl (napi keret nélkül tölthetők le), utána az OpenSubtitles-é
+  return ok.slice(0, 40);
+}
+
+/** OpenSubtitles-keresés. */
+async function osSearch(ch, lang) {
   const { item, ep } = ch.vod;
   const p = { languages: lang, query: item.title };
   if (ep) {
@@ -193,6 +290,7 @@ export async function searchSubs(ch, lang) {
     .map((d) => {
       const a = d.attributes || {};
       return {
+        src: 'os',
         fileId: a.files?.[0]?.file_id,
         fileName: a.files?.[0]?.file_name || a.release || '',
         lang: a.language,
@@ -224,7 +322,7 @@ async function downloadText(fileId) {
 }
 
 async function useResult(video, ch, res) {
-  const text = await downloadText(res.fileId);
+  const text = res.src === 'fe' ? await feDownload(res) : await downloadText(res.fileId);
   const cues = parseSubs(text);
   if (!cues.length) throw new Error('A feliratfájl üres vagy nem értelmezhető.');
   const label = `${LANGS[res.lang] || res.lang} – ${res.release}`;
@@ -232,7 +330,7 @@ async function useResult(video, ch, res) {
   // Megjegyezzük ehhez a filmhez / részhez.
   const p = store.profile;
   p.vodSubs ||= {};
-  p.vodSubs[ch.vod.key] = { fileId: res.fileId, lang: res.lang, release: res.release };
+  p.vodSubs[ch.vod.key] = { src: res.src || 'os', fileId: res.fileId, fe: res.fe, lang: res.lang, release: res.release };
   store.save();
 }
 
@@ -333,7 +431,7 @@ player.subsHooks = {
         return;
       }
       const s = store.settings;
-      if (s.subsAuto && s.osApiKey && s.osUser) {
+      if (s.subsAuto && (feOn() || (s.osApiKey && s.osUser))) {
         const list = await searchSubs(ch, s.subsLang || 'hu');
         const best = list.find((x) => !x.ai) || list[0];
         if (best && player.channel === ch) await useResult(video, ch, best);
@@ -418,12 +516,12 @@ player.subsHooks = {
         }
         ${
           isVod
-            ? `<h4>OpenSubtitles</h4>
+            ? `<h4>Felirat keresése <small class="muted">${esc([feOn() && 'Feliratok.eu', s.osApiKey && 'OpenSubtitles'].filter(Boolean).join(' + '))}</small></h4>
         ${
-          s.osApiKey
+          feOn() || s.osApiKey
             ? `<button class="menu-item" data-s="search" data-lang="hu">Magyar felirat keresése</button>
                <button class="menu-item" data-s="search" data-lang="en">Angol felirat keresése</button>`
-            : `<p class="muted small">Add meg az OpenSubtitles API-kulcsot a Beállításokban (Magyar információk és feliratok).</p>`
+            : `<p class="muted small">Kapcsolj be feliratforrást a Beállításokban (Magyar információk és feliratok).</p>`
         }
         ${state.busy ? '<p class="muted small">Keresés…</p>' : ''}
         ${
@@ -432,7 +530,7 @@ player.subsHooks = {
               ? res.list
                   .map(
                     (x, i) => `<button class="menu-item sub-hit" data-s="pick" data-i="${i}">
-                      <span><b>${esc(x.release)}</b><small>${esc(LANGS[x.lang] || x.lang)} · ${x.downloads.toLocaleString('hu-HU')} letöltés${x.hi ? ' · hallássérülteknek' : ''}${x.ai ? ' · gépi fordítás' : ''}</small></span></button>`
+                      <span><b>${esc(x.release)}</b><small>${esc(LANGS[x.lang] || x.lang)} · ${x.src === 'fe' ? 'Feliratok.eu' : `OpenSubtitles · ${x.downloads.toLocaleString('hu-HU')} letöltés`}${x.hi ? ' · hallássérülteknek' : ''}${x.ai ? ' · gépi fordítás' : ''}</small></span></button>`
                   )
                   .join('')
               : `<p class="muted small">Nincs ${esc(LANGS[res.lang])} felirat ehhez a címhez.</p>`
@@ -551,8 +649,11 @@ export function renderHuSettings(box) {
       <input class="input" type="password" autocomplete="off" data-ht="tmdbKey" value="${esc(s.tmdbKey || '')}" placeholder="API-kulcs (v3) vagy olvasási token (v4)" /></label>
     <label class="setting col"><span><b>OMDb API-kulcs</b> <small>(nem kötelező) – IMDb-adatokon alapuló borítóképek a „Cím és borító” keresőben. Ingyenes kulcs (napi 1000 kérés): omdbapi.com → API Key.</small></span>
       <input class="input" type="password" autocomplete="off" data-ht="omdbKey" value="${esc(s.omdbKey || '')}" placeholder="API-kulcs" /></label>
-    <h3>OpenSubtitles feliratok</h3>
-    <p class="muted small">Filmekhez és sorozatokhoz magyar és angol felirat. Ingyenes fiók és API-kulcs kell: regisztrálj az <a href="#" data-ext="https://www.opensubtitles.com/">opensubtitles.com</a> oldalon, majd a profilodban az <i>API consumers</i> résznél hozz létre egy kulcsot. A keresés a kulccsal, a letöltés bejelentkezéssel működik (ingyenes fiókkal napi korláttal).</p>
+    <h3>Feliratok.eu</h3>
+    <label class="setting"><span><b>Feliratok.eu feliratok</b><small>Magyar feliratoldal: magyar és angol feliratok filmekhez és sorozatokhoz, fiók, kulcs és napi korlát nélkül. A sorozatoknál évadcsomagból is kiveszi a kért részt. A kereséskor csak a film / sorozat címe és a rész száma megy el a feliratok.eu-nak.</small></span>
+      <input type="checkbox" class="switch" data-hs="subsFeliratok" ${s.subsFeliratok !== false ? 'checked' : ''} /></label>
+    <h3>OpenSubtitles feliratok <small class="muted">(nem kötelező)</small></h3>
+    <p class="muted small">Filmekhez és sorozatokhoz magyar és angol felirat – a Feliratok.eu mellett további találatok. Ingyenes fiók és API-kulcs kell: regisztrálj az <a href="#" data-ext="https://www.opensubtitles.com/">opensubtitles.com</a> oldalon, majd a profilodban az <i>API consumers</i> résznél hozz létre egy kulcsot. A keresés a kulccsal, a letöltés bejelentkezéssel működik (ingyenes fiókkal napi korláttal).</p>
     <label class="setting col"><span><b>API-kulcs</b></span><input class="input" type="password" autocomplete="off" data-ht="osApiKey" value="${esc(s.osApiKey || '')}" /></label>
     <div class="form-row">
       <label class="setting col"><span><b>Felhasználónév</b></span><input class="input" autocomplete="off" data-ht="osUser" value="${esc(s.osUser || '')}" /></label>
@@ -560,7 +661,7 @@ export function renderHuSettings(box) {
     </div>
     <p class="muted small">Az adatok csak ezen az eszközön tárolódnak, és csak az opensubtitles.com felé kerülnek elküldésre.</p>
     <div class="inline"><button class="btn small" data-hb="test">Bejelentkezés kipróbálása</button><span class="muted small os-status"></span></div>
-    <label class="setting"><span><b>Felirat automatikus keresése</b><small>Film / rész indításakor a legjobb felirat automatikusan betöltődik (letöltési keretet használ).</small></span>
+    <label class="setting"><span><b>Felirat automatikus keresése</b><small>Film / rész indításakor a legjobb felirat automatikusan betöltődik (elsőként a Feliratok.eu-ról; az OpenSubtitles a letöltési keretet használja).</small></span>
       <input type="checkbox" class="switch" data-hs="subsAuto" ${s.subsAuto ? 'checked' : ''} /></label>
     <label class="setting"><span><b>Felirat nyelve automatikus kereséskor</b></span>
       <select data-hsel="subsLang"><option value="hu" ${s.subsLang !== 'en' ? 'selected' : ''}>Magyar</option><option value="en" ${s.subsLang === 'en' ? 'selected' : ''}>Angol</option></select></label>

@@ -4,6 +4,7 @@ import { api } from './api.js';
 import { store } from './store.js';
 import { MediaBridge } from './bridge.js';
 import { ExoEngine } from './exo.js';
+import { NetWatch } from './netwatch.js';
 
 const START_TIMEOUT = 20000;
 const TIMESHIFT_SEC = 30 * 60; // élő adás: legfeljebb ennyi tekerhető vissza (ha a memória engedi)
@@ -70,6 +71,7 @@ export class Engine {
     this.token = 0;
     this.stallTimer = null;
     this.type = '';
+    this.net = new NetWatch(); // hálózatfigyelő (adásonként újraindul)
 
     video.addEventListener('waiting', () => {
       clearTimeout(this.stallTimer);
@@ -77,6 +79,7 @@ export class Engine {
       this.stallTimer = setTimeout(() => {
         if (tok === this.token && this.started) this.onFail(new Error('Az adás megakadt'));
       }, this.stallMs || 30000);
+      if (this.started) this.net.stall();
       this.onStall(true);
     });
     video.addEventListener('playing', () => {
@@ -89,9 +92,10 @@ export class Engine {
   }
 
   /** Betölti és elindítja az adást. Sikeres induláskor teljesül, hiba esetén elutasít. */
-  async load(stream, { muted = false, preferNative = false, timeshift = false, quick = false, bridge = null, exo = false, startAt = 0 } = {}) {
+  async load(stream, { muted = false, preferNative = false, timeshift = false, quick = false, bridge = null, exo = false, startAt = 0, vod = false, lite = false } = {}) {
     this.stop();
     const token = ++this.token;
+    this.net.reset();
     this.started = false;
     const video = this.video;
     video.muted = muted;
@@ -176,14 +180,18 @@ export class Engine {
           // Időcsúsztatás: a már letöltött adás megmarad (visszatekerhető). A tárolt mennyiséget a
           // böngésző médiapufferének mérete korlátozza – a felett a lejátszás akadozna –, ezért a
           // minőség (bitráta) szerint számoljuk ki (lásd fitBuffer).
-          backBufferLength: timeshift ? 120 : 30,
-          maxBufferLength: 30,
-          maxMaxBufferLength: 600,
-          maxBufferSize: 60 * 1000 * 1000,
+          // könnyű mód (többképes nézet, előnézet): kis puffer – négy csempe se egyen sok memóriát
+          backBufferLength: lite ? 0 : timeshift ? 120 : 30,
+          // film / sorozat: nagyobb előretöltés (nincs élő szél, ami korlátozná) – kevesebb akadás lassú tárhelyen
+          maxBufferLength: lite ? 10 : vod ? 60 : 30,
+          maxMaxBufferLength: lite ? 20 : 600,
+          maxBufferSize: (lite ? 15 : 60) * 1000 * 1000,
           // Akadás ellen: az élő adás széle előtt 4 szegmensnyivel indulunk (alapból 3) – így nagyobb a
           // tartalék, ha a szerver épp lassabban küld –, és nem gyorsítunk rá a lejátszásra a behozáshoz.
           liveSyncDurationCount: 4,
           maxLiveSyncPlaybackRate: 1,
+          // minden akadás után 2 mp-cel nagyobb tartalékot tart az élő adás szélétől
+          liveSyncOnStallIncrease: 2,
           // A TS-adások szegmenshatárain gyakori apró időbélyeg-réseket a lejátszó átlépi, nem áll meg rajtuk.
           maxBufferHole: 0.5,
           nudgeMaxRetry: 6,
@@ -202,7 +210,9 @@ export class Engine {
         hls.on(window.Hls.Events.FRAG_LOADED, (_e, d) => {
           const bytes = d.frag?.stats?.loaded || d.payload?.byteLength || 0;
           const dur = d.frag?.duration || 0;
-          if (bytes && dur > 0.5 && d.frag.type === 'main') this.fragBitrate = this.fragBitrate ? this.fragBitrate * 0.7 + ((bytes * 8) / dur) * 0.3 : (bytes * 8) / dur;
+          if (d.frag?.type !== 'main') return;
+          if (bytes && dur > 0.5) this.fragBitrate = this.fragBitrate ? this.fragBitrate * 0.7 + ((bytes * 8) / dur) * 0.3 : (bytes * 8) / dur;
+          this.net.frag(d.frag.stats, dur); // hálózatfigyelő: sebesség, válaszidő, valós idejűség
         });
         hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
           applyQualityCap(hls);

@@ -4,10 +4,11 @@ import { $, $$, esc, html, norm, hashHue, toast, bus, debounce, seededShuffle } 
 import { api } from './api.js';
 import { store, VOD_BUILTIN } from './store.js';
 import { parseM3U, catalog, isLiveEntry, setVodLive } from './catalog.js';
-import { ICON, openModal, confirmDialog, promptDialog, emptyState, rowTitleHtml, seeAllHtml, rowOrderEditor } from './components.js';
+import { ICON, openModal, confirmDialog, promptDialog, emptyState, rowTitleHtml, seeAllHtml, rowOrderEditor, progressiveTrack } from './components.js';
 import { player } from './player.js';
 import { filmInfo, infoBoxHtml, metaPaused, posters, titleInfo, posterCandidates } from './meta.js';
 import { isZip, unzip, bytesToText } from './unzip.js';
+import { packsOf, pickAndImportPacks, removePack } from './packs.js';
 import { kidsAllowed, isKidsVod, setKidsMark } from './kids.js';
 
 // A felismerés változásakor növelni kell, hogy a régi feldolgozott mentés ne töltődjön be.
@@ -157,10 +158,13 @@ const NOT_KIDS_RX = /nem gyerekeknek|ecchi|guro|horror|thriller|seinen|háborús
 /** Beépített lista bekapcsolva? (a felhasználó választása, különben a lista alapértéke) */
 export const builtinOn = (b) => store.settings.vodBuiltin?.[b.id] ?? !b.off;
 
+/** A betöltött VOD-kiegészítő csomagok (packs.js), listaként. */
+const vodPacks = () => packsOf('vod');
+
 export function vodLists() {
   const s = store.settings;
   const out = [];
-  for (const b of VOD_BUILTIN) if (builtinOn(b)) out.push({ ...b, builtin: true });
+  for (const b of [...VOD_BUILTIN, ...vodPacks()]) if (builtinOn(b)) out.push({ ...b, builtin: true });
   for (const p of s.vodCustom || []) if (p.enabled) out.push({ ...p, builtin: false });
   // A csatornalistákban talált filmek / sorozatrészek (a csatornák közül ide kerültek)
   for (const t of catalog.tvVod || []) out.push({ id: t.id, name: t.name, entries: t.entries, fromTv: true, builtin: false });
@@ -571,14 +575,129 @@ function huScore(x) {
 /** Stabil rendezés: a magyar tételek előre, egyébként a sorrend marad. */
 export const huFirst = (list) => list.map((x, i) => [x, i]).sort((a, b) => (b[0].hu || 0) - (a[0].hu || 0) || a[1] - b[1]).map((p) => p[0]);
 
+/**
+ * Egységes műfajok – az AnimeAddicts műfajlistája (magyar nevek), két kiegészítéssel (Dokumentum,
+ * Kultfilm), ahol ott nincs megfelelő. A listák vegyes csoportjait (magyar és angol műfajnevek,
+ * témacsatornák, mint „Horror all night”) ezekre képezzük le: pontos névegyezés, különben a minta
+ * (ékezet nélküli, kisbetűs szövegen). Egy csoport több műfajba is eshet.
+ * [név, minta | null, rejtett] – a rejtett címkék (jellemzők, felnőtt címkék) szűrhetők, de nem kapnak sort.
+ */
+export const GENRES = [
+  ['Akció', /\b(action|akcio|full throttle|thrills|fists|stunts|80s action)\b/],
+  ['Antológia', /\b(antholog\w*|antologia)\b/],
+  ['Autós', /\b(cars?|racing|autos|motorsport)\b/],
+  ['Bábanimáció', /\b(puppets?|babanimacio|stop-?motion)\b/],
+  ['Cgi', null, true],
+  ['Családi', /\b(family|csaladi)\b/],
+  ['Doujinshi', null, true],
+  ['Dráma', /\b(drama|melodrama)\b/],
+  ['Ecchi', null],
+  ['Egyéb', null, true],
+  ['Életrajzi', /\b(biograph\w*|biopic|eletrajzi)\b/],
+  ['Erotikus', /\b(erotic|erotikus)\b/, true],
+  ['Fantasy', /\b(fantasy|sorcery|once upon a time|fair(y|ies)|tunder\w*)\b/],
+  ['Fekete-fehér', /\b(black and white|fekete-feher)\b/],
+  ['Flash animáció', null, true],
+  ['Független', /\b(indie|independent|fuggetlen)\b/],
+  ['Ga-nime', null, true],
+  ['Guro', null],
+  ['Gyerekeknek', /\b(kids|children|gyerekeknek|cartoons?|rajzfilm)\b/],
+  ['Gyurma animáció', /\b(claymation|gyurma\w*)\b/],
+  ['Háborús', /\b(war|haborus)\b/],
+  ['Harcművészet', /\b(martial arts?|kung ?fu|harcmuveszet|way of the sword)\b/],
+  ['Hentai', null, true],
+  ['Horror', /\b(horror|monsters?|creatures?|halloween|covens?|gothic|zombi(e|k)?|vampire?|slasher)\b/],
+  ['Ifjúsági', /\b(teen\w*|youth|ifjusagi|coming of age)\b/],
+  ['Iskolai', /\b(school|iskolai)\b/],
+  ['Játék', /\b(games?|jatek)\b/],
+  ['Josei', null],
+  ['Kaland', /\b(adventures?|kaland|swashbuckl\w*)\b/],
+  ['Katonai', /\b(military|katonai)\b/],
+  ['Klasszikus', /\b(classics?|klasszikus|golden age|19[1-5]0s|before the code|pre-code|universal years)\b/],
+  ['Krimi', /\b(crime|krimi|noir|detective|capers|heist|gangsters?)\b/],
+  ['Lélektani', /\b(psycholog\w*|lelektani|hitchcock)\b/],
+  ['Mágia', /\b(magic|magia)\b/],
+  ['Magical girl', null],
+  ['Mecha', null],
+  ['Misztikus', /\b(myster(y|ies)|misztikus|rejtely\w*)\b/],
+  ['Mitológiai', /\b(myth\w*|mitologiai|swords and sandals)\b/],
+  ['Musical', /\b(musicals?|song and dance)\b/],
+  ['Művészfilm', /\b(art ?house|muveszfilm)\b/],
+  ['Nem gyerekeknek', null, true],
+  ['Némafilm', /\b(silent|nemafilm|chaplin)\b/],
+  ['Oktató', /\b(educational|oktato)\b/],
+  ['Őrültség', /\b(madness|absurd\w*|orultseg)\b/],
+  ['Paródia', /\b(parod(y|ies)|parodia|spoofs?)\b/],
+  ['Reklám', null, true],
+  ['Romantikus', /\b(romance|romantic|romantikus|love)\b/],
+  ['Rövid rész(ek)', null, true],
+  ['Rövid történet(ek)', null, true],
+  ['Rövidfilm', /\b(shorts?|short films?|rovidfilm|two reels)\b/],
+  ['Sci-fi', /\b(sci-?fi|science fiction|space|atomic age|futures?|cyberpunk)\b/],
+  ['Seinen', null],
+  ['Shoujo', /\b(shoujo|shojo)\b/],
+  ['Shoujo ai', null, true],
+  ['Shounen', /\b(shounen|shonen)\b/],
+  ['Shounen ai', null, true],
+  ['Slice of life', null],
+  ['Sport', /\b(sports?)\b/],
+  ['Szamurájos', /\b(samurai|szamurajos)\b/],
+  ['Szatíra', /\b(satire|satirical|szatira)\b/],
+  ['Szupererő', /\b(superheroe?s?|super ?powers?|szuperero)\b/],
+  ['Természetfeletti', /\b(supernatural|termeszetfeletti|ghosts?|paranormal)\b/],
+  ['Thriller', /\b(thrillers?|suspense|spies|spy)\b/],
+  ['Történelmi', /\b(histor(y|ical)|tortenelmi|epics?)\b/],
+  ['Tragédia', /\b(tragedy|tragedia)\b/],
+  ['Vígjáték', /\b(comed(y|ies)|vigjatek|humou?r)\b/],
+  ['Western', /\b(westerns?|back forty|cowboys?)\b/],
+  ['Yuri', null, true],
+  ['Zenés', /\b(music|zenes|dance)\b/],
+  // kiegészítések (az AnimeAddicts listájában nincs megfelelőjük)
+  ['Dokumentum', /\b(documentar(y|ies)|dokumentum\w*|ismeretterjeszto)\b/],
+  ['Kultfilm', /\b(cult|kult\w*|hidden gems|late fees|after dark|vhs|drive-in|grindhouse|b-movie|exploitation|seventies heat|after hours|projection booth|rental)\b/],
+];
+const GENRE_EXACT = new Map(GENRES.map(([n]) => [norm(n), n]));
+const GENRE_HIDDEN = new Set(GENRES.filter((g) => g[2]).map(([n]) => n));
+const genreCache = new Map();
+/** Egy nyers csoport → egységes műfajok. */
+function genresOfOne(g) {
+  let m = genreCache.get(g);
+  if (m) return m;
+  const f = norm(g).trim();
+  const exact = GENRE_EXACT.get(f);
+  m = exact ? [exact] : GENRES.filter(([, rx]) => rx && rx.test(f)).map(([n]) => n);
+  genreCache.set(g, m);
+  return m;
+}
+/** A nyers csoportok → egységes műfajok (egy cím több műfajba is tartozhat). */
+export function genresOf(groups) {
+  const hit = new Set();
+  for (const g of groups) for (const n of genresOfOne(g)) hit.add(n);
+  return [...hit];
+}
+/** Kap-e saját sort a műfaj (a jellemzők és a felnőtt címkék nem). */
+export const genreRow = (name) => !GENRE_HIDDEN.has(name);
+/**
+ * A sorok és a szűrő kategóriái: az egységes műfajok (egy cím több műfajban is lehet – a listák,
+ * fájlok és csoportok összes műfaja). A saját médiatárban a műfajhoz nem köthető lejátszólisták
+ * („Karácsony”, „Gyerekeknek mentett”…) saját nevükkel külön kategóriák maradnak.
+ */
+export const catsOf = (x) => (x.lib === 'own' ? x.cats || x.groups : x.genres || []);
+const ownCats = (x) => [...x.genres, ...x.groups.filter((g) => !genresOfOne(g).length)];
+
 function index(lib) {
   lib.byId = new Map([...lib.movies, ...lib.series].map((x) => [x.id, x]));
   const g = new Map();
-  for (const x of [...lib.movies, ...lib.series]) for (const n of x.groups) g.set(n, (g.get(n) || 0) + 1);
-  // Csoportok: a magyar jelölésűek elöl, utána elemszám szerint
+  for (const x of [...lib.movies, ...lib.series]) {
+    x.genres = genresOf(x.groups);
+    if (x.lib === 'own') x.cats = ownCats(x);
+    for (const n of catsOf(x)) g.set(n, (g.get(n) || 0) + 1);
+  }
+  // A sorrend: a sort kapó kategóriák elöl, tételszám szerint csökkenő sorrendben (a népszerűbb műfaj
+  // feljebb); a saját médiatárban a magyar jelölésűek elöl; a rejtett címkék a végén.
   lib.groups = [...g.entries()]
     .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => HU_MARK_RX.test(b.name) - HU_MARK_RX.test(a.name) || b.count - a.count);
+    .sort((a, b) => genreRow(b.name) - genreRow(a.name) || HU_MARK_RX.test(b.name) - HU_MARK_RX.test(a.name) || b.count - a.count);
   for (const x of [...lib.movies, ...lib.series]) {
     applyOverride(x);
     x.search = norm([x.title, x.userTitle || '', x.huTitle || '', x.year || '', ...x.groups, ...x.lists].join(' '));
@@ -612,7 +731,7 @@ function libLists(lib) {
 }
 
 function cacheKey(lib) {
-  return `${lib.id}:${VOD_CACHE_VERSION}:` + libLists(lib).map((p) => p.id + (p.url || p.loc || p.asset || (p.entries ? 'e' + p.entries.length : '') || (p.text || '').length) + (p.mtime || '')).join(',');
+  return `${lib.id}:${VOD_CACHE_VERSION}:` + libLists(lib).map((p) => p.id + (p.url || p.loc || p.asset || (p.entries ? 'e' + p.entries.length : '') || (p.text || '').length) + (p.mtime || '') + (p.at || '')).join(',');
 }
 
 /** Betöltés (gyorsítótárból, ha friss). Többszöri hívásnál ugyanazt az ígéretet adja vissza. */
@@ -864,7 +983,7 @@ export function vcardHtml(x) {
   const sub =
     x.type === 'series'
       ? `${x.seasons.length > 1 ? x.seasons.length + ' évad · ' : ''}${x.episodes.length} rész`
-      : [x.year || '', fmtDur(x.duration), x.groups[0] || ''].filter(Boolean).join(' · ');
+      : [x.year || '', fmtDur(x.duration), catsOf(x)[0] || ''].filter(Boolean).join(' · ');
   return `<div class="vcard" tabindex="0" data-vid="${esc(x.id)}">
     <div class="vposter">${posterHtml(x)}
       ${x.type === 'series' ? '<span class="vbadge">SOROZAT</span>' : ''}
@@ -877,10 +996,13 @@ export function vcardHtml(x) {
 
 function vrowEl(title, items, href = '') {
   if (!items.length) return null;
-  return html(`<section class="row vrow">
+  const el = html(`<section class="row vrow">
     ${rowTitleHtml(title, href, items.length)}
-    <div class="row-wrap"><div class="row-track">${items.slice(0, 40).map(vcardHtml).join('')}${seeAllHtml(href, items.length, { poster: true })}</div></div>
+    <div class="row-wrap"><div class="row-track">${items.slice(0, 14).map(vcardHtml).join('')}${seeAllHtml(href, items.length, { poster: true })}</div></div>
   </section>`);
+  // a többi kártya görgetéskor / a sor végére lépve töltődik (kevesebb induló elem és kép)
+  progressiveTrack(el.querySelector('.row-track'), items, vcardHtml, 40, (track) => fillPosters(track));
+  return el;
 }
 
 // A kártyán állva előre felépítjük a kapcsolatot a tárhelyhez (DNS + TLS) – gyorsabb indulás.
@@ -1078,19 +1200,30 @@ async function localPoster(x) {
 // ---------------------------------------------------------------------------
 // A VOD oldal sorai (profilonként rendezhető, kapcsolható – mint a TV oldalé)
 // ---------------------------------------------------------------------------
-const VOD_FIXED = ['continue', 'watchlist', 'series', 'movies', 'lists'];
+const VOD_FIXED = ['continue', 'watchlist', 'series', 'movies'];
 export function vodRowLabel(key) {
-  if (key.startsWith('group:')) return `Műfaj / csoport: ${key.slice(6)}`;
-  return { continue: 'Folytatás', watchlist: 'Megnézendő (saját lista)', series: 'Sorozatok', movies: 'Ajánlott filmek', lists: 'Listánként egy sor (pl. AnimeAddicts)', nogroup: 'Egyéb filmek' }[key] || key;
+  if (key.startsWith('group:')) return `Műfaj: ${key.slice(6)}`;
+  return { continue: 'Folytatás', watchlist: 'Megnézendő (saját lista)', series: 'Sorozatok', movies: 'Ajánlott filmek', lists: 'Listánként egy sor', nogroup: 'Egyéb filmek' }[key] || key;
 }
+/** Alapból ennyi műfaj kap sort (a legnépszerűbbek); a többi a sorok beállításában kapcsolható be. */
+const GENRE_ROWS_ON = 12;
+const genreKeys = (groups) => groups.filter((g) => genreRow(g.name)).slice(0, 80).map((g) => 'group:' + g.name);
 /** A lehetséges sorok (a csoportok / műfajok a betöltött listákból) a profil mentett sorrendjében. */
 export function vodRows(groups = vod.groups, profile = store.profile) {
-  const avail = [...VOD_FIXED, ...groups.slice(0, 60).map((g) => 'group:' + g.name), 'nogroup'];
+  const avail = [...VOD_FIXED, ...genreKeys(groups), 'lists', 'nogroup'];
+  const defOn = new Set(vodDefaultRows(groups).filter((r) => r.on).map((r) => r.key));
   const saved = Array.isArray(profile.vodRows) ? profile.vodRows.filter((r) => avail.includes(r.key)) : [];
   const known = new Set(saved.map((r) => r.key));
-  return [...saved, ...avail.filter((k) => !known.has(k)).map((key) => ({ key, on: true }))];
+  // az újonnan megjelent sorok (pl. új műfaj) az „Egyéb filmek” elé kerülnek, ha az már a mentett sorrendben van
+  const fresh = avail.filter((k) => !known.has(k)).map((key) => ({ key, on: defOn.has(key) }));
+  const at = saved.findIndex((r) => r.key === 'nogroup');
+  return at < 0 ? [...saved, ...fresh] : [...saved.slice(0, at), ...fresh, ...saved.slice(at)];
 }
-export const vodDefaultRows = (groups = vod.groups) => [...VOD_FIXED, ...groups.slice(0, 60).map((g) => 'group:' + g.name), 'nogroup'].map((key) => ({ key, on: true }));
+export const vodDefaultRows = (groups = vod.groups) =>
+  [...VOD_FIXED, ...genreKeys(groups), 'lists', 'nogroup'].map((key, i, arr) => ({
+    key,
+    on: !key.startsWith('group:') || arr.indexOf(key) - VOD_FIXED.length < GENRE_ROWS_ON,
+  }));
 
 const VGRID_CHUNK = 120;
 function progressiveGrid(grid, list) {
@@ -1159,14 +1292,14 @@ function renderVodPage(view, params, lib) {
   const all = huFirst([...series, ...movies]);
   // Csak a látható tételekben előforduló csoportok (pl. a felnőtt műfajok kapcsoló nélkül nem)
   const groupCount = new Map();
-  for (const x of all) for (const n of x.groups) groupCount.set(n, (groupCount.get(n) || 0) + 1);
+  for (const x of all) for (const n of catsOf(x)) groupCount.set(n, (groupCount.get(n) || 0) + 1);
   const groups = lib.groups.filter((g) => groupCount.has(g.name)).map((g) => ({ name: g.name, count: groupCount.get(g.name) }));
   const listNames = [...new Set(all.flatMap((x) => x.lists))];
   if (!all.length) {
     const err = Object.values(isOwn ? { ...own.scanErrors, ...own.errors } : lib.errors)[0];
     view.innerHTML = `<div class="page">${emptyState(
       isOwn ? 'A saját médiatárban nincs film vagy sorozat' : 'Nincs megjeleníthető film vagy sorozat',
-      err ? `Hiba: ${err}` : isOwn ? 'Nem található bekapcsolt lejátszólista, vagy a listák üresek. Nézd meg a Beállítások → Listák és források → Saját médiatár részt.' : 'Kapcsolj be listát a Beállítások → Listák és források → VOD-listák alatt.',
+      err ? `Hiba: ${err}` : isOwn ? 'Nem található bekapcsolt lejátszólista, vagy a listák üresek. Nézd meg a Beállítások → VOD és médiatár → Saját médiatár részt.' : 'Kapcsolj be listát a Beállítások → VOD és médiatár → VOD-listák alatt.',
       listsLink
     )}</div>`;
     return;
@@ -1180,7 +1313,7 @@ function renderVodPage(view, params, lib) {
     // Folytatás: a félbehagyott tételek mindkét médiatárból, a legutóbbi elöl
     if (contMode) list = [...continueItems(vod), ...(own.ready ? continueItems(own) : [])].sort((a, b) => b.t - a.t).map((c) => c.x);
     if (wlMode) list = inWatchlist([...all, ...(isOwn ? [] : own.ready ? [...own.movies, ...own.series] : [])]);
-    if (group) list = list.filter((x) => x.groups.includes(group));
+    if (group) list = list.filter((x) => catsOf(x).includes(group) || x.groups.includes(group));
     if (listName) list = list.filter((x) => x.lists.includes(listName));
     if (q) {
       const tokens = norm(q).split(/\s+/).filter(Boolean);
@@ -1201,7 +1334,7 @@ function renderVodPage(view, params, lib) {
         ${contMode ? '<input type="hidden" name="continue" value="1" />' : ''}${wlMode ? '<input type="hidden" name="watchlist" value="1" />' : ''}
         <select name="type">${opt('', 'Filmek és sorozatok', type)}${opt('movie', 'Csak filmek', type)}${opt('series', 'Csak sorozatok', type)}</select>
         ${listNames.length > 1 || listName ? `<select name="list">${opt('', 'Minden lista', listName)}${listNames.map((n) => opt(n, n, listName)).join('')}</select>` : ''}
-        <select name="group">${opt('', isOwn ? 'Minden lejátszólista / csoport' : 'Minden csoport / műfaj', group)}${groups.map((g) => opt(g.name, `${g.name} (${g.count})`, group)).join('')}</select>
+        <select name="group">${opt('', isOwn ? 'Minden lejátszólista / csoport' : 'Minden műfaj', group)}${groups.map((g) => opt(g.name, `${g.name} (${g.count})`, group)).join('')}</select>
         <select name="sort">${opt('title', 'Cím szerint', sort)}${opt('year', 'Legújabb elöl', sort)}</select>
         <a class="btn small" href="${R}">Vissza a kezdőlapra</a>
       </form>
@@ -1248,7 +1381,7 @@ function renderVodPage(view, params, lib) {
   view.append(rows);
   const cont = continueItems(lib).map((c) => c.x);
   const add = (el) => el && rows.append(el);
-  // A sorok a profil beállított sorrendjében (Beállítások → Listák és források → VOD-listák → A VOD oldal sorai)
+  // A sorok a profil beállított sorrendjében (Beállítások → VOD és médiatár → VOD-listák → A VOD oldal sorai)
   const seed = Math.floor(Date.now() / 86400e3);
   const build = {
     // Az online részen a félbehagyott tételek a saját médiatárból is (a tévés főoldalon már nincs ilyen sor)
@@ -1262,14 +1395,14 @@ function renderVodPage(view, params, lib) {
       if (isOwn || listNames.length < 2) return;
       for (const n of listNames) add(vrowEl(n, all.filter((x) => x.lists.includes(n)), `${R}?list=${encodeURIComponent(n)}`));
     },
-    nogroup: () => !isOwn && add(vrowEl('Egyéb filmek', movies.filter((m) => !m.groups.length), `${R}?type=movie`)),
+    nogroup: () => !isOwn && add(vrowEl('Egyéb filmek', movies.filter((m) => !catsOf(m).length), `${R}?type=movie`)),
   };
   for (const r of vodRows(groups)) {
     if (!r.on) continue;
     if (r.key.startsWith('group:')) {
       const name = r.key.slice(6);
-      const items = all.filter((x) => x.groups.includes(name));
-      if (items.length >= 3) add(vrowEl(name, items, `${R}?group=${encodeURIComponent(name)}`));
+      const items = all.filter((x) => catsOf(x).includes(name));
+      if (items.length >= (isOwn ? 3 : 6)) add(vrowEl(name, items, `${R}?group=${encodeURIComponent(name)}`));
     } else build[r.key]?.();
   }
   fillPosters(view);
@@ -1308,7 +1441,7 @@ export function openVodDetail(x) {
           <h1>${esc(displayTitle(x))}</h1>
           ${displayTitle(x) !== x.title ? `<div class="hu-sub">Eredeti / angol cím: ${esc(x.title)}</div>` : ''}
           <div class="muted">${esc([x.year || '', fmtDur(x.duration)].filter(Boolean).join(' · '))}</div>
-          ${x.groups.length ? `<div class="vd-tags">${x.groups.map((g) => `<a class="pill" href="${x.lib === 'own' ? '#/own' : '#/vod'}?group=${encodeURIComponent(g)}">${esc(g)}</a>`).join('')}</div>` : ''}
+          ${catsOf(x).length ? `<div class="vd-tags">${catsOf(x).map((g) => `<a class="pill" href="${x.lib === 'own' ? '#/own' : '#/vod'}?group=${encodeURIComponent(g)}">${esc(g)}</a>`).join('')}</div>` : ''}
           ${pr ? `<div class="vd-progress">${pr.done ? 'Megnézve' : `Megnézve: ${Math.round((pr.p / (pr.d || pr.p || 1)) * 100)}% (${fmtClock(pr.p)})`}</div>` : ''}
           <div class="info-btns">
             <button class="btn primary big" data-v="play" autofocus>${ICON.play} ${resume ? `Folytatás ${fmtClock(pr.p)}-tól` : 'Lejátszás'}</button>
@@ -1331,7 +1464,7 @@ export function openVodDetail(x) {
           ${displayTitle(x) !== x.title ? `<div class="hu-sub">Eredeti / angol cím: ${esc(x.title)}</div>` : ''}
           <div class="muted">${x.seasons.length} évad · ${x.episodes.length} rész · ${doneCount(x.episodes)} megnézve</div>
           <div class="bar wide vd-sprog"><i style="width:${((doneCount(x.episodes) / Math.max(1, x.episodes.length)) * 100).toFixed(1)}%"></i></div>
-          ${x.groups.length ? `<div class="vd-tags">${x.groups.map((g) => `<a class="pill" href="${x.lib === 'own' ? '#/own' : '#/vod'}?group=${encodeURIComponent(g)}">${esc(g)}</a>`).join('')}</div>` : ''}
+          ${catsOf(x).length ? `<div class="vd-tags">${catsOf(x).map((g) => `<a class="pill" href="${x.lib === 'own' ? '#/own' : '#/vod'}?group=${encodeURIComponent(g)}">${esc(g)}</a>`).join('')}</div>` : ''}
           <div class="info-btns">
             <button class="btn primary big" data-v="play" autofocus>${ICON.play} ${resume ? 'Folytatás' : progressOf(x.id)?.last ? 'Következő rész' : 'Lejátszás'}: ${esc(epLabel(nextEp))}</button>
             <button class="btn" data-v="season-done">${eps.every((e) => progressOf(e.key)?.done) ? 'Évad: nem megnézett' : 'Évad megnézettnek jelölése'}</button>
@@ -1494,7 +1627,7 @@ function editVodMeta(x) {
         </div>
       </div>
       <div class="ve-search inline"><input class="input" data-ve="q" value="${esc(x.title)}" placeholder="Keresés a borítóképek között…" /><button class="btn" data-ve="search">Keresés</button></div>
-      <p class="muted small ve-src">Források: AniList, Kitsu, MyAnimeList, TVmaze, Wikipédia, Wikidata${keys.length ? ', ' + keys.join(', ') : ' · TMDB / OMDb (IMDb) saját kulccsal: Beállítások → Lejátszás → Magyar információk és feliratok'}</p>
+      <p class="muted small ve-src">Források: AniList, Kitsu, MyAnimeList, TVmaze, Wikipédia, Wikidata${keys.length ? ', ' + keys.join(', ') : ' · TMDB / OMDb (IMDb) saját kulccsal: Beállítások → Feliratok és információk → Magyar információk és feliratok'}</p>
       <div class="pp-grid"></div>
       <div class="ve-url"><b>Saját kép címe</b><div class="inline"><input class="input" data-ve="url" placeholder="https://…/plakat.jpg" /><button class="btn small" data-ve="useurl">Kiválasztás</button></div></div>
       <div class="inline ve-foot"><button class="btn" data-ve="cancel">Mégse</button><button class="btn primary" data-ve="save">Mentés</button></div>
@@ -1731,12 +1864,19 @@ export function renderVodLists(box) {
     </div>
     ${toggleRow('vodAutoNext', 'A következő rész automatikus indítása', 'Sorozatnál a rész végén néhány másodperc múlva indul a következő.')}
     <h3>Beépített listák</h3>
-    <ul class="src-list">${VOD_BUILTIN.map((b) => {
+    <ul class="src-list">${[...VOD_BUILTIN, ...vodPacks()].map((b) => {
       const on = builtinOn(b);
       const info = !on ? 'kikapcsolva' : vod.errors[b.id] ? `<span class="warn">hiba: ${esc(vod.errors[b.id])}</span>` : vod.ready ? `${vod.counts[b.id] || 0} bejegyzés` : '';
-      return `<li data-vb="${b.id}"><input type="checkbox" class="switch" data-vl-builtin ${on ? 'checked' : ''} aria-label="${esc(b.name)}" />
-        <span><b>${esc(b.name)}</b><small>${esc(b.desc)}${info ? ' · ' + info : ''}</small></span></li>`;
+      return `<li data-vb="${esc(b.id)}"><input type="checkbox" class="switch" data-vl-builtin ${on ? 'checked' : ''} aria-label="${esc(b.name)}" />
+        <span><b>${esc(b.name)}</b>${b.pack ? ' <span class="pill">kiegészítő csomag</span>' : ''}<small>${esc(b.desc || '')}${info ? ' · ' + info : ''}</small></span>
+        ${b.pack ? '<button class="btn small danger" data-vl="pack-del">Eltávolítás</button>' : ''}</li>`;
     }).join('')}</ul>
+    <div class="inline">
+      ${api.caps.files ? `<button class="btn small" data-vl="pack-add">${ICON.plus} Kiegészítő csomag betöltése (…_vod.adaspack)</button>` : ''}
+      ${api.packsDir ? '<button class="btn small" data-vl="pack-dir">Csomagok mappája</button>' : ''}
+      <button class="btn small" data-help="adaspack">Mi ez, és hogyan készíthetek ilyet?</button>
+    </div>
+    <p class="muted small">Kiegészítő csomag: egy <code>.adaspack</code> fájlba csomagolt lista, amely beépítettként jelenik meg, de a programmal nem érkezik – csak azon az eszközön lesz meg, ahová betöltöd (a mentés és az eszközök közti átvitel is viszi). Az asztali változat a <i>Csomagok mappája</i> tartalmát indításkor magától betölti.</p>
     <h3>Saját listák</h3>
     <ul class="src-list">${(s.vodCustom || [])
       .map((p) => {
@@ -1799,6 +1939,21 @@ export function renderVodLists(box) {
     const id = b.closest('[data-vc]')?.dataset.vc;
     const p = id && s.vodCustom.find((x) => x.id === id);
     switch (b.dataset.vl) {
+      case 'pack-add':
+        if ((await pickAndImportPacks())?.ok.length) reload();
+        break;
+      case 'pack-del': {
+        const pid = b.closest('[data-vb]').dataset.vb;
+        const pk = (s.vodPacks || []).find((x) => x.id === pid);
+        if (!pk || !(await confirmDialog(`Eltávolítod a(z) „${pk.name}” kiegészítő csomagot erről az eszközről?`, { ok: 'Eltávolítás' }))) return;
+        await removePack('vod', pid);
+        toast('A csomag eltávolítva. (Ha a Csomagok mappájában is ott van, a következő indításkor visszakerül.)', { timeout: 7000 });
+        reload();
+        break;
+      }
+      case 'pack-dir':
+        api.packsDir();
+        break;
       case 'refresh':
         renderVodLists(box);
         toast('Film- és sorozatlisták frissítése…');

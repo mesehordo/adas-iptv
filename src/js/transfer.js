@@ -7,6 +7,7 @@ import { esc, toast, errText, bus } from './util.js';
 import { api } from './api.js';
 import { store } from './store.js';
 import { confirmDialog } from './components.js';
+import { packDocs } from './packs.js';
 
 const SECRET_KEYS = ['osApiKey', 'osUser', 'osPass', 'osToken', 'tmdbKey', 'omdbKey', 'tsdbKey'];
 let shareTimer = null;
@@ -19,13 +20,15 @@ export async function attachDocs(data) {
     const v = await api.docGet?.(p.textKey).catch(() => null);
     if (v) docs[p.textKey] = v;
   }
+  // a kiegészítő csomagok (tévé és VOD) is mennek – így a másik eszközön is megjelennek
+  Object.assign(docs, await packDocs(data.settings));
   if (Object.keys(docs).length) data.docs = docs;
   return data;
 }
 
 /** A mentésben érkezett listaszövegek visszaírása. */
 export async function restoreDocs(data) {
-  for (const [k, v] of Object.entries(data.docs || {})) if (/^vodtext:/.test(k) && v && typeof v.text === 'string') await api.docSet?.(k, v);
+  for (const [k, v] of Object.entries(data.docs || {})) if (/^(vodtext|vodpack|tvpack):[\w-]+$/.test(k) && v && typeof v.text === 'string') await api.docSet?.(k, v);
   delete data.docs;
 }
 
@@ -216,7 +219,7 @@ export function renderTransfer(box) {
             return;
           }
           sb.innerHTML = `<div class="share-code">${esc(fmtCode(r.code))}</div>
-            <div>Írd be ezt a kódot a másik eszközön: Beállítások → Eszközök és szinkron → Szinkronizálás eszközök között → <i>Szinkronizálás kóddal</i>.</div>
+            <div>Írd be ezt a kódot a másik eszközön: Beállítások → Szinkron eszközök között → <i>Szinkronizálás kóddal</i>.</div>
             <div class="muted small">Még ${Math.floor(left / 60000)}:${String(Math.floor((left % 60000) / 1000)).padStart(2, '0')} percig érvényes. Az eszköz címe: ${r.addresses.length ? r.addresses.map((ip) => `<code>${esc(ip)}${r.port === 47800 ? '' : ':' + r.port}</code>`).join(' vagy ') : '<i>nem található hálózati cím</i>'}${api.platform === 'electron' || !api.platform ? ' · Első alkalommal a Windows tűzfal engedélyt kérhet – engedélyezd a magánhálózaton.' : ''}</div>`;
         };
         clearInterval(shareTimer);

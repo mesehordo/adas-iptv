@@ -127,6 +127,11 @@ run(exe(BT, 'zipalign'), ['-p', '-f', '4', unsigned, aligned]);
 const ksDir = r('android', 'keystore');
 const ks = path.join(ksDir, 'adas.jks');
 const passFile = path.join(ksDir, 'password.txt');
+if (!fs.existsSync(ks) && process.env.CI) {
+  // CI-on soha nem készítünk új kulcsot: más kulccsal aláírt APK nem frissítené a telepített alkalmazást
+  console.error('Hiányzik az aláírókulcs (android/keystore/adas.jks) – a CI-on az ANDROID_KEYSTORE_B64 és ANDROID_KEYSTORE_PASSWORD titkokból kell visszaállítani.');
+  process.exit(1);
+}
 if (!fs.existsSync(ks)) {
   fs.mkdirSync(ksDir, { recursive: true });
   const pass = crypto.randomBytes(18).toString('base64url');

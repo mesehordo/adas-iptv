@@ -245,9 +245,40 @@ export function seeAllHtml(href, count, { poster = false } = {}) {
     <span class="sa-ico">${ICON.right}</span><b>Összes</b>${count ? `<small>${count} db</small>` : ''}</a>`;
 }
 
+/**
+ * Sor fokozatos feltöltése: elsőre csak `first` kártya kerül a DOM-ba, a többi (legfeljebb `limit`-ig)
+ * akkor, amikor a sorban jobbra görgetnek vagy a kijelölés a végéhez ér. Ugyanannyi tartalom, de az
+ * oldal sokkal kevesebb elemmel és képpel indul (a TV / VOD oldal sorai több ezer elemet adtak).
+ */
+const ROW_FIRST = 14;
+export function progressiveTrack(track, items, render, limit = 40, onMore = null) {
+  let shown = Math.min(items.length, ROW_FIRST);
+  const total = Math.min(items.length, limit);
+  if (shown >= total) return;
+  const more = () => {
+    if (shown >= total) return;
+    const next = items.slice(shown, Math.min(total, shown + ROW_FIRST));
+    shown += next.length;
+    const tail = track.querySelector(':scope > .see-all');
+    (tail || track.lastElementChild)?.insertAdjacentHTML(tail ? 'beforebegin' : 'afterend', next.map(render).join(''));
+    onMore?.(track);
+    if (shown >= total) {
+      track.removeEventListener('scroll', onScroll);
+      track.removeEventListener('focusin', onFocus);
+    }
+  };
+  const onScroll = () => track.scrollLeft + track.clientWidth * 2 > track.scrollWidth && more();
+  const onFocus = (e) => {
+    const cards = [...track.children];
+    if (cards.indexOf(e.target.closest(':scope > *')) >= cards.length - 5) more();
+  };
+  track.addEventListener('scroll', onScroll, { passive: true });
+  track.addEventListener('focusin', onFocus);
+}
+
 export function rowEl(title, channels, { href = '', limit = 40, extraClass = '' } = {}) {
   const ctx = registerContext(title, channels);
-  const shown = channels.slice(0, limit);
+  const shown = channels.slice(0, ROW_FIRST);
   const el = html(`<section class="row ${extraClass}">
     ${rowTitleHtml(title, href, channels.length)}
     <div class="row-wrap">
@@ -257,6 +288,7 @@ export function rowEl(title, channels, { href = '', limit = 40, extraClass = '' 
     </div>
   </section>`);
   const track = el.querySelector('.row-track');
+  progressiveTrack(track, channels, (c) => cardHtml(c, { context: ctx }), limit);
   const update = () => {
     el.classList.toggle('can-left', track.scrollLeft > 5);
     el.classList.toggle('can-right', track.scrollLeft + track.clientWidth < track.scrollWidth - 5);
@@ -684,11 +716,10 @@ export function openProgram(ch, p) {
   });
 }
 
-/** A TV oldal fülei: csatornák és (asztali változatban) a tévéfelvételek. */
+/** A TV oldal fülei: csatornák, műsorújság, böngészés (csak élő adások) és (asztali változatban) a tévéfelvételek. */
 export function tvTabs(cur) {
-  if (!api.recStart) return '';
   const tab = (id, href, label) => `<a class="tab ${cur === id ? 'active' : ''}" href="${href}">${label}</a>`;
-  return `<div class="tabs vod-tabs tv-tabs">${tab('tv', '#/tv', 'Csatornák')}${tab('rec', '#/recordings', 'Felvételek')}</div>`;
+  return `<div class="tabs vod-tabs tv-tabs">${tab('tv', '#/tv', 'Csatornák')}${tab('guide', '#/guide', 'Műsorújság')}${tab('browse', '#/browse', 'Böngészés')}${api.recStart ? tab('rec', '#/recordings', 'Felvételek') : ''}</div>`;
 }
 
 export function emptyState(title, text, action) {

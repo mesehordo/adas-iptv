@@ -35,6 +35,7 @@ button:active,button.on{background:var(--a);color:#fff}
 .tabs button{flex:1;background:none;border-radius:10px;padding:8px 0;font-size:12px;color:var(--m)}.tabs button span{display:block;font-size:20px;margin-bottom:2px}.tabs button.sel{color:#fff;background:#222}
 .pane{display:none}.pane.sel{display:block}
 .pad{position:relative;height:min(46vh,300px);border-radius:20px;background:radial-gradient(circle at 50% 50%,#2b2b2b,#1a1a1a);display:grid;place-items:center;color:#666;font-size:13px;text-align:center;touch-action:none;margin-bottom:10px;border:1px solid #2a2a2a}
+.seg{display:flex;gap:6px;margin-bottom:8px}.seg button{flex:1;font-size:14px;padding:9px 0}.seg button.sel{background:var(--a);color:#fff;font-weight:700}
 .pad .hint{pointer-events:none;padding:0 20px}.pad .dot{position:absolute;width:56px;height:56px;border-radius:50%;background:rgba(229,9,20,.35);pointer-events:none;transform:translate(-50%,-50%);display:none}
 .row{display:grid;gap:8px;margin-bottom:8px}.r3{grid-template-columns:repeat(3,1fr)}.r4{grid-template-columns:repeat(4,1fr)}.r5{grid-template-columns:repeat(5,1fr)}
 .ok{background:var(--a);color:#fff;font-weight:700}.sm{font-size:14px;padding:11px 0}
@@ -48,13 +49,15 @@ input.q{width:100%;font:inherit;font-size:17px;padding:12px 14px;border-radius:1
 .err{color:#ff6b6b;min-height:1.2em}.muted{color:var(--m);font-size:13px}.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#333;color:#fff;padding:8px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}.toast.show{opacity:1}
 .off{color:#ff8a80}
 </style></head><body>
-<div id="pin" class="pin" hidden><h1 style="color:var(--a);margin:0">ADÁS</h1><p>Írd be a tévén / gépen látható 4 jegyű PIN-t<br><small class="muted">(vagy olvasd be a QR-kódot: Beállítások → Eszközök és szinkron → Távirányító telefonról)</small></p>
+<div id="pin" class="pin" hidden><h1 style="color:var(--a);margin:0">ADÁS</h1><p>Írd be a tévén / gépen látható 4 jegyű PIN-t<br><small class="muted">(vagy olvasd be a QR-kódot: Beállítások → Távirányító és billentyűk → Távirányító telefonról)</small></p>
 <input id="pinIn" inputmode="numeric" maxlength="4" autocomplete="off"><button class="ok" id="pinOk">Csatlakozás</button><div class="err" id="pinErr"></div></div>
 <div id="ui" hidden>
 <div class="now" id="now"><div class="tx"><small>Csatlakozás…</small></div></div>
 <div class="pane sel" id="p-ctl">
- <div class="pad" id="pad"><div class="hint">Húzd az ujjad: <b>mozgás</b> · Koppints: <b>OK</b><br>Hosszan nyomva: <b>Vissza</b></div><div class="dot" id="dot"></div></div>
+ <div class="seg" id="padMode"><button data-pm="mouse">🖱 Egér</button><button data-pm="arrows">✥ Nyilak</button></div>
+ <div class="pad" id="pad"><div class="hint" id="padHint"></div><div class="dot" id="dot"></div></div>
  <div class="row r3"><button data-c="key" data-a="Escape">↩ Vissza</button><button data-c="nav" data-a="home">⌂ Főoldal</button><button data-c="menu" data-a="info">ⓘ Adatlap</button></div>
+ <div class="row r4"><button data-c="nav" data-a="tv" class="sm">📺 TV</button><button data-c="nav" data-a="guide" class="sm">🗓 Műsorújság</button><button data-c="nav" data-a="browse" class="sm">⌕ Böngészés</button><button data-c="nav" data-a="vod" class="sm">🎬 VOD</button></div>
  <div class="row r5"><button data-c="seek" data-a="-30" class="sm">−30″</button><button data-c="seek" data-a="-10" class="sm">−10″</button><button data-c="toggle" class="ok">⏯</button><button data-c="seek" data-a="10" class="sm">+10″</button><button data-c="seek" data-a="30" class="sm">+30″</button></div>
  <div class="row r4"><button data-c="chup">CH ▲</button><button data-c="chdown">CH ▼</button><button data-c="recall" class="sm">↺ Előző</button><button data-c="mute" id="muteBtn">🔇</button></div>
  <div class="vol"><span>🔈</span><input type="range" id="vol" min="0" max="1" step="0.02" aria-label="Hangerő"><span>🔊</span></div>
@@ -98,20 +101,37 @@ $('now').innerHTML=n?((n.logo?'<img src="'+esc(n.logo)+'" alt="" onerror="this.r
 if(document.activeElement!==$('vol'))$('vol').value=s.volume==null?1:s.volume;$('muteBtn').className=s.muted?'on':'';
 $('favs').innerHTML=chBtns(s.favs,'Nincs kedvenc csatorna.');$('recent').innerHTML=chBtns(s.recent,'Még nincs.');if(s.results)$('results').innerHTML=chBtns(s.results,'Nincs találat.')}
 function state(){if(!pin)return ask();api('state').then(render).catch(function(e){if(e.message==='pin'){try{localStorage.removeItem('adasPin')}catch(x){}pin='';ask('Hibás PIN.')}})}
-function cmd(c,a){if(navigator.vibrate)navigator.vibrate(12);return api('cmd?c='+encodeURIComponent(c)+'&a='+encodeURIComponent(a==null?'':a)).then(function(){setTimeout(state,350)}).catch(function(){toast('Nincs kapcsolat')})}
+// A parancsok sorban mennek ki (egymás után, nem párhuzamosan) – így gyors mozdulatnál sem keverednek össze
+var q0=Promise.resolve(),stT=0;
+function send(c,a){q0=q0.then(function(){return api('cmd?c='+encodeURIComponent(c)+'&a='+encodeURIComponent(a==null?'':a))}).then(function(){clearTimeout(stT);stT=setTimeout(state,350)}).catch(function(){toast('Nincs kapcsolat')});return q0}
+function cmd(c,a){if(navigator.vibrate)navigator.vibrate(12);return send(c,a)}
 document.addEventListener('click',function(e){var t=e.target.closest('[data-t]');if(t){[].forEach.call(document.querySelectorAll('.tabs button'),function(b){b.className=b===t?'sel':''});[].forEach.call(document.querySelectorAll('.pane'),function(p){p.className='pane'+(p.id==='p-'+t.dataset.t?' sel':'')});return}
 var b=e.target.closest('button[data-c]');if(!b)return;cmd(b.dataset.c,b.dataset.a)});
 $('vol').addEventListener('input',function(){clearTimeout(this._t);var v=this.value;this._t=setTimeout(function(){cmd('vol',v)},120)});
 var qt;$('q').addEventListener('input',function(){clearTimeout(qt);var v=this.value.trim();qt=setTimeout(function(){if(v)cmd('find',v);else{$('results').innerHTML=''}},300)});
 $('sendTxt').onclick=function(){var v=$('txt').value;if(v){cmd('text',v);$('txt').value='';toast('Elküldve')}};
 $('searchTxt').onclick=function(){var v=$('txt').value.trim();if(v){cmd('search',v);toast('Keresés: '+v)}};
-// Érintőpad: húzás = nyíl (minden ~40 px után egy lépés), koppintás = OK, hosszú nyomás = Vissza
-(function(){var pad=$('pad'),dot=$('dot'),sx=0,sy=0,acc=[0,0],t0=0,moved=false,lp=null;var STEP=40;
+// Érintőpad – két mód:
+//  Egér: húzás = kurzor mozgatása a képernyőn, koppintás = kattintás, két ujjal húzás = görgetés
+//  Nyilak: húzás = nyíl (minden ~40 px után egy lépés), koppintás = OK
+//  Mindkettőben: hosszú nyomás = Vissza
+(function(){var pad=$('pad'),dot=$('dot'),sx=0,sy=0,t0=0,moved=false,lp=null,two=false,STEP=40;
+var mode='mouse';try{mode=localStorage.getItem('adasPad')||'mouse'}catch(e){}
+var HINT={mouse:'Húzd az ujjad: <b>kurzor</b> · Koppints: <b>kattintás</b><br>Két ujjal húzva: <b>görgetés</b> · Hosszan nyomva: <b>Vissza</b>',arrows:'Húzd az ujjad: <b>mozgás</b> · Koppints: <b>OK</b><br>Hosszan nyomva: <b>Vissza</b>'};
+function setMode(m){mode=m;try{localStorage.setItem('adasPad',m)}catch(e){};$('padHint').innerHTML=HINT[m];[].forEach.call(document.querySelectorAll('[data-pm]'),function(b){b.className=b.dataset.pm===m?'sel':''})}
+setMode(mode);$('padMode').addEventListener('click',function(e){var b=e.target.closest('[data-pm]');if(b){setMode(b.dataset.pm);if(mode==='mouse')send('mouse','0,0')}});
+// a mozgás összegyűjtve, egyszerre legfeljebb egy kérés úton (a sorrend és a sebesség így egyenletes)
+var acc=[0,0],sacc=[0,0],inflight=false;
+function flush(){if(inflight)return;if(acc[0]||acc[1]){var a=acc;acc=[0,0];inflight=true;send('mouse',Math.round(a[0])+','+Math.round(a[1])).then(function(){inflight=false;flush()});return}
+if(sacc[0]||sacc[1]){var s=sacc;sacc=[0,0];inflight=true;send('scroll',Math.round(s[0])+','+Math.round(s[1])).then(function(){inflight=false;flush()})}}
 function pos(e){var r=pad.getBoundingClientRect(),p=e.touches?e.touches[0]:e;return[p.clientX-r.left,p.clientY-r.top]}
-function start(e){e.preventDefault();var p=pos(e);sx=p[0];sy=p[1];acc=[0,0];t0=Date.now();moved=false;dot.style.display='block';dot.style.left=sx+'px';dot.style.top=sy+'px';clearTimeout(lp);lp=setTimeout(function(){if(!moved){cmd('key','Escape');toast('Vissza');moved=true}},650)}
-function move(e){if(!t0)return;e.preventDefault();var p=pos(e),dx=p[0]-sx,dy=p[1]-sy;dot.style.left=p[0]+'px';dot.style.top=p[1]+'px';
-if(Math.abs(dx)>STEP||Math.abs(dy)>STEP){moved=true;clearTimeout(lp);var k=Math.abs(dx)>Math.abs(dy)?(dx>0?'ArrowRight':'ArrowLeft'):(dy>0?'ArrowDown':'ArrowUp');cmd('key',k);sx=p[0];sy=p[1]}}
-function end(e){if(!t0)return;e.preventDefault();clearTimeout(lp);dot.style.display='none';if(!moved&&Date.now()-t0<500)cmd('key','Enter');t0=0}
+function start(e){e.preventDefault();two=!!(e.touches&&e.touches.length>1);var p=pos(e);sx=p[0];sy=p[1];t0=Date.now();moved=false;dot.style.display='block';dot.style.left=sx+'px';dot.style.top=sy+'px';clearTimeout(lp);lp=setTimeout(function(){if(!moved){cmd('key','Escape');toast('Vissza');moved=true}},650)}
+function move(e){if(!t0)return;e.preventDefault();if(e.touches&&e.touches.length>1)two=true;var p=pos(e),dx=p[0]-sx,dy=p[1]-sy;dot.style.left=p[0]+'px';dot.style.top=p[1]+'px';
+if(mode==='mouse'){if(Math.abs(dx)+Math.abs(dy)>2){moved=true;clearTimeout(lp)}
+// gyorsítás: lassú mozdulat = pontos, gyors = nagy ugrás
+var sp=Math.sqrt(dx*dx+dy*dy),k=1.6+Math.min(3,sp/12);if(two){sacc[0]+=dx*3;sacc[1]+=dy*3}else{acc[0]+=dx*k;acc[1]+=dy*k}sx=p[0];sy=p[1];flush();return}
+if(Math.abs(dx)>STEP||Math.abs(dy)>STEP){moved=true;clearTimeout(lp);var key=Math.abs(dx)>Math.abs(dy)?(dx>0?'ArrowRight':'ArrowLeft'):(dy>0?'ArrowDown':'ArrowUp');cmd('key',key);sx=p[0];sy=p[1]}}
+function end(e){if(!t0)return;e.preventDefault();if(e.touches&&e.touches.length)return;clearTimeout(lp);dot.style.display='none';if(!moved&&!two&&Date.now()-t0<500)cmd(mode==='mouse'?'click':'key',mode==='mouse'?'':'Enter');t0=0}
 pad.addEventListener('touchstart',start,{passive:false});pad.addEventListener('touchmove',move,{passive:false});pad.addEventListener('touchend',end,{passive:false});
 pad.addEventListener('mousedown',start);window.addEventListener('mousemove',move);window.addEventListener('mouseup',end)})();
 $('pinOk').onclick=function(){pin=$('pinIn').value.replace(/\\D/g,'');try{localStorage.setItem('adasPin',pin)}catch(e){}state()};
@@ -175,11 +195,89 @@ function findChannels(q) {
 
 const NAV = /^(home|tv|guide|vod|favorites|browse|recordings|help|search)$/;
 
+// ---------------------------------------------------------------------------
+// Egérkurzor a telefon érintőpadjáról: húzás = mozgatás, koppintás = kattintás, két ujjal = görgetés.
+// A kurzor alatti elem kijelölést kap (mint a billentyűs navigációnál) – így a kártyák kiemelése,
+// az előnézet és az Enter is ugyanúgy működik, mint egérrel.
+// ---------------------------------------------------------------------------
+const cur = { el: null, x: 0, y: 0, hideT: 0, over: null };
+const CLICKABLE = 'a[href], button, input, select, textarea, label, [tabindex], [data-c], [data-play], .card, .vcard, .tile';
+function cursorEl() {
+  if (cur.el?.isConnected) return cur.el;
+  cur.el = document.createElement('div');
+  cur.el.id = 'rc-cursor';
+  cur.el.innerHTML = '<svg viewBox="0 0 24 24" width="28" height="28"><path d="M4 2l16 10-7 1.5 4 8-3 1.5-4-8L4 20z" fill="#fff" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+  document.body.append(cur.el);
+  cur.x = innerWidth / 2;
+  cur.y = innerHeight / 2;
+  return cur.el;
+}
+function showCursor() {
+  const el = cursorEl();
+  el.style.transform = `translate(${cur.x}px, ${cur.y}px)`;
+  el.classList.add('show');
+  document.body.classList.add('rc-nav');
+  clearTimeout(cur.hideT);
+  cur.hideT = setTimeout(() => el.classList.remove('show'), 6000);
+}
+/** A kurzor alatti elem (a kurzor maga nem fogja meg a pontot: pointer-events: none). */
+const under = () => document.elementFromPoint(Math.round(cur.x), Math.round(cur.y));
+function moveCursor(dx, dy) {
+  cur.x = Math.min(innerWidth - 2, Math.max(0, cur.x + dx));
+  cur.y = Math.min(innerHeight - 2, Math.max(0, cur.y + dy));
+  showCursor();
+  const t = under();
+  // lejátszás közben a mozgás előhozza a vezérlőket
+  if (player.active) player.poke?.();
+  const target = t?.closest(CLICKABLE);
+  if (target && target !== cur.over) {
+    cur.over = target;
+    if (target.matches('input, select, textarea')) return; // beviteli mezőre csak kattintásra lép (ne nyíljon billentyűzet)
+    const f = target.matches('[tabindex], a[href], button') ? target : target.querySelector('a[href], button, [tabindex]') || target;
+    f.focus?.({ preventScroll: true });
+  } else if (!target) cur.over = null;
+}
+function clickCursor() {
+  showCursor();
+  const t = under();
+  if (!t) return;
+  const target = t.closest(CLICKABLE) || t;
+  if (target.matches('input, select, textarea')) return target.focus();
+  for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup']) target.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, clientX: cur.x, clientY: cur.y }));
+  target.click();
+}
+/** Görgetés a kurzor alatti görgethető elemben (pl. egy sor vízszintesen), különben az oldalon. */
+function scrollCursor(dx, dy) {
+  showCursor();
+  let el = under();
+  const can = (e) => {
+    const s = getComputedStyle(e);
+    const y = Math.abs(dy) > Math.abs(dx);
+    return y ? /(auto|scroll)/.test(s.overflowY) && e.scrollHeight > e.clientHeight + 2 : /(auto|scroll)/.test(s.overflowX) && e.scrollWidth > e.clientWidth + 2;
+  };
+  while (el && el !== document.body && !can(el)) el = el.parentElement;
+  (el && el !== document.body ? el : document.scrollingElement || document.documentElement).scrollBy({ left: dx, top: dy });
+}
+
 async function command({ c, a }) {
   const live = player.active;
   switch (c) {
     case 'key':
-      if (/^(Arrow(Up|Down|Left|Right)|Enter|Escape|Backspace)$/.test(a)) key(a);
+      if (/^(Arrow(Up|Down|Left|Right)|Enter|Escape|Backspace)$/.test(a)) {
+        document.body.classList.add('rc-nav'); // a kijelölés kerete látsszon (programból küldött billentyűnél a böngésző nem rajzolná)
+        key(a);
+      }
+      break;
+    case 'mouse':
+    case 'scroll': {
+      const [dx, dy] = String(a || '').split(',').map(Number);
+      if (!Number.isFinite(dx) || !Number.isFinite(dy)) break;
+      const lim = (v) => Math.max(-2000, Math.min(2000, v));
+      c === 'mouse' ? moveCursor(lim(dx), lim(dy)) : scrollCursor(lim(dx), lim(dy));
+      return; // gyakori, apró parancs: nem küldünk utána állapotot
+    }
+    case 'click':
+      clickCursor();
       break;
     case 'chup':
     case 'chdown':
@@ -288,7 +386,7 @@ if (canRemote) {
 }
 
 // ---------------------------------------------------------------------------
-// Beállítások → Eszközök és szinkron → Távirányító telefonról
+// Beállítások → Távirányító és billentyűk → Távirányító telefonról
 // ---------------------------------------------------------------------------
 export function renderRemoteSettings(box) {
   if (!canRemote || !box) return box?.remove();

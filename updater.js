@@ -22,6 +22,19 @@ function cmpVersion(a, b) {
 }
 
 const isPortable = () => !!process.env.PORTABLE_EXECUTABLE_FILE;
+// MSI-vel telepítve: a telepítési mappában nincs az NSIS-telepítő eltávolítója („Uninstall Adás.exe”)
+let msiCache = null;
+function isMsi() {
+  if (process.platform !== 'win32' || isPortable() || !app.isPackaged) return false;
+  if (msiCache === null) {
+    try {
+      msiCache = !fs.readdirSync(path.dirname(process.execPath)).some((n) => /^uninstall .*\.exe$/i.test(n));
+    } catch {
+      msiCache = false;
+    }
+  }
+  return msiCache;
+}
 
 // Processzor-architektúra a fájlnévben (pl. „…-arm64.dmg”, „…_amd64.deb”, „…-x86_64.AppImage”)
 const ARCH_RX = { arm64: /arm64|aarch64/, x64: /x64|x86_64|amd64/ };
@@ -37,7 +50,9 @@ const best = (list, test) => list.filter((a) => test(a.l) && archOk(a.l)).sort((
 function pickAsset(names) {
   const list = names.map((n) => ({ ...n, l: n.name.toLowerCase() }));
   if (process.platform === 'win32') {
+    // (a kiadás fájlnevei: Adas-Setup-X.exe, Adas-X-portable.exe, Adas-X.msi)
     if (isPortable()) return list.find((a) => a.l.endsWith('.exe') && !a.l.includes('setup')) || null;
+    if (isMsi()) return list.find((a) => a.l.endsWith('.msi')) || null;
     return list.find((a) => a.l.endsWith('.exe') && a.l.includes('setup')) || list.find((a) => a.l.endsWith('.exe')) || null;
   }
   if (process.platform === 'darwin') return best(list, (l) => l.endsWith('.dmg')) || best(list, (l) => l.endsWith('.zip') && /mac|darwin/.test(l));
@@ -123,6 +138,12 @@ async function download(asset, onProgress) {
 
 /** A letöltött telepítő indítása, majd kilépés (Windows); máshol megnyitja a fájlt. */
 async function install(file) {
+  // MSI: a Windows Installer frissíti a meglévő telepítést (azonos UpgradeCode), az Adás közben bezárul
+  if (process.platform === 'win32' && /\.msi$/i.test(file)) {
+    spawn('msiexec', ['/i', file], { detached: true, stdio: 'ignore' }).unref();
+    setTimeout(() => app.quit(), 400);
+    return 'started';
+  }
   if (process.platform === 'win32' && /setup/i.test(path.basename(file))) {
     spawn(file, [], { detached: true, stdio: 'ignore' }).unref();
     setTimeout(() => app.quit(), 400);

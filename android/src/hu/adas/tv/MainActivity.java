@@ -157,41 +157,11 @@ public class MainActivity extends Activity {
   }
 
   // -------------------------------------------------------------------------------------------
-  // Kép a képben (lebegő kis ablak) és háttérlejátszás
+  // Háttérlejátszás (a kép a képben mód megszűnt)
   // -------------------------------------------------------------------------------------------
   static MainActivity instance;
-  boolean autoPip = true; // lejátszás közben kilépve kis ablakban szól tovább
-  boolean bgAudio = false; // kilépve (kis ablak nélkül) a háttérben szól tovább
-  boolean inPip;
+  boolean bgAudio = false; // kilépve a háttérben szól tovább
   String nowPlaying = "";
-
-  boolean canPip() {
-    return Build.VERSION.SDK_INT >= 26 && getPackageManager().hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE);
-  }
-
-  boolean enterPip() {
-    if (!canPip()) return false;
-    try {
-      android.app.PictureInPictureParams.Builder b = new android.app.PictureInPictureParams.Builder().setAspectRatio(new android.util.Rational(16, 9));
-      return enterPictureInPictureMode(b.build());
-    } catch (Exception e) {
-      return false;
-    }
-  }
-
-  /** Home gomb / másik alkalmazás lejátszás közben: kis ablakba vált (ha be van kapcsolva). */
-  @Override
-  protected void onUserLeaveHint() {
-    super.onUserLeaveHint();
-    if (playing && autoPip && !tv) enterPip();
-  }
-
-  @Override
-  public void onPictureInPictureModeChanged(boolean pip, Configuration cfg) {
-    super.onPictureInPictureModeChanged(pip, cfg);
-    inPip = pip;
-    web.evaluateJavascript("window.__adasPip&&window.__adasPip(" + pip + ")", null);
-  }
 
   /** A háttérlejátszás értesítésének „Leállítás” gombja. */
   void stopFromNotification() {
@@ -212,7 +182,7 @@ public class MainActivity extends Activity {
     super.onStop();
     // a beállítások és a film pozíciójának azonnali mentése (a WebView nem mindig jelez a lapnak)
     web.evaluateJavascript("window.__adasFlush&&window.__adasFlush()", null);
-    // Háttérlejátszás bekapcsolva: szól tovább (értesítéssel); egyébként – és ha a kis ablakot bezárták – megáll.
+    // Háttérlejátszás bekapcsolva: szól tovább (értesítéssel); egyébként megáll.
     if (bgAudio && playing && !isFinishing()) {
       PlaybackService.start(this, nowPlaying);
       return;
@@ -225,9 +195,8 @@ public class MainActivity extends Activity {
   protected void onPause() {
     super.onPause();
     foreground = false;
-    // kis ablakban és háttérlejátszásnál a lap tovább fut
-    boolean keep = (Build.VERSION.SDK_INT >= 24 && isInPictureInPictureMode()) || (bgAudio && playing);
-    if (!keep) web.onPause();
+    // háttérlejátszásnál a lap tovább fut
+    if (!(bgAudio && playing)) web.onPause();
   }
 
   @Override
@@ -406,32 +375,10 @@ public class MainActivity extends Activity {
       return ch == null ? "" : ch;
     }
 
-    /** Kép a képben (lebegő kis ablak) most. → sikerült-e */
-    @JavascriptInterface
-    public boolean enterPip() {
-      if (!canPip()) return false;
-      runOnUiThread(() -> MainActivity.this.enterPip());
-      return true;
-    }
-
-    @JavascriptInterface
-    public boolean pipAvailable() {
-      return canPip();
-    }
-
-    /** Beállítások: kilépéskor kis ablak / háttérlejátszás; a most szóló adás neve (az értesítéshez). */
+    /** Beállítás: háttérlejátszás (az első paraméter a megszűnt kép a képben módé, nem használjuk). */
     @JavascriptInterface
     public void setBackgroundPrefs(boolean pip, boolean audio) {
-      autoPip = pip;
       bgAudio = audio;
-      if (Build.VERSION.SDK_INT >= 31) {
-        runOnUiThread(() -> {
-          try {
-            setPictureInPictureParams(new android.app.PictureInPictureParams.Builder().setAspectRatio(new android.util.Rational(16, 9)).setAutoEnterEnabled(false).build());
-          } catch (Exception ignored) {
-          }
-        });
-      }
     }
 
     @JavascriptInterface
