@@ -161,6 +161,9 @@ async function loadEspn(w) {
   const now = Date.now();
   const base = `https://site.api.espn.com/apis/site/v2/sports/${w.ref}/scoreboard`;
   const urls = [base, ...new Set([ym(now - back * 864e5), ym(now), ym(now + ahead * 864e5)])].map((m, i) => (i === 0 ? m : `${base}?dates=${m}&limit=400`));
+  // Élő frissítésnél csak az alap (mai) eredménylista friss: ebben van minden épp zajló esemény, és mivel
+  // elsőként dolgozzuk fel, az azonos eseményt a régebbi havi listák nem írhatják felül (seen). A havi
+  // (akár 400 eseményes) listák percenkénti újratöltése bajnokságonként sokszoros forgalom lenne.
   const parts = await Promise.all(urls.map((u, i) => json(u, i === 0 && fresh ? 1 / 60 : 0.15).catch(() => ({ events: [] }))));
   const seen = new Set();
   const lg = parts.find((p) => p.leagues?.[0])?.leagues?.[0];
