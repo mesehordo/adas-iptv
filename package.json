@@ -22,7 +22,7 @@
     "i18n:check": "node tools/i18n-check.mjs"
   },
   "dependencies": {
-    "dashjs": "^4.7.4",
+    "dashjs": "^5.2.1",
     "hls.js": "^1.5.17",
     "mpegts.js": "^1.7.3"
   },
