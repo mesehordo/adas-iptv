@@ -18,7 +18,7 @@ import { _t, LOCALE, weekdayNames } from './i18n.js';
 // ---------------------------------------------------------------------------
 export const SPORTS = [
   // (a kulcsszavak a műsorújságban keresnek: magyar mellett angol, német, spanyol és francia szavak is)
-  ['soccer', _t('Labdarúgás'), '⚽', 'soccer', 'labdarúg|foci|futball|bajnokok ligája|európa-liga|konferencia-liga|nb i\\b|premier league|bundesliga|la liga|serie a|ligue 1|selejtező|fußball|fussball|^(?!.*(american|australian|aussie rules) football).*\\bfootball\\b(?! am[eé]ricain| australien)|f[uú]tbol|soccer|champions league|liga de campeones|ligue des champions|europa league|\\bfa cup\\b|dfb-pokal|copa del rey|coupe de france'],
+  ['soccer', _t('Labdarúgás'), '⚽', 'soccer', 'labdarúg|foci|^(?!.*(amerikai|ausztrál) futball).*futball|bajnokok ligája|európa-liga|konferencia-liga|nb i\\b|premier league|bundesliga|la liga|serie a|ligue 1|selejtező|fußball|fussball|^(?!.*(american|australian|aussie rules) football).*\\bfootball\\b(?! am[eé]ricain| australien)|f[uú]tbol\\b(?! americano| sala| australiano)|soccer|champions league|liga de campeones|ligue des champions|europa league|\\bfa cup\\b|dfb-pokal|copa del rey|coupe de france'],
   ['basketball', _t('Kosárlabda'), '🏀', 'basketball', 'kosárlabda|\\bnba\\b|euroliga|basketball|baloncesto|basket-?ball|\\bacb\\b'],
   ['handball', _t('Kézilabda'), '🤾', '', 'kézilabda|handball|\\behf\\b|balonmano'],
   ['waterpolo', _t('Vízilabda'), '🤽', 'water-polo', 'vízilabda|water ?polo|wasserball|waterpolo'],
