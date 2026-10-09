@@ -76,6 +76,7 @@ export function runOnboarding(root) {
         if (b) return choose(b);
         if (!e.target.closest('[data-next]')) return;
         const stepSaved = setStep('profile');
+        state.lang = null; // (visszalépés után a korábbi, el nem mentett választás ne maradjon meg)
         if (sel !== lang || !savedLang) {
           // a választás mentése; más nyelvnél újratöltés – utána a profil lépés jön. Ha a tároló nem
           // írható, nincs újratöltés (különben körbe-körbe a nyelvválasztóhoz jutna): a varázsló a mostani
