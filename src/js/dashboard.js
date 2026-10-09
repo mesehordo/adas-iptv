@@ -229,8 +229,16 @@ export const DEFAULT_FEEDS = LOCAL.feeds;
 const LATER_DEFAULTS = ['https://kavehazmagazin.hu/rss'];
 function addLaterDefaults() {
   const s = store.settings;
-  if (!Array.isArray(s.rssFeeds)) return; // (alapértékeken van: azokban már benne van)
   const seen = Array.isArray(s.rssDefaultsSeen) ? s.rssDefaultsSeen : [];
+  if (!Array.isArray(s.rssFeeds)) {
+    // alapértékeken van: azokban már látszanak – látottnak jelöljük, hogy egy későbbi törlés után ne kerüljenek vissza
+    const shown = LATER_DEFAULTS.filter((u) => !seen.includes(u) && DEFAULT_FEEDS.some((f) => f.url === u));
+    if (shown.length) {
+      s.rssDefaultsSeen = [...seen, ...shown];
+      store.save();
+    }
+    return;
+  }
   const fresh = LATER_DEFAULTS.filter((u) => !seen.includes(u));
   if (!fresh.length) return;
   for (const u of fresh) {

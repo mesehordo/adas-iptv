@@ -41,6 +41,7 @@ final class Covers {
   private final File dir;
   private final Opener opener;
   private long added;
+  private volatile int gen; // ürítéskor nő: a közben futó letöltések már nem mentenek
 
   Covers(File dir, Opener opener) {
     this.dir = dir;
@@ -62,7 +63,7 @@ final class Covers {
 
   /** A kép a tárból, vagy letöltve (és elmentve). null: a hívó a szokásos úton töltse le. */
   WebResourceResponse get(String url, Map<String, String> pageHeaders) {
-    File f = new File(dir, sha1(url));
+    File f = new File(dir, hashName(url));
     if (f.isFile()) {
       try {
         byte[] b = readAll(new FileInputStream(f), MAX_IMAGE + 1);
@@ -75,17 +76,26 @@ final class Covers {
       } catch (IOException ignored) {
       }
     }
+    int g = gen;
+    HttpURLConnection c = null;
     try {
-      HttpURLConnection c = opener.open(url, pageHeaders);
-      if (c.getResponseCode() != 200) return null;
+      c = opener.open(url, pageHeaders);
+      if (c.getResponseCode() != 200) {
+        // (a hibaválasz adatfolyamát is lezárjuk – a hívó a szokásos úton próbálja)
+        InputStream err = c.getErrorStream();
+        if (err != null) err.close();
+        return null;
+      }
       byte[] b = readAll(c.getInputStream(), MAX_IMAGE + 1);
       if (b.length > MAX_IMAGE) return null; // (túl nagy: a szokásos úton, tárolás nélkül)
       String mime = sniff(b);
-      if (mime != null) save(f, b);
+      if (mime != null && g == gen) save(f, b);
       String type = c.getContentType();
       return respond(mime != null ? mime : type != null ? type.split(";")[0].trim() : "application/octet-stream", b);
     } catch (Exception e) {
       return null;
+    } finally {
+      if (c != null) c.disconnect();
     }
   }
 
@@ -157,6 +167,7 @@ final class Covers {
   }
 
   synchronized void clear() {
+    gen++;
     File[] files = dir.listFiles();
     if (files != null) for (File f : files) //noinspection ResultOfMethodCallIgnored
       f.delete();
@@ -187,9 +198,9 @@ final class Covers {
     }
   }
 
-  private static String sha1(String s) {
+  private static String hashName(String s) {
     try {
-      byte[] d = MessageDigest.getInstance("SHA-1").digest(s.getBytes(StandardCharsets.UTF_8));
+      byte[] d = MessageDigest.getInstance("SHA-256").digest(s.getBytes(StandardCharsets.UTF_8));
       StringBuilder sb = new StringBuilder();
       for (byte x : d) sb.append(String.format(Locale.ROOT, "%02x", x));
       return sb.toString();

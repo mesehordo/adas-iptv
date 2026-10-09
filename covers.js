@@ -3,7 +3,8 @@
 // kerülnek, és legközelebb onnan töltődnek – a böngészőmotor gyorsítótárától függetlenül (az korlátos
 // méretű, és bármikor kidobhatja őket). A felület a képet így kéri: adasimg://cover/<base64url(eredeti cím)>.
 //  - Ha a kép a tárban van, onnan jön (hálózat nélkül is).
-//  - Ha nincs, a főfolyamat letölti, elmenti (csak valódi képet, legfeljebb MAX_IMAGE méretig), és átadja.
+//  - Ha nincs, a főfolyamat letölti, elmenti (csak valódi képet; a MAX_IMAGE-nél nagyobb válasz letöltése
+//    megszakad), és átadja.
 //  - Méretkorlát: ha a tár meghaladja a MAX_BYTES-ot, a legrégebben használt képek törlődnek.
 // A „Gyorsítótár törlése” ezt nem üríti (külön gomb: Beállítások → VOD és médiatár).
 const fs = require('fs');
@@ -18,9 +19,10 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 
 let dir = '';
 let added = 0; // a legutóbbi takarítás óta mentett bájtok
+let gen = 0; // ürítéskor nő: a közben futó letöltések már nem mentenek
 const inflight = new Map(); // eredeti cím → folyamatban lévő letöltés (ugyanaz a kép egyszerre csak egyszer)
 
-const fileOf = (url) => path.join(dir, crypto.createHash('sha1').update(url).digest('hex'));
+const fileOf = (url) => path.join(dir, crypto.createHash('sha256').update(url).digest('hex'));
 
 /** A kép típusa a tartalom első bájtjaiból (a tárban nincs külön típusjelölés) – nem képnél null. */
 function sniff(b) {
@@ -93,31 +95,63 @@ function trim() {
 }
 
 async function clear() {
+  gen++;
   for (const name of await fs.promises.readdir(dir).catch(() => [])) await fs.promises.unlink(path.join(dir, name)).catch(() => {});
 }
 
 /** Egy kép kérése: a tárból, vagy letöltve (és elmentve). */
 async function load(orig, net) {
   const file = fileOf(orig);
-  const st = await fs.promises.stat(file).catch(() => null);
-  if (st?.isFile()) {
-    const buf = await fs.promises.readFile(file).catch(() => null);
-    if (buf && sniff(buf)) {
-      if (Date.now() - st.mtimeMs > TOUCH_AFTER) fs.promises.utimes(file, new Date(), new Date()).catch(() => {});
-      return respond(buf);
+  // (egyetlen megnyitott fájlleíróval: az ellenőrzés és az olvasás ugyanarra a fájlra vonatkozik)
+  const fh = await fs.promises.open(file, 'r').catch(() => null);
+  if (fh) {
+    try {
+      const st = await fh.stat();
+      const buf = st.isFile() && st.size <= MAX_IMAGE ? await fh.readFile() : null;
+      if (buf && sniff(buf)) {
+        if (Date.now() - st.mtimeMs > TOUCH_AFTER) await fh.utimes(new Date(), new Date()).catch(() => {});
+        return respond(buf);
+      }
+    } catch {
+    } finally {
+      await fh.close().catch(() => {});
     }
   }
+  const g = gen;
+  const ctrl = new AbortController();
   let res;
   try {
-    res = await net.fetch(orig, { headers: { 'User-Agent': UA, Accept: 'image/avif,image/webp,image/*,*/*;q=0.8' }, bypassCustomProtocolHandlers: true });
+    res = await net.fetch(orig, { headers: { 'User-Agent': UA, Accept: 'image/avif,image/webp,image/*,*/*;q=0.8' }, bypassCustomProtocolHandlers: true, signal: ctrl.signal });
   } catch {
     return new Response('', { status: 502 });
   }
   if (!res.ok) return new Response('', { status: res.status >= 400 && res.status <= 599 ? res.status : 502 });
-  const buf = Buffer.from(await res.arrayBuffer());
+  // a válasz olvasása méretkorláttal (egy óriási válasz ne tölthesse meg a főfolyamat memóriáját)
+  if (Number(res.headers.get('content-length')) > MAX_IMAGE) {
+    ctrl.abort();
+    return new Response('', { status: 413 });
+  }
+  const parts = [];
+  let size = 0;
+  try {
+    const reader = res.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.length;
+      if (size > MAX_IMAGE) {
+        ctrl.abort();
+        return new Response('', { status: 413 });
+      }
+      parts.push(Buffer.from(value));
+    }
+  } catch {
+    return new Response('', { status: 502 });
+  }
+  const buf = Buffer.concat(parts);
   const type = sniff(buf);
-  // (csak valódi, nem túl nagy képet mentünk – egy hibaoldal vagy óriásfájl ne kerüljön a tárba)
-  if (type && buf.length <= MAX_IMAGE) save(file, buf);
+  // (csak valódi képet mentünk – egy hibaoldal ne kerüljön a tárba; ürítés közben indult letöltés sem)
+  if (type && g === gen) save(file, buf);
   return respond(buf, type || res.headers.get('content-type'));
 }
 
