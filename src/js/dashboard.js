@@ -1040,8 +1040,9 @@ export function renderDashboard(view) {
 
   view.innerHTML = `<div class="page dash-page ${editing ? 'editing' : ''}">
     <div class="dash-head"><h1>${
-      // (az alapértelmezett „Én” nevű profilnál név nélkül – a „Szép napot, Én!” furcsa)
-      p.name && p.name !== _t('Én') ? `${esc(greeting())}, ${esc(p.name)}!` : `${esc(greeting())}!`
+      // (az alapértelmezett „Én” nevű profilnál név nélkül – a „Szép napot, Én!” furcsa; a tárolt név
+      // a létrehozáskori nyelven van, ezért a magyar alakot is figyeljük)
+      p.name && p.name !== 'Én' && p.name !== _t('Én') ? `${esc(greeting())}, ${esc(p.name)}!` : `${esc(greeting())}!`
     }</h1><span class="muted">${esc(fmtDay(d))}</span>
       ${canRemote && !editing ? `<button class="btn small dash-rc-btn" data-dash-rc title="${_t('Telefon csatlakoztatása távirányítóként (QR-kód)')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H8a3 3 0 0 0-3 3v16a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V4a3 3 0 0 0-3-3Zm1 19a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16Zm-5-3a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Z"/></svg>${_t('Távirányító')}</button>` : ''}
       <button class="btn small dash-edit-btn" data-ed="toggle">${editing ? `${_t('{check} Kész', { check: ICON.check })}` : _t('Testreszabás')}</button></div>

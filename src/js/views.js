@@ -63,7 +63,7 @@ function availability(c) {
 
 /**
  * Stabil rendezés elérhetőség szerint (a nem elérhetők a végére); egy fokozaton belül a sorrend marad.
- * top: a legmagasabb figyelembe vett fokozat (2: a működő és a nem ellenőrzött egyenrangú).
+ * top: a legmagasabb figyelembe vett fokozat (1: csak a nem elérhetők kerülnek hátra, a többi sorrendje marad).
  */
 function byAvailability(list, top = 3) {
   return list
@@ -361,11 +361,23 @@ export function renderFavorites(view) {
   // A hosszú nyomás itt nem nyitja meg az adatlapot (az ⓘ gombbal érhető el).
   let touch = null;
   let touchDone = 0;
+  // (a húzást indító ujj; ha egy második ujj is a képernyőre kerül, a húzás megszakad)
+  const ownTouch = (list) => [...list].find((t) => t.identifier === touch?.id);
+  /** Húzás megszakítása áthelyezés nélkül. */
+  const cancelTouch = () => {
+    if (!touch) return;
+    clearTimeout(touch.timer);
+    if (touch.on) touchDone = Date.now();
+    touch.card.classList.remove('dragging');
+    touch.over?.classList.remove('drop-target');
+    touch = null;
+  };
   grid.addEventListener('touchstart', (e) => {
+    if (touch) return cancelTouch(); // második ujj
     const card = e.target.closest('.card');
     if (!card || e.touches.length !== 1) return;
-    const t = e.touches[0];
-    touch = { card, x: t.clientX, y: t.clientY, on: false, over: null };
+    const t = e.changedTouches[0];
+    touch = { card, id: t.identifier, x: t.clientX, y: t.clientY, on: false, over: null };
     touch.timer = setTimeout(() => {
       if (!touch) return;
       touch.on = true;
@@ -375,13 +387,20 @@ export function renderFavorites(view) {
   }, { passive: true });
   grid.addEventListener('touchmove', (e) => {
     if (!touch) return;
-    const t = e.touches[0];
+    if (e.touches.length > 1) return cancelTouch();
+    const t = ownTouch(e.touches);
+    if (!t) return;
     if (!touch.on) {
       // (a hosszú nyomás előtti elmozdulás görgetés)
       if (Math.hypot(t.clientX - touch.x, t.clientY - touch.y) > 10) (clearTimeout(touch.timer), (touch = null));
       return;
     }
     e.preventDefault();
+    // (ha a lista közben újrarajzolódott, a jelölés az új kártyára kerül)
+    if (!touch.card.isConnected) {
+      const now = document.querySelector(`.fav-grid .card[data-id="${CSS.escape(touch.card.dataset.id)}"]`);
+      if (now) (touch.card = now).classList.add('dragging');
+    }
     const hit = document.elementFromPoint(t.clientX, t.clientY)?.closest('.fav-grid .card');
     const over = hit && hit !== touch.card ? hit : null;
     if (over !== touch.over) {
@@ -391,7 +410,9 @@ export function renderFavorites(view) {
     }
   }, { passive: false });
   const endTouch = (e) => {
-    if (!touch) return;
+    // (csak a húzást indító ujj felengedése, és csak ha más ujj nincs a képernyőn)
+    if (!touch || !ownTouch(e.changedTouches)) return;
+    if (e.touches.length) return cancelTouch();
     clearTimeout(touch.timer);
     const { on, card, over } = touch;
     touch = null;
@@ -408,7 +429,7 @@ export function renderFavorites(view) {
     toast(`${_t('{x}: {x2}. hely', { x: catalog.byId.get(id)?.name || '', x2: j + 1 })}`);
   };
   grid.addEventListener('touchend', endTouch);
-  grid.addEventListener('touchcancel', endTouch);
+  grid.addEventListener('touchcancel', cancelTouch); // (a rendszer szakította meg: nincs áthelyezés)
   grid.addEventListener('contextmenu', (e) => {
     if (touch?.on || Date.now() - touchDone < 800) (e.preventDefault(), e.stopPropagation());
   }, true);
@@ -445,7 +466,7 @@ export function renderSearch(view, params) {
     return;
   }
   // (a találati sorrendben, de a nem elérhetők – offline, adásszünet, földrajzi korlát – a végén)
-  const chans = byAvailability(search(q), 2);
+  const chans = byAvailability(search(q), 1);
   const vis = new Set(visible().map((c) => c.id));
   const progs = homeFirst(
     epg.searchPrograms(tokens).filter((x) => vis.has(x.channelId)),
