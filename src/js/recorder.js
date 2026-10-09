@@ -14,6 +14,7 @@ import { programExtras, confirmDialog, ICON, emptyState, tvTabs } from './compon
 import { playVod, pathToUrl } from './vod.js';
 import { allowOutsidePlayback } from './watchtime.js';
 
+import { _t, LOCALE } from './i18n.js';
 export const canRecord = !!api.recStart;
 const active = new Map(); // felvétel-azonosító → { chId, title, file, sched }
 const schedule = () => (store.settings.recSchedule ||= []);
@@ -26,10 +27,10 @@ export const recordingOf = (chId) => [...active.entries()].find(([, r]) => r.chI
 
 async function startRec(ch, { title, until = 0, sched = null, progStart = 0, progStop = 0 } = {}) {
   const stream = player.channel?.id === ch.id && player.stream ? player.stream : orderedStreams(ch)[0];
-  if (!stream) throw new Error('A csatornának nincs forrása.');
+  if (!stream) throw new Error(_t('A csatornának nincs forrása.'));
   await api.setStreamHeaders?.(stream.url, { ua: stream.ua, referrer: stream.referrer });
   const d = new Date();
-  const name = `${ch.name} – ${title || 'felvétel'} – ${d.toISOString().slice(0, 10)} ${String(d.getHours()).padStart(2, '0')}.${String(d.getMinutes()).padStart(2, '0')}`;
+  const name = `${ch.name} – ${title || _t('felvétel')} – ${d.toISOString().slice(0, 10)} ${String(d.getHours()).padStart(2, '0')}.${String(d.getMinutes()).padStart(2, '0')}`;
   const r = await api.recStart({ url: stream.url, name, until });
   active.set(r.id, { chId: ch.id, title: title || ch.name, file: r.file, sched });
   // A felvételek oldalához és a vágóhoz: csatorna, műsor, a felvétel kezdete és a műsor tervezett ideje
@@ -51,14 +52,14 @@ export async function toggleRecording() {
   const id = recordingOf(ch.id);
   if (id) {
     await api.recStop(id);
-    toast('Felvétel leállítva');
+    toast(_t('Felvétel leállítva'));
   } else {
     try {
       const cur = epg.now(ch.id, Date.now())?.cur;
-      await startRec(ch, { title: cur?.title || 'élő adás', progStart: cur?.start, progStop: cur?.stop });
-      toast(`Felvétel: ${ch.name} – a TV → Felvételek alatt találod`);
+      await startRec(ch, { title: cur?.title || _t('élő adás'), progStart: cur?.start, progStop: cur?.stop });
+      toast(`${_t('Felvétel: {name} – a TV → Felvételek alatt találod', { name: ch.name })}`);
     } catch (err) {
-      toast('A felvétel nem indult el: ' + (err.message || err));
+      toast(`${_t('A felvétel nem indult el:')} ` + (err.message || err));
     }
   }
   player.renderControls();
@@ -73,11 +74,11 @@ function startScheduled(s) {
   startRec(ch, { title: s.title, until: s.stop + recPost() * 60e3, sched: s.id, progStart: s.start, progStop: s.stop })
     .then((id) => {
       s.startedId = id;
-      toast(`Ütemezett felvétel elindult: ${s.title} (${ch.name})`);
+      toast(`${_t('Ütemezett felvétel elindult: {title} ({name})', { title: s.title, name: ch.name })}`);
     })
     .catch((err) => {
       s.startedId = null;
-      toast(`Az ütemezett felvétel nem indult el (${s.title}): ${err.message || err}`);
+      toast(`${_t('Az ütemezett felvétel nem indult el ({title}): {x}', { title: s.title, x: err.message || err })}`);
     });
 }
 
@@ -106,7 +107,7 @@ export function scheduleRec(ch, p) {
     list.splice(i, 1);
     store.save();
     syncSchedule();
-    toast('Ütemezett felvétel törölve');
+    toast(_t('Ütemezett felvétel törölve'));
     return false;
   }
   list.push({ id: `${ch.id}|${p.start}`, chId: ch.id, title: p.title, start: p.start, stop: p.stop });
@@ -115,7 +116,7 @@ export function scheduleRec(ch, p) {
   syncSchedule();
   const pre = recPre();
   const post = recPost();
-  toast(`Felvétel ütemezve: ${p.title} (${fmtDay(p.start)} ${fmtTime(p.start - pre * 60e3)}–${fmtTime(p.stop + post * 60e3)}, ${pre} / ${post} perc ráhagyással) – az Adás fusson ekkor (a tálcán is jó)`, { timeout: 7000 });
+  toast(`${_t('Felvétel ütemezve: {title} ({fmtDay} {fmtTime}–{fmtTime2}, {pre} / {post} perc ráhagyással) – az Adás fusson ekkor (a tálcán is jó)', { title: p.title, fmtDay: fmtDay(p.start), fmtTime: fmtTime(p.start - pre * 60e3), fmtTime2: fmtTime(p.stop + post * 60e3), pre, post })}`, { timeout: 7000 });
   tick();
   return true;
 }
@@ -139,15 +140,15 @@ if (canRecord) {
       store.settings.recSchedule = schedule().filter((s) => s.id !== r.sched);
       store.save();
     }
-    const gaps = x.restarts ? ` · ${x.restarts}× megszakadt, folytatva` : '';
-    if (x.error) toast(`A felvétel megszakadt (${r?.title || ''}): ${x.error}`, { timeout: 9000 });
-    else toast(`Felvétel kész: ${r?.title || ''} (${fmtSize(x.size || 0)}${gaps})`, { timeout: 7000 });
+    const gaps = x.restarts ? ` ${_t('· {restarts}× megszakadt, folytatva', { restarts: x.restarts })}` : '';
+    if (x.error) toast(`${_t('A felvétel megszakadt ({x}): {error}', { x: r?.title || '', error: x.error })}`, { timeout: 9000 });
+    else toast(`${_t('Felvétel kész: {x} ({fmtSize}{gaps})', { x: r?.title || '', fmtSize: fmtSize(x.size || 0), gaps })}`, { timeout: 7000 });
     if (player.active && player.channel && !player.channel.vod) player.renderControls();
     bus.emit('rec');
   });
   // A műsor-adatlapon: felvétel ütemezése (jövőbeli vagy most futó műsorra)
   programExtras.push({
-    html: (ch, p) => (p.stop > Date.now() ? `<button class="btn ${isScheduled(ch.id, p.start) ? 'on' : ''}" data-a="rec">● ${isScheduled(ch.id, p.start) ? 'Felvétel törlése' : 'Felvétel'}</button>` : ''),
+    html: (ch, p) => (p.stop > Date.now() ? `<button class="btn ${isScheduled(ch.id, p.start) ? 'on' : ''}" data-a="rec">● ${isScheduled(ch.id, p.start) ? _t('Felvétel törlése') : _t('Felvétel')}</button>` : ''),
     run(a, ch, p) {
       if (a !== 'rec') return false;
       scheduleRec(ch, p);
@@ -184,7 +185,7 @@ const recItem = (f, info = recInfo(f)) => ({
   urls: [pathToUrl(f.path)],
   poster: info.logo,
   groups: [],
-  lists: ['Felvételek'],
+  lists: [_t('Felvételek')],
   episodes: [],
   year: '',
   duration: 0,
@@ -216,39 +217,39 @@ export async function openTrimEditor(f, onDone) {
   const info = recInfo(f);
   const meta = store.settings.recMeta?.[f.path] || {};
   const src = await api.recOriginal(f.path);
-  if (!src) return toast('A felvétel nem található.');
+  if (!src) return toast(_t('A felvétel nem található.'));
   const url = pathToUrl(src.source);
   const el = document.createElement('div');
   el.className = 'dialog trim-ed';
-  el.innerHTML = `<h2>✂ Felvétel vágása</h2>
-    <p class="muted small">${esc(info.title)}${info.chName ? ' · ' + esc(info.chName) : ''}${src.trimmed ? ' · már vágva – az eredetiből vágsz újra' : ''}</p>
-    <div class="tr-video"><video playsinline></video><div class="tr-wait"><div class="spinner"></div><p class="muted small">A felvétel betöltése…</p></div></div>
+  el.innerHTML = `<h2>${_t('✂ Felvétel vágása')}</h2>
+    <p class="muted small">${esc(info.title)}${info.chName ? ' · ' + esc(info.chName) : ''}${src.trimmed ? ` ${_t('· már vágva – az eredetiből vágsz újra')}` : ''}</p>
+    <div class="tr-video"><video playsinline></video><div class="tr-wait"><div class="spinner"></div><p class="muted small">${_t('A felvétel betöltése…')}</p></div></div>
     <div class="tr-line">
       <div class="tr-bar"><div class="tr-sel"></div><div class="tr-marks"></div></div>
-      <input type="range" class="tr-pos" min="0" max="1" step="0.1" value="0" aria-label="Lejátszási pozíció" />
+      <input type="range" class="tr-pos" min="0" max="1" step="0.1" value="0" aria-label="${_t('Lejátszási pozíció')}" />
     </div>
     <div class="tr-row tr-play">
       <span class="tr-now">0:00</span>
-      <button class="btn small" data-tr="-60" title="1 perccel vissza">−1′</button>
-      <button class="btn small" data-tr="-10" title="10 mp vissza">−10″</button>
-      <button class="btn small" data-tr="-1" title="1 mp vissza">−1″</button>
-      <button class="btn small primary" data-tr="play" title="Lejátszás / szünet (szóköz)">▶ / ❚❚</button>
-      <button class="btn small" data-tr="1" title="1 mp előre">+1″</button>
-      <button class="btn small" data-tr="10" title="10 mp előre">+10″</button>
-      <button class="btn small" data-tr="60" title="1 perccel előre">+1′</button>
+      <button class="btn small" data-tr="-60" title="${_t('1 perccel vissza')}">−1′</button>
+      <button class="btn small" data-tr="-10" title="${_t('10 mp vissza')}">−10″</button>
+      <button class="btn small" data-tr="-1" title="${_t('1 mp vissza')}">−1″</button>
+      <button class="btn small primary" data-tr="play" title="${_t('Lejátszás / szünet (szóköz)')}">▶ / ❚❚</button>
+      <button class="btn small" data-tr="1" title="${_t('1 mp előre')}">+1″</button>
+      <button class="btn small" data-tr="10" title="${_t('10 mp előre')}">+10″</button>
+      <button class="btn small" data-tr="60" title="${_t('1 perccel előre')}">+1′</button>
       <span class="tr-dur muted">/ 0:00</span>
     </div>
     <div class="tr-points">
-      <div class="tr-pt"><b>Kezdet</b><input class="input tr-in" value="0:00" aria-label="Kezdet (perc:mp)" /><button class="btn small" data-tr="set-in">⇤ Kezdet ide</button><button class="btn small" data-tr="go-in" title="Odaugrás">▶</button></div>
-      <div class="tr-pt"><b>Vége</b><input class="input tr-out" value="0:00" aria-label="Vége (perc:mp)" /><button class="btn small" data-tr="set-out">Vége ide ⇥</button><button class="btn small" data-tr="go-out" title="Odaugrás (a vége előtt 5 mp-cel)">▶</button></div>
+      <div class="tr-pt">${_t('<b>Kezdet</b>')}<input class="input tr-in" value="0:00" aria-label="${_t('Kezdet (perc:mp)')}" /><button class="btn small" data-tr="set-in">${_t('⇤ Kezdet ide')}</button><button class="btn small" data-tr="go-in" title="${_t('Odaugrás')}">▶</button></div>
+      <div class="tr-pt">${_t('<b>Vége</b>')}<input class="input tr-out" value="0:00" aria-label="${_t('Vége (perc:mp)')}" /><button class="btn small" data-tr="set-out">${_t('Vége ide ⇥')}</button><button class="btn small" data-tr="go-out" title="${_t('Odaugrás (a vége előtt 5 mp-cel)')}">▶</button></div>
     </div>
     <p class="muted small tr-len"></p>
     <div class="tr-epg"></div>
     <div class="dialog-btns tr-foot">
-      ${src.trimmed ? '<button class="btn" data-tr="restore" title="A vágás elvetése: az eredeti teljes felvétel lesz újra a helyén">Eredeti visszaállítása</button>' : ''}
+      ${src.trimmed ? `<button class="btn" data-tr="restore" title="${_t('A vágás elvetése: az eredeti teljes felvétel lesz újra a helyén')}">${_t('Eredeti visszaállítása')}</button>` : ''}
       <span class="grow"></span>
-      <button class="btn" data-tr="cancel">Mégse</button>
-      <button class="btn primary" data-tr="save">✂ Vágás és mentés</button>
+      <button class="btn" data-tr="cancel">${_t('Mégse')}</button>
+      <button class="btn primary" data-tr="save">${_t('✂ Vágás és mentés')}</button>
     </div>`;
   const video = el.querySelector('video');
   let bridge = null;
@@ -280,7 +281,7 @@ export async function openTrimEditor(f, onDone) {
     $('.tr-sel').style.width = (Math.max(0, tout - tin) / dur) * 100 + '%';
     $('.tr-in').value = clock(tin);
     $('.tr-out').value = clock(tout);
-    $('.tr-len').textContent = `A vágott felvétel hossza: ${clock(tout - tin)} (az eredeti: ${clock(dur)}). A kezdet a legközelebbi előző kulcskockára esik – néhány tized másodperc eltérés lehet.`;
+    $('.tr-len').textContent = `${_t('A vágott felvétel hossza: {clock} (az eredeti: {clock2}). A kezdet a legközelebbi előző kulcskockára esik – néhány tized másodperc eltérés lehet.', { clock: clock(tout - tin), clock2: clock(dur) })}`;
   };
   const tick = () => {
     if (!dur) return;
@@ -299,12 +300,12 @@ export async function openTrimEditor(f, onDone) {
     tout = saved ? Math.min(dur, saved.end) : dur;
     $('.tr-dur').textContent = '/ ' + clock(dur);
     const marks = [];
-    if (epgIn > 0 && epgIn < dur) marks.push(`<i class="tr-mark" style="left:${(epgIn / dur) * 100}%" title="Műsor kezdete a műsorújság szerint"></i>`);
-    if (epgOut > 0 && epgOut < dur) marks.push(`<i class="tr-mark" style="left:${(epgOut / dur) * 100}%" title="Műsor vége a műsorújság szerint"></i>`);
+    if (epgIn > 0 && epgIn < dur) marks.push(`<i class="tr-mark" style="left:${(epgIn / dur) * 100}%" title="${_t('Műsor kezdete a műsorújság szerint')}"></i>`);
+    if (epgOut > 0 && epgOut < dur) marks.push(`<i class="tr-mark" style="left:${(epgOut / dur) * 100}%" title="${_t('Műsor vége a műsorújság szerint')}"></i>`);
     $('.tr-marks').innerHTML = marks.join('');
     if ((epgIn > 0 && epgIn < dur) || (epgOut > 0 && epgOut < dur))
-      $('.tr-epg').innerHTML = `<p class="small">📅 A műsorújság szerint a műsor ${epgIn > 0 && epgIn < dur ? `<b>${clock(epgIn)}</b>-nál kezdődik` : ''}${epgIn > 0 && epgOut > 0 && epgOut < dur ? ' és ' : ''}${epgOut > 0 && epgOut < dur ? `<b>${clock(epgOut)}</b>-nál ér véget` : ''} (a sárga jelek). A tévé gyakran csúszik – nézd meg az előnézetben.
-        <button class="btn small" data-tr="epg">Kijelölés a műsorújság szerint</button></p>`;
+      $('.tr-epg').innerHTML = `<p class="small">${epgIn > 0 && epgIn < dur && epgOut > 0 && epgOut < dur ? _t('📅 A műsorújság szerint a műsor <b>{start}</b>-nál kezdődik és <b>{end}</b>-nál ér véget (a sárga jelek). A tévé gyakran csúszik – nézd meg az előnézetben.', { start: clock(epgIn), end: clock(epgOut) }) : epgIn > 0 && epgIn < dur ? _t('📅 A műsorújság szerint a műsor <b>{start}</b>-nál kezdődik (sárga jel). A tévé gyakran csúszik – nézd meg az előnézetben.', { start: clock(epgIn) }) : _t('📅 A műsorújság szerint a műsor <b>{end}</b>-nál ér véget (sárga jel). A tévé gyakran csúszik – nézd meg az előnézetben.', { end: clock(epgOut) })}
+        <button class="btn small" data-tr="epg">${_t('Kijelölés a műsorújság szerint')}</button></p>`;
     draw();
   };
   el.addEventListener('click', async (e) => {
@@ -324,7 +325,7 @@ export async function openTrimEditor(f, onDone) {
       seek(tin);
     } else if (a === 'cancel') close();
     else if (a === 'restore') {
-      if (!(await confirmDialog('Visszaállítod az eredeti, vágatlan felvételt? (A mostani vágott változat törlődik.)', { ok: 'Visszaállítás' }))) return;
+      if (!(await confirmDialog(_t('Visszaállítod az eredeti, vágatlan felvételt? (A mostani vágott változat törlődik.)'), { ok: _t('Visszaállítás') }))) return;
       // az előnézet az eredetit olvassa – Windowson nyitott fájl nem nevezhető át
       bridge?.destroy();
       bridge = null;
@@ -332,23 +333,23 @@ export async function openTrimEditor(f, onDone) {
       try {
         ok = await api.recRestore(f.path);
       } catch (err) {
-        toast('A visszaállítás nem sikerült: ' + (err.message || err), { timeout: 9000 });
+        toast(`${_t('A visszaállítás nem sikerült:')} ` + (err.message || err), { timeout: 9000 });
         return close();
       }
       if (!ok) {
-        toast('A visszaállítás nem sikerült: nincs meg az eredeti felvétel.', { timeout: 9000 });
+        toast(_t('A visszaállítás nem sikerült: nincs meg az eredeti felvétel.'), { timeout: 9000 });
         return close();
       }
       forgetProbe(pathToUrl(f.path));
       delete meta.trim;
       store.save();
-      toast('Az eredeti felvétel visszaállítva');
+      toast(_t('Az eredeti felvétel visszaállítva'));
       close();
       onDone?.();
     } else if (a === 'save') {
-      if (!(tout - tin >= 1)) return toast('Jelölj ki legalább 1 másodpercet.');
+      if (!(tout - tin >= 1)) return toast(_t('Jelölj ki legalább 1 másodpercet.'));
       b.disabled = true;
-      b.textContent = 'Vágás…';
+      b.textContent = _t('Vágás…');
       try {
         bridge?.destroy();
         bridge = null;
@@ -357,13 +358,13 @@ export async function openTrimEditor(f, onDone) {
         (store.settings.recMeta ||= {})[f.path] = { ...meta, trim: { start: tin, end: tout } };
         if (store.profile.vodProgress) delete store.profile.vodProgress['rec:' + f.path]; // a régi folytatási pont már nem érvényes
         store.save();
-        toast(`Kész: a vágott felvétel ${clock(tout - tin)} hosszú. Az eredeti megmaradt – bármikor újravághatod.`, { timeout: 7000 });
+        toast(`${_t('Kész: a vágott felvétel {clock} hosszú. Az eredeti megmaradt – bármikor újravághatod.', { clock: clock(tout - tin) })}`, { timeout: 7000 });
         close();
         onDone?.();
       } catch (err) {
-        toast('A vágás nem sikerült: ' + (err.message || err), { timeout: 9000 });
+        toast(`${_t('A vágás nem sikerült:')} ` + (err.message || err), { timeout: 9000 });
         b.disabled = false;
-        b.textContent = '✂ Vágás és mentés';
+        b.textContent = _t('✂ Vágás és mentés');
       }
     }
   });
@@ -386,9 +387,9 @@ export async function openTrimEditor(f, onDone) {
   // Előnézet a lejátszási hídon (a .ts-t a böngésző magától nem játssza)
   try {
     const pinfo = await probeMedia(url);
-    if (!pinfo || pinfo.error || !(pinfo.duration > 0)) throw new Error(pinfo?.error || 'a fájl hossza nem állapítható meg');
+    if (!pinfo || pinfo.error || !(pinfo.duration > 0)) throw new Error(pinfo?.error || _t('a fájl hossza nem állapítható meg'));
     if (!el.isConnected) return;
-    bridge = new MediaBridge(video, url, pinfo, { onFail: (err) => toast('Az előnézet nem indult: ' + (err.message || err)) });
+    bridge = new MediaBridge(video, url, pinfo, { onFail: (err) => toast(`${_t('Az előnézet nem indult:')} ` + (err.message || err)) });
     await bridge.open();
     // az első adat érkezése: ettől számítjuk az időt (a felvétel ideje nem nulláról indul)
     await new Promise((r) => {
@@ -400,7 +401,7 @@ export async function openTrimEditor(f, onDone) {
     ready(pinfo.duration);
     seek(tin);
   } catch (err) {
-    $('.tr-wait').innerHTML = `<p class="warn small">Az előnézet nem tölthető be (${esc(err.message || err)}). Az időpontokat így is megadhatod.</p>`;
+    $('.tr-wait').innerHTML = `<p class="warn small">${_t('Az előnézet nem tölthető be ({esc}). Az időpontokat így is megadhatod.', { esc: esc(err.message || err) })}</p>`;
     const d = Number((await probeMedia(url))?.duration) || 0;
     if (d) ready(d);
   }
@@ -411,7 +412,7 @@ export async function openTrimEditor(f, onDone) {
 // ---------------------------------------------------------------------------
 export async function renderRecordingsPage(view) {
   if (!canRecord) {
-    view.innerHTML = `<div class="page">${tvTabs('rec')}<p class="muted">Felvenni és a felvételeket lejátszani az asztali alkalmazásban lehet.</p></div>`;
+    view.innerHTML = `<div class="page">${tvTabs('rec')}<p class="muted">${_t('Felvenni és a felvételeket lejátszani az asztali alkalmazásban lehet.')}</p></div>`;
     return;
   }
   view.innerHTML = `<div class="page recs">${tvTabs('rec')}<div class="empty-state"><div class="spinner"></div></div></div>`;
@@ -422,25 +423,20 @@ export async function renderRecordingsPage(view) {
     const prog = store.profile.vodProgress || {};
     const done = files.filter((f) => !f.active);
     view.innerHTML = `<div class="page recs">${tvTabs('rec')}
-      <div class="page-head"><h1>Felvételek</h1><span class="muted">${done.length} felvétel</span>
-        <span class="grow"></span><button class="btn small" data-r-folder>Mappa megnyitása</button> <button class="help-link" data-help="recording" title="Súgó">?</button></div>
-      <p class="muted small">Az élő adás a lejátszó <b>●</b> gombjával vehető fel, vagy a műsorújságban egy műsor adatlapján a <b>Felvétel</b> gombbal ütemezhető. Hely: <code>${esc(dir)}</code></p>
-      ${
-        active.size
-          ? `<h2 class="section-title">Most rögzít</h2><ul class="src-list">${[...active.entries()]
-              .map(([id, r]) => `<li><span class="rec-dot"></span><span><b>${esc(r.title)}</b><small>${esc(catalog.byId.get(r.chId)?.name || '')}</small></span><button class="btn small danger" data-r-stop="${esc(id)}">Leállítás</button></li>`)
+      <div class="page-head"><h1>${_t('Felvételek')}</h1><span class="muted">${_t('{length} felvétel', { length: done.length })}</span>
+        <span class="grow"></span><button class="btn small" data-r-folder>${_t('Mappa megnyitása')}</button> <button class="help-link" data-help="recording" title="${_t('Súgó')}">?</button></div>
+      <p class="muted small">${_t('Az élő adás a lejátszó <b>●</b> gombjával vehető fel, vagy a műsorújságban egy műsor adatlapján a <b>Felvétel</b> gombbal ütemezhető. Hely: <code>{esc}</code>', { esc: esc(dir) })}</p>
+      ${active.size
+          ? `<h2 class="section-title">${_t('Most rögzít')}</h2><ul class="src-list">${[...active.entries()]
+              .map(([id, r]) => `<li><span class="rec-dot"></span><span><b>${esc(r.title)}</b><small>${esc(catalog.byId.get(r.chId)?.name || '')}</small></span><button class="btn small danger" data-r-stop="${esc(id)}">${_t('Leállítás')}</button></li>`)
               .join('')}</ul>`
-          : ''
-      }
-      ${
-        sch.length
-          ? `<h2 class="section-title">Ütemezve</h2><ul class="src-list">${sch
-              .map((s) => `<li><span><b>${esc(s.title)}</b><small>${esc(catalog.byId.get(s.chId)?.name || s.chId)} · ${esc(fmtDay(s.start))} ${fmtTime(s.start)}–${fmtTime(s.stop)}</small></span><button class="btn small" data-r-cancel="${esc(s.id)}">Törlés</button></li>`)
+          : ''}
+      ${sch.length
+          ? `<h2 class="section-title">${_t('Ütemezve')}</h2><ul class="src-list">${sch
+              .map((s) => `<li><span><b>${esc(s.title)}</b><small>${esc(catalog.byId.get(s.chId)?.name || s.chId)} · ${esc(fmtDay(s.start))} ${fmtTime(s.start)}–${fmtTime(s.stop)}</small></span><button class="btn small" data-r-cancel="${esc(s.id)}">${_t('Törlés')}</button></li>`)
               .join('')}</ul>`
-          : ''
-      }
-      ${
-        done.length
+          : ''}
+      ${done.length
           ? `<div class="rec-grid">${done
               .map((f) => {
                 const i = files.indexOf(f);
@@ -448,24 +444,23 @@ export async function renderRecordingsPage(view) {
                 const pr = prog['rec:' + f.path];
                 const ratio = pr?.d ? Math.min(1, pr.p / pr.d) : 0;
                 return `<article class="rec-card ${pr?.done ? 'done' : ''}">
-                  <button class="rec-thumb" data-r-play="${i}" style="--h:${hashHue(info.chName || info.title)}" aria-label="Lejátszás: ${esc(info.title)}">
+                  <button class="rec-thumb" data-r-play="${i}" style="--h:${hashHue(info.chName || info.title)}" aria-label="${_t('Lejátszás: {esc}', { esc: esc(info.title) })}">
                     ${info.logo ? `<img src="${esc(info.logo)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()" />` : `<span>${esc((info.chName || info.title).slice(0, 2))}</span>`}
                     <i class="rec-play">${ICON.play}</i>
                     ${ratio > 0.01 && !pr?.done ? `<span class="bar"><i style="width:${(ratio * 100).toFixed(1)}%"></i></span>` : ''}
                   </button>
                   <div class="rec-meta"><b title="${esc(info.title)}">${esc(info.title)}</b>
-                    <small>${esc([info.chName, new Date(info.at).toLocaleString('hu-HU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }), fmtSize(f.size)].filter(Boolean).join(' · '))}${pr?.done ? ' · megnézve' : ''}</small></div>
+                    <small>${esc([info.chName, new Date(info.at).toLocaleString(LOCALE, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }), fmtSize(f.size)].filter(Boolean).join(' · '))}${pr?.done ? ` ${_t('· megnézve')}` : ''}</small></div>
                   <div class="rec-btns">
-                    <button class="btn small primary" data-r-play="${i}">${ICON.play} Lejátszás</button>
-                    <button class="btn small" data-r-trim="${i}" title="${f.trimmed ? 'Vágva – újravágás az eredetiből' : 'Vágás: a felvétel elejének / végének levágása'}">✂${f.trimmed ? ' ✓' : ''}</button>
-                    <button class="btn small" data-r-open="${i}" title="VLC, mpv… (a rendszer alapértelmezett lejátszója)">${ICON.external}</button>
-                    <button class="btn small danger" data-r-del="${i}" title="Törlés (a Lomtárba)">✕</button>
+                    <button class="btn small primary" data-r-play="${i}">${_t('{play} Lejátszás', { play: ICON.play })}</button>
+                    <button class="btn small" data-r-trim="${i}" title="${f.trimmed ? _t('Vágva – újravágás az eredetiből') : _t('Vágás: a felvétel elejének / végének levágása')}">✂${f.trimmed ? ' ✓' : ''}</button>
+                    <button class="btn small" data-r-open="${i}" title="${_t('VLC, mpv… (a rendszer alapértelmezett lejátszója)')}">${ICON.external}</button>
+                    <button class="btn small danger" data-r-del="${i}" title="${_t('Törlés (a Lomtárba)')}">✕</button>
                   </div>
                 </article>`;
               })
               .join('')}</div>`
-          : emptyState('Még nincs felvétel', 'Lejátszás közben a ● gombbal veheted fel az adást, vagy a műsorújságban ütemezhetsz felvételt.', '<a class="btn primary" href="#/guide">Műsorújság</a>')
-      }
+          : emptyState(_t('Még nincs felvétel'), _t('Lejátszás közben a ● gombbal veheted fel az adást, vagy a műsorújságban ütemezhetsz felvételt.'), `<a class="btn primary" href="#/guide">${_t('Műsorújság')}</a>`)}
     </div>`;
     view._files = files;
   };
@@ -475,7 +470,7 @@ export async function renderRecordingsPage(view) {
     const files = view._files || [];
     if (t.dataset.rPlay) return playRecording(files[Number(t.dataset.rPlay)]);
     // a szerkesztő előnézete külön videóelemben fut (a nézési idő ott nem számolódik)
-    if (t.dataset.rTrim) return (await allowOutsidePlayback('A vágószerkesztőben')) && openTrimEditor(files[Number(t.dataset.rTrim)], () => setTimeout(draw, 300));
+    if (t.dataset.rTrim) return (await allowOutsidePlayback(_t('A vágószerkesztőben'))) && openTrimEditor(files[Number(t.dataset.rTrim)], () => setTimeout(draw, 300));
     if (!(await recAction(t, files))) return;
     setTimeout(draw, 300);
   };
@@ -497,7 +492,7 @@ async function recAction(t, files) {
     if (err) toast(err);
   } else if (t.dataset.rDel) {
     const f = files[Number(t.dataset.rDel)];
-    if (!(await confirmDialog(`Törlöd ezt a felvételt? ${f.name} (a Lomtárba kerül)`, { ok: 'Törlés', danger: true }))) return false;
+    if (!(await confirmDialog(`${_t('Törlöd ezt a felvételt? {name} (a Lomtárba kerül)', { name: f.name })}`, { ok: _t('Törlés'), danger: true }))) return false;
     await api.recTrash(f.path);
   } else if ('rFolder' in t.dataset) api.recFolder();
   else return false;
@@ -518,38 +513,32 @@ export async function renderRecordings(box) {
   const draw = async () => {
     const { dir, files } = await api.recList();
     const sch = schedule().filter((s) => !s.startedId);
-    box.innerHTML = `<h2>Felvételek <button class="help-link" data-help="recording" title="Súgó">?</button></h2>
-      <p class="muted">Az élő adás a lejátszó <b>●</b> gombjával vehető fel, vagy a műsor-adatlapon (műsorújság) <b>Felvétel</b> gombbal ütemezhető. A felvételek helye: <code>${esc(dir)}</code></p>
-      <label class="setting"><span><b>Ráhagyás a műsor előtt</b><small>Az ütemezett felvétel ennyivel korábban indul (a tévé gyakran csúszik). A fölösleg utólag levágható.</small></span>
-        <select data-set-num="recPre">${[0, 1, 2, 3, 5, 10, 15].map((m) => `<option value="${m}" ${recPre() === m ? 'selected' : ''}>${m ? m + ' perc' : 'nincs'}</option>`).join('')}</select></label>
-      <label class="setting"><span><b>Ráhagyás a műsor után</b><small>Ennyivel később áll le (ha a műsor elhúzódik).</small></span>
-        <select data-set-num="recPost">${[0, 2, 5, 10, 15, 20, 30].map((m) => `<option value="${m}" ${recPost() === m ? 'selected' : ''}>${m ? m + ' perc' : 'nincs'}</option>`).join('')}</select></label>
-      ${
-        active.size
-          ? `<h3>Most rögzít</h3><ul class="src-list">${[...active.entries()]
-              .map(([id, r]) => `<li><span class="rec-dot"></span><span><b>${esc(r.title)}</b><small>${esc(catalog.byId.get(r.chId)?.name || '')}</small></span><button class="btn small danger" data-r-stop="${esc(id)}">Leállítás</button></li>`)
+    box.innerHTML = `<h2>${_t('Felvételek')} <button class="help-link" data-help="recording" title="${_t('Súgó')}">?</button></h2>
+      <p class="muted">${_t('Az élő adás a lejátszó <b>●</b> gombjával vehető fel, vagy a műsor-adatlapon (műsorújság) <b>Felvétel</b> gombbal ütemezhető. A felvételek helye: <code>{esc}</code>', { esc: esc(dir) })}</p>
+      <label class="setting"><span>${_t('<b>Ráhagyás a műsor előtt</b>')}<small>${_t('Az ütemezett felvétel ennyivel korábban indul (a tévé gyakran csúszik). A fölösleg utólag levágható.')}</small></span>
+        <select data-set-num="recPre">${[0, 1, 2, 3, 5, 10, 15].map((m) => `<option value="${m}" ${recPre() === m ? 'selected' : ''}>${m ? m + ` ${_t('perc')}` : _t('nincs')}</option>`).join('')}</select></label>
+      <label class="setting"><span>${_t('<b>Ráhagyás a műsor után</b>')}<small>${_t('Ennyivel később áll le (ha a műsor elhúzódik).')}</small></span>
+        <select data-set-num="recPost">${[0, 2, 5, 10, 15, 20, 30].map((m) => `<option value="${m}" ${recPost() === m ? 'selected' : ''}>${m ? m + ` ${_t('perc')}` : _t('nincs')}</option>`).join('')}</select></label>
+      ${active.size
+          ? `<h3>${_t('Most rögzít')}</h3><ul class="src-list">${[...active.entries()]
+              .map(([id, r]) => `<li><span class="rec-dot"></span><span><b>${esc(r.title)}</b><small>${esc(catalog.byId.get(r.chId)?.name || '')}</small></span><button class="btn small danger" data-r-stop="${esc(id)}">${_t('Leállítás')}</button></li>`)
               .join('')}</ul>`
-          : ''
-      }
-      ${
-        sch.length
-          ? `<h3>Ütemezve</h3><ul class="src-list">${sch
-              .map((s) => `<li><span><b>${esc(s.title)}</b><small>${esc(catalog.byId.get(s.chId)?.name || s.chId)} · ${esc(fmtDay(s.start))} ${fmtTime(s.start)}–${fmtTime(s.stop)}</small></span><button class="btn small" data-r-cancel="${esc(s.id)}">Törlés</button></li>`)
+          : ''}
+      ${sch.length
+          ? `<h3>${_t('Ütemezve')}</h3><ul class="src-list">${sch
+              .map((s) => `<li><span><b>${esc(s.title)}</b><small>${esc(catalog.byId.get(s.chId)?.name || s.chId)} · ${esc(fmtDay(s.start))} ${fmtTime(s.start)}–${fmtTime(s.stop)}</small></span><button class="btn small" data-r-cancel="${esc(s.id)}">${_t('Törlés')}</button></li>`)
               .join('')}</ul>`
-          : ''
-      }
-      <h3>Legutóbbi felvételek</h3>
-      ${
-        files.some((f) => !f.active)
+          : ''}
+      <h3>${_t('Legutóbbi felvételek')}</h3>
+      ${files.some((f) => !f.active)
           ? `<ul class="src-list">${files
               .filter((f) => !f.active)
               .slice(0, 5)
-              .map((f) => `<li><span><b>${esc(recInfo(f).title)}</b><small>${esc(recInfo(f).chName)} · ${new Date(f.mtime).toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' })} · ${fmtSize(f.size)}</small></span>
-                <button class="btn small primary" data-r-play="${files.indexOf(f)}">${ICON.play} Lejátszás</button></li>`)
+              .map((f) => `<li><span><b>${esc(recInfo(f).title)}</b><small>${esc(recInfo(f).chName)} · ${new Date(f.mtime).toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' })} · ${fmtSize(f.size)}</small></span>
+                <button class="btn small primary" data-r-play="${files.indexOf(f)}">${_t('{play} Lejátszás', { play: ICON.play })}</button></li>`)
               .join('')}</ul>`
-          : '<p class="muted small">Még nincs felvétel.</p>'
-      }
-      <div class="inline"><a class="btn small" href="#/recordings">Összes felvétel (TV → Felvételek) ›</a><button class="btn small" data-r-folder>Mappa megnyitása</button></div>`;
+          : `<p class="muted small">${_t('Még nincs felvétel.')}</p>`}
+      <div class="inline"><a class="btn small" href="#/recordings">${_t('Összes felvétel (TV → Felvételek) ›')}</a><button class="btn small" data-r-folder>${_t('Mappa megnyitása')}</button></div>`;
     box._files = files;
   };
   box.onclick = async (e) => {

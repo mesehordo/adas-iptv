@@ -1,4 +1,5 @@
-// A beépített súgó tartalma. A szövegek megbízható, a programmal szállított HTML-részletek.
+// A beépített súgó tartalma (magyar). A szövegek megbízható, a programmal szállított HTML-részletek.
+// A többi nyelv: help/<nyelv>.js – ugyanilyen szerkezetű (azonos id-k és cat-ek), a help.js tölti be.
 
 export const HELP_CATEGORIES = [
   { id: 'start', title: 'Első lépések' },
@@ -1216,7 +1217,7 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
 <h3>Miért nincs csatornaszám egy csatornánál?</h3>
 <p>Csatornaszámot a kedvencek és a hazai ország csatornái kapnak. Jelöld kedvencnek, és a Kedvencek oldalon rendezd a kívánt helyre.</p>
 <h3>Rögzíteni tudok műsort?</h3>
-<p>Nem, a program csak élő adást játszik le.</p>
+<p>Igen, az asztali változatban. ${t('recording', 'Felvétel')}</p>
 <h3>Hol vannak az adataim?</h3>
 <p>${t('privacy', 'Adatok és adatvédelem')}</p>`,
   },
@@ -1486,18 +1487,3 @@ ${go('#/settings?section=update', 'Frissítések')}`,
 <p>A felületstílusok csak ihletet merítenek ismert szolgáltatások és rendszerek kinézetéből; a program nem kapcsolódik hozzájuk, és nem használja a logóikat.</p>`,
   },
 ];
-
-/** Melyik téma tartozik az egyes képernyőkhöz (F1 / ? gomb). */
-export const ROUTE_TOPICS = {
-  home: 'dashboard',
-  recordings: 'recording',
-  tv: 'home',
-  guide: 'guide-grid',
-  browse: 'browse',
-  favorites: 'favorites',
-  search: 'search',
-  settings: 'settings-overview',
-  vod: 'vod',
-  own: 'own',
-  stats: 'stats',
-};

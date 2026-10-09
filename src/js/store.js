@@ -2,24 +2,28 @@
 import { api } from './api.js';
 import { bus, debounce } from './util.js';
 
+import { _t } from './i18n.js';
 export const DEFAULT_PLAYLIST = 'https://iptv-org.github.io/iptv/index.m3u';
+
+/** A forrás megjelenített neve: a beépítetteké mindig a felület nyelvén (a mentett név az első indítás nyelvén van). */
+export const epgSourceName = (src) => BUILTIN_EPG.find((b) => b.url === src.url)?.name || src.name;
 
 /** Beépített műsorújság-források. A nem magyar források alapból ki vannak kapcsolva. */
 export const BUILTIN_EPG = [
-  { url: 'https://iptv-epg.org/files/epg-hu.xml.gz', name: 'Magyarország (iptv-epg.org)', enabled: true },
-  { url: 'https://epgshare01.online/epgshare01/epg_ripper_HU1.xml.gz', name: 'Magyarország (epgshare01)', enabled: true },
-  { url: 'https://epgshare01.online/epgshare01/epg_ripper_SK1.xml.gz', name: 'Szlovákia (epgshare01)', enabled: false },
-  { url: 'https://epgshare01.online/epgshare01/epg_ripper_RO1.xml.gz', name: 'Románia (epgshare01)', enabled: false },
+  { url: 'https://iptv-epg.org/files/epg-hu.xml.gz', name: _t('Magyarország (iptv-epg.org)'), enabled: true },
+  { url: 'https://epgshare01.online/epgshare01/epg_ripper_HU1.xml.gz', name: _t('Magyarország (epgshare01)'), enabled: true },
+  { url: 'https://epgshare01.online/epgshare01/epg_ripper_SK1.xml.gz', name: _t('Szlovákia (epgshare01)'), enabled: false },
+  { url: 'https://epgshare01.online/epgshare01/epg_ripper_RO1.xml.gz', name: _t('Románia (epgshare01)'), enabled: false },
   { url: 'https://iptv-epg.org/files/epg-at.xml.gz', name: 'Ausztria (iptv-epg.org)', enabled: false },
-  { url: 'https://iptv-epg.org/files/epg-de.xml.gz', name: 'Németország (iptv-epg.org)', enabled: false },
-  { url: 'https://iptv-epg.org/files/epg-gb.xml.gz', name: 'Egyesült Királyság (iptv-epg.org)', enabled: false },
-  { url: 'https://iptv-epg.org/files/epg-us.xml.gz', name: 'Egyesült Államok (iptv-epg.org)', enabled: false },
-  { url: 'https://iptv-epg.org/files/epg-fr.xml.gz', name: 'Franciaország (iptv-epg.org)', enabled: false },
-  { url: 'https://iptv-epg.org/files/epg-it.xml.gz', name: 'Olaszország (iptv-epg.org)', enabled: false },
-  { url: 'https://iptv-epg.org/files/epg-es.xml.gz', name: 'Spanyolország (iptv-epg.org)', enabled: false },
-  { url: 'https://i.mjh.nz/PlutoTV/all.xml.gz', name: 'Pluto TV csatornák (i.mjh.nz)', enabled: false },
-  { url: 'https://i.mjh.nz/SamsungTVPlus/all.xml.gz', name: 'Samsung TV Plus csatornák (i.mjh.nz)', enabled: false },
-  { url: 'https://i.mjh.nz/Plex/all.xml.gz', name: 'Plex csatornák (i.mjh.nz)', enabled: false },
+  { url: 'https://iptv-epg.org/files/epg-de.xml.gz', name: _t('Németország (iptv-epg.org)'), enabled: false },
+  { url: 'https://iptv-epg.org/files/epg-gb.xml.gz', name: _t('Egyesült Királyság (iptv-epg.org)'), enabled: false },
+  { url: 'https://iptv-epg.org/files/epg-us.xml.gz', name: _t('Egyesült Államok (iptv-epg.org)'), enabled: false },
+  { url: 'https://iptv-epg.org/files/epg-fr.xml.gz', name: _t('Franciaország (iptv-epg.org)'), enabled: false },
+  { url: 'https://iptv-epg.org/files/epg-it.xml.gz', name: _t('Olaszország (iptv-epg.org)'), enabled: false },
+  { url: 'https://iptv-epg.org/files/epg-es.xml.gz', name: _t('Spanyolország (iptv-epg.org)'), enabled: false },
+  { url: 'https://i.mjh.nz/PlutoTV/all.xml.gz', name: _t('Pluto TV csatornák (i.mjh.nz)'), enabled: false },
+  { url: 'https://i.mjh.nz/SamsungTVPlus/all.xml.gz', name: _t('Samsung TV Plus csatornák (i.mjh.nz)'), enabled: false },
+  { url: 'https://i.mjh.nz/Plex/all.xml.gz', name: _t('Plex csatornák (i.mjh.nz)'), enabled: false },
 ];
 
 /**
@@ -33,52 +37,52 @@ export const BUILTIN_PLAYLISTS = [
     id: 'iptvorg',
     name: 'iptv-org',
     url: DEFAULT_PLAYLIST,
-    desc: 'A világ legnagyobb nyilvános, közösségi csatornagyűjteménye (kb. 10 000 csatorna), részletes csatornaadatokkal.',
+    desc: _t('A világ legnagyobb nyilvános, közösségi csatornagyűjteménye (kb. 10 000 csatorna), részletes csatornaadatokkal.'),
   },
   {
     id: 'iptvanim',
-    name: 'iptv-org – Animáció',
+    name: _t('iptv-org – Animáció'),
     url: 'https://iptv-org.github.io/iptv/categories/animation.m3u',
-    desc: 'Az iptv-org animációs csatornái külön listaként (bekapcsolt iptv-org mellett ezek összevonódnak vele, új csatornát csak akkor adnak, ha az iptv-org ki van kapcsolva).',
+    desc: _t('Az iptv-org animációs csatornái külön listaként (bekapcsolt iptv-org mellett ezek összevonódnak vele, új csatornát csak akkor adnak, ha az iptv-org ki van kapcsolva).'),
   },
   {
     id: 'freetv',
     name: 'Free-TV',
     url: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8',
-    desc: 'Kézzel válogatott, ingyenesen fogható csatornák országonként (kb. 2000 adás).',
+    desc: _t('Kézzel válogatott, ingyenesen fogható csatornák országonként (kb. 2000 adás).'),
   },
   {
     id: 'plutotv',
     regional: true, // ugyanaz a csatorna több ország változatával
     name: 'Pluto TV',
     url: 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/plutotv_all.m3u',
-    desc: 'A Pluto TV ingyenes, reklámmal támogatott csatornái több országból, műsorújsággal.',
+    desc: _t('A Pluto TV ingyenes, reklámmal támogatott csatornái több országból, műsorújsággal.'),
   },
   {
     id: 'samsungtvplus',
     regional: true, // ugyanaz a csatorna több ország változatával
     name: 'Samsung TV Plus',
     url: 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/samsungtvplus_all.m3u',
-    desc: 'A Samsung TV Plus ingyenes csatornái több országból, műsorújsággal.',
+    desc: _t('A Samsung TV Plus ingyenes csatornái több országból, műsorújsággal.'),
   },
   {
     id: 'plex',
     regional: true, // ugyanaz a csatorna több ország változatával
     name: 'Plex',
     url: 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/plex_all.m3u',
-    desc: 'A Plex ingyenes élő csatornái több országból, műsorújsággal.',
+    desc: _t('A Plex ingyenes élő csatornái több országból, műsorújsággal.'),
   },
   {
     id: 'freecast',
     name: 'FreeCast Hub',
     url: 'https://raw.githubusercontent.com/freecasthub/public-iptv/main/playlist.m3u',
-    desc: 'Kis, válogatott nyilvános lista (hírek, zene, sport; kb. 100 adás).',
+    desc: _t('Kis, válogatott nyilvános lista (hírek, zene, sport; kb. 100 adás).'),
   },
   {
     id: 'dragonhall',
     name: 'DragonHall TV',
     url: 'https://tv.dragonhall.hu/live/dragonhall.m3u8',
-    desc: 'Magyar internetes adás (egyetlen csatorna).',
+    desc: _t('Magyar internetes adás (egyetlen csatorna).'),
     stream: true,
     country: 'HU',
     logo: '',
@@ -95,13 +99,13 @@ export const VOD_BUILTIN = [
     id: 'orphaned',
     name: 'Orphaned Films',
     url: 'https://www.orphanedfilms.com/api/tv/playlist.m3u',
-    desc: 'Több mint 1300 film témák szerint csoportosítva, borítóképekkel; többségük közkincs (public domain), az archive.org-ról.',
+    desc: _t('Több mint 1300 film témák szerint csoportosítva, borítóképekkel; többségük közkincs (public domain), az archive.org-ról.'),
   },
   {
     id: 'pdmovies',
-    name: 'Közkincs filmek (OnlineM3U)',
+    name: _t('Közkincs filmek (OnlineM3U)'),
     url: 'https://raw.githubusercontent.com/OnlineM3U/publicdomainm3u/main/movies.m3u',
-    desc: 'Válogatott klasszikus, szerzői jogi védelem alól kikerült filmek műfajok szerint (archive.org).',
+    desc: _t('Válogatott klasszikus, szerzői jogi védelem alól kikerült filmek műfajok szerint (archive.org).'),
   },
 ];
 
@@ -255,8 +259,11 @@ export const store = {
     this.profiles = (Array.isArray(data.profiles) ? data.profiles : [])
       .filter((p) => p && typeof p === 'object')
       .map((p) => cleanProfile({ ...newProfile(p.name, p.color), ...p }));
+    // első indítás (még nincs mentett profil): az első indítás varázslója hozza létre a profilokat –
+    // addig ideiglenes alapprofilok, hogy a betöltés közben is legyen aktív profil
+    this.firstRun = !this.profiles.length;
     if (!this.profiles.length) {
-      this.profiles = [newProfile('Én', PROFILE_COLORS[0]), newProfile('Gyerekek', PROFILE_COLORS[3], true)];
+      this.profiles = [newProfile(_t('Én'), PROFILE_COLORS[0]), newProfile(_t('Gyerekek'), PROFILE_COLORS[3], true)];
     }
     // Profilkép a még képpel nem rendelkező (régebbi) profiloknak; null = betűs avatar.
     this.profiles.forEach((p, i) => {

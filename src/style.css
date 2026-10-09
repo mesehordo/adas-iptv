@@ -388,6 +388,25 @@ select { cursor: pointer; }
 #profiles { position: fixed; inset: 0; z-index: 110; background: var(--bg); display: flex; align-items: center; justify-content: center; overflow: auto; }
 .profiles-inner { display: flex; flex-direction: column; align-items: center; gap: 32px; padding: 40px 16px; text-align: center; }
 .profiles-inner h1 { font-size: clamp(28px, 3.5vw, 52px); font-weight: 500; }
+/* Első indítás varázslója (a profilválasztó helyén) */
+#profiles.onboarding { align-items: flex-start; }
+.ob { width: min(640px, 100%); margin: auto; display: flex; flex-direction: column; align-items: stretch; gap: 18px; padding: 40px 16px 32px; text-align: center; }
+.ob .brand.big { align-self: center; font-size: clamp(40px, 7vw, 64px); }
+.ob h1 { font-size: clamp(22px, 3vw, 34px); font-weight: 600; margin: 0; }
+.ob p { margin: 0; line-height: 1.45; }
+.ob-langs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.ob-lang { padding: 18px 12px; border-radius: var(--radius); background: var(--bg-3); border: 2px solid transparent; font-size: 1.1rem; color: var(--text-strong); transition: border-color 0.15s, transform 0.15s; }
+.ob-lang:hover, .ob-lang:focus-visible { transform: scale(1.03); }
+.ob-lang.sel { border-color: var(--accent); background: var(--bg-4); }
+.ob-field { display: grid; gap: 6px; text-align: left; font-weight: 600; }
+.ob-field .input { font-size: 1.1rem; }
+.ob .avatar-picker { text-align: left; }
+.ob-next { align-self: center; min-width: 200px; }
+.ob-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.ob-btns .btn.primary { min-width: 160px; }
+.ob-dots { display: flex; gap: 8px; justify-content: center; }
+.ob-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.ob-dots i.on { background: var(--accent); }
 .profile-list { display: flex; flex-wrap: wrap; gap: 2vw; justify-content: center; }
 .profile { display: flex; flex-direction: column; align-items: center; gap: 12px; width: clamp(96px, 10vw, 160px); color: #808080; }
 .profile .avatar { width: 100%; aspect-ratio: 1; font-size: clamp(40px, 4.5vw, 72px); border-radius: 6px; border: 3px solid transparent; transition: border-color 0.15s; }
@@ -690,6 +709,7 @@ mark { background: rgba(255, 213, 74, 0.45); color: inherit; border-radius: 2px;
 .avatar-opt.sel { border-color: var(--text-strong); box-shadow: 0 0 0 2px var(--accent); }
 .avatar-grid:not(.open) .avatar-opt.extra { display: none; }
 .avatar-more { justify-self: start; align-self: start; }
+.avatar-picker { display: grid; gap: 10px; }
 @media (max-width: 560px) { .avatar-grid { grid-template-columns: repeat(5, 1fr); gap: 6px; } }
 
 /* ------------------------------------------------------------------ Főoldal (irányítópult) */

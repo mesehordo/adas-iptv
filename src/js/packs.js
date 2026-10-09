@@ -12,8 +12,9 @@ import { store, VOD_BUILTIN, BUILTIN_PLAYLISTS } from './store.js';
 import { parseM3U } from './catalog.js';
 import { bus, toast } from './util.js';
 
+import { _t } from './i18n.js';
 export const PACK_KINDS = {
-  tv: { setting: 'tvPacks', doc: 'tvpack:', label: 'tévécsatorna-csomag' },
+  tv: { setting: 'tvPacks', doc: 'tvpack:', label: _t('tévécsatorna-csomag') },
   vod: { setting: 'vodPacks', doc: 'vodpack:', label: 'VOD-csomag' },
 };
 export const PACK_EXT = /\.adaspa(c)?k$/i; // (.adaspack, elírva .adaspak is)
@@ -34,22 +35,22 @@ export function parsePack(text, fileName = '') {
   try {
     j = JSON.parse(String(text || '').replace(/^﻿/, ''));
   } catch {
-    return { error: 'nem érvényes JSON' };
+    return { error: _t('nem érvényes JSON') };
   }
-  if (j?.adasPack !== 1) return { error: 'hiányzik az "adasPack": 1 jelölés' };
+  if (j?.adasPack !== 1) return { error: _t('hiányzik az "adasPack": 1 jelölés') };
   const kind = j.kind || kindFromName(fileName) || 'vod';
   // (közvetlen összevetés: pl. a "__proto__" nem csúszhat át az objektum örökölt kulcsaként)
-  if (kind !== 'tv' && kind !== 'vod') return { error: `ismeretlen fajta: "${String(kind).slice(0, 20)}" (tv vagy vod lehet)` };
-  if (!/^[a-z0-9_-]{1,40}$/i.test(j.id || '')) return { error: 'az "id" csak betűt, számot, - és _ jelet tartalmazhat (legfeljebb 40)' };
-  if (typeof j.text !== 'string' || !j.text.trim()) return { error: 'hiányzik a "text" (a lejátszólista szövege)' };
-  if (j.text.length > MAX_TEXT) return { error: 'túl nagy (legfeljebb 60 MB)' };
+  if (kind !== 'tv' && kind !== 'vod') return { error: `${_t('ismeretlen fajta: "{slice}" (tv vagy vod lehet)', { slice: String(kind).slice(0, 20) })}` };
+  if (!/^[a-z0-9_-]{1,40}$/i.test(j.id || '')) return { error: _t('az "id" csak betűt, számot, - és _ jelet tartalmazhat (legfeljebb 40)') };
+  if (typeof j.text !== 'string' || !j.text.trim()) return { error: _t('hiányzik a "text" (a lejátszólista szövege)') };
+  if (j.text.length > MAX_TEXT) return { error: _t('túl nagy (legfeljebb 60 MB)') };
   // beépített listát nem írhat felül
-  if ((kind === 'vod' ? VOD_BUILTIN : BUILTIN_PLAYLISTS).some((b) => b.id === j.id)) return { error: `az "${j.id}" azonosító foglalt (beépített lista)` };
+  if ((kind === 'vod' ? VOD_BUILTIN : BUILTIN_PLAYLISTS).some((b) => b.id === j.id)) return { error: `${_t('az "{id}" azonosító foglalt (beépített lista)', { id: j.id })}` };
   const parsed = parseM3U(j.text).entries.length;
-  if (!parsed) return { error: 'a lejátszólistában nincs lejátszható bejegyzés' };
+  if (!parsed) return { error: _t('a lejátszólistában nincs lejátszható bejegyzés') };
   // minden #EXTINF-hez kell cím (a feldolgozó a cím nélküli bejegyzést csendben elhagyná)
   const extinf = (j.text.match(/^\s*#EXTINF/gim) || []).length;
-  if (parsed < extinf) return { error: `${extinf - parsed} bejegyzésnél hiányzik a cím az #EXTINF sor után` };
+  if (parsed < extinf) return { error: `${_t('{x} bejegyzésnél hiányzik a cím az #EXTINF sor után', { x: extinf - parsed })}` };
   return { kind, id: j.id, name: String(j.name || j.id).slice(0, 80), desc: String(j.desc || '').slice(0, 600), off: !!j.off, text: j.text };
 }
 
@@ -61,7 +62,7 @@ export function packHash(text) {
 }
 
 export async function installPack(pk) {
-  if (!api.docSet) throw new Error('Ezen az eszközön nem tárolható kiegészítő csomag.');
+  if (!api.docSet) throw new Error(_t('Ezen az eszközön nem tárolható kiegészítő csomag.'));
   const k = PACK_KINDS[pk.kind];
   await api.docSet(k.doc + pk.id, { text: pk.text });
   const s = store.settings;
@@ -107,10 +108,10 @@ export async function importPackFiles(files) {
 
 /** Visszajelzés a betöltés eredményéről. */
 function reportImport(res) {
-  for (const b of res.bad) toast(`„${b.file}” nem tölthető be: ${b.error}.`, { timeout: 9000 });
+  for (const b of res.bad) toast(`${_t('„{file}” nem tölthető be: {error}.', { file: b.file, error: b.error })}`, { timeout: 9000 });
   if (res.ok.length) {
-    const where = [...new Set(res.ok.map((x) => (x.kind === 'tv' ? 'Csatornalisták' : 'VOD és médiatár')))].join(' és a ');
-    toast(`Betöltve: ${res.ok.map((x) => `„${x.name}”`).join(', ')}. A ${where} beépített listái között kapcsolhatod be / ki.`, { timeout: 8000 });
+    const where = [...new Set(res.ok.map((x) => (x.kind === 'tv' ? _t('Csatornalisták') : _t('VOD és médiatár'))))].join(' és a ');
+    toast(_t('Betöltve: {names}. A(z) {where} beépített listái között kapcsolhatod be / ki.', { names: res.ok.map((x) => `„${x.name}”`).join(', '), where }), { timeout: 8000 });
   }
   return res;
 }
@@ -120,7 +121,7 @@ export async function pickAndImportPacks() {
   // Androidon és mobilböngészőben a rendszer fájlválasztója az ismeretlen kiterjesztést (.adaspack) gyakran
   // kiszürkíti – ott szűrő nélkül nyílik, a tartalmat úgyis ellenőrizzük.
   const mobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-  const filters = mobile ? [] : [{ name: 'Adás kiegészítő csomag (.adaspack)', extensions: ['adaspack', 'adaspak'] }];
+  const filters = mobile ? [] : [{ name: _t('Adás kiegészítő csomag (.adaspack)'), extensions: ['adaspack', 'adaspak'] }];
   const picked = api.openFiles ? await api.openFiles(filters) : [await api.openFile(filters)].filter(Boolean);
   if (!picked?.length) return null;
   return reportImport(await importPackFiles(picked));
@@ -135,9 +136,9 @@ const rawUrl = (u) => u.replace(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\
  */
 export async function importPackFromUrl(url) {
   url = rawUrl(String(url || '').trim());
-  if (!/^https?:\/\/\S+$/i.test(url)) throw new Error('Adj meg egy http(s):// címet.');
+  if (!/^https?:\/\/\S+$/i.test(url)) throw new Error(_t('Adj meg egy http(s):// címet.'));
   const r = await api.request({ url, headers: { Accept: '*/*' } });
-  if (r.status !== 200) throw new Error(`a cím nem érhető el (HTTP ${r.status})`);
+  if (r.status !== 200) throw new Error(`${_t('a cím nem érhető el (HTTP {status})', { status: r.status })}`);
   const name = decodeURIComponent(new URL(url).pathname.split('/').pop() || 'csomag.adaspack');
   return reportImport(await importPackFiles([{ name, text: r.text }]));
 }
@@ -145,12 +146,12 @@ export async function importPackFromUrl(url) {
 /** Webcím bekérése → betöltés (a beállítások „Betöltés webcímről” gombja). */
 export async function promptImportPackUrl() {
   const { promptDialog } = await import('./components.js');
-  const url = await promptDialog('Az .adaspack (vagy .adaspak) fájl webcíme (pl. GitHub, NAS):', 'https://');
+  const url = await promptDialog(_t('Az .adaspack (vagy .adaspak) fájl webcíme (pl. GitHub, NAS):'), 'https://');
   if (!url || url === 'https://') return null;
   try {
     return await importPackFromUrl(url);
   } catch (err) {
-    toast(`A csomag nem tölthető be: ${err.message || err}`, { timeout: 9000 });
+    toast(`${_t('A csomag nem tölthető be: {x}', { x: err.message || err })}`, { timeout: 9000 });
     return null;
   }
 }
@@ -177,7 +178,7 @@ export async function syncPackFolder() {
       bad.push(`„${f.name}”: ${err.message || err}`);
     }
   }
-  if (bad.length) toast(`A Csomagok mappájában ${bad.length} csomag nem tölthető be – ${bad.slice(0, 3).join('; ')}${bad.length > 3 ? ' …' : ''}`, { timeout: 12000 });
+  if (bad.length) toast(`${_t('A Csomagok mappájában {length} csomag nem tölthető be – {join}', { length: bad.length, join: bad.slice(0, 3).join('; ') })}${bad.length > 3 ? ' …' : ''}`, { timeout: 12000 });
   return n;
 }
 

@@ -6,6 +6,7 @@ import { store } from './store.js';
 import { THEMES, parseThemeFile, registerCustomThemes, applyTheme, currentTheme } from './themes.js';
 import { confirmDialog } from './components.js';
 
+import { _t } from './i18n.js';
 let folderDefs = [];
 let folderInfo = { dir: '', errors: [] };
 
@@ -59,7 +60,7 @@ export async function loadCustomThemes() {
 /** Téma-fájl feltöltése (a beállításokba kerül – így a szinkron / mentés is viszi). */
 async function uploadTheme() {
   let f = null;
-  if (api.openFile) f = await api.openFile([{ name: 'Adás téma', extensions: ['adastheme', 'json'] }]);
+  if (api.openFile) f = await api.openFile([{ name: _t('Adás téma'), extensions: ['adastheme', 'json'] }]);
   else {
     f = await new Promise((resolve) => {
       const input = document.createElement('input');
@@ -91,8 +92,8 @@ export function themeTemplate(baseId = currentTheme()) {
     {
       adasTheme: 1,
       id: 'sajat-tema',
-      name: 'Saját téma',
-      description: 'Rövid leírás: milyen hangulatú, mire hasonlít.',
+      name: _t('Saját téma'),
+      description: _t('Rövid leírás: milyen hangulatú, mire hasonlít.'),
       author: store.profile?.name || '',
       tone: document.body.dataset.tone === 'light' ? 'light' : 'dark',
       base: base || '',
@@ -101,7 +102,7 @@ export function themeTemplate(baseId = currentTheme()) {
       radius: v('--radius') || '6px',
       background: '',
       preview: [v('--bg'), v('--accent'), v('--bg-3')],
-      css: '/* Díszítés ide: pl. & .dcard { border: 2px solid var(--accent); } */',
+      css: _t('/* Díszítés ide: pl. & .dcard { border: 2px solid var(--accent); } */'),
     },
     null,
     2
@@ -112,24 +113,22 @@ export function themeTemplate(baseId = currentTheme()) {
 export function renderThemeTools(box, onChange) {
   const draw = () => {
     const defs = allDefs();
-    box.innerHTML = `<h3>Saját témák <button class="help-link" data-help="custom-theme" title="Súgó: saját téma készítése">?</button></h3>
-      <p class="muted small">Téma-fájl (.adastheme vagy .json) feltöltésével, ${api.themeDirRead ? 'vagy a téma-mappába másolva' : ''} saját kinézetet adhatsz az alkalmazásnak. A témák csak a kinézetet változtatják (színek, betűk, keretek, minták), az elrendezést nem. Leírás és minta: a ? gomb.</p>
-      ${
-        defs.length
+    box.innerHTML = `<h3>${_t('Saját témák')} <button class="help-link" data-help="custom-theme" title="${_t('Súgó: saját téma készítése')}">?</button></h3>
+      <p class="muted small">${_t('Téma-fájl (.adastheme vagy .json) feltöltésével,')} ${api.themeDirRead ? _t('vagy a téma-mappába másolva') : ''} ${_t('saját kinézetet adhatsz az alkalmazásnak. A témák csak a kinézetet változtatják (színek, betűk, keretek, minták), az elrendezést nem. Leírás és minta: a ? gomb.')}</p>
+      ${defs.length
           ? `<ul class="src-list">${defs
               .map((d) => `<li><span class="ct-sw" style="${d.preview[0] ? `background:${esc(d.preview[0])}` : ''}"><i style="${d.preview[1] ? `background:${esc(d.preview[1])}` : ''}"></i><i style="${d.preview[2] ? `background:${esc(d.preview[2])}` : ''}"></i></span>
-                <span><b>${esc(d.name)}</b><small>${esc(d.description || '')}${d.author ? ' · ' + esc(d.author) : ''} · ${d.fromFolder ? 'téma-mappa: ' + esc(d.source) : 'feltöltve'}</small></span>
-                <button class="btn small" data-ct-use="${esc(d.key)}">Használom</button>${d.fromFolder ? '' : `<button class="btn small danger" data-ct-del="${esc(d.id)}">Törlés</button>`}</li>`)
+                <span><b>${esc(d.name)}</b><small>${esc(d.description || '')}${d.author ? ' · ' + esc(d.author) : ''} · ${d.fromFolder ? `${_t('téma-mappa:')} ` + esc(d.source) : _t('feltöltve')}</small></span>
+                <button class="btn small" data-ct-use="${esc(d.key)}">${_t('Használom')}</button>${d.fromFolder ? '' : `<button class="btn small danger" data-ct-del="${esc(d.id)}">${_t('Törlés')}</button>`}</li>`)
               .join('')}</ul>`
-          : '<p class="muted small">Még nincs saját téma.</p>'
-      }
+          : `<p class="muted small">${_t('Még nincs saját téma.')}</p>`}
       ${folderInfo.errors.length ? `<div class="warn small">${folderInfo.errors.map(esc).join('<br>')}</div>` : ''}
       <div class="inline">
-        <button class="btn small" data-ct="upload">Téma-fájl feltöltése…</button>
-        ${api.themeDirRead ? `<button class="btn small" data-ct="reload">Téma-mappa újraolvasása</button><button class="btn small" data-ct="opendir">Téma-mappa megnyitása</button><button class="btn small" data-ct="pickdir">Másik téma-mappa…</button>` : ''}
-        ${api.saveFile ? '<button class="btn small" data-ct="template">Sablon mentése a mostani stílusból</button>' : ''}
+        <button class="btn small" data-ct="upload">${_t('Téma-fájl feltöltése…')}</button>
+        ${api.themeDirRead ? `<button class="btn small" data-ct="reload">${_t('Téma-mappa újraolvasása')}</button><button class="btn small" data-ct="opendir">${_t('Téma-mappa megnyitása')}</button><button class="btn small" data-ct="pickdir">${_t('Másik téma-mappa…')}</button>` : ''}
+        ${api.saveFile ? `<button class="btn small" data-ct="template">${_t('Sablon mentése a mostani stílusból')}</button>` : ''}
       </div>
-      ${api.themeDirRead ? `<p class="muted small">Téma-mappa: <code>${esc(folderInfo.dir || store.settings.themeDir || 'az adatmappa „themes” almappája')}</code></p>` : ''}`;
+      ${api.themeDirRead ? `<p class="muted small">${_t('Téma-mappa: <code>')}${esc(folderInfo.dir || store.settings.themeDir || _t('az adatmappa „themes” almappája'))}</code></p>` : ''}`;
   };
   box.onclick = async (e) => {
     const b = e.target.closest('button');
@@ -141,7 +140,7 @@ export function renderThemeTools(box, onChange) {
       if (a === 'upload') {
         const d = await uploadTheme();
         if (d) {
-          toast(`Téma betöltve: ${d.name}`);
+          toast(`${_t('Téma betöltve: {name}', { name: d.name })}`);
           store.setProfileValue('theme', d.key);
           applyTheme();
           onChange?.();
@@ -149,7 +148,7 @@ export function renderThemeTools(box, onChange) {
       } else if (a === 'reload') {
         const r = await readThemeFolder();
         registerCustomThemes(allDefs());
-        toast(`${r.count} téma a mappában${r.errors.length ? `, ${r.errors.length} hibás` : ''}`);
+        toast(`${_t('{count} téma a mappában', { count: r.count })}${r.errors.length ? `${_t(', {length} hibás', { length: r.errors.length })}` : ''}`);
         applyTheme();
         onChange?.();
       } else if (a === 'opendir') await api.themeDirOpen(store.settings.themeDir || '');
@@ -163,13 +162,13 @@ export function renderThemeTools(box, onChange) {
         onChange?.();
       } else if (a === 'template') {
         const ok = await api.saveFile('sajat-tema.adastheme', themeTemplate());
-        if (ok) toast('Sablon elmentve – szerkeszd, majd töltsd fel vagy másold a téma-mappába.');
+        if (ok) toast(_t('Sablon elmentve – szerkeszd, majd töltsd fel vagy másold a téma-mappába.'));
       } else if (b.dataset.ctUse) {
         store.setProfileValue('theme', b.dataset.ctUse);
         applyTheme();
         onChange?.();
       } else if (b.dataset.ctDel) {
-        if (!(await confirmDialog('Törlöd ezt a saját témát?', { ok: 'Törlés', danger: true }))) return;
+        if (!(await confirmDialog(_t('Törlöd ezt a saját témát?'), { ok: _t('Törlés'), danger: true }))) return;
         store.settings.customThemes = uploaded().filter((t) => safeParse(t.text, t.name)?.id !== b.dataset.ctDel);
         store.save();
         registerCustomThemes(allDefs());
@@ -178,7 +177,7 @@ export function renderThemeTools(box, onChange) {
         onChange?.();
       }
     } catch (err) {
-      toast('Hiba: ' + (err.message || err), { timeout: 8000 });
+      toast(`${_t('Hiba:')} ` + (err.message || err), { timeout: 8000 });
     }
     draw();
   };

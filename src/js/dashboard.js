@@ -13,33 +13,45 @@ import { watchList, loadSportEvents, sportEventsCached, sportStale, eventRowHtml
 import { vod, own, continueItems, playVod, loadVod, vodLists, findItem, displayTitle } from './vod.js';
 
 // ---------------------------------------------------------------------------
+import { _t, LOCALE, weekdayNames, lang as uiLang } from './i18n.js';
 // Időjárás (Open-Meteo – ingyenes, kulcs nélkül)
 // ---------------------------------------------------------------------------
 const WMO = {
-  0: ['Derült', '☀️'], 1: ['Többnyire derült', '🌤️'], 2: ['Részben felhős', '⛅'], 3: ['Borult', '☁️'],
-  45: ['Köd', '🌫️'], 48: ['Zúzmarás köd', '🌫️'],
-  51: ['Gyenge szitálás', '🌦️'], 53: ['Szitálás', '🌦️'], 55: ['Erős szitálás', '🌧️'], 56: ['Ónos szitálás', '🌧️'], 57: ['Ónos szitálás', '🌧️'],
-  61: ['Gyenge eső', '🌦️'], 63: ['Eső', '🌧️'], 65: ['Erős eső', '🌧️'], 66: ['Ónos eső', '🌧️'], 67: ['Erős ónos eső', '🌧️'],
-  71: ['Gyenge havazás', '🌨️'], 73: ['Havazás', '🌨️'], 75: ['Erős havazás', '❄️'], 77: ['Hószemcse', '🌨️'],
-  80: ['Gyenge zápor', '🌦️'], 81: ['Zápor', '🌧️'], 82: ['Heves zápor', '⛈️'], 85: ['Hózápor', '🌨️'], 86: ['Erős hózápor', '❄️'],
-  95: ['Zivatar', '⛈️'], 96: ['Zivatar jégesővel', '⛈️'], 99: ['Heves zivatar jégesővel', '⛈️'],
+  0: [_t('Derült'), '☀️'], 1: [_t('Többnyire derült'), '🌤️'], 2: [_t('Részben felhős'), '⛅'], 3: [_t('Borult'), '☁️'],
+  45: [_t('Köd'), '🌫️'], 48: [_t('Zúzmarás köd'), '🌫️'],
+  51: [_t('Gyenge szitálás'), '🌦️'], 53: [_t('Szitálás'), '🌦️'], 55: [_t('Erős szitálás'), '🌧️'], 56: [_t('Ónos szitálás'), '🌧️'], 57: [_t('Ónos szitálás'), '🌧️'],
+  61: [_t('Gyenge eső'), '🌦️'], 63: [_t('Eső'), '🌧️'], 65: [_t('Erős eső'), '🌧️'], 66: [_t('Ónos eső'), '🌧️'], 67: [_t('Erős ónos eső'), '🌧️'],
+  71: [_t('Gyenge havazás'), '🌨️'], 73: [_t('Havazás'), '🌨️'], 75: [_t('Erős havazás'), '❄️'], 77: [_t('Hószemcse'), '🌨️'],
+  80: [_t('Gyenge zápor'), '🌦️'], 81: [_t('Zápor'), '🌧️'], 82: [_t('Heves zápor'), '⛈️'], 85: [_t('Hózápor'), '🌨️'], 86: [_t('Erős hózápor'), '❄️'],
+  95: [_t('Zivatar'), '⛈️'], 96: [_t('Zivatar jégesővel'), '⛈️'], 99: [_t('Heves zivatar jégesővel'), '⛈️'],
 };
 const wmo = (c) => WMO[c] || ['', '🌡️'];
-const DAYS = ['vasárnap', 'hétfő', 'kedd', 'szerda', 'csütörtök', 'péntek', 'szombat'];
-const DAYS_SHORT = ['V', 'H', 'K', 'Sze', 'Cs', 'P', 'Szo'];
+const DAYS = weekdayNames('long');
+
+// A felület nyelvéhez illő alapértékek (a felhasználó beállításai ezeket felülírják): időjárás-település,
+// hírforrások, árfolyam-alap, névnaptár (nameday.abalin.net országkódja; null = nincs).
+const LOCALES = {
+  hu: { city: 'Budapest', fx: 'HUF', nd: 'hu', feeds: [{ name: 'Telex', url: 'https://telex.hu/rss' }, { name: 'HVG', url: 'https://hvg.hu/rss' }, { name: '444', url: 'https://444.hu/feed' }] },
+  en: { city: 'London', fx: 'GBP', nd: 'us', feeds: [{ name: 'BBC News', url: 'https://feeds.bbci.co.uk/news/rss.xml' }, { name: 'The Guardian', url: 'https://www.theguardian.com/world/rss' }] },
+  de: { city: 'Berlin', fx: 'EUR', nd: 'de', feeds: [{ name: 'tagesschau', url: 'https://www.tagesschau.de/xml/rss2/' }, { name: 'SPIEGEL', url: 'https://www.spiegel.de/schlagzeilen/index.rss' }] },
+  es: { city: 'Madrid', fx: 'EUR', nd: 'es', feeds: [{ name: 'RTVE', url: 'https://www.rtve.es/api/noticias.rss' }, { name: 'El País', url: 'https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada' }] },
+  fr: { city: 'Paris', fx: 'EUR', nd: 'fr', feeds: [{ name: 'Le Monde', url: 'https://www.lemonde.fr/rss/une.xml' }, { name: 'France 24', url: 'https://www.france24.com/fr/rss' }] },
+};
+const LOCAL = LOCALES[uiLang] || LOCALES.en;
+const DAYS_SHORT = weekdayNames('short');
 
 /** Város → koordináták (Open-Meteo geokódolás, magyar nevekkel). → [{ name, admin, country, lat, lon }] */
 export async function geocode(name) {
-  const { text } = await api.fetchText(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=6&language=hu&format=json`, { maxAgeHours: 24 * 30 });
+  const { text } = await api.fetchText(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=6&language=${uiLang}&format=json`, { maxAgeHours: 24 * 30 });
   return (JSON.parse(text).results || []).map((r) => ({ name: r.name, admin: r.admin1 || '', country: r.country || '', lat: r.latitude, lon: r.longitude }));
 }
 
 async function weatherLoc() {
   const s = store.settings;
-  const city = (s.weatherCity || 'Budapest').trim();
+  const city = (s.weatherCity || LOCAL.city).trim();
   if (s.weatherLoc && s.weatherLoc.query === city) return s.weatherLoc;
   const [hit] = await geocode(city);
-  if (!hit) throw new Error(`Nem található település: ${city}`);
+  if (!hit) throw new Error(`${_t('Nem található település: {city}', { city })}`);
   s.weatherLoc = { ...hit, query: city };
   store.save();
   return s.weatherLoc;
@@ -58,11 +70,11 @@ async function loadWeather() {
 
 /** A mai időjárás megjelenése (Beállítások → Főoldal). */
 export const WEATHER_STYLES = [
-  ['line', 'Vonaldiagram'],
-  ['area', 'Terület + csapadék'],
-  ['bars', 'Oszlopok'],
-  ['tiles', 'Csempék'],
-  ['none', 'Nincs órás bontás – csak egy érték'],
+  ['line', _t('Vonaldiagram')],
+  ['area', _t('Terület + csapadék')],
+  ['bars', _t('Oszlopok')],
+  ['tiles', _t('Csempék')],
+  ['none', _t('Nincs órás bontás – csak egy érték')],
 ];
 const weatherStyle = () => (WEATHER_STYLES.some(([k]) => k === store.settings.weatherStyle) ? store.settings.weatherStyle : 'line');
 const icoFor = (code, day) => (!day && code <= 1 ? '🌙' : wmo(code)[1]);
@@ -175,7 +187,7 @@ function weatherHtml({ loc, data }, o = {}) {
   const days = (d.time || []).slice(0, nDays).map((t, i) => {
     const date = new Date(t + 'T12:00:00');
     const [dd, di] = wmo(d.weather_code[i]);
-    return `<li title="${esc(dd)}"><span class="wd-day">${i === 0 ? 'Ma' : DAYS_SHORT[date.getDay()]}</span><span class="wd-ico">${di}</span>
+    return `<li title="${esc(dd)}"><span class="wd-day">${i === 0 ? _t('Ma@@rövid') : DAYS_SHORT[date.getDay()]}</span><span class="wd-ico">${di}</span>
       <span class="wd-t"><b>${Math.round(d.temperature_2m_max[i])}°</b> ${Math.round(d.temperature_2m_min[i])}°</span>
       ${d.precipitation_probability_max?.[i] ? `<span class="wd-p">${d.precipitation_probability_max[i]}%</span>` : '<span class="wd-p"></span>'}</li>`;
   });
@@ -184,7 +196,7 @@ function weatherHtml({ loc, data }, o = {}) {
       <span class="w-ico">${c.is_day === 0 && c.weather_code <= 1 ? '🌙' : ico}</span>
       <div class="w-temp">${Math.round(c.temperature_2m)}°</div>
       <div class="w-mid"><b class="w-city">${esc(loc.name)}</b><span class="w-desc">${esc(desc)}</span>${mm}</div>
-      ${facts ? `<dl class="w-facts"><dt>Hőérzet</dt><dd>${Math.round(c.apparent_temperature)}°</dd><dt>Szél</dt><dd>${Math.round(c.wind_speed_10m)} km/h</dd><dt>Pára</dt><dd>${c.relative_humidity_2m}%</dd></dl>` : ''}
+      ${facts ? `<dl class="w-facts"><dt>${_t('Hőérzet')}</dt><dd>${Math.round(c.apparent_temperature)}°</dd><dt>${_t('Szél')}</dt><dd>${_t('{round} km/h', { round: Math.round(c.wind_speed_10m) })}</dd><dt>${_t('Pára')}</dt><dd>${c.relative_humidity_2m}%</dd></dl>` : ''}
     </div>
     ${chart && style !== 'none' ? `<div class="w-today ${style === 'tiles' ? 'tiles' : ''}"></div>` : ''}
     ${week ? `<ul class="w-days" style="grid-template-columns:repeat(${days.length}, minmax(0, 1fr))">${days.join('')}</ul>` : ''}`;
@@ -217,11 +229,7 @@ function stylePreview(k) {
 // ---------------------------------------------------------------------------
 // RSS / Atom hírek
 // ---------------------------------------------------------------------------
-export const DEFAULT_FEEDS = [
-  { name: 'Telex', url: 'https://telex.hu/rss' },
-  { name: 'HVG', url: 'https://hvg.hu/rss' },
-  { name: '444', url: 'https://444.hu/feed' },
-];
+export const DEFAULT_FEEDS = LOCAL.feeds;
 const feeds = () => (store.settings.rssFeeds ?? DEFAULT_FEEDS).filter((f) => f.enabled !== false);
 // Inert elemzés (DOMParser): a hírcsatorna HTML-je nem az élő dokumentumban értelmeződik, így a benne
 // lévő eseménykezelők (pl. <img onerror>) a szöveg kinyerése közben sem futhatnak le.
@@ -270,19 +278,19 @@ async function loadNews() {
 const ago = (t) => {
   if (!t) return '';
   const m = Math.round((Date.now() - t) / 60000);
-  if (m < 1) return 'most';
-  if (m < 60) return `${m} perce`;
-  if (m < 24 * 60) return `${Math.round(m / 60)} órája`;
-  return new Date(t).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' });
+  if (m < 1) return _t('most');
+  if (m < 60) return `${_t('{m} perce', { m })}`;
+  if (m < 24 * 60) return `${_t('{round} órája', { round: Math.round(m / 60) })}`;
+  return new Date(t).toLocaleDateString(LOCALE, { month: 'short', day: 'numeric' });
 };
 
 function openNews(n) {
   const el = html(`<div class="news-detail">
     ${n.img ? `<img class="nd-img" src="${esc(n.img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()" />` : ''}
-    <div class="muted small">${esc(n.source)} · ${n.date ? new Date(n.date).toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' }) : ''}</div>
+    <div class="muted small">${esc(n.source)} · ${n.date ? new Date(n.date).toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' }) : ''}</div>
     <h2>${esc(n.title)}</h2>
     ${n.desc ? `<p>${esc(n.desc.slice(0, 1200))}${n.desc.length > 1200 ? '…' : ''}</p>` : ''}
-    <div class="dialog-btns">${api.caps.external && n.link ? `<button class="btn primary" data-n="open" autofocus>${ICON.external || ''} Megnyitás a böngészőben</button>` : ''}<button class="btn" data-n="close" ${api.caps.external && n.link ? '' : 'autofocus'}>Bezárás</button></div>
+    <div class="dialog-btns">${api.caps.external && n.link ? `<button class="btn primary" data-n="open" autofocus>${_t('{x} Megnyitás a böngészőben', { x: ICON.external || '' })}</button>` : ''}<button class="btn" data-n="close" ${api.caps.external && n.link ? '' : 'autofocus'}>${_t('Bezárás')}</button></div>
   </div>`);
   const close = openModal(el, { cls: 'medium' });
   el.addEventListener('click', (e) => {
@@ -300,7 +308,7 @@ function favChannels() {
   const vis = new Set(visible());
   return getChannels(store.profile.favorites).filter((c) => vis.has(c));
 }
-const NO_FAVS = 'Még nincs kedvenc csatornád. A csatornák kártyáján a <b>+</b> gombbal jelölheted meg őket.';
+const NO_FAVS = `${_t('Még nincs kedvenc csatornád. A csatornák kártyáján a <b>+</b> gombbal jelölheted meg őket.')}`;
 const note = (t) => `<p class="muted small d-note">${t}</p>`;
 const fit = (avail, item, min = 1) => Math.max(min, Math.floor(avail / item));
 
@@ -315,8 +323,7 @@ function miniGuideHtml(list, more, span, chW, rowH) {
   for (let x = from; x < to; x += tick) ticks.push(x);
   const rows = list.map((ch) => {
     const progs = epg.range(ch.id, from, to);
-    return `<div class="g-row"><button class="g-ch" data-play="${esc(ch.id)}" title="${esc(ch.name)} lejátszása"><span class="g-logo" style="--h:${hashHue(ch.name)}">${logoHtml(ch, 'logo-sm')}</span><span class="g-name">${esc(ch.name)}</span></button><div class="g-progs">${
-      progs.length
+    return `<div class="g-row"><button class="g-ch" data-play="${esc(ch.id)}" title="${_t('{esc} lejátszása', { esc: esc(ch.name) })}"><span class="g-logo" style="--h:${hashHue(ch.name)}">${logoHtml(ch, 'logo-sm')}</span><span class="g-name">${esc(ch.name)}</span></button><div class="g-progs">${progs.length
         ? progs
             .map((pr) => {
               const a = Math.max(pr.start, from), b = Math.min(pr.stop, to);
@@ -325,13 +332,12 @@ function miniGuideHtml(list, more, span, chW, rowH) {
               return `<button class="g-prog ${live ? 'live' : ''} ${pr.stop <= t ? 'past' : ''} ${rem ? 'rem' : ''}" style="left:${pct(a)};width:calc(${(((b - a) / span) * 100).toFixed(3)}% - 2px)" data-prog="${esc(ch.id)}|${pr.start}" title="${esc(pr.title)} (${fmtTime(pr.start)}–${fmtTime(pr.stop)})"><b>${esc(pr.title)}</b><small>${fmtTime(pr.start)}–${fmtTime(pr.stop)}</small></button>`;
             })
             .join('')
-        : '<span class="g-none muted small">Nincs műsoradat</span>'
-    }</div></div>`;
+        : `<span class="g-none muted small">${_t('Nincs műsoradat')}</span>`}</div></div>`;
   });
   return `<div class="mini-guide ${chW < 90 ? 'logo-only' : ''}" style="--mg-ch:${chW}px;--mg-row:${rowH}px">
     <div class="g-head"><div class="g-corner"></div><div class="g-times">${ticks.map((x) => `<span style="left:${pct(x)}">${fmtTime(x)}</span>`).join('')}</div></div>
     ${rows.join('')}
-    ${more ? `<a class="mg-more" href="#/guide">+ ${more} további kedvenc csatorna – Műsorújság ›</a>` : ''}
+    ${more ? `<a class="mg-more" href="#/guide">${_t('+ {more} további kedvenc csatorna – Műsorújság ›', { more })}</a>` : ''}
     <div class="g-nowline" style="left:calc(var(--mg-ch) + (100% - var(--mg-ch)) * ${((t - from) / span).toFixed(4)})"></div>
   </div>`;
 }
@@ -368,13 +374,13 @@ const prettyCat = (c) => (/-/.test(c || '') ? c.split('-').map((w) => CAT_FIX[w]
 
 const remBtn = (id, start) => {
   const on = store.hasReminder(id, start);
-  return `<button class="round small ${on ? 'on' : ''}" data-rem="${esc(id)}|${Number(start) || 0}" title="${on ? 'Emlékeztető törlése' : 'Emlékeztető'}">${ICON.bell}</button>`;
+  return `<button class="round small ${on ? 'on' : ''}" data-rem="${esc(id)}|${Number(start) || 0}" title="${on ? _t('Emlékeztető törlése') : _t('Emlékeztető')}">${ICON.bell}</button>`;
 };
 const dayTime = (t) => {
   const d = new Date(t);
   const today = new Date();
   const diff = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(today.getFullYear(), today.getMonth(), today.getDate())) / 864e5);
-  return (diff === 0 ? '' : diff === 1 ? 'holnap ' : `${DAYS[d.getDay()]} `) + fmtTime(t);
+  return (diff === 0 ? '' : diff === 1 ? `${_t('holnap')} ` : `${DAYS[d.getDay()]} `) + fmtTime(t);
 };
 const posterHtml = (x) => (x.poster ? `<img src="${esc(x.poster)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()" />` : `<span>${esc(x.title)}</span>`);
 /**
@@ -397,7 +403,7 @@ function posterGrid(items, w, h) {
     return `<ul class="d-vod d-trim">${items
       .slice(0, fit(h, 58))
       .map(({ x, ratio, sub }) => `<li><button class="d-row" data-vod="${esc(x.id)}"><span class="d-poster" style="--h:${hashHue(x.title)}">${x.poster ? posterHtml(x) : ''}</span>
-        <span class="d-txt"><b>${esc(displayTitle(x))}</b><small class="muted">${esc(sub || (x.type === 'series' ? 'Sorozat' : 'Film') + (x.year ? ' · ' + x.year : ''))}</small>${bar(ratio)}</span></button></li>`)
+        <span class="d-txt"><b>${esc(displayTitle(x))}</b><small class="muted">${esc(sub || (x.type === 'series' ? _t('Sorozat') : _t('Film')) + (x.year ? ' · ' + x.year : ''))}</small>${bar(ratio)}</span></button></li>`)
       .join('')}</ul>`;
   }
   return `<ul class="d-posters" style="grid-template-columns:repeat(${best.cols}, ${Math.floor(best.tw)}px)">${items
@@ -418,11 +424,11 @@ let newsCache = null;
 
 export const UNITS = {
   weather: {
-    title: 'Időjárás',
-    link: ['#/settings?section=dashboard', 'Beállítás ›'],
+    title: _t('Időjárás'),
+    link: ['#/settings?section=dashboard', _t('Beállítás ›')],
     mobile: 380,
     render(b, { w, h }) {
-      if (!weatherCache) return weatherErr ? note(`Az időjárás nem érhető el: ${esc(weatherErr)}`) : '<div class="spinner small"></div>';
+      if (!weatherCache) return weatherErr ? note(`${_t('Az időjárás nem érhető el: {esc}', { esc: esc(weatherErr) })}`) : '<div class="spinner small"></div>';
       const style = weatherStyle();
       const nowH = w < 300 ? 52 : 62;
       const weekH = 78;
@@ -434,13 +440,13 @@ export const UNITS = {
     after: (b) => drawToday(b),
   },
   epg: {
-    title: 'Most a tévében',
-    link: ['#/guide', 'Műsorújság ›'],
+    title: _t('Most a tévében'),
+    link: ['#/guide', _t('Műsorújság ›')],
     mobile: 420,
     render(b, { w, h }) {
       const list = favChannels();
       if (!list.length) return note(NO_FAVS);
-      if (!epg.byChannel?.size) return note('A műsorújság betöltése…');
+      if (!epg.byChannel?.size) return note(_t('A műsorújság betöltése…'));
       const chW = w < 380 ? 64 : w < 560 ? 116 : 170;
       const head = 30;
       const avail = h - head - 2;
@@ -452,14 +458,14 @@ export const UNITS = {
     },
   },
   rss: {
-    title: 'Hírek',
-    link: ['#/settings?section=dashboard', 'Források ›'],
+    title: _t('Hírek'),
+    link: ['#/settings?section=dashboard', _t('Források ›')],
     kids: false,
     mobile: 460,
     render(b, { w, h }) {
       if (!newsCache) return '<div class="spinner small"></div>';
-      if (!feeds().length) return note('Nincs bekapcsolt hírforrás. A Beállítások → Főoldal alatt adhatsz hozzá RSS-címet.');
-      if (!newsCache.length) return note('A hírek most nem érhetők el.');
+      if (!feeds().length) return note(_t('Nincs bekapcsolt hírforrás. A Beállítások → Főoldal alatt adhatsz hozzá RSS-címet.'));
+      if (!newsCache.length) return note(_t('A hírek most nem érhetők el.'));
       const thumbs = w >= 300;
       const desc = w >= 560;
       const n = Math.min(newsCache.length, fit(h, 40));
@@ -473,12 +479,12 @@ export const UNITS = {
     },
   },
   tonight: {
-    title: 'Ma este a tévében',
-    link: ['#/guide', 'Műsorújság ›'],
+    title: _t('Ma este a tévében'),
+    link: ['#/guide', _t('Műsorújság ›')],
     mobile: 320,
     render(b, { w, h }) {
       const items = tonight(fit(h, 40));
-      if (!items.length) return note(!favChannels().length ? NO_FAVS : epg.byChannel?.size ? 'Ma estére nincs több műsoradat a kedvenc csatornáidon.' : 'A műsorújság betöltése…');
+      if (!items.length) return note(!favChannels().length ? NO_FAVS : epg.byChannel?.size ? _t('Ma estére nincs több műsoradat a kedvenc csatornáidon.') : _t('A műsorújság betöltése…'));
       const cat = w >= 300;
       return `<ul class="d-tonight d-trim">${items
         .map(({ ch, p }) => `<li><button class="d-row" data-prog="${esc(ch.id)}|${p.start}">
@@ -489,7 +495,7 @@ export const UNITS = {
     },
   },
   tv: {
-    title: 'Utoljára nézett csatorna',
+    title: _t('Utoljára nézett csatorna'),
     link: ['#/tv', 'TV ›'],
     mobile: 250,
     // asztali gépen és Androidon néhány másodperc után a csatorna némított élő képe (Beállítások → Főoldal → Élő előnézet)
@@ -506,7 +512,7 @@ export const UNITS = {
     render(b, { w, h }) {
       const vis = new Set(visible());
       const ch = getChannels(store.profile.recent).find((c) => vis.has(c));
-      if (!ch) return note('Még nem néztél csatornát.');
+      if (!ch) return note(_t('Még nem néztél csatornát.'));
       const t = Date.now();
       const now = epg.now(ch.id, t);
       const cur = now?.cur;
@@ -517,34 +523,34 @@ export const UNITS = {
       const logoH = wide ? h : Math.min((w * 9) / 16, h - textH - 10);
       const descLines = Math.max(0, Math.floor((h - (wide ? textH : textH + Math.max(0, logoH) + 10)) / 18) - (wide ? 0 : 1));
       return `<div class="d-last ${wide ? 'wide' : ''}">
-        ${logoH >= 44 ? `<button class="d-last-logo" data-play="${esc(ch.id)}" title="${esc(ch.name)} lejátszása" style="--h:${hashHue(ch.name)};${wide ? '' : `height:${Math.floor(logoH)}px`}">${logoHtml(ch, 'logo-sm')}<span class="d-last-play">${ICON.play}</span></button>` : ''}
+        ${logoH >= 44 ? `<button class="d-last-logo" data-play="${esc(ch.id)}" title="${_t('{esc} lejátszása', { esc: esc(ch.name) })}" style="--h:${hashHue(ch.name)};${wide ? '' : `height:${Math.floor(logoH)}px`}">${logoHtml(ch, 'logo-sm')}<span class="d-last-play">${ICON.play}</span></button>` : ''}
         <div class="d-last-txt">
           <b class="d-last-name">${esc(ch.name)}</b>
-          ${cur ? `<span class="d-now"><span class="now-label">MOST</span> ${esc(cur.title)}</span><span class="bar"><i style="width:${(now.progress * 100).toFixed(1)}%"></i></span><small class="muted">${fmtTime(cur.start)}–${fmtTime(cur.stop)}${now.next ? ` · utána: ${fmtTime(now.next.start)} ${esc(now.next.title)}` : ''}</small>` : '<small class="muted">Nincs műsoradat</small>'}
+          ${cur ? `<span class="d-now"><span class="now-label">${_t('MOST')}</span> ${esc(cur.title)}</span><span class="bar"><i style="width:${(now.progress * 100).toFixed(1)}%"></i></span><small class="muted">${fmtTime(cur.start)}–${fmtTime(cur.stop)}${now.next ? ` ${_t('· utána: {fmtTime} {esc}', { fmtTime: fmtTime(now.next.start), esc: esc(now.next.title) })}` : ''}</small>` : `<small class="muted">${_t('Nincs műsoradat')}</small>`}
           ${descLines && cur?.desc ? `<p class="d-last-desc" style="-webkit-line-clamp:${descLines}">${esc(cur.desc)}</p>` : ''}
-          ${btn ? `<button class="btn primary small" data-play="${esc(ch.id)}">${ICON.play} Folytatás</button>` : ''}
+          ${btn ? `<button class="btn primary small" data-play="${esc(ch.id)}">${_t('{play} Folytatás', { play: ICON.play })}</button>` : ''}
         </div>
       </div>`;
     },
   },
   vod: {
-    title: 'VOD – folytatás',
-    link: ['#/vod?continue=1', 'Összes ›'],
+    title: _t('VOD – folytatás'),
+    link: ['#/vod?continue=1', _t('Összes ›')],
     mobile: 300,
     render(b, { w, h }) {
       const items = vodItems().slice(0, 5);
-      if (!items.length) return note(vod.ready || !vodLists().length ? 'Nincs félbehagyott film vagy sorozat.' : 'A VOD-listák betöltése…');
+      if (!items.length) return note(vod.ready || !vodLists().length ? _t('Nincs félbehagyott film vagy sorozat.') : _t('A VOD-listák betöltése…'));
       return posterGrid(items, w, h);
     },
   },
   reminders: {
-    title: 'Emlékeztetők',
+    title: _t('Emlékeztetők'),
     link: null,
     mobile: 260,
     render(b, { w, h }) {
       const t = Date.now();
       const list = store.profile.reminders.filter((r) => Number.isFinite(r.start) && r.stop > t);
-      if (!list.length) return note('Nincs beállított emlékeztető. A műsorok mellett a csengő gombbal kérhetsz.');
+      if (!list.length) return note(_t('Nincs beállított emlékeztető. A műsorok mellett a csengő gombbal kérhetsz.'));
       return `<ul class="d-tonight d-trim">${list
         .slice(0, fit(h, 40))
         .map((r) => {
@@ -559,7 +565,7 @@ export const UNITS = {
     },
   },
   favs: {
-    title: 'Kedvenc csatornák',
+    title: _t('Kedvenc csatornák'),
     link: ['#/favorites', 'Kedvencek ›'],
     mobile: 300,
     render(b, { w, h }) {
@@ -607,18 +613,34 @@ const rerenderUnit = (id) => () => {
 async function loadNamedays() {
   const d = new Date();
   const t = new Date(d.getTime() + 864e5);
-  const get = async (x) => (await cacheJson(`https://nameday.abalin.net/api/V2/date?day=${x.getDate()}&month=${x.getMonth() + 1}`, 24)).data?.hu || '';
+  const get = async (x) => (await cacheJson(`https://nameday.abalin.net/api/V2/date?day=${x.getDate()}&month=${x.getMonth() + 1}`, 24)).data?.[LOCAL.nd] || '';
   return { today: await get(d), tomorrow: await get(t).catch(() => '') };
 }
 
-const FX = [['EUR', 'euró', '€'], ['USD', 'dollár', '$'], ['CHF', 'svájci frank', 'CHF'], ['GBP', 'font', '£'], ['RON', 'lej', 'RON'], ['CZK', 'cseh korona', 'CZK'], ['PLN', 'zloty', 'PLN']];
+// Árfolyamok a felület nyelvéhez illő pénznemben (a nevük a felület nyelvén, az Intl szerint)
+const FX_BASE = LOCAL.fx;
+const currencyName = (c) => {
+  try {
+    return new Intl.DisplayNames([LOCALE], { type: 'currency' }).of(c) || c;
+  } catch {
+    return c;
+  }
+};
+const FX = ['EUR', 'USD', 'CHF', 'GBP', 'HUF', 'RON', 'CZK', 'PLN'].filter((c) => c !== FX_BASE).slice(0, 7).map((c) => [c, currencyName(c)]);
+const fmtMoney = (v) => {
+  try {
+    return v.toLocaleString(LOCALE, { style: 'currency', currency: FX_BASE, minimumFractionDigits: 2, maximumFractionDigits: v < 50 ? 4 : 2 });
+  } catch {
+    return v.toFixed(2) + ' ' + FX_BASE;
+  }
+};
 async function loadFx() {
   const codes = FX.map((x) => x[0]).join(',');
-  const now = await cacheJson(`https://api.frankfurter.app/latest?from=HUF&to=${codes}`, 3);
+  const now = await cacheJson(`https://api.frankfurter.app/latest?from=${FX_BASE}&to=${codes}`, 3);
   const d = new Date(now.date + 'T12:00:00');
   d.setDate(d.getDate() - (d.getDay() === 1 ? 3 : 1));
-  const prev = await cacheJson(`https://api.frankfurter.app/${d.toISOString().slice(0, 10)}?from=HUF&to=${codes}`, 24).catch(() => null);
-  return { date: now.date, rows: FX.map(([c, n, sym]) => ({ c, n, sym, v: 1 / now.rates[c], p: prev?.rates?.[c] ? 1 / prev.rates[c] : 0 })).filter((r) => isFinite(r.v)) };
+  const prev = await cacheJson(`https://api.frankfurter.app/${d.toISOString().slice(0, 10)}?from=${FX_BASE}&to=${codes}`, 24).catch(() => null);
+  return { date: now.date, rows: FX.map(([c, n]) => ({ c, n, v: 1 / now.rates[c], p: prev?.rates?.[c] ? 1 / prev.rates[c] : 0 })).filter((r) => isFinite(r.v)) };
 }
 
 /** Ajánlott: most futó műsorok azokon a csatornákon, amelyek a profil kedvelt kategóriáiba esnek, de még nem kedvencek. */
@@ -644,7 +666,7 @@ function recommend(n) {
 
 Object.assign(UNITS, {
   clock: {
-    title: 'Óra és névnap',
+    title: _t('Óra és névnap'),
     link: null,
     mobile: 200,
     render(b, { w, h }) {
@@ -653,38 +675,38 @@ Object.assign(UNITS, {
       const big = Math.max(28, Math.min(h * 0.42, w * 0.26));
       return `<div class="d-clock">
         <div class="d-clock-time" style="font-size:${Math.round(big)}px">${fmtTime(d.getTime())}</div>
-        <div class="d-clock-date">${d.toLocaleDateString('hu-HU', { year: h > 160 ? 'numeric' : undefined, month: 'long', day: 'numeric' })}, ${DAYS[d.getDay()]}</div>
-        ${nd?.today ? `<div class="d-clock-nd">Névnap: <b>${esc(nd.today)}</b>${h > 170 && nd.tomorrow ? `<br><small class="muted">Holnap: ${esc(nd.tomorrow)}</small>` : ''}</div>` : ''}
+        <div class="d-clock-date">${d.toLocaleDateString(LOCALE, { year: h > 160 ? 'numeric' : undefined, month: 'long', day: 'numeric' })}, ${DAYS[d.getDay()]}</div>
+        ${nd?.today ? `<div class="d-clock-nd">${_t('Névnap: <b>{esc}</b>', { esc: esc(nd.today) })}${h > 170 && nd.tomorrow ? `<br><small class="muted">${_t('Holnap: {esc}', { esc: esc(nd.tomorrow) })}</small>` : ''}</div>` : ''}
       </div>`;
     },
   },
   fx: {
-    title: 'Árfolyamok',
+    title: _t('Árfolyamok'),
     link: null,
     mobile: 280,
     render(b, { w, h }) {
       const fx = lazy('fx', loadFx, rerenderUnit('fx'), 3 * 3600e3);
       if (!fx) return '<div class="spinner small"></div>';
-      if (fx.error) return note(`Az árfolyamok nem érhetők el: ${esc(fx.error)}`);
+      if (fx.error) return note(`${_t('Az árfolyamok nem érhetők el: {esc}', { esc: esc(fx.error) })}`);
       const wide = w >= 300;
       return `<ul class="d-fx d-trim">${fx.rows
         .map((r) => {
           const ch = r.p ? ((r.v - r.p) / r.p) * 100 : 0;
-          return `<li><span class="fx-c">${r.c}</span>${wide ? `<span class="fx-n muted">${esc(r.n)}</span>` : ''}<b class="fx-v">${r.v.toLocaleString('hu-HU', { maximumFractionDigits: r.v < 50 ? 2 : 2, minimumFractionDigits: 2 })} Ft</b>${r.p ? `<span class="fx-d ${ch > 0.005 ? 'up' : ch < -0.005 ? 'down' : ''}">${ch > 0.005 ? '▲' : ch < -0.005 ? '▼' : '='} ${Math.abs(ch).toFixed(2)}%</span>` : ''}</li>`;
+          return `<li><span class="fx-c">${r.c}</span>${wide ? `<span class="fx-n muted">${esc(r.n)}</span>` : ''}<b class="fx-v">${fmtMoney(r.v)}</b>${r.p ? `<span class="fx-d ${ch > 0.005 ? 'up' : ch < -0.005 ? 'down' : ''}">${ch > 0.005 ? '▲' : ch < -0.005 ? '▼' : '='} ${Math.abs(ch).toFixed(2)}%</span>` : ''}</li>`;
         })
-        .join('')}</ul><p class="muted small d-fx-src">EKB referencia-árfolyam · ${esc(fx.date)}</p>`;
+        .join('')}</ul><p class="muted small d-fx-src">${_t('EKB referencia-árfolyam · {esc}', { esc: esc(fx.date) })}</p>`;
     },
   },
   sport: {
-    title: 'Sport',
-    link: ['#sportwatch', 'Sportfigyelő ›'],
+    title: _t('Sport'),
+    link: ['#sportwatch', _t('Sportfigyelő ›')],
     mobile: 380,
     render(b, { w, h }) {
       const ev = sportEventsCached();
       if (!ev || sportStale()) loadSportEvents().then(rerenderUnit('sport'), () => {});
       if (!ev) return '<div class="spinner small"></div>';
-      if (!watchList().some((x) => x.on !== false)) return note('Nem követsz semmit. Bármilyen sportágat, bajnokságot vagy csapatot hozzáadhatsz: <a href="#sportwatch">Sportfigyelő megnyitása</a>');
-      if (!ev.length) return note('Ezekben a napokban nincs esemény a követett sportágakban. <a href="#sportwatch">Sportfigyelő</a>');
+      if (!watchList().some((x) => x.on !== false)) return note(`${_t('Nem követsz semmit. Bármilyen sportágat, bajnokságot vagy csapatot hozzáadhatsz:')} <a href="#sportwatch">${_t('Sportfigyelő megnyitása')}</a>`);
+      if (!ev.length) return note(`${_t('Ezekben a napokban nincs esemény a követett sportágakban.')} <a href="#sportwatch">${_t('Sportfigyelő')}</a>`);
       return `<ul class="d-sport d-trim">${ev
         .slice(0, 40)
         .map((e) => eventRowHtml(e, { logos: w >= 280, channels: store.settings.sportChannels !== false }))
@@ -692,13 +714,13 @@ Object.assign(UNITS, {
     },
   },
   recommend: {
-    title: 'Ajánlott neked',
+    title: _t('Ajánlott neked'),
     link: ['#/tv', 'TV ›'],
     mobile: 320,
     render(b, { w, h }) {
-      if (!epg.byChannel?.size) return note('A műsorújság betöltése…');
+      if (!epg.byChannel?.size) return note(_t('A műsorújság betöltése…'));
       const list = recommend(fit(h, 46) + 2);
-      if (!list.length) return note('Most nincs ajánlat. Nézz egy kis tévét, és a kedvelt kategóriáid alapján ajánlunk.');
+      if (!list.length) return note(_t('Most nincs ajánlat. Nézz egy kis tévét, és a kedvelt kategóriáid alapján ajánlunk.'));
       return `<ul class="d-epg d-trim">${list
         .map(({ c, now }) => `<li><button class="d-row" data-play="${esc(c.id)}">
           <span class="d-logo" style="--h:${hashHue(c.name)}">${logoHtml(c, 'logo-sm')}</span>
@@ -733,7 +755,7 @@ function newEpisodes() {
       const i = s.episodes.findIndex((e) => e.key === p.last);
       if (i < 0) continue;
       const rest = s.episodes.slice(i + 1).filter((e) => e.season !== 0 && !vp(e.key)?.done);
-      if (rest.length) out.push({ x: s, t: p.t || 0, sub: `${rest.length} új rész` });
+      if (rest.length) out.push({ x: s, t: p.t || 0, sub: `${_t('{length} új rész', { length: rest.length })}` });
     }
   }
   return out.sort((a, b) => b.t - a.t);
@@ -747,57 +769,57 @@ async function loadSun() {
   ]);
   return { loc, d: f.daily || {}, air: a?.current || null };
 }
-const AQI = [[20, 'kiváló', '#2e9e53'], [40, 'jó', '#6fbf3a'], [60, 'közepes', '#e8c32e'], [80, 'gyenge', '#e8873a'], [100, 'rossz', '#d63b3b'], [1e9, 'nagyon rossz', '#8e2a6e']];
-const UVS = [[3, 'alacsony'], [6, 'mérsékelt'], [8, 'magas'], [11, 'nagyon magas'], [99, 'extrém']];
+const AQI = [[20, _t('kiváló'), '#2e9e53'], [40, _t('jó'), '#6fbf3a'], [60, _t('közepes'), '#e8c32e'], [80, _t('gyenge'), '#e8873a'], [100, _t('rossz'), '#d63b3b'], [1e9, _t('nagyon rossz'), '#8e2a6e']];
+const UVS = [[3, _t('alacsony')], [6, _t('mérsékelt')], [8, _t('magas')], [11, _t('nagyon magas')], [99, _t('extrém')]];
 const hm = (iso) => (iso ? iso.slice(11, 16) : '–');
 
 Object.assign(UNITS, {
   watchlist: {
-    title: 'Megnézendő',
-    link: ['#/vod?watchlist=1', 'Összes ›'],
+    title: _t('Megnézendő'),
+    link: ['#/vod?watchlist=1', _t('Összes ›')],
     mobile: 300,
     render(b, { w, h }) {
       const items = (store.profile.watchlist || []).map((id) => findItem(id)).filter(Boolean).map((x) => ({ x }));
-      if (!items.length) return note(vod.ready || !vodLists().length ? 'Még üres. A filmek, sorozatok adatlapján a <b>+ Megnézendő</b> gombbal tehetsz ide.' : 'A VOD-listák betöltése…');
+      if (!items.length) return note(vod.ready || !vodLists().length ? `${_t('Még üres. A filmek, sorozatok adatlapján a <b>+ Megnézendő</b> gombbal tehetsz ide.')}` : _t('A VOD-listák betöltése…'));
       return posterGrid(items.slice(0, 8), w, h);
     },
   },
   newep: {
-    title: 'Új részek',
+    title: _t('Új részek'),
     link: ['#/vod?continue=1', 'VOD ›'],
     mobile: 300,
     render(b, { w, h }) {
       const items = newEpisodes();
-      if (!items.length) return note(vod.ready || !vodLists().length ? 'A nézett sorozataidban nincs még meg nem nézett rész.' : 'A VOD-listák betöltése…');
+      if (!items.length) return note(vod.ready || !vodLists().length ? _t('A nézett sorozataidban nincs még meg nem nézett rész.') : _t('A VOD-listák betöltése…'));
       return posterGrid(items.slice(0, 8), w, h);
     },
   },
   soon: {
-    title: 'Hamarosan kezdődik',
-    link: ['#/guide', 'Műsorújság ›'],
+    title: _t('Hamarosan kezdődik'),
+    link: ['#/guide', _t('Műsorújság ›')],
     mobile: 320,
     render(b, { w, h }) {
-      if (!epg.byChannel?.size) return note('A műsorújság betöltése…');
+      if (!epg.byChannel?.size) return note(_t('A műsorújság betöltése…'));
       const t = Date.now();
       const items = [];
       for (const ch of soonChannels()) for (const p of epg.range(ch.id, t, t + 75 * 60e3)) if (p.start > t && p.start < t + 75 * 60e3) items.push({ ch, p });
       items.sort((a, b) => a.p.start - b.p.start);
-      if (!items.length) return note('A következő órában nem kezdődik műsor a kedvenc csatornáidon.');
+      if (!items.length) return note(_t('A következő órában nem kezdődik műsor a kedvenc csatornáidon.'));
       return `<ul class="d-tonight d-trim">${items
         .slice(0, fit(h, 40))
         .map(({ ch, p }) => `<li><button class="d-row" data-prog="${esc(ch.id)}|${p.start}">
           <span class="d-time">${fmtTime(p.start)}</span>
-          <span class="d-txt"><b>${esc(p.title)}</b><small class="muted">${esc(ch.name)} · ${Math.max(1, Math.round((p.start - t) / 60e3))} perc múlva</small></span>
+          <span class="d-txt"><b>${esc(p.title)}</b><small class="muted">${_t('{esc} · {max} perc múlva', { esc: esc(ch.name), max: Math.max(1, Math.round((p.start - t) / 60e3)) })}</small></span>
         </button>${remBtn(ch.id, p.start)}</li>`)
         .join('')}</ul>`;
     },
   },
   movies: {
-    title: 'Ma esti filmek',
-    link: ['#/guide', 'Műsorújság ›'],
+    title: _t('Ma esti filmek'),
+    link: ['#/guide', _t('Műsorújság ›')],
     mobile: 340,
     render(b, { w, h }) {
-      if (!epg.byChannel?.size) return note('A műsorújság betöltése…');
+      if (!epg.byChannel?.size) return note(_t('A műsorújság betöltése…'));
       const now = Date.now();
       const d = new Date();
       const from = Math.max(now - 15 * 60e3, new Date(d.getFullYear(), d.getMonth(), d.getDate(), 18, 0).getTime());
@@ -806,18 +828,18 @@ Object.assign(UNITS, {
       const items = [];
       for (const ch of chans) for (const p of epg.range(ch.id, from, to)) if (p.start >= from && p.stop - p.start >= 70 * 60e3 && /film|movie|mozi/i.test(`${p.category || ''}`)) items.push({ ch, p });
       items.sort((a, b) => a.p.start - b.p.start);
-      if (!items.length) return note('Ma estére nincs film a műsorújságban (a kedvenc és a hazai csatornákon).');
+      if (!items.length) return note(_t('Ma estére nincs film a műsorújságban (a kedvenc és a hazai csatornákon).'));
       return `<ul class="d-tonight d-trim">${items
         .slice(0, fit(h, 40))
         .map(({ ch, p }) => `<li><button class="d-row" data-prog="${esc(ch.id)}|${p.start}">
           <span class="d-time ${p.start <= now ? 'live' : ''}">${p.start <= now ? 'MOST' : fmtTime(p.start)}</span>
-          <span class="d-txt"><b>${esc(p.title)}</b><small class="muted">${esc(ch.name)} · ${Math.round((p.stop - p.start) / 60e3)} perc</small></span>
+          <span class="d-txt"><b>${esc(p.title)}</b><small class="muted">${_t('{esc} · {round} perc', { esc: esc(ch.name), round: Math.round((p.stop - p.start) / 60e3) })}</small></span>
         </button>${p.start > now ? remBtn(ch.id, p.start) : ''}</li>`)
         .join('')}</ul>`;
     },
   },
   watchtime: {
-    title: 'Nézési idő',
+    title: _t('Nézési idő'),
     link: ['#/stats', 'Statisztika ›'],
     mobile: 240,
     render(b, { w, h }) {
@@ -828,26 +850,26 @@ Object.assign(UNITS, {
         dd.setDate(dd.getDate() - (6 - i));
         return { dd, t: (s?.days?.[key(dd)] || 0) / 60 };
       });
-      const fmt = (m) => (m >= 60 ? `${Math.floor(m / 60)} ó ${Math.round(m % 60)} p` : `${Math.round(m)} perc`);
+      const fmt = (m) => (m >= 60 ? `${_t('{floor} ó {round} p', { floor: Math.floor(m / 60), round: Math.round(m % 60) })}` : `${_t('{round} perc', { round: Math.round(m) })}`);
       const max = Math.max(30, ...days.map((x) => x.t));
       const left = store.profile.kids && store.profile.dailyLimit ? watchLeft() : null;
       return `<div class="d-wt">
-        <div class="d-wt-big"><b>${fmt(days[6].t)}</b><small class="muted">ma${left !== null ? ` · még ${Math.round(left)} perc maradt` : ''}</small></div>
-        <div class="muted small">A héten: ${fmt(days.reduce((n, x) => n + x.t, 0))}</div>
-        ${h > 130 ? `<div class="d-wt-bars">${days.map((x) => `<span title="${x.dd.toLocaleDateString('hu-HU')}: ${fmt(x.t)}"><i style="height:${Math.max(2, (x.t / max) * 100).toFixed(1)}%"></i><small>${DAYS_SHORT[x.dd.getDay()]}</small></span>`).join('')}</div>` : ''}
+        <div class="d-wt-big"><b>${fmt(days[6].t)}</b><small class="muted">${_t('ma')}${left !== null ? ` ${_t('· még {round} perc maradt', { round: Math.round(left) })}` : ''}</small></div>
+        <div class="muted small">${_t('A héten:')} ${fmt(days.reduce((n, x) => n + x.t, 0))}</div>
+        ${h > 130 ? `<div class="d-wt-bars">${days.map((x) => `<span title="${x.dd.toLocaleDateString(LOCALE)}: ${fmt(x.t)}"><i style="height:${Math.max(2, (x.t / max) * 100).toFixed(1)}%"></i><small>${DAYS_SHORT[x.dd.getDay()]}</small></span>`).join('')}</div>` : ''}
       </div>`;
     },
   },
   discover: {
-    title: 'Fedezd fel',
+    title: _t('Fedezd fel'),
     link: null,
     mobile: 260,
     render(b, { w, h }) {
-      if (!epg.byChannel?.size) return note('A műsorújság betöltése…');
+      if (!epg.byChannel?.size) return note(_t('A műsorújság betöltése…'));
       const favs = new Set(store.profile.favorites);
       const pool = visible().filter((c) => !favs.has(c.id) && c.logo && epg.now(c.id, Date.now())?.cur && homeRank(c) >= 1);
       const list = pool.length ? pool : visible().filter((c) => epg.now(c.id, Date.now())?.cur);
-      if (!list.length) return note('Most nincs ajánlható csatorna.');
+      if (!list.length) return note(_t('Most nincs ajánlható csatorna.'));
       let ch = list.find((c) => c.id === discoverId);
       if (!ch) {
         ch = list[Math.floor(Math.random() * list.length)];
@@ -855,42 +877,42 @@ Object.assign(UNITS, {
       }
       const n = epg.now(ch.id, Date.now());
       return `<div class="d-disc">
-        <button class="d-disc-logo" data-play="${esc(ch.id)}" style="--h:${hashHue(ch.name)}" title="${esc(ch.name)} lejátszása">${logoHtml(ch, 'logo-sm')}</button>
+        <button class="d-disc-logo" data-play="${esc(ch.id)}" style="--h:${hashHue(ch.name)}" title="${_t('{esc} lejátszása', { esc: esc(ch.name) })}">${logoHtml(ch, 'logo-sm')}</button>
         <div class="d-disc-txt"><b>${esc(ch.name)}</b>
-          <span class="d-now"><span class="now-label">MOST</span> ${esc(n.cur.title)}</span>
+          <span class="d-now"><span class="now-label">${_t('MOST')}</span> ${esc(n.cur.title)}</span>
           <span class="bar"><i style="width:${(n.progress * 100).toFixed(1)}%"></i></span>
-          <span class="inline"><button class="btn small primary" data-play="${esc(ch.id)}">${ICON.play} Nézem</button><button class="btn small" data-discover>Másikat</button></span></div>
+          <span class="inline"><button class="btn small primary" data-play="${esc(ch.id)}">${_t('{play} Nézem', { play: ICON.play })}</button><button class="btn small" data-discover>${_t('Másikat')}</button></span></div>
       </div>`;
     },
   },
   sun: {
-    title: 'Nap és levegő',
-    link: ['#/settings?section=dashboard', 'Település ›'],
+    title: _t('Nap és levegő'),
+    link: ['#/settings?section=dashboard', _t('Település ›')],
     mobile: 240,
     render(b, { w, h }) {
       const x = lazy('sun', loadSun, rerenderUnit('sun'), 3 * 3600e3);
       if (!x) return '<div class="spinner small"></div>';
-      if (x.error) return note(`Nem érhető el: ${esc(x.error)}`);
+      if (x.error) return note(`${_t('Nem érhető el: {esc}', { esc: esc(x.error) })}`);
       const uv = x.d.uv_index_max?.[0];
       const uvTxt = uv != null ? (UVS.find((u) => uv < u[0]) || UVS[UVS.length - 1])[1] : '';
       const aqi = x.air?.european_aqi;
       const aq = aqi != null ? AQI.find((q) => aqi <= q[0]) : null;
       const len = x.d.daylight_duration?.[0];
       return `<ul class="d-sun">
-        <li><span class="d-sun-ico">🌅</span><span>Napkelte</span><b>${hm(x.d.sunrise?.[0])}</b></li>
-        <li><span class="d-sun-ico">🌇</span><span>Napnyugta</span><b>${hm(x.d.sunset?.[0])}</b></li>
-        ${len ? `<li><span class="d-sun-ico">☀️</span><span>Nappal</span><b>${Math.floor(len / 3600)} ó ${Math.round((len % 3600) / 60)} p</b></li>` : ''}
-        ${uv != null ? `<li><span class="d-sun-ico">🕶️</span><span>UV-index</span><b>${uv.toFixed(1)} <small class="muted">${uvTxt}</small></b></li>` : ''}
-        ${aq ? `<li><span class="d-sun-ico">🍃</span><span>Levegő</span><b style="color:${aq[2]}">${esc(aq[1])} <small class="muted">(${Math.round(aqi)}${x.air.pm2_5 != null ? `, PM2,5: ${Math.round(x.air.pm2_5)}` : ''})</small></b></li>` : ''}
-      </ul><p class="muted small d-sun-src">${esc(x.loc.name)} · Open-Meteo</p>`;
+        <li><span class="d-sun-ico">🌅</span><span>${_t('Napkelte')}</span><b>${hm(x.d.sunrise?.[0])}</b></li>
+        <li><span class="d-sun-ico">🌇</span><span>${_t('Napnyugta')}</span><b>${hm(x.d.sunset?.[0])}</b></li>
+        ${len ? `<li><span class="d-sun-ico">☀️</span><span>${_t('Nappal')}</span>${_t('<b>{floor} ó {round} p</b>', { floor: Math.floor(len / 3600), round: Math.round((len % 3600) / 60) })}</li>` : ''}
+        ${uv != null ? `<li><span class="d-sun-ico">🕶️</span><span>${_t('UV-index')}</span><b>${uv.toFixed(1)} <small class="muted">${uvTxt}</small></b></li>` : ''}
+        ${aq ? `<li><span class="d-sun-ico">🍃</span><span>${_t('Levegő')}</span><b style="color:${aq[2]}">${esc(aq[1])} <small class="muted">(${Math.round(aqi)}${x.air.pm2_5 != null ? `, PM2,5: ${Math.round(x.air.pm2_5)}` : ''})</small></b></li>` : ''}
+      </ul><p class="muted small d-sun-src">${_t('{esc} · Open-Meteo', { esc: esc(x.loc.name) })}</p>`;
     },
   },
   notes: {
-    title: 'Jegyzet',
+    title: _t('Jegyzet'),
     link: null,
     mobile: 240,
     render() {
-      return `<textarea class="d-note-area" placeholder="Ide írhatsz: mit nézz meg, bevásárlólista, emlékeztető…" aria-label="Jegyzet">${esc(store.profile.dashNote || '')}</textarea>`;
+      return `<textarea class="d-note-area" placeholder="${_t('Ide írhatsz: mit nézz meg, bevásárlólista, emlékeztető…')}" aria-label="${_t('Jegyzet')}">${esc(store.profile.dashNote || '')}</textarea>`;
     },
   },
 });
@@ -920,14 +942,14 @@ const allowed = (id) => UNITS[id] && !(store.profile.kids && UNITS[id].kids === 
 const U = (id, w = 1, h = 1) => ({ id, w, h });
 /** Kész elrendezések (a testreszabásnál betölthetők; napszak szerinti váltásnál a reggeli és az esti). */
 export const PRESETS = {
-  alap: { name: 'Alap', cfg: DEFAULT_DASH },
-  reggel: { name: 'Reggeli', cfg: { cols: 3, rows: 2, units: [U('weather', 1, 2), U('rss', 1, 2), U('clock'), U('fx')] } },
-  este: { name: 'Esti tévézés', cfg: { cols: 3, rows: 2, units: [U('epg', 2), U('tonight', 1, 2), U('tv'), U('vod')] } },
-  sport: { name: 'Sport', cfg: { cols: 3, rows: 2, units: [U('sport', 2, 2), U('tonight'), U('rss')] } },
-  hirek: { name: 'Hírek és tőzsde', cfg: { cols: 4, rows: 2, units: [U('rss', 2, 2), U('weather'), U('clock'), U('fx'), U('epg')] } },
-  egyszeru: { name: 'Egyszerű', cfg: { cols: 2, rows: 1, units: [U('tv'), U('weather')] } },
+  alap: { name: _t('Alap'), cfg: DEFAULT_DASH },
+  reggel: { name: _t('Reggeli'), cfg: { cols: 3, rows: 2, units: [U('weather', 1, 2), U('rss', 1, 2), U('clock'), U('fx')] } },
+  este: { name: _t('Esti tévézés'), cfg: { cols: 3, rows: 2, units: [U('epg', 2), U('tonight', 1, 2), U('tv'), U('vod')] } },
+  sport: { name: _t('Sport'), cfg: { cols: 3, rows: 2, units: [U('sport', 2, 2), U('tonight'), U('rss')] } },
+  hirek: { name: _t('Hírek és tőzsde'), cfg: { cols: 4, rows: 2, units: [U('rss', 2, 2), U('weather'), U('clock'), U('fx'), U('epg')] } },
+  egyszeru: { name: _t('Egyszerű'), cfg: { cols: 2, rows: 1, units: [U('tv'), U('weather')] } },
 };
-const KIDS_PRESETS = { alap: { name: 'Alap', cfg: DEFAULT_KIDS }, este: PRESETS.este, egyszeru: PRESETS.egyszeru };
+const KIDS_PRESETS = { alap: { name: _t('Alap'), cfg: DEFAULT_KIDS }, este: PRESETS.este, egyszeru: PRESETS.egyszeru };
 const presets = () => (store.profile.kids ? KIDS_PRESETS : PRESETS);
 /** Napszak szerinti váltásnál: reggel 5–10 óráig a reggeli, 18 órától az esti elrendezés. */
 const dayPart = (h = new Date().getHours()) => (h >= 5 && h < 10 ? 'reggel' : h >= 18 ? 'este' : '');
@@ -1006,7 +1028,7 @@ const renderAll = (box, ids) => box.querySelectorAll('.dcard[data-unit]').forEac
 // ---------------------------------------------------------------------------
 const greeting = () => {
   const h = new Date().getHours();
-  return h < 9 ? 'Jó reggelt' : h < 18 ? 'Szép napot' : 'Jó estét';
+  return h < 9 ? _t('Jó reggelt') : h < 18 ? _t('Szép napot') : _t('Jó estét');
 };
 let editing = false;
 let lastPart = '';
@@ -1024,22 +1046,22 @@ export function renderDashboard(view) {
   const ED = (a, t, ico, dis = false) => `<button class="ed-btn" data-ed="${a}" title="${t}" ${dis ? 'disabled' : ''}>${ico}</button>`;
 
   view.innerHTML = `<div class="page dash-page ${editing ? 'editing' : ''}">
-    <div class="dash-head"><h1>${esc(greeting())}, ${esc(p.name)}!</h1><span class="muted">${d.toLocaleDateString('hu-HU', { month: 'long', day: 'numeric' })}, ${DAYS[d.getDay()]}</span>
-      ${canRemote && !editing ? '<button class="btn small dash-rc-btn" data-dash-rc title="Telefon csatlakoztatása távirányítóként (QR-kód)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H8a3 3 0 0 0-3 3v16a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V4a3 3 0 0 0-3-3Zm1 19a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16Zm-5-3a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Z"/></svg>Távirányító</button>' : ''}
-      <button class="btn small dash-edit-btn" data-ed="toggle">${editing ? `${ICON.check} Kész` : 'Testreszabás'}</button></div>
+    <div class="dash-head"><h1>${esc(greeting())}, ${esc(p.name)}!</h1><span class="muted">${d.toLocaleDateString(LOCALE, { month: 'long', day: 'numeric' })}, ${DAYS[d.getDay()]}</span>
+      ${canRemote && !editing ? `<button class="btn small dash-rc-btn" data-dash-rc title="${_t('Telefon csatlakoztatása távirányítóként (QR-kód)')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H8a3 3 0 0 0-3 3v16a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V4a3 3 0 0 0-3-3Zm1 19a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16Zm-5-3a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Z"/></svg>${_t('Távirányító')}</button>` : ''}
+      <button class="btn small dash-edit-btn" data-ed="toggle">${editing ? `${_t('{check} Kész', { check: ICON.check })}` : _t('Testreszabás')}</button></div>
     ${
       editing
         ? `<div class="dash-tools">
-        <span class="dt-group">Oszlopok <button class="ed-btn" data-ed="cols-" ${cfg.cols <= LIMITS.cols[0] ? 'disabled' : ''}>−</button><b>${cfg.cols}</b><button class="ed-btn" data-ed="cols+" ${cfg.cols >= LIMITS.cols[1] ? 'disabled' : ''}>+</button></span>
-        <span class="dt-group">Sorok <button class="ed-btn" data-ed="rows-" ${cfg.rows <= LIMITS.rows[0] ? 'disabled' : ''}>−</button><b>${cfg.rows}</b><button class="ed-btn" data-ed="rows+" ${cfg.rows >= LIMITS.rows[1] ? 'disabled' : ''}>+</button></span>
-        <span class="dt-group dt-add">${hidden.length ? 'Hozzáadás:' : 'Minden egység látható.'} ${hidden.map((id) => `<button class="btn small" data-add="${id}">${ICON.plus} ${esc(UNITS[id].title)}</button>`).join('')}</span>
-        <button class="btn small" data-ed="reset">Alapértelmezett</button>
-        <span class="dt-group dt-presets">Kész elrendezés: ${Object.entries(presets())
+        <span class="dt-group">${_t('Oszlopok')} <button class="ed-btn" data-ed="cols-" ${cfg.cols <= LIMITS.cols[0] ? 'disabled' : ''}>−</button><b>${cfg.cols}</b><button class="ed-btn" data-ed="cols+" ${cfg.cols >= LIMITS.cols[1] ? 'disabled' : ''}>+</button></span>
+        <span class="dt-group">${_t('Sorok')} <button class="ed-btn" data-ed="rows-" ${cfg.rows <= LIMITS.rows[0] ? 'disabled' : ''}>−</button><b>${cfg.rows}</b><button class="ed-btn" data-ed="rows+" ${cfg.rows >= LIMITS.rows[1] ? 'disabled' : ''}>+</button></span>
+        <span class="dt-group dt-add">${hidden.length ? _t('Hozzáadás:') : _t('Minden egység látható.')} ${hidden.map((id) => `<button class="btn small" data-add="${id}">${ICON.plus} ${esc(UNITS[id].title)}</button>`).join('')}</span>
+        <button class="btn small" data-ed="reset">${_t('Alapértelmezett')}</button>
+        <span class="dt-group dt-presets">${_t('Kész elrendezés:')} ${Object.entries(presets())
           .map(([k, v]) => `<button class="btn small" data-preset="${k}">${esc(v.name)}</button>`)
           .join('')}</span>
-        <label class="dt-group"><input type="checkbox" class="switch" data-ed-auto ${p.dashAuto ? 'checked' : ''} /> Napszak szerint váltson (reggel 5–10: Reggeli, 18 órától: Esti tévézés, napközben ez)</label>
+        <label class="dt-group"><input type="checkbox" class="switch" data-ed-auto ${p.dashAuto ? 'checked' : ''} /> ${_t('Napszak szerint váltson (reggel 5–10: Reggeli, 18 órától: Esti tévézés, napközben ez)')}</label>
       </div>
-      <p class="muted small dash-hint">Áthúzással is rendezhetsz. Minden egy képernyőre fér – ami nem férne el, azt nem engedi; az egységek a méretükhöz igazítják, mennyit mutatnak.</p>`
+      <p class="muted small dash-hint">${_t('Áthúzással is rendezhetsz. Minden egy képernyőre fér – ami nem férne el, azt nem engedi; az egységek a méretükhöz igazítják, mennyit mutatnak.')}</p>`
         : ''
     }
     <div class="dash" data-cols="${cfg.cols}" data-rows="${cfg.rows}" style="--cols:${cfg.cols};--rows:${cfg.rows}">
@@ -1052,16 +1074,16 @@ export function renderDashboard(view) {
           ${
             editing
               ? `<div class="ed-panel">
-              <span class="ed-row" title="Sorrend">${ED('left', 'Előrébb', ICON.left, i === 0)}${ED('right', 'Hátrébb', ICON.right, i === placed.length - 1)}<i></i>${ED('hide', 'Elrejtés', ICON.close)}</span>
-              <span class="ed-row" title="Szélesség (oszlop)"><span>↔</span>${ED('w-', 'Keskenyebb', '−', u.w <= 1)}<b>${u.w}</b>${ED('w+', 'Szélesebb', '+', u.w >= cfg.cols)}</span>
-              <span class="ed-row" title="Magasság (sor)"><span>↕</span>${ED('h-', 'Alacsonyabb', '−', u.h <= 1)}<b>${u.h}</b>${ED('h+', 'Magasabb', '+', u.h >= cfg.rows)}</span>
+              <span class="ed-row" title="${_t('Sorrend')}">${ED('left', _t('Előrébb'), ICON.left, i === 0)}${ED('right', _t('Hátrébb'), ICON.right, i === placed.length - 1)}<i></i>${ED('hide', _t('Elrejtés'), ICON.close)}</span>
+              <span class="ed-row" title="${_t('Szélesség (oszlop)')}"><span>↔</span>${ED('w-', _t('Keskenyebb'), '−', u.w <= 1)}<b>${u.w}</b>${ED('w+', _t('Szélesebb'), '+', u.w >= cfg.cols)}</span>
+              <span class="ed-row" title="${_t('Magasság (sor)')}"><span>↕</span>${ED('h-', _t('Alacsonyabb'), '−', u.h <= 1)}<b>${u.h}</b>${ED('h+', _t('Magasabb'), '+', u.h >= cfg.rows)}</span>
             </div>`
               : ''
           }
         </section>`;
         })
         .join('')}
-      ${editing ? packed.empty.map((e) => `<div class="dash-empty" style="grid-column:${e.c + 1};grid-row:${e.r + 1}">Üres hely</div>`).join('') : ''}
+      ${editing ? packed.empty.map((e) => `<div class="dash-empty" style="grid-column:${e.c + 1};grid-row:${e.r + 1}">${_t('Üres hely')}</div>`).join('') : ''}
     </div>
   </div>`;
 
@@ -1108,7 +1130,7 @@ export function renderDashboard(view) {
     if (!e.target.matches('[data-ed-auto]')) return;
     p.dashAuto = e.target.checked;
     store.save();
-    toast(p.dashAuto ? 'A főoldal napszak szerint vált' : 'A főoldal mindig a saját elrendezésedet mutatja');
+    toast(p.dashAuto ? _t('A főoldal napszak szerint vált') : _t('A főoldal mindig a saját elrendezésedet mutatja'));
   });
   page.addEventListener('click', (e) => {
     const pre = e.target.closest('[data-preset]');
@@ -1117,7 +1139,7 @@ export function renderDashboard(view) {
       if (!c) return;
       p.dash = { cols: c.cols, rows: c.rows, units: c.units.filter((u) => allowed(u.id)).map((u) => ({ ...u })) };
       store.save();
-      toast(`Elrendezés: ${presets()[pre.dataset.preset].name}`);
+      toast(`${_t('Elrendezés: {name}', { name: presets()[pre.dataset.preset].name })}`);
       renderDashboard(view);
       view.querySelector(`[data-preset="${pre.dataset.preset}"]`)?.focus();
       return;
@@ -1144,7 +1166,7 @@ export function renderDashboard(view) {
       if (!prog) return;
       const on = store.toggleReminder(id, prog);
       rm.classList.toggle('on', !!on);
-      toast(on ? `Emlékeztető: ${prog.title} (${fmtTime(prog.start)})` : 'Emlékeztető törölve');
+      toast(on ? `${_t('Emlékeztető: {title} ({fmtTime})', { title: prog.title, fmtTime: fmtTime(prog.start) })}` : _t('Emlékeztető törölve'));
     } else if (pl) {
       const ch = catalog.byId.get(pl.dataset.play);
       if (ch) player.play(ch);
@@ -1208,7 +1230,7 @@ function editAction(view, a, id, addId, targetId) {
   if (a === 'reset') {
     delete p.dash;
     store.save();
-    toast('Alapértelmezett elrendezés');
+    toast(_t('Alapértelmezett elrendezés'));
     return renderDashboard(view);
   }
   if (addId) units.push({ id: addId, w: 1, h: 1 });
@@ -1224,7 +1246,7 @@ function editAction(view, a, id, addId, targetId) {
     const out = res.units.filter((x) => x.fail);
     if (out.length) {
       cfg.units = units.filter((x) => !out.some((o) => o.id === x.id));
-      msg = `Elrejtve, mert nem fér el: ${out.map((o) => UNITS[o.id].title).join(', ')}`;
+      msg = `${_t('Elrejtve, mert nem fér el:')} ${out.map((o) => UNITS[o.id].title).join(', ')}`;
     }
   } else if (u) {
     if (a === 'left' && i > 0) [units[i - 1], units[i]] = [units[i], units[i - 1]];
@@ -1239,7 +1261,7 @@ function editAction(view, a, id, addId, targetId) {
     else if (a === 'hide') units.splice(i, 1);
   }
   if (packDash(cfg).units.some((x) => x.fail)) {
-    toast(addId ? 'Nincs elég hely. Előbb kisebbíts vagy rejts el egy egységet, vagy növeld a rácsot.' : 'Így nem férne el minden egy oldalon. Előbb kisebbíts vagy rejts el egy másik egységet.');
+    toast(addId ? _t('Nincs elég hely. Előbb kisebbíts vagy rejts el egy egységet, vagy növeld a rácsot.') : _t('Így nem férne el minden egy oldalon. Előbb kisebbíts vagy rejts el egy másik egységet.'));
     return;
   }
   p.dash = { cols: cfg.cols, rows: cfg.rows, units: cfg.units.map(({ id: uid, w, h }) => ({ id: uid, w, h })) };
@@ -1258,27 +1280,27 @@ export function renderDashSettings(box) {
   const s = store.settings;
   const list = () => s.rssFeeds ?? DEFAULT_FEEDS.map((f) => ({ ...f }));
   const draw = () => {
-    box.innerHTML = `<h2>Főoldal <button class="help-link" data-help="dashboard" title="Súgó">?</button></h2>
-      <div class="setting stack"><span><b>Elrendezés</b><small>Az egységek (időjárás, műsor, hírek, folytatás…) sorrendje, mérete, ki-be kapcsolása és a rács oszlopai, sorai – profilonként.</small></span>
-        <span class="inline"><a class="btn small" href="#/home?edit=1">Főoldal testreszabása</a></span></div>
-      <label class="setting stack"><span><b>Település az időjáráshoz</b><small>${s.weatherLoc ? esc([s.weatherLoc.name, s.weatherLoc.admin, s.weatherLoc.country].filter(Boolean).join(', ')) : 'Budapest'}</small></span>
-        <span class="inline"><input class="input" data-d="city" value="${esc(s.weatherCity || 'Budapest')}" placeholder="pl. Debrecen" /><button class="btn small" data-d="find">Keresés</button></span></label>
+    box.innerHTML = `<h2>${_t('Főoldal')} <button class="help-link" data-help="dashboard" title="${_t('Súgó')}">?</button></h2>
+      <div class="setting stack"><span>${_t('<b>Elrendezés</b>')}<small>${_t('Az egységek (időjárás, műsor, hírek, folytatás…) sorrendje, mérete, ki-be kapcsolása és a rács oszlopai, sorai – profilonként.')}</small></span>
+        <span class="inline"><a class="btn small" href="#/home?edit=1">${_t('Főoldal testreszabása')}</a></span></div>
+      <label class="setting stack"><span>${_t('<b>Település az időjáráshoz</b>')}<small>${s.weatherLoc ? esc([s.weatherLoc.name, s.weatherLoc.admin, s.weatherLoc.country].filter(Boolean).join(', ')) : 'Budapest'}</small></span>
+        <span class="inline"><input class="input" data-d="city" value="${esc(s.weatherCity || LOCAL.city)}" placeholder="${_t('pl. Debrecen')}" /><button class="btn small" data-d="find">${_t('Keresés')}</button></span></label>
       <div class="d-cities"></div>
-      <h3>A mai időjárás megjelenése</h3>
-      <p class="muted small">Órás bontás, ha kifér a kártyára; keskenyebb helyen két-három óránként. Kis kártyán a heti előrejelzés, még kisebben a diagram is elmarad.</p>
+      <h3>${_t('A mai időjárás megjelenése')}</h3>
+      <p class="muted small">${_t('Órás bontás, ha kifér a kártyára; keskenyebb helyen két-három óránként. Kis kártyán a heti előrejelzés, még kisebben a diagram is elmarad.')}</p>
       <div class="w-styles">${WEATHER_STYLES.map(([k, l]) => `<button class="w-style ${weatherStyle() === k ? 'sel' : ''}" data-ws="${k}" aria-pressed="${weatherStyle() === k}"><span class="ws-prev">${stylePreview(k)}</span><span>${esc(l)}</span></button>`).join('')}</div>
-      <h3>Sport</h3>
-      <p class="muted small">A <i>Sport</i> egység bármilyen sportág, bajnokság, verseny vagy csapat eseményeit mutatja – ESPN, TheSportsDB, műsorújság és naptár (ICS) forrásokból, csatornaajánlással.</p>
-      <div class="inline"><a class="btn small" href="#sportwatch">Sportfigyelő megnyitása</a></div>
-      <h3>Hírforrások (RSS / Atom)</h3>
-      <p class="muted small">A főoldalon a bekapcsolt forrásokból a legfrissebb hírek látszanak – annyi, amennyi kifér.</p>
+      <h3>${_t('Sport')}</h3>
+      <p class="muted small">${_t('A <i>Sport</i> egység bármilyen sportág, bajnokság, verseny vagy csapat eseményeit mutatja – ESPN, TheSportsDB, műsorújság és naptár (ICS) forrásokból, csatornaajánlással.')}</p>
+      <div class="inline"><a class="btn small" href="#sportwatch">${_t('Sportfigyelő megnyitása')}</a></div>
+      <h3>${_t('Hírforrások (RSS / Atom)')}</h3>
+      <p class="muted small">${_t('A főoldalon a bekapcsolt forrásokból a legfrissebb hírek látszanak – annyi, amennyi kifér.')}</p>
       <ul class="src-list">${list()
-        .map((f, i) => `<li data-f="${i}"><input type="checkbox" class="switch" data-d="toggle" ${f.enabled !== false ? 'checked' : ''} aria-label="Bekapcsolva" />
+        .map((f, i) => `<li data-f="${i}"><input type="checkbox" class="switch" data-d="toggle" ${f.enabled !== false ? 'checked' : ''} aria-label="${_t('Bekapcsolva')}" />
           <span><b>${esc(f.name || f.url)}</b><small>${esc(f.url)}</small></span>
-          <button class="btn small danger" data-d="del">Törlés</button></li>`)
-        .join('') || '<li class="muted">Nincs hírforrás.</li>'}</ul>
-      <div class="inline"><input class="input" data-d="url" placeholder="https://… RSS-cím" /><input class="input" data-d="name" placeholder="Név (nem kötelező)" />
-        <button class="btn small" data-d="add">${ICON.plus} Hozzáadás</button><button class="btn small" data-d="reset">Alapértelmezett források</button></div>`;
+          <button class="btn small danger" data-d="del">${_t('Törlés')}</button></li>`)
+        .join('') || `<li class="muted">${_t('Nincs hírforrás.')}</li>`}</ul>
+      <div class="inline"><input class="input" data-d="url" placeholder="${_t('https://… RSS-cím')}" /><input class="input" data-d="name" placeholder="${_t('Név (nem kötelező)')}" />
+        <button class="btn small" data-d="add">${_t('{plus} Hozzáadás', { plus: ICON.plus })}</button><button class="btn small" data-d="reset">${_t('Alapértelmezett források')}</button></div>`;
   };
   const save = (arr) => {
     s.rssFeeds = arr;
@@ -1315,7 +1337,7 @@ export function renderDashSettings(box) {
         const hits = await geocode(q);
         out.innerHTML = hits.length
           ? hits.map((h, i) => `<button class="btn small" data-city="${i}">${esc([h.name, h.admin, h.country].filter(Boolean).join(', '))}</button>`).join(' ')
-          : '<p class="muted small">Nincs ilyen település.</p>';
+          : `<p class="muted small">${_t('Nincs ilyen település.')}</p>`;
         out.onclick = (ev) => {
           const b = ev.target.closest('[data-city]');
           if (!b) return;
@@ -1324,24 +1346,24 @@ export function renderDashSettings(box) {
           s.weatherLoc = { ...h, query: h.name };
           weatherCache = null;
           store.save();
-          toast(`Időjárás: ${h.name}`);
+          toast(`${_t('Időjárás: {name}', { name: h.name })}`);
           draw();
         };
       } catch (err) {
-        out.innerHTML = `<p class="muted small">Hiba: ${esc(err.message || err)}</p>`;
+        out.innerHTML = `<p class="muted small">${_t('Hiba: {esc}', { esc: esc(err.message || err) })}</p>`;
       }
     } else if (a === 'add') {
       const url = box.querySelector('[data-d="url"]').value.trim();
       const name = box.querySelector('[data-d="name"]').value.trim();
-      if (!/^https?:\/\/\S+$/i.test(url)) return toast('Adj meg egy http(s) címet.');
+      if (!/^https?:\/\/\S+$/i.test(url)) return toast(_t('Adj meg egy http(s) címet.'));
       try {
         const { text } = await api.fetchText(url, { maxAgeHours: 0, force: true });
         const items = parseFeed(text, { url, name });
-        if (!items.length) return toast('A címen nem található RSS / Atom hír.');
+        if (!items.length) return toast(_t('A címen nem található RSS / Atom hír.'));
         save([...list(), { url, name: name || items[0].source, enabled: true }]);
-        toast(`Hírforrás hozzáadva (${items.length} hír)`);
+        toast(`${_t('Hírforrás hozzáadva ({length} hír)', { length: items.length })}`);
       } catch (err) {
-        toast('Nem tölthető le: ' + (err.message || err));
+        toast(`${_t('Nem tölthető le:')} ` + (err.message || err));
       }
     } else if (a === 'del') {
       const arr = list();

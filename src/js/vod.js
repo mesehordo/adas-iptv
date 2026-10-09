@@ -13,6 +13,7 @@ import { kidsAllowed, isKidsVod, setKidsMark } from './kids.js';
 import { allowOutsidePlayback } from './watchtime.js';
 
 // A felismerés változásakor növelni kell, hogy a régi feldolgozott mentés ne töltődjön be.
+import { _t, lang, LOCALE } from './i18n.js';
 const VOD_CACHE_VERSION = 8;
 const newId = () => Math.random().toString(36).slice(2, 10);
 const isUrl = (u) => /^https?:\/\/\S+$/i.test(u || '');
@@ -47,7 +48,7 @@ export const vod = makeLib('vod', {
 
 export const own = makeLib('own', {
   route: '#/own',
-  title: 'Saját médiatár',
+  title: _t('Saját médiatár'),
   settingsSection: 'ownlists',
   idPrefix: 'o', // az azonosítók (és a megtekintési állapot) ne keveredjenek a másik részleggel
   maxAgeHours: 0.25, // a NAS-on gyakran változik
@@ -233,7 +234,7 @@ const ALL_FILE_RX = /^(all|összes|osszes|minden|mind|index|full|teljes)$/i;
 const baseName = (n) => decodeURIComponent(n.split('/').pop()).replace(PLAYLIST_RX, '');
 const tagName = (n) => {
   const t = cleanName(baseName(n).replace(/[_]+/g, ' '));
-  return t.charAt(0).toLocaleUpperCase('hu') + t.slice(1);
+  return t.charAt(0).toLocaleUpperCase(LOCALE) + t.slice(1);
 };
 const attr = (v) => String(v || '').replace(/"/g, "'");
 
@@ -308,7 +309,7 @@ const BIG_TEXT = 150e3;
 async function listText(pl) {
   if (pl.textKey) {
     const v = await api.docGet?.(pl.textKey).catch(() => null);
-    if (!v || typeof v.text !== 'string') throw new Error('A lista tartalma nem található ezen az eszközön – add hozzá újra.');
+    if (!v || typeof v.text !== 'string') throw new Error(_t('A lista tartalma nem található ezen az eszközön – add hozzá újra.'));
     return v.text;
   }
   return pl.text || '';
@@ -321,7 +322,7 @@ function assetText(rel) {
     x.open('GET', new URL(rel, location.href).href);
     x.responseType = 'text';
     x.onload = () => (x.status === 0 || (x.status >= 200 && x.status < 300) ? resolve(x.responseText) : reject(new Error('HTTP ' + x.status)));
-    x.onerror = () => reject(new Error('A beépített lista nem olvasható: ' + rel));
+    x.onerror = () => reject(new Error(`${_t('A beépített lista nem olvasható:')} ` + rel));
     x.send();
   });
 }
@@ -527,7 +528,7 @@ function build(lib, loaded) {
         else if (group && titleKey(group) !== titleKey(title)) x.groups.add(group);
       };
       if (ep) {
-        const sTitle = ep.series || group || e.fileHint || 'Ismeretlen sorozat';
+        const sTitle = ep.series || group || e.fileHint || _t('Ismeretlen sorozat');
         const key = lib.idPrefix + 's:' + (titleKey(sTitle) || newId());
         let s = series.get(key);
         if (!s) {
@@ -576,7 +577,7 @@ function build(lib, loaded) {
     }
   }
   const fin = (x) => ({ ...x, listPoster: x.poster, lib: lib.id, groups: [...x.groups], lists: [...x.lists] });
-  lib.movies = [...movies.values()].map(fin).sort((a, b) => a.title.localeCompare(b.title, 'hu'));
+  lib.movies = [...movies.values()].map(fin).sort((a, b) => a.title.localeCompare(b.title, LOCALE));
   lib.series = [...series.values()]
     .map((s) => {
       // Az extrák (0. évad) a végére kerülnek.
@@ -584,7 +585,7 @@ function build(lib, loaded) {
       const eps = [...s.eps.values()].sort((a, b) => so(a) - so(b) || a.episode - b.episode);
       return { ...fin(s), eps: undefined, episodes: eps, seasons: [...new Set(eps.map((x) => x.season))] };
     })
-    .sort((a, b) => a.title.localeCompare(b.title, 'hu'));
+    .sort((a, b) => a.title.localeCompare(b.title, LOCALE));
   lib.counts = counts;
   index(lib);
   // Az élő adások átadása a csatornáknak (ha változott, a csatornalista újra összefésülődik)
@@ -601,7 +602,8 @@ function huScore(x) {
 }
 
 /** Stabil rendezés: a magyar tételek előre, egyébként a sorrend marad. */
-export const huFirst = (list) => list.map((x, i) => [x, i]).sort((a, b) => (b[0].hu || 0) - (a[0].hu || 0) || a[1] - b[1]).map((p) => p[0]);
+// (a magyar jelölésű tételek előresorolása csak magyar felületen)
+export const huFirst = (list) => lang !== 'hu' ? list : list.map((x, i) => [x, i]).sort((a, b) => (b[0].hu || 0) - (a[0].hu || 0) || a[1] - b[1]).map((p) => p[0]);
 
 /**
  * Egységes műfajok – az AnimeAddicts műfajlistája (magyar nevek), két kiegészítéssel (Dokumentum,
@@ -711,6 +713,8 @@ export const genreRow = (name) => !GENRE_HIDDEN.has(name);
  * („Karácsony”, „Gyerekeknek mentett”…) saját nevükkel külön kategóriák maradnak.
  */
 export const catsOf = (x) => (x.lib === 'own' ? x.cats || x.groups : x.genres || []);
+/** Műfaj / csoport neve kiíráshoz: az egységes műfajok belső (magyar) neve a felület nyelvén. */
+export const genreLabel = (n) => _t(n);
 const ownCats = (x) => [...x.genres, ...x.groups.filter((g) => !genresOfOne(g).length)];
 
 function index(lib) {
@@ -759,7 +763,7 @@ function libLists(lib) {
 }
 
 function cacheKey(lib) {
-  return `${lib.id}:${VOD_CACHE_VERSION}:` + libLists(lib).map((p) => p.id + (p.url || p.loc || p.asset || (p.entries ? 'e' + p.entries.length : '') || (p.text || '').length) + (p.mtime || '') + (p.at || '')).join(',');
+  return `${lib.id}:${VOD_CACHE_VERSION}:${lang}:` + libLists(lib).map((p) => p.id + (p.url || p.loc || p.asset || (p.entries ? 'e' + p.entries.length : '') || (p.text || '').length) + (p.mtime || '') + (p.at || '')).join(',');
 }
 
 /** Betöltés (gyorsítótárból, ha friss). Többszöri hívásnál ugyanazt az ígéretet adja vissza. */
@@ -924,10 +928,10 @@ export function continueItems(lib = vod) {
 const fmtDur = (sec) => {
   if (!sec) return '';
   const m = Math.round(sec / 60);
-  return m >= 60 ? `${Math.floor(m / 60)} ó ${m % 60} p` : `${m} perc`;
+  return m >= 60 ? `${_t('{floor} ó {x} p', { floor: Math.floor(m / 60), x: m % 60 })}` : `${_t('{m} perc', { m })}`;
 };
-const epLabel = (e) => (e.season === 0 ? `Extra ${e.episode}` : `${e.season}. évad ${e.episode}. rész`);
-const seasonLabel = (s) => (s === 0 ? 'Extrák' : `${s}. évad`);
+const epLabel = (e) => (e.season === 0 ? `${_t('Extra {episode}', { episode: e.episode })}` : `${_t('{season}. évad {episode}. rész', { season: e.season, episode: e.episode })}`);
+const seasonLabel = (s) => (s === 0 ? _t('Extrák') : `${_t('{s}. évad', { s })}`);
 
 function pseudoChannel(item, ep) {
   const urls = ep ? ep.urls : item.urls;
@@ -946,7 +950,7 @@ function pseudoChannel(item, ep) {
       labels: [],
       ua: (ep || item).ua || '',
       referrer: (ep || item).referrer || '',
-      feedName: urls.length > 1 ? `Forrás ${i + 1}` : '',
+      feedName: urls.length > 1 ? `${_t('Forrás {x}', { x: i + 1 })}` : '',
     })),
     vod: { item, ep, title, subtitle: sub, key: ep ? ep.key : item.id },
   };
@@ -997,9 +1001,9 @@ player.vodHooks = {
  * Sorozatnál a kiválasztott résztől a többi is a listába kerül (asztali változat).
  */
 export async function openInExternalPlayer(item, ep = null) {
-  if (!api.openInPlayer) return toast('Ezen az eszközön nem nyitható meg külső lejátszóban.');
+  if (!api.openInPlayer) return toast(_t('Ezen az eszközön nem nyitható meg külső lejátszóban.'));
   // gyerekprofil: a tartalmi szabály, és mivel a külső lejátszóban a napi keret nem követhető, felnőtt jóváhagyás
-  if (store.profile.kids && !kidsAllowed(store.profile, 'vod', item)) return toast('Ez a tartalom ebben a profilban nem nézhető.');
+  if (store.profile.kids && !kidsAllowed(store.profile, 'vod', item)) return toast(_t('Ez a tartalom ebben a profilban nem nézhető.'));
   if (!(await allowOutsidePlayback())) return;
   let items;
   if (item.type === 'series') {
@@ -1010,8 +1014,8 @@ export async function openInExternalPlayer(item, ep = null) {
   } else items = [{ url: item.urls[0], title: item.title + (item.year ? ` (${item.year})` : '') }];
   player.active && player.close();
   const err = await api.openInPlayer(items, item.title);
-  if (err) toast(`Nem sikerült megnyitni: ${err}. Telepíts egy videólejátszót (pl. VLC), és társítsd az .m3u fájlokhoz.`, { timeout: 9000 });
-  else toast('Megnyitás a külső lejátszóban…');
+  if (err) toast(`${_t('Nem sikerült megnyitni: {err}. Telepíts egy videólejátszót (pl. VLC), és társítsd az .m3u fájlokhoz.', { err })}`, { timeout: 9000 });
+  else toast(_t('Megnyitás a külső lejátszóban…'));
 }
 
 // ---------------------------------------------------------------------------
@@ -1029,30 +1033,30 @@ export function vcardHtml(x) {
   const ratio = pr?.d ? Math.min(1, pr.p / pr.d) : 0;
   const sub =
     x.type === 'series'
-      ? `${x.seasons.length > 1 ? x.seasons.length + ' évad · ' : ''}${x.episodes.length} rész`
-      : [x.year || '', fmtDur(x.duration), catsOf(x)[0] || ''].filter(Boolean).join(' · ');
+      ? `${x.seasons.length > 1 ? x.seasons.length + ` ${_t('évad ·')} ` : ''}${_t('{length} rész', { length: x.episodes.length })}`
+      : [x.year || '', fmtDur(x.duration), genreLabel(catsOf(x)[0] || '')].filter(Boolean).join(' · ');
   // Ugyanaz a felépítés, mint a tévécsatornák kártyájáé (keret, név, alcím, jelvények, felugró panel) –
   // így minden felületstílus egyformán díszíti; a borítókép álló marad.
   const fav = isVodFav(x);
   const nextEp = x.type === 'series' ? nextEpisodeOf(x) : null;
-  const line = (x.type === 'series' ? [`${x.seasons.length > 1 ? x.seasons.length + ' évad · ' : ''}${x.episodes.length} rész`] : [x.year || '', fmtDur(x.duration)]).concat(catsOf(x).slice(0, 2)).filter(Boolean).join(' · ');
+  const line = (x.type === 'series' ? [`${x.seasons.length > 1 ? x.seasons.length + ` ${_t('évad ·')} ` : ''}${_t('{length} rész', { length: x.episodes.length })}`] : [x.year || '', fmtDur(x.duration)]).concat(catsOf(x).slice(0, 2).map(genreLabel)).filter(Boolean).join(' · ');
   return `<div class="vcard" tabindex="0" data-vid="${esc(x.id)}">
     <div class="thumb vthumb" style="--h:${hashHue(x.title)}">${posterHtml(x)}
-      <span class="q">${x.type === 'series' ? 'SOROZAT' : 'FILM'}</span>
-      ${pr?.done && x.type === 'movie' ? `<span class="vdone" title="Megnézve">${ICON.check}</span>` : ''}
-      ${fav ? '<span class="fav-mark" title="Kedvenc">★</span>' : ''}
+      <span class="q">${x.type === 'series' ? _t('SOROZAT') : _t('FILM')}</span>
+      ${pr?.done && x.type === 'movie' ? `<span class="vdone" title="${_t('Megnézve')}">${ICON.check}</span>` : ''}
+      ${fav ? `<span class="fav-mark" title="${_t('Kedvenc')}">★</span>` : ''}
       ${ratio > 0.01 && !(pr?.done && x.type === 'movie') ? `<div class="bar"><i style="width:${(ratio * 100).toFixed(1)}%"></i></div>` : ''}
     </div>
     <div class="meta"><div class="name" title="${esc(displayTitle(x) !== x.title ? x.title : '')}">${esc(displayTitle(x))}</div><div class="sub">${esc(sub)}</div></div>
     <div class="pop">
       <div class="pop-btns">
-        <button class="round white" data-vact="play" title="Lejátszás (P)" tabindex="-1">${ICON.play}</button>
-        <button class="round" data-vact="fav" title="${fav ? 'Eltávolítás a kedvencekből (F)' : 'Kedvencekhez (F)'}" tabindex="-1">${fav ? ICON.check : ICON.plus}</button>
+        <button class="round white" data-vact="play" title="${_t('Lejátszás (P)')}" tabindex="-1">${ICON.play}</button>
+        <button class="round" data-vact="fav" title="${fav ? _t('Eltávolítás a kedvencekből (F)') : _t('Kedvencekhez (F)')}" tabindex="-1">${fav ? ICON.check : ICON.plus}</button>
         <span class="grow"></span>
-        <button class="round" data-vact="info" title="Részletek (I)" tabindex="-1">${ICON.chevron}</button>
+        <button class="round" data-vact="info" title="${_t('Részletek (I)')}" tabindex="-1">${ICON.chevron}</button>
       </div>
       <div class="pop-line">${esc(line)}</div>
-      ${nextEp?.ep ? `<div class="pop-now">${nextEp.resume ? 'Folytatás' : 'Következő'}: ${esc(epLabel(nextEp.ep))}</div>` : ''}
+      ${nextEp?.ep ? `<div class="pop-now">${nextEp.resume ? _t('Folytatás') : _t('Következő')}: ${esc(epLabel(nextEp.ep))}</div>` : ''}
     </div>
   </div>`;
 }
@@ -1093,7 +1097,7 @@ function vcardAction(card, act) {
   if (act === 'play') return playVod(x);
   if (act === 'fav') {
     toggleVodFav(x);
-    toast(isVodFav(x) ? 'Hozzáadva a kedvencekhez' : 'Eltávolítva a kedvencek közül');
+    toast(isVodFav(x) ? _t('Hozzáadva a kedvencekhez') : _t('Eltávolítva a kedvencek közül'));
     const focused = card.contains(document.activeElement);
     // az új kártya pontosan a régi helyére kerül (ugyanaz a tétel más sorban is lehet), és ott kap fókuszt
     const tpl = document.createElement('template');
@@ -1132,7 +1136,7 @@ export function homeContinueRow() {
       .sort((a, b) => b.t - a.t)
       .map((c) => c.x);
   const build = () => {
-    const el = vrowEl('Folytatás', items(), '#/vod?continue=1');
+    const el = vrowEl(_t('Folytatás'), items(), '#/vod?continue=1');
     if (el) {
       el.classList.add('home-continue');
       fillPosters(el);
@@ -1285,8 +1289,8 @@ async function localPoster(x) {
 // ---------------------------------------------------------------------------
 const VOD_FIXED = ['continue', 'watchlist', 'series', 'movies'];
 export function vodRowLabel(key) {
-  if (key.startsWith('group:')) return `Műfaj: ${key.slice(6)}`;
-  return { continue: 'Folytatás', watchlist: 'Megnézendő (saját lista)', series: 'Sorozatok', movies: 'Ajánlott filmek', lists: 'Listánként egy sor', nogroup: 'Egyéb filmek' }[key] || key;
+  if (key.startsWith('group:')) return `${_t('Műfaj: {name}', { name: genreLabel(key.slice(6)) })}`;
+  return { continue: _t('Folytatás'), watchlist: _t('Megnézendő (saját lista)'), series: _t('Sorozatok'), movies: _t('Ajánlott filmek'), lists: _t('Listánként egy sor'), nogroup: _t('Egyéb filmek') }[key] || key;
 }
 /** Alapból ennyi műfaj kap sort (a legnépszerűbbek); a többi a sorok beállításában kapcsolható be. */
 const GENRE_ROWS_ON = 12;
@@ -1335,7 +1339,7 @@ function progressiveGrid(grid, list) {
 /** A VOD két része: az online listák és a saját (NAS) médiatár – fülekkel váltható. */
 export function vodTabs(lib) {
   const tab = (l, href, label) => `<a class="tab ${lib === l ? 'active' : ''}" href="${href}">${label}</a>`;
-  return `<div class="tabs vod-tabs">${tab(vod, '#/vod', 'Online listák')}${tab(own, '#/own', 'Saját médiatár')}</div>`;
+  return `<div class="tabs vod-tabs">${tab(vod, '#/vod', _t('Online listák'))}${tab(own, '#/own', _t('Saját médiatár'))}</div>`;
 }
 
 export function renderVod(view, params, lib = vod) {
@@ -1351,21 +1355,21 @@ function renderVodPage(view, params, lib) {
   const type = params.get('type') || '';
   const sort = params.get('sort') || 'title';
   const R = lib.route;
-  const listsLink = `<a class="btn primary" href="#/settings?section=${lib.settingsSection}">Listák kezelése</a>`;
+  const listsLink = `<a class="btn primary" href="#/settings?section=${lib.settingsSection}">${_t('Listák kezelése')}</a>`;
   const isOwn = lib === own;
 
   if (!lib.ready) {
     const has = isOwn ? (store.settings.ownSources || []).some((s) => s.enabled) : vodLists().length;
     view.innerHTML = `<div class="page">${
       has
-        ? `<div class="empty-state"><div class="spinner"></div><p>${isOwn ? 'A saját médiatár beolvasása…' : 'A VOD-listák betöltése…'}</p></div>`
+        ? `<div class="empty-state"><div class="spinner"></div><p>${isOwn ? _t('A saját médiatár beolvasása…') : _t('A VOD-listák betöltése…')}</p></div>`
         : isOwn
           ? emptyState(
-              'Még nincs saját médiatár',
-              'Adj hozzá egy mappát (pl. a NAS megosztott mappáját) vagy hálózati címet, ahol a filmjeid és sorozataid .m3u / .m3u8 lejátszólistái vannak. Minden talált lejátszólista külön, ki-be kapcsolható lista lesz.',
-              `<a class="btn primary" href="#/settings?section=ownlists">Mappa vagy cím hozzáadása</a> <a class="btn" href="#/help?topic=own">Súgó</a>`
+              _t('Még nincs saját médiatár'),
+              _t('Adj hozzá egy mappát (pl. a NAS megosztott mappáját) vagy hálózati címet, ahol a filmjeid és sorozataid .m3u / .m3u8 lejátszólistái vannak. Minden talált lejátszólista külön, ki-be kapcsolható lista lesz.'),
+              `<a class="btn primary" href="#/settings?section=ownlists">${_t('Mappa vagy cím hozzáadása')}</a> <a class="btn" href="#/help?topic=own">${_t('Súgó')}</a>`
             )
-          : emptyState('Nincs bekapcsolt film- vagy sorozatlista', 'A Beállításokban kapcsolhatsz be beépített listát, vagy adhatsz hozzá sajátot.', listsLink)
+          : emptyState(_t('Nincs bekapcsolt film- vagy sorozatlista'), _t('A Beállításokban kapcsolhatsz be beépített listát, vagy adhatsz hozzá sajátot.'), listsLink)
     }</div>`;
     if (has) loadLib(lib);
     return;
@@ -1381,8 +1385,8 @@ function renderVodPage(view, params, lib) {
   if (!all.length) {
     const err = Object.values(isOwn ? { ...own.scanErrors, ...own.errors } : lib.errors)[0];
     view.innerHTML = `<div class="page">${emptyState(
-      isOwn ? 'A saját médiatárban nincs film vagy sorozat' : 'Nincs megjeleníthető film vagy sorozat',
-      err ? `Hiba: ${err}` : isOwn ? 'Nem található bekapcsolt lejátszólista, vagy a listák üresek. Nézd meg a Beállítások → VOD és médiatár → Saját médiatár részt.' : 'Kapcsolj be listát a Beállítások → VOD és médiatár → VOD-listák alatt.',
+      isOwn ? _t('A saját médiatárban nincs film vagy sorozat') : _t('Nincs megjeleníthető film vagy sorozat'),
+      err ? `${_t('Hiba: {err}', { err })}` : isOwn ? _t('Nem található bekapcsolt lejátszólista, vagy a listák üresek. Nézd meg a Beállítások → VOD és médiatár → Saját médiatár részt.') : _t('Kapcsolj be listát a Beállítások → VOD és médiatár → VOD-listák alatt.'),
       listsLink
     )}</div>`;
     return;
@@ -1406,22 +1410,22 @@ function renderVodPage(view, params, lib) {
     if ((contMode || wlMode) && !params.get('sort')) {
       // a legutóbb nézett elöl marad
     } else if (sort === 'year') list = huFirst(list.slice().sort((a, b) => (b.year || 0) - (a.year || 0)));
-    else if (sort === 'title') list = huFirst(list.slice().sort((a, b) => a.title.localeCompare(b.title, 'hu')));
+    else if (sort === 'title') list = huFirst(list.slice().sort((a, b) => a.title.localeCompare(b.title, LOCALE)));
     const opt = (v, l, cur) => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(l)}</option>`;
-    const heading = [contMode && 'Folytatás', wlMode && 'Megnézendő', listName, group].filter(Boolean).join(' · ') || (type === 'series' ? 'Sorozatok' : type === 'movie' ? 'Filmek' : q ? `Keresés: „${q}”` : lib.title);
+    const heading = [contMode && _t('Folytatás'), wlMode && _t('Megnézendő'), listName, group].filter(Boolean).join(' · ') || (type === 'series' ? _t('Sorozatok') : type === 'movie' ? _t('Filmek') : q ? `${_t('Keresés: „{q}”', { q })}` : lib.title);
     view.innerHTML = `<div class="page">
       <div class="page-head"><h1>${esc(heading)}</h1>
-        <span class="muted">${list.length} cím</span></div>
+        <span class="muted">${_t('{length} cím', { length: list.length })}</span></div>
       <form class="filters vod-filters">
-        <input class="input" name="q" type="search" placeholder="Keresés…" value="${esc(q)}" />
+        <input class="input" name="q" type="search" placeholder="${_t('Keresés…')}" value="${esc(q)}" />
         ${contMode ? '<input type="hidden" name="continue" value="1" />' : ''}${wlMode ? '<input type="hidden" name="watchlist" value="1" />' : ''}
-        <select name="type">${opt('', 'Filmek és sorozatok', type)}${opt('movie', 'Csak filmek', type)}${opt('series', 'Csak sorozatok', type)}</select>
-        ${listNames.length > 1 || listName ? `<select name="list">${opt('', 'Minden lista', listName)}${listNames.map((n) => opt(n, n, listName)).join('')}</select>` : ''}
-        <select name="group">${opt('', isOwn ? 'Minden lejátszólista / csoport' : 'Minden műfaj', group)}${groups.map((g) => opt(g.name, `${g.name} (${g.count})`, group)).join('')}</select>
-        <select name="sort">${opt('title', 'Cím szerint', sort)}${opt('year', 'Legújabb elöl', sort)}</select>
-        <a class="btn small" href="${R}">Vissza a kezdőlapra</a>
+        <select name="type">${opt('', _t('Filmek és sorozatok'), type)}${opt('movie', _t('Csak filmek'), type)}${opt('series', _t('Csak sorozatok'), type)}</select>
+        ${listNames.length > 1 || listName ? `<select name="list">${opt('', _t('Minden lista'), listName)}${listNames.map((n) => opt(n, n, listName)).join('')}</select>` : ''}
+        <select name="group">${opt('', isOwn ? _t('Minden lejátszólista / csoport') : _t('Minden műfaj'), group)}${groups.map((g) => opt(g.name, `${genreLabel(g.name)} (${g.count})`, group)).join('')}</select>
+        <select name="sort">${opt('title', _t('Cím szerint'), sort)}${opt('year', _t('Legújabb elöl'), sort)}</select>
+        <a class="btn small" href="${R}">${_t('Vissza a kezdőlapra')}</a>
       </form>
-      <div class="vgrid">${list.slice(0, VGRID_CHUNK).map(vcardHtml).join('') || '<p class="empty">Nincs találat.</p>'}</div>
+      <div class="vgrid">${list.slice(0, VGRID_CHUNK).map(vcardHtml).join('') || `<p class="empty">${_t('Nincs találat.')}</p>`}</div>
     </div>`;
     // Az összes tétel egy oldalon: a többi görgetés közben töltődik be.
     progressiveGrid($('.vgrid', view), list);
@@ -1449,17 +1453,17 @@ function renderVodPage(view, params, lib) {
   view.innerHTML = '';
   const rows = html(`<div class="rows vrows">
     <div class="vod-quick">
-      ${movies.length ? `<a class="btn small" href="${R}?type=movie">Összes film (${movies.length})</a>` : ''}
-      ${series.length ? `<a class="btn small" href="${R}?type=series">Összes sorozat (${series.length})</a>` : ''}
-      <a class="btn small" href="${R}?type=all">Keresés és szűrés</a>
-      <a class="btn small" href="#/settings?section=${lib.settingsSection}">Listák kezelése</a>
-      ${isOwn ? `<button class="btn small" data-rescan>${ICON.refresh} Újraolvasás</button>` : ''}
+      ${movies.length ? `<a class="btn small" href="${R}?type=movie">${_t('Összes film ({length})', { length: movies.length })}</a>` : ''}
+      ${series.length ? `<a class="btn small" href="${R}?type=series">${_t('Összes sorozat ({length})', { length: series.length })}</a>` : ''}
+      <a class="btn small" href="${R}?type=all">${_t('Keresés és szűrés')}</a>
+      <a class="btn small" href="#/settings?section=${lib.settingsSection}">${_t('Listák kezelése')}</a>
+      ${isOwn ? `<button class="btn small" data-rescan>${_t('{refresh} Újraolvasás', { refresh: ICON.refresh })}</button>` : ''}
     </div></div>`);
   rows.querySelector('[data-rescan]')?.addEventListener('click', async (e) => {
     e.target.disabled = true;
-    toast('A saját médiatár újraolvasása…');
+    toast(_t('A saját médiatár újraolvasása…'));
     await loadOwn({ force: true });
-    toast(`Kész: ${own.movies.length} film, ${own.series.length} sorozat`);
+    toast(`${_t('Kész: {length} film, {length2} sorozat', { length: own.movies.length, length2: own.series.length })}`);
   });
   view.append(rows);
   const cont = continueItems(lib).map((c) => c.x);
@@ -1468,24 +1472,24 @@ function renderVodPage(view, params, lib) {
   const seed = Math.floor(Date.now() / 86400e3);
   const build = {
     // Az online részen a félbehagyott tételek a saját médiatárból is (a tévés főoldalon már nincs ilyen sor)
-    continue: () => add(isOwn ? vrowEl('Folytatás', cont, `${R}?continue=1`) : homeContinueRow()),
-    watchlist: () => add(vrowEl('Megnézendő', inWatchlist(all), `${R}?watchlist=1`)),
-    series: () => add(vrowEl('Sorozatok', series, `${R}?type=series`)),
+    continue: () => add(isOwn ? vrowEl(_t('Folytatás'), cont, `${R}?continue=1`) : homeContinueRow()),
+    watchlist: () => add(vrowEl(_t('Megnézendő'), inWatchlist(all), `${R}?watchlist=1`)),
+    series: () => add(vrowEl(_t('Sorozatok'), series, `${R}?type=series`)),
     movies: () =>
-      add(isOwn ? vrowEl('Filmek', movies, `${R}?type=movie`) : vrowEl('Ajánlott filmek', huFirst(seededShuffle(withPoster, seed)).slice(0, 30), `${R}?type=movie`)),
+      add(isOwn ? vrowEl(_t('Filmek'), movies, `${R}?type=movie`) : vrowEl(_t('Ajánlott filmek'), huFirst(seededShuffle(withPoster, seed)).slice(0, 30), `${R}?type=movie`)),
     // Több lista esetén listánként is egy sor (pl. „AnimeAddicts”)
     lists: () => {
       if (isOwn || listNames.length < 2) return;
       for (const n of listNames) add(vrowEl(n, all.filter((x) => x.lists.includes(n)), `${R}?list=${encodeURIComponent(n)}`));
     },
-    nogroup: () => !isOwn && add(vrowEl('Egyéb filmek', movies.filter((m) => !catsOf(m).length), `${R}?type=movie`)),
+    nogroup: () => !isOwn && add(vrowEl(_t('Egyéb filmek'), movies.filter((m) => !catsOf(m).length), `${R}?type=movie`)),
   };
   for (const r of vodRows(groups)) {
     if (!r.on) continue;
     if (r.key.startsWith('group:')) {
       const name = r.key.slice(6);
       const items = all.filter((x) => catsOf(x).includes(name));
-      if (items.length >= (isOwn ? 3 : 6)) add(vrowEl(name, items, `${R}?group=${encodeURIComponent(name)}`));
+      if (items.length >= (isOwn ? 3 : 6)) add(vrowEl(genreLabel(name), items, `${R}?group=${encodeURIComponent(name)}`));
     } else build[r.key]?.();
   }
   fillPosters(view);
@@ -1499,21 +1503,21 @@ function renderVodPage(view, params, lib) {
 const kidsBtn = (x) =>
   store.profile.kids
     ? ''
-    : `<button class="btn ${isKidsVod(x) ? 'on' : ''}" data-v="kids" title="Minden profilban: a gyerekprofilok alapból a gyerektartalmat nézhetik">${isKidsVod(x) ? ICON.check + ' ' : ''}Gyerektartalom</button>`;
+    : `<button class="btn ${isKidsVod(x) ? 'on' : ''}" data-v="kids" title="${_t('Minden profilban: a gyerekprofilok alapból a gyerektartalmat nézhetik')}">${isKidsVod(x) ? ICON.check + ' ' : ''}${_t('Gyerektartalom')}</button>`;
 // Megnézendő lista (profilonként)
 const wlBtn = (x) =>
-  `<button class="btn ${isVodFav(x) ? 'on' : ''}" data-v="fav" title="A Kedvencek oldalon is megjelenik">${isVodFav(x) ? '★' : '☆'} Kedvenc</button>` +
-  `<button class="btn ${isWatchlisted(x) ? 'on' : ''}" data-v="wl">${isWatchlisted(x) ? ICON.check : ICON.plus} Megnézendő</button>`;
+  `<button class="btn ${isVodFav(x) ? 'on' : ''}" data-v="fav" title="${_t('A Kedvencek oldalon is megjelenik')}">${isVodFav(x) ? '★' : '☆'} ${_t('Kedvenc')}</button>` +
+  `<button class="btn ${isWatchlisted(x) ? 'on' : ''}" data-v="wl">${isWatchlisted(x) ? ICON.check : ICON.plus} ${_t('Megnézendő')}</button>`;
 // Borítókép és cím szerkesztése egy helyen (minden profilban közös)
-const editBtns = () => `<button class="btn" data-v="edit" title="Cím és borítókép – keresés az adatbázisokban, saját kép">✎ Cím és borító</button>`;
+const editBtns = () => `<button class="btn" data-v="edit" title="${_t('Cím és borítókép – keresés az adatbázisokban, saját kép')}">${_t('✎ Cím és borító')}</button>`;
 const externalBtn = () =>
-  api.openInPlayer ? `<button class="btn" data-v="external" title="VLC, mpv, IINA, MX Player… – AC3 hanghoz és beágyazott felirathoz">${ICON.external} Külső lejátszóban</button>` : '';
+  api.openInPlayer ? `<button class="btn" data-v="external" title="${_t('VLC, mpv, IINA, MX Player… – AC3 hanghoz és beágyazott felirathoz')}">${_t('{external} Külső lejátszóban', { external: ICON.external })}</button>` : '';
 
 export function openVodDetail(x) {
   const el = html(`<div class="vdetail"></div>`);
   let season = null;
   // Magyar információk (Wikidata / Wikipédia / TMDB) – a háttérben töltődnek be.
-  let huHtml = store.settings.huInfo !== false ? '<div class="hu-info loading"><p class="muted small">Információk betöltése…</p></div>' : '';
+  let huHtml = store.settings.huInfo !== false ? `<div class="hu-info loading"><p class="muted small">${_t('Információk betöltése…')}</p></div>` : '';
   let huTitle = '';
   const render = () => {
     if (x.type === 'movie') {
@@ -1522,19 +1526,19 @@ export function openVodDetail(x) {
       el.innerHTML = `<div class="vd-top">
         <div class="vd-poster">${posterHtml(x)}</div>
         <div class="vd-info">
-          <div class="vhero-kicker">FILM</div>
+          <div class="vhero-kicker">${_t('FILM')}</div>
           <h1>${esc(displayTitle(x))}</h1>
-          ${displayTitle(x) !== x.title ? `<div class="hu-sub">Eredeti / angol cím: ${esc(x.title)}</div>` : ''}
+          ${displayTitle(x) !== x.title ? `<div class="hu-sub">${_t('Eredeti / angol cím: {esc}', { esc: esc(x.title) })}</div>` : ''}
           <div class="muted">${esc([x.year || '', fmtDur(x.duration)].filter(Boolean).join(' · '))}</div>
-          ${catsOf(x).length ? `<div class="vd-tags">${catsOf(x).map((g) => `<a class="pill" href="${x.lib === 'own' ? '#/own' : '#/vod'}?group=${encodeURIComponent(g)}">${esc(g)}</a>`).join('')}</div>` : ''}
-          ${pr ? `<div class="vd-progress">${pr.done ? 'Megnézve' : `Megnézve: ${Math.round((pr.p / (pr.d || pr.p || 1)) * 100)}% (${fmtClock(pr.p)})`}</div>` : ''}
+          ${catsOf(x).length ? `<div class="vd-tags">${catsOf(x).map((g) => `<a class="pill" href="${x.lib === 'own' ? '#/own' : '#/vod'}?group=${encodeURIComponent(g)}">${esc(genreLabel(g))}</a>`).join('')}</div>` : ''}
+          ${pr ? `<div class="vd-progress">${pr.done ? _t('Megnézve') : `${_t('Megnézve: {round}% ({fmtClock})', { round: Math.round((pr.p / (pr.d || pr.p || 1)) * 100), fmtClock: fmtClock(pr.p) })}`}</div>` : ''}
           <div class="info-btns">
-            <button class="btn primary big" data-v="play" autofocus>${ICON.play} ${resume ? `Folytatás ${fmtClock(pr.p)}-tól` : 'Lejátszás'}</button>
-            ${resume ? `<button class="btn" data-v="restart">Előről</button>` : ''}
-            <button class="btn" data-v="watched">${pr?.done ? 'Nem megnézettnek jelölés' : 'Megnézettnek jelölés'}</button>
+            <button class="btn primary big" data-v="play" autofocus>${ICON.play} ${resume ? `${_t('Folytatás {fmtClock}-tól', { fmtClock: fmtClock(pr.p) })}` : _t('Lejátszás')}</button>
+            ${resume ? `<button class="btn" data-v="restart">${_t('Előről')}</button>` : ''}
+            <button class="btn" data-v="watched">${pr?.done ? _t('Nem megnézettnek jelölés') : _t('Megnézettnek jelölés')}</button>
             ${wlBtn(x)}${externalBtn()}${kidsBtn(x)}${editBtns()}
           </div>
-          <p class="muted small">Forrás: ${esc(x.lists.join(', '))}${x.urls.length > 1 ? ` · ${x.urls.length} változat (ha az egyik nem működik, a lejátszó a következőt próbálja)` : ''}</p>
+          <p class="muted small">${_t('Forrás: {esc}', { esc: esc(x.lists.join(', ')) })}${x.urls.length > 1 ? ` ${_t('· {length} változat (ha az egyik nem működik, a lejátszó a következőt próbálja)', { length: x.urls.length })}` : ''}</p>
         </div></div>
         <div class="vd-hu">${huHtml}</div>`;
     } else {
@@ -1544,18 +1548,18 @@ export function openVodDetail(x) {
       el.innerHTML = `<div class="vd-top">
         <div class="vd-poster">${posterHtml(x)}</div>
         <div class="vd-info">
-          <div class="vhero-kicker">SOROZAT</div>
+          <div class="vhero-kicker">${_t('SOROZAT')}</div>
           <h1>${esc(displayTitle(x))}</h1>
-          ${displayTitle(x) !== x.title ? `<div class="hu-sub">Eredeti / angol cím: ${esc(x.title)}</div>` : ''}
-          <div class="muted">${x.seasons.length} évad · ${x.episodes.length} rész · ${doneCount(x.episodes)} megnézve</div>
+          ${displayTitle(x) !== x.title ? `<div class="hu-sub">${_t('Eredeti / angol cím: {esc}', { esc: esc(x.title) })}</div>` : ''}
+          <div class="muted">${_t('{length} évad · {length2} rész · {doneCount} megnézve', { length: x.seasons.length, length2: x.episodes.length, doneCount: doneCount(x.episodes) })}</div>
           <div class="bar wide vd-sprog"><i style="width:${((doneCount(x.episodes) / Math.max(1, x.episodes.length)) * 100).toFixed(1)}%"></i></div>
-          ${catsOf(x).length ? `<div class="vd-tags">${catsOf(x).map((g) => `<a class="pill" href="${x.lib === 'own' ? '#/own' : '#/vod'}?group=${encodeURIComponent(g)}">${esc(g)}</a>`).join('')}</div>` : ''}
+          ${catsOf(x).length ? `<div class="vd-tags">${catsOf(x).map((g) => `<a class="pill" href="${x.lib === 'own' ? '#/own' : '#/vod'}?group=${encodeURIComponent(g)}">${esc(genreLabel(g))}</a>`).join('')}</div>` : ''}
           <div class="info-btns">
-            <button class="btn primary big" data-v="play" autofocus>${ICON.play} ${resume ? 'Folytatás' : progressOf(x.id)?.last ? 'Következő rész' : 'Lejátszás'}: ${esc(epLabel(nextEp))}</button>
-            <button class="btn" data-v="season-done">${eps.every((e) => progressOf(e.key)?.done) ? 'Évad: nem megnézett' : 'Évad megnézettnek jelölése'}</button>
+            <button class="btn primary big" data-v="play" autofocus>${ICON.play} ${resume ? _t('Folytatás') : progressOf(x.id)?.last ? _t('Következő rész') : _t('Lejátszás')}: ${esc(epLabel(nextEp))}</button>
+            <button class="btn" data-v="season-done">${eps.every((e) => progressOf(e.key)?.done) ? _t('Évad: nem megnézett') : _t('Évad megnézettnek jelölése')}</button>
             ${wlBtn(x)}${externalBtn()}${kidsBtn(x)}${editBtns()}
           </div>
-          <p class="muted small">Forrás: ${esc(x.lists.join(', '))}</p>
+          <p class="muted small">${_t('Forrás: {esc}', { esc: esc(x.lists.join(', ')) })}</p>
         </div></div>
         <div class="vd-hu">${huHtml}</div>
         ${x.seasons.length > 1 ? `<div class="tabs vd-seasons">${x.seasons.map((s) => { const se = x.episodes.filter((e) => e.season === s); return `<button class="tab ${s === season ? 'active' : ''}" data-season="${s}">${seasonLabel(s)} <small>${doneCount(se)}/${se.length}</small></button>`; }).join('')}</div>` : ''}
@@ -1565,7 +1569,7 @@ export function openVodDetail(x) {
             const ratio = pr?.d ? Math.min(1, pr.p / pr.d) : 0;
             return `<li tabindex="0" data-ep="${esc(e.key)}" class="${pr?.done ? 'done' : ''}">
               <span class="ep-num">${e.episode}</span>
-              <span class="ep-text"><b>${esc(e.title || `${e.episode}. rész`)}</b><small>${esc(epLabel(e))}${e.duration ? ' · ' + fmtDur(e.duration) : ''}${pr?.done ? ' · megnézve' : ''}</small>
+              <span class="ep-text"><b>${esc(e.title || `${_t('{episode}. rész', { episode: e.episode })}`)}</b><small>${esc(epLabel(e))}${e.duration ? ' · ' + fmtDur(e.duration) : ''}${pr?.done ? ` ${_t('· megnézve')}` : ''}</small>
                 ${ratio > 0.01 && !pr?.done ? `<span class="bar"><i style="width:${(ratio * 100).toFixed(1)}%"></i></span>` : ''}</span>
               <span class="ep-play">${ICON.play}</span>
             </li>`;
@@ -1606,7 +1610,7 @@ export function openVodDetail(x) {
       playVod(x);
     } else if (a === 'kids') {
       setKidsMark('vod', x, !isKidsVod(x));
-      toast(isKidsVod(x) ? `„${x.title}”: gyerektartalomként jelölve` : `„${x.title}”: nem gyerektartalom`);
+      toast(isKidsVod(x) ? `${_t('„{title}”: gyerektartalomként jelölve', { title: x.title })}` : `${_t('„{title}”: nem gyerektartalom', { title: x.title })}`);
       render();
     } else if (a === 'external') {
       close();
@@ -1618,11 +1622,11 @@ export function openVodDetail(x) {
       if (await editVodMeta(x)) render();
     } else if (a === 'wl') {
       toggleWatchlist(x);
-      toast(isWatchlisted(x) ? 'Felkerült a Megnézendő listára' : 'Lekerült a Megnézendő listáról');
+      toast(isWatchlisted(x) ? _t('Felkerült a Megnézendő listára') : _t('Lekerült a Megnézendő listáról'));
       render();
     } else if (a === 'fav') {
       toggleVodFav(x);
-      toast(isVodFav(x) ? 'Hozzáadva a kedvencekhez' : 'Eltávolítva a kedvencek közül');
+      toast(isVodFav(x) ? _t('Hozzáadva a kedvencekhez') : _t('Eltávolítva a kedvencek közül'));
       render();
     } else if (a === 'season-done') {
       const eps = x.episodes.filter((y) => y.season === season);
@@ -1632,7 +1636,7 @@ export function openVodDetail(x) {
         else saveProgress(y.key, y.duration || 1, y.duration || 1);
       }
       store.save();
-      toast(all ? 'Az évad megnézése törölve' : 'Az évad megnézettnek jelölve');
+      toast(all ? _t('Az évad megnézése törölve') : _t('Az évad megnézettnek jelölve'));
       render();
     } else if (a === 'watched') {
       const pr = progressOf(x.id);
@@ -1672,10 +1676,10 @@ function refreshCards(x) {
 const fileToPoster = (file) =>
   new Promise((resolve, reject) => {
     const r = new FileReader();
-    r.onerror = () => reject(new Error('A fájl nem olvasható'));
+    r.onerror = () => reject(new Error(_t('A fájl nem olvasható')));
     r.onload = () => {
       const img = new Image();
-      img.onerror = () => reject(new Error('Ez nem kép'));
+      img.onerror = () => reject(new Error(_t('Ez nem kép')));
       img.onload = () => {
         const w = Math.min(342, img.naturalWidth);
         const c = document.createElement('canvas');
@@ -1702,31 +1706,31 @@ function editVodMeta(x) {
     const keys = [(store.settings.tmdbKey || '').trim() && 'TMDB', (store.settings.omdbKey || '').trim() && 'OMDb'].filter(Boolean);
     const hasOwnPoster = !!store.settings.vodMeta?.[x.id]?.poster;
     const el = html(`<div class="dialog vod-edit">
-      <h2>Cím és borító</h2>
+      <h2>${_t('Cím és borító')}</h2>
       <div class="ve-top">
         <div class="ve-prev"></div>
         <div class="ve-fields">
-          <label class="setting col"><span><b>Megjelenített cím</b><small>Üresen hagyva: ${esc(x.huTitle || x.title)}</small></span>
+          <label class="setting col"><span>${_t('<b>Megjelenített cím</b>')}<small>${_t('Üresen hagyva: {esc}', { esc: esc(x.huTitle || x.title) })}</small></span>
             <input class="input" data-ve="title" value="${esc(x.userTitle || '')}" placeholder="${esc(x.huTitle || x.title)}" /></label>
-          <p class="muted small">Eredeti cím (a listában): <b>${esc(x.title)}</b>${x.huTitle ? `<br>Magyar cím (adatbázisból): <b>${esc(x.huTitle)}</b>` : ''}${x.year ? ` · ${esc(String(x.year))}` : ''}</p>
+          <p class="muted small">${_t('Eredeti cím (a listában): <b>{esc}</b>', { esc: esc(x.title) })}${x.huTitle ? `${_t('<br>Magyar cím (adatbázisból): <b>{esc}</b>', { esc: esc(x.huTitle) })}` : ''}${x.year ? ` · ${esc(String(x.year))}` : ''}</p>
           <div class="inline">
-            <label class="btn small pp-file">Képfájl…<input type="file" accept="image/*" hidden /></label>
-            ${hasOwnPoster ? '<button class="btn small" data-ve="reset">Eredeti borító</button>' : ''}
+            <label class="btn small pp-file">${_t('Képfájl…')}<input type="file" accept="image/*" hidden /></label>
+            ${hasOwnPoster ? `<button class="btn small" data-ve="reset">${_t('Eredeti borító')}</button>` : ''}
           </div>
         </div>
       </div>
-      <div class="ve-search inline"><input class="input" data-ve="q" value="${esc(x.title)}" placeholder="Keresés a borítóképek között…" /><button class="btn" data-ve="search">Keresés</button></div>
-      <p class="muted small ve-src">Források: AniList, Kitsu, MyAnimeList, TVmaze, Wikipédia, Wikidata${keys.length ? ', ' + keys.join(', ') : ' · TMDB / OMDb (IMDb) saját kulccsal: Beállítások → Feliratok és információk → Magyar információk és feliratok'}</p>
+      <div class="ve-search inline"><input class="input" data-ve="q" value="${esc(x.title)}" placeholder="${_t('Keresés a borítóképek között…')}" /><button class="btn" data-ve="search">${_t('Keresés')}</button></div>
+      <p class="muted small ve-src">${_t('Források: AniList, Kitsu, MyAnimeList, TVmaze, Wikipédia, Wikidata')}${keys.length ? ', ' + keys.join(', ') : ` ${_t('· TMDB / OMDb (IMDb) saját kulccsal: Beállítások → Feliratok és információk → Magyar információk és feliratok')}`}</p>
       <div class="pp-grid"></div>
-      <div class="ve-url"><b>Saját kép címe</b><div class="inline"><input class="input" data-ve="url" placeholder="https://…/plakat.jpg" /><button class="btn small" data-ve="useurl">Kiválasztás</button></div></div>
-      <div class="inline ve-foot"><button class="btn" data-ve="cancel">Mégse</button><button class="btn primary" data-ve="save">Mentés</button></div>
+      <div class="ve-url">${_t('<b>Saját kép címe</b>')}<div class="inline"><input class="input" data-ve="url" placeholder="${_t('https://…/plakat.jpg')}" /><button class="btn small" data-ve="useurl">${_t('Kiválasztás')}</button></div></div>
+      <div class="inline ve-foot"><button class="btn" data-ve="cancel">${_t('Mégse')}</button><button class="btn primary" data-ve="save">${_t('Mentés')}</button></div>
     </div>`);
     const close = openModal(el, { cls: 'medium', onClose: () => resolve(changed) });
     const $ = (k) => el.querySelector(`[data-ve="${k}"]`);
     const grid = el.querySelector('.pp-grid');
     const prev = () => {
       const url = poster === undefined ? x.poster : poster || x.listPoster || '';
-      el.querySelector('.ve-prev').innerHTML = url ? `<img src="${esc(url)}" alt="" referrerpolicy="no-referrer" />` : `<div class="ve-none">Nincs borító</div>`;
+      el.querySelector('.ve-prev').innerHTML = url ? `<img src="${esc(url)}" alt="" referrerpolicy="no-referrer" />` : `<div class="ve-none">${_t('Nincs borító')}</div>`;
       grid.querySelectorAll('.pp-item').forEach((b) => b.classList.toggle('on', list[Number(b.dataset.ppI)]?.url === url));
     };
     // A találatok forrásonként, beérkezés szerint jelennek meg (a már kirajzoltak a helyükön maradnak)
@@ -1741,7 +1745,7 @@ function editVodMeta(x) {
         for (let i = list.length; i < r.length; i++) grid.insertAdjacentHTML('beforeend', item(r[i], i));
         list = r;
         if (!done) grid.insertAdjacentHTML('beforeend', '<div class="spinner small pp-wait"></div>');
-        else if (!list.length) grid.innerHTML = '<p class="muted small">Nincs találat. Próbálj más keresőszót (pl. az eredeti címet), adj meg képcímet, vagy válassz képfájlt.</p>';
+        else if (!list.length) grid.innerHTML = `<p class="muted small">${_t('Nincs találat. Próbálj más keresőszót (pl. az eredeti címet), adj meg képcímet, vagy válassz képfájlt.')}</p>`;
         prev();
       };
       posterCandidates(x, q === x.title ? '' : q, (r) => show(r, false)).then((r) => show(r, true));
@@ -1755,7 +1759,7 @@ function editVodMeta(x) {
       } else if (a === 'search') search($('q').value.trim() || x.title);
       else if (a === 'useurl') {
         const u = $('url').value.trim();
-        if (!/^https?:\/\/\S+$/i.test(u)) return toast('Adj meg egy http(s) képcímet.');
+        if (!/^https?:\/\/\S+$/i.test(u)) return toast(_t('Adj meg egy http(s) képcímet.'));
         poster = u;
         prev();
       } else if (a === 'reset') {
@@ -1771,7 +1775,7 @@ function editVodMeta(x) {
           setVodOverride(x, patch);
           changed = true;
           refreshCards(x);
-          toast('Mentve');
+          toast(_t('Mentve'));
         }
         close();
       }
@@ -1887,7 +1891,7 @@ async function scanOwnSources({ force = false } = {}) {
   for (const src of (s.ownSources || []).filter((x) => x.enabled)) {
     try {
       if (src.kind === 'folder') {
-        if (!api.scanFolder) throw new Error('Mappát csak az asztali alkalmazás tud olvasni (tévén / böngészőben hálózati címet adj meg).');
+        if (!api.scanFolder) throw new Error(_t('Mappát csak az asztali alkalmazás tud olvasni (tévén / böngészőben hálózati címet adj meg).'));
         for (const f of await api.scanFolder(src.path)) {
           files.push({ key: `${src.id}|${f.rel}`, src: src.id, name: f.name.replace(/\.m3u8?$/i, ''), rel: f.rel, kind: 'folder', loc: f.path, base: pathToUrl(f.path), mtime: f.mtime });
         }
@@ -1945,57 +1949,57 @@ setInterval(() => {
 export function renderVodLists(box) {
   const s = store.settings;
   const busy = !!vod.loading;
-  box.innerHTML = `<h2>VOD-listák (filmek, sorozatok) <button class="help-link" data-help="vod-lists" title="Súgó">?</button></h2>
-    <p class="muted small">Ezek a listák nem élő csatornákat, hanem filmeket és sorozatepizódokat tartalmaznak (M3U / M3U8). A program a címekből ismeri fel, mi film és mi sorozat.</p>
+  box.innerHTML = `<h2>${_t('VOD-listák (filmek, sorozatok)')} <button class="help-link" data-help="vod-lists" title="${_t('Súgó')}">?</button></h2>
+    <p class="muted small">${_t('Ezek a listák nem élő csatornákat, hanem filmeket és sorozatepizódokat tartalmaznak (M3U / M3U8). A program a címekből ismeri fel, mi film és mi sorozat.')}</p>
     <div class="refresh-bar">
-      <button class="btn primary" data-vl="refresh" ${busy ? 'disabled' : ''}>${ICON.refresh} ${busy ? 'Betöltés…' : 'Listák frissítése most'}</button>
-      <span class="muted">${vod.ready ? `${vod.movies.length} film · ${vod.series.length} sorozat` : 'még nincs betöltve'}</span>
+      <button class="btn primary" data-vl="refresh" ${busy ? 'disabled' : ''}>${ICON.refresh} ${busy ? _t('Betöltés…') : _t('Listák frissítése most')}</button>
+      <span class="muted">${vod.ready ? `${_t('{length} film · {length2} sorozat', { length: vod.movies.length, length2: vod.series.length })}` : _t('még nincs betöltve')}</span>
     </div>
-    ${toggleRow('vodAutoNext', 'A következő rész automatikus indítása', 'Sorozatnál a rész végén néhány másodperc múlva indul a következő.')}
-    <h3>Beépített listák</h3>
+    ${toggleRow('vodAutoNext', _t('A következő rész automatikus indítása'), _t('Sorozatnál a rész végén néhány másodperc múlva indul a következő.'))}
+    <h3>${_t('Beépített listák')}</h3>
     <ul class="src-list">${[...VOD_BUILTIN, ...vodPacks()].map((b) => {
       const on = builtinOn(b);
-      const info = !on ? 'kikapcsolva' : vod.errors[b.id] ? `<span class="warn">hiba: ${esc(vod.errors[b.id])}</span>` : vod.ready ? `${vod.counts[b.id] || 0} bejegyzés` : '';
+      const info = !on ? _t('kikapcsolva') : vod.errors[b.id] ? `<span class="warn">${_t('hiba: {esc}', { esc: esc(vod.errors[b.id]) })}</span>` : vod.ready ? `${_t('{x} bejegyzés', { x: vod.counts[b.id] || 0 })}` : '';
       return `<li data-vb="${esc(b.id)}"><input type="checkbox" class="switch" data-vl-builtin ${on ? 'checked' : ''} aria-label="${esc(b.name)}" />
-        <span><b>${esc(b.name)}</b>${b.pack ? ' <span class="pill">kiegészítő csomag</span>' : ''}<small>${esc(b.desc || '')}${info ? ' · ' + info : ''}</small></span>
-        ${b.pack ? '<button class="btn small danger" data-vl="pack-del">Eltávolítás</button>' : ''}</li>`;
+        <span><b>${esc(b.name)}</b>${b.pack ? ` <span class="pill">${_t('kiegészítő csomag')}</span>` : ''}<small>${esc(b.desc || '')}${info ? ' · ' + info : ''}</small></span>
+        ${b.pack ? `<button class="btn small danger" data-vl="pack-del">${_t('Eltávolítás')}</button>` : ''}</li>`;
     }).join('')}</ul>
     <div class="inline">
-      ${api.caps.files ? `<button class="btn small" data-vl="pack-add">${ICON.plus} Kiegészítő csomag betöltése (…_vod.adaspack)</button>` : ''}
-      <button class="btn small" data-vl="pack-url">${api.caps.files ? '' : ICON.plus + ' Kiegészítő csomag '}Betöltés webcímről</button>
-      ${api.packsDir ? '<button class="btn small" data-vl="pack-dir">Csomagok mappája</button>' : ''}
-      <button class="btn small" data-help="adaspack">Mi ez, és hogyan készíthetek ilyet?</button>
+      ${api.caps.files ? `<button class="btn small" data-vl="pack-add">${_t('{plus} Kiegészítő csomag betöltése (…_vod.adaspack)', { plus: ICON.plus })}</button>` : ''}
+      <button class="btn small" data-vl="pack-url">${api.caps.files ? '' : ICON.plus + ` ${_t('Kiegészítő csomag')} `}${_t('Betöltés webcímről')}</button>
+      ${api.packsDir ? `<button class="btn small" data-vl="pack-dir">${_t('Csomagok mappája')}</button>` : ''}
+      <button class="btn small" data-help="adaspack">${_t('Mi ez, és hogyan készíthetek ilyet?')}</button>
     </div>
-    <p class="muted small">Kiegészítő csomag: egy <code>.adaspack</code> fájlba csomagolt lista, amely beépítettként jelenik meg, de a programmal nem érkezik – csak azon az eszközön lesz meg, ahová betöltöd (a mentés és az eszközök közti átvitel is viszi). Minden változat betölti: fájlból, webcímről (a tévén is), vagy szinkronnal egy másik eszközről; az asztali változat a <i>Csomagok mappája</i> tartalmát indításkor magától is.</p>
-    <h3>Saját listák</h3>
+    <p class="muted small">${_t('Kiegészítő csomag: egy <code>.adaspack</code> fájlba csomagolt lista, amely beépítettként jelenik meg, de a programmal nem érkezik – csak azon az eszközön lesz meg, ahová betöltöd (a mentés és az eszközök közti átvitel is viszi). Minden változat betölti: fájlból, webcímről (a tévén is), vagy szinkronnal egy másik eszközről; az asztali változat a <i>Csomagok mappája</i> tartalmát indításkor magától is.')}</p>
+    <h3>${_t('Saját listák')}</h3>
     <ul class="src-list">${(s.vodCustom || [])
       .map((p) => {
-        const info = !p.enabled ? 'kikapcsolva' : vod.errors[p.id] ? `<span class="warn">hiba: ${esc(vod.errors[p.id])}</span>` : vod.ready ? `${vod.counts[p.id] || 0} bejegyzés` : '';
-        return `<li data-vc="${esc(p.id)}"><input type="checkbox" class="switch" data-vl-toggle ${p.enabled ? 'checked' : ''} aria-label="Bekapcsolva" />
-          <span><b>${esc(p.name)}</b><small>${esc(p.url || (p.source ? 'fájlból: ' + p.source : 'beillesztett / fájlból'))}${info ? ' · ' + info : ''}</small></span>
-          <button class="btn small" data-vl="rename">Átnevezés</button>
-          <button class="btn small danger" data-vl="del">Törlés</button></li>`;
+        const info = !p.enabled ? _t('kikapcsolva') : vod.errors[p.id] ? `<span class="warn">${_t('hiba: {esc}', { esc: esc(vod.errors[p.id]) })}</span>` : vod.ready ? `${_t('{x} bejegyzés', { x: vod.counts[p.id] || 0 })}` : '';
+        return `<li data-vc="${esc(p.id)}"><input type="checkbox" class="switch" data-vl-toggle ${p.enabled ? 'checked' : ''} aria-label="${_t('Bekapcsolva')}" />
+          <span><b>${esc(p.name)}</b><small>${esc(p.url || (p.source ? `${_t('fájlból:')} ` + p.source : _t('beillesztett / fájlból')))}${info ? ' · ' + info : ''}</small></span>
+          <button class="btn small" data-vl="rename">${_t('Átnevezés')}</button>
+          <button class="btn small danger" data-vl="del">${_t('Törlés')}</button></li>`;
       })
-      .join('') || '<li class="muted">Még nincs saját film/sorozat lista.</li>'}</ul>
-    ${(catalog.tvVod || []).length ? `<h3>A csatornalistákból átkerült filmek és részek</h3>
-    <p class="muted small">A csatornák között csak élő adás marad: a csatornalistákban talált filmek és sorozatrészek (hosszjelölés, <code>/movie/</code> / <code>/series/</code> cím, filmfájl évszámmal vagy részszámmal) itt jelennek meg. A csatornalista kikapcsolásával ezek is eltűnnek.</p>
-    <ul class="src-list">${catalog.tvVod.map((t) => `<li><span><b>${esc(t.name)}</b><small>${t.entries.length} bejegyzés a csatornalistából</small></span></li>`).join('')}</ul>` : ''}
+      .join('') || `<li class="muted">${_t('Még nincs saját film/sorozat lista.')}</li>`}</ul>
+    ${(catalog.tvVod || []).length ? `<h3>${_t('A csatornalistákból átkerült filmek és részek')}</h3>
+    <p class="muted small">${_t('A csatornák között csak élő adás marad: a csatornalistákban talált filmek és sorozatrészek (hosszjelölés, <code>/movie/</code> / <code>/series/</code> cím, filmfájl évszámmal vagy részszámmal) itt jelennek meg. A csatornalista kikapcsolásával ezek is eltűnnek.')}</p>
+    <ul class="src-list">${catalog.tvVod.map((t) => `<li><span><b>${esc(t.name)}</b><small>${_t('{length} bejegyzés a csatornalistából', { length: t.entries.length })}</small></span></li>`).join('')}</ul>` : ''}
     <div class="inline">
-      <button class="btn small" data-vl="add-url">${ICON.plus} Lista hozzáadása címről</button>
-      ${api.caps.files ? `<button class="btn small" data-vl="add-file">${ICON.plus} Fájlból (M3U, ZIP)</button>` : ''}
-      <button class="btn small" data-vl="add-text">${ICON.plus} Beillesztés szövegként</button>
+      <button class="btn small" data-vl="add-url">${_t('{plus} Lista hozzáadása címről', { plus: ICON.plus })}</button>
+      ${api.caps.files ? `<button class="btn small" data-vl="add-file">${_t('{plus} Fájlból (M3U, ZIP)', { plus: ICON.plus })}</button>` : ''}
+      <button class="btn small" data-vl="add-text">${_t('{plus} Beillesztés szövegként', { plus: ICON.plus })}</button>
     </div>
-    <p class="muted small">Cím lehet M3U / M3U8 lista, egyetlen videó, vagy egy teljes GitHub-tárhely (pl. <code>https://github.com/szerző/tárhely</code>) – ilyenkor a program a benne lévő összes lejátszólistát betölti. Csak olyan tartalmat adj hozzá, amelyet jogszerűen nézhetsz.</p>
-    <h3>A VOD oldal sorai <span class="muted small">· ${esc(store.profile.name)} profil</span></h3>
-    <p class="muted">Húzással vagy a nyilakkal rendezheted, a kapcsolóval elrejtheted a sorokat (a műfajok a bekapcsolt listákból jönnek).</p>
-    <div class="vod-rows">${vod.ready ? '' : '<p class="muted small">A listák betöltése után itt rendezheted a sorokat.</p>'}</div>`;
+    <p class="muted small">${_t('Cím lehet M3U / M3U8 lista, egyetlen videó, vagy egy teljes GitHub-tárhely (pl. <code>https://github.com/szerző/tárhely</code>) – ilyenkor a program a benne lévő összes lejátszólistát betölti. Csak olyan tartalmat adj hozzá, amelyet jogszerűen nézhetsz.')}</p>
+    <h3>${_t('A VOD oldal sorai')} <span class="muted small">${_t('· {esc} profil', { esc: esc(store.profile.name) })}</span></h3>
+    <p class="muted">${_t('Húzással vagy a nyilakkal rendezheted, a kapcsolóval elrejtheted a sorokat (a műfajok a bekapcsolt listákból jönnek).')}</p>
+    <div class="vod-rows">${vod.ready ? '' : `<p class="muted small">${_t('A listák betöltése után itt rendezheted a sorokat.')}</p>`}</div>`;
   if (vod.ready) {
     rowOrderEditor(box.querySelector('.vod-rows'), {
       rows: vodRows(),
       label: vodRowLabel,
       defaults: () => vodDefaultRows(),
       onSave: (rows) => store.setProfileValue('vodRows', rows),
-      resetMsg: 'A VOD oldal sorai visszaálltak az alapértelmezettre',
+      resetMsg: _t('A VOD oldal sorai visszaálltak az alapértelmezettre'),
     });
   }
 
@@ -2038,9 +2042,9 @@ export function renderVodLists(box) {
       case 'pack-del': {
         const pid = b.closest('[data-vb]').dataset.vb;
         const pk = (s.vodPacks || []).find((x) => x.id === pid);
-        if (!pk || !(await confirmDialog(`Eltávolítod a(z) „${pk.name}” kiegészítő csomagot erről az eszközről?`, { ok: 'Eltávolítás' }))) return;
+        if (!pk || !(await confirmDialog(`${_t('Eltávolítod a(z) „{name}” kiegészítő csomagot erről az eszközről?', { name: pk.name })}`, { ok: _t('Eltávolítás') }))) return;
         await removePack('vod', pid);
-        toast('A csomag eltávolítva. (Ha a Csomagok mappájában is ott van, a következő indításkor visszakerül.)', { timeout: 7000 });
+        toast(_t('A csomag eltávolítva. (Ha a Csomagok mappájában is ott van, a következő indításkor visszakerül.)'), { timeout: 7000 });
         reload();
         break;
       }
@@ -2049,52 +2053,52 @@ export function renderVodLists(box) {
         break;
       case 'refresh':
         renderVodLists(box);
-        toast('Film- és sorozatlisták frissítése…');
+        toast(_t('Film- és sorozatlisták frissítése…'));
         await loadVod({ force: true });
-        toast(`Kész: ${vod.movies.length} film, ${vod.series.length} sorozat`);
+        toast(`${_t('Kész: {length} film, {length2} sorozat', { length: vod.movies.length, length2: vod.series.length })}`);
         if (document.body.contains(box)) renderVodLists(box);
         break;
       case 'add-url': {
-        const url = await promptDialog('A lista címe (M3U / M3U8 lista, videó vagy GitHub-tárhely):', 'https://');
+        const url = await promptDialog(_t('A lista címe (M3U / M3U8 lista, videó vagy GitHub-tárhely):'), 'https://');
         if (!url) return;
-        if (!isUrl(url)) return toast('Ez nem érvényes http(s) cím.');
-        const name = (await promptDialog('A lista neve:', guessName(url))) || 'Saját lista';
+        if (!isUrl(url)) return toast(_t('Ez nem érvényes http(s) cím.'));
+        const name = (await promptDialog(_t('A lista neve:'), guessName(url))) || _t('Saját lista');
         s.vodCustom = [...(s.vodCustom || []), { id: newId(), name, url, enabled: true }];
         store.save();
         reload();
         break;
       }
       case 'add-file': {
-        const filters = [{ name: 'M3U lejátszólista vagy ZIP', extensions: ['m3u', 'm3u8', 'txt', 'zip'] }];
+        const filters = [{ name: _t('M3U lejátszólista vagy ZIP'), extensions: ['m3u', 'm3u8', 'txt', 'zip'] }];
         const picked = api.openFiles ? await api.openFiles(filters) : [await api.openFile(filters)].filter(Boolean);
         if (!picked?.length) return;
         let files, res;
-        toast('Fájlok beolvasása és feldolgozása…');
+        toast(_t('Fájlok beolvasása és feldolgozása…'));
         try {
           files = await readPickedFiles(picked);
           res = combinePlaylists(files);
         } catch (err) {
           return toast(String(err.message || err));
         }
-        if (!res.entries) return toast('A kiválasztott fájlokban nincs lejátszható bejegyzés.');
+        if (!res.entries) return toast(_t('A kiválasztott fájlokban nincs lejátszható bejegyzés.'));
         const zip = picked.length === 1 && /\.zip$/i.test(picked[0].name);
-        const guess = picked.length === 1 ? picked[0].name.replace(/\.(m3u8?|txt|zip)$/i, '') : 'Saját lista';
-        const name = (await promptDialog('A lista neve:', guess)) || guess;
-        await addCustomVodText(name, res.text, { source: zip ? picked[0].name : res.files > 1 ? `${res.files} fájl` : picked[0].name });
-        toast(`„${name}” hozzáadva: ${res.entries} tétel${res.genres ? `, ${res.genres} műfaj` : ''}.`);
+        const guess = picked.length === 1 ? picked[0].name.replace(/\.(m3u8?|txt|zip)$/i, '') : _t('Saját lista');
+        const name = (await promptDialog(_t('A lista neve:'), guess)) || guess;
+        await addCustomVodText(name, res.text, { source: zip ? picked[0].name : res.files > 1 ? `${_t('{files} fájl', { files: res.files })}` : picked[0].name });
+        toast(`${_t('„{name}” hozzáadva: {entries} tétel', { name, entries: res.entries })}${res.genres ? `${_t(', {genres} műfaj', { genres: res.genres })}` : ''}.`);
         reload();
         break;
       }
       case 'add-text': {
-        const text = await promptDialog('Illeszd be a lista tartalmát (#EXTINF sorok és címek):', '');
+        const text = await promptDialog(_t('Illeszd be a lista tartalmát (#EXTINF sorok és címek):'), '');
         if (!text) return;
-        if (!parseM3U(text).entries.length) return toast('Nem található benne bejegyzés.');
-        await addCustomVodText('Beillesztett lista', text);
+        if (!parseM3U(text).entries.length) return toast(_t('Nem található benne bejegyzés.'));
+        await addCustomVodText(_t('Beillesztett lista'), text);
         reload();
         break;
       }
       case 'rename': {
-        const name = await promptDialog('A lista új neve:', p.name);
+        const name = await promptDialog(_t('A lista új neve:'), p.name);
         if (!name) return;
         p.name = name;
         store.save();
@@ -2102,7 +2106,7 @@ export function renderVodLists(box) {
         break;
       }
       case 'del':
-        if (!(await confirmDialog(`Törlöd a(z) „${p.name}” listát?`, { ok: 'Törlés', danger: true }))) return;
+        if (!(await confirmDialog(`${_t('Törlöd a(z) „{name}” listát?', { name: p.name })}`, { ok: _t('Törlés'), danger: true }))) return;
         s.vodCustom = s.vodCustom.filter((x) => x !== p);
         if (p.textKey) api.docSet?.(p.textKey, null)?.catch?.(() => {});
         store.save();
@@ -2124,7 +2128,7 @@ function guessName(url) {
     const u = new URL(url);
     return u.pathname.split('/').pop().replace(/\.(m3u8?|txt)$/i, '') || u.hostname;
   } catch {
-    return 'Saját lista';
+    return _t('Saját lista');
   }
 }
 
@@ -2136,48 +2140,44 @@ export function renderOwnLists(box) {
   const st = s.ownFileState || {};
   const sources = s.ownSources || [];
   const busy = !!own.loading;
-  box.innerHTML = `<h2>VOD – saját médiatár (NAS) <button class="help-link" data-help="own" title="Súgó">?</button></h2>
-    <p class="muted small">Add meg a mappát (pl. a NAS megosztott mappáját) vagy hálózati címet, ahol a filmjeid és sorozataid .m3u / .m3u8 lejátszólistái keletkeznek. A program az almappákat is átnézi; minden talált lejátszólista külön, ki-be kapcsolható lista. Az új listákat magától észreveszi (10 percenként és a Saját oldal megnyitásakor).</p>
+  box.innerHTML = `<h2>${_t('VOD – saját médiatár (NAS)')} <button class="help-link" data-help="own" title="${_t('Súgó')}">?</button></h2>
+    <p class="muted small">${_t('Add meg a mappát (pl. a NAS megosztott mappáját) vagy hálózati címet, ahol a filmjeid és sorozataid .m3u / .m3u8 lejátszólistái keletkeznek. A program az almappákat is átnézi; minden talált lejátszólista külön, ki-be kapcsolható lista. Az új listákat magától észreveszi (10 percenként és a Saját oldal megnyitásakor).')}</p>
     <div class="refresh-bar">
-      <button class="btn primary" data-ol="rescan" ${busy ? 'disabled' : ''}>${ICON.refresh} ${busy ? 'Beolvasás…' : 'Újraolvasás most'}</button>
-      <span class="muted">${own.ready ? `${own.files.length} lejátszólista · ${own.movies.length} film · ${own.series.length} sorozat` : 'még nincs beolvasva'}</span>
+      <button class="btn primary" data-ol="rescan" ${busy ? 'disabled' : ''}>${ICON.refresh} ${busy ? _t('Beolvasás…') : _t('Újraolvasás most')}</button>
+      <span class="muted">${own.ready ? `${_t('{length} lejátszólista · {length2} film · {length3} sorozat', { length: own.files.length, length2: own.movies.length, length3: own.series.length })}` : _t('még nincs beolvasva')}</span>
     </div>
-    <label class="setting"><span><b>Új lejátszólisták automatikusan bekapcsolva</b><small>Ha kikapcsolod, az újonnan megjelenő listákat neked kell bekapcsolnod.</small></span>
+    <label class="setting"><span>${_t('<b>Új lejátszólisták automatikusan bekapcsolva</b>')}<small>${_t('Ha kikapcsolod, az újonnan megjelenő listákat neked kell bekapcsolnod.')}</small></span>
       <input type="checkbox" class="switch" data-oset="ownNewOn" ${s.ownNewOn !== false ? 'checked' : ''} /></label>
-    <div class="own-sources">${
-      sources
+    <div class="own-sources">${sources
         .map((src) => {
           const files = own.files.filter((f) => f.src === src.id);
           const err = own.scanErrors[src.id];
           return `<div class="own-src" data-src="${esc(src.id)}">
             <div class="own-src-head">
-              <input type="checkbox" class="switch" data-ol-src ${src.enabled ? 'checked' : ''} aria-label="Forrás bekapcsolva" />
-              <span><b>${esc(src.name)}</b><small>${src.kind === 'folder' ? 'Mappa' : 'Hálózati cím'}: ${esc(src.path || src.url)}${err ? ` · <span class="warn">hiba: ${esc(err)}</span>` : src.enabled ? ` · ${files.length} lejátszólista` : ' · kikapcsolva'}</small></span>
-              ${files.length ? '<button class="btn small" data-ol="all-on">Mind be</button><button class="btn small" data-ol="all-off">Mind ki</button>' : ''}
-              <button class="btn small" data-ol="rename">Átnevezés</button>
-              <button class="btn small danger" data-ol="del">Törlés</button>
+              <input type="checkbox" class="switch" data-ol-src ${src.enabled ? 'checked' : ''} aria-label="${_t('Forrás bekapcsolva')}" />
+              <span><b>${esc(src.name)}</b><small>${src.kind === 'folder' ? _t('Mappa') : _t('Hálózati cím')}: ${esc(src.path || src.url)}${err ? ` · <span class="warn">${_t('hiba: {esc}', { esc: esc(err) })}</span>` : src.enabled ? ` ${_t('· {length} lejátszólista', { length: files.length })}` : ' · kikapcsolva'}</small></span>
+              ${files.length ? `<button class="btn small" data-ol="all-on">${_t('Mind be')}</button><button class="btn small" data-ol="all-off">${_t('Mind ki')}</button>` : ''}
+              <button class="btn small" data-ol="rename">${_t('Átnevezés')}</button>
+              <button class="btn small danger" data-ol="del">${_t('Törlés')}</button>
             </div>
-            ${
-              src.enabled && files.length
+            ${src.enabled && files.length
                 ? `<ul class="src-list own-files">${files
                     .map((f) => {
                       const on = st[f.key] !== false;
                       const e2 = own.errors[f.key];
                       return `<li data-file="${esc(f.key)}"><input type="checkbox" class="switch" data-ol-file ${on ? 'checked' : ''} aria-label="${esc(f.name)}" />
-                        <span><b>${esc(f.name)}</b><small>${esc(f.rel)}${!on ? ' · kikapcsolva' : e2 ? ` · <span class="warn">hiba: ${esc(e2)}</span>` : own.ready ? ` · ${own.counts[f.key] || 0} bejegyzés` : ''}</small></span></li>`;
+                        <span><b>${esc(f.name)}</b><small>${esc(f.rel)}${!on ? ' · kikapcsolva' : e2 ? ` · <span class="warn">${_t('hiba: {esc}', { esc: esc(e2) })}</span>` : own.ready ? ` ${_t('· {x} bejegyzés', { x: own.counts[f.key] || 0 })}` : ''}</small></span></li>`;
                     })
                     .join('')}</ul>`
-                : ''
-            }
+                : ''}
           </div>`;
         })
-        .join('') || '<p class="muted">Még nincs forrás megadva.</p>'
-    }</div>
+        .join('') || `<p class="muted">${_t('Még nincs forrás megadva.')}</p>`}</div>
     <div class="inline">
-      ${api.caps.folders ? `<button class="btn small" data-ol="pick">${ICON.plus} Mappa kiválasztása…</button><button class="btn small" data-ol="path">${ICON.plus} Mappa útvonalának megadása</button>` : ''}
-      <button class="btn small" data-ol="url">${ICON.plus} Hálózati cím (http) megadása</button>
+      ${api.caps.folders ? `<button class="btn small" data-ol="pick">${_t('{plus} Mappa kiválasztása…', { plus: ICON.plus })}</button><button class="btn small" data-ol="path">${_t('{plus} Mappa útvonalának megadása', { plus: ICON.plus })}</button>` : ''}
+      <button class="btn small" data-ol="url">${_t('{plus} Hálózati cím (http) megadása', { plus: ICON.plus })}</button>
     </div>
-    <p class="muted small">${api.caps.folders ? 'Mappa például: <code>\\\\NAS\\Media\\Listak</code>, <code>Z:\\Listak</code> vagy <code>/mnt/nas/listak</code>.' : 'Ezen az eszközön mappát nem lehet olvasni; add meg a NAS webes címét (pl. <code>http://192.168.1.10/listak/</code>), ahol a lejátszólisták elérhetők.'} A listákban lévő relatív útvonalakat (pl. <code>Filmek/Film.mkv</code>) a lista helyéhez képest értelmezi.</p>`;
+    <p class="muted small">${api.caps.folders ? `${_t('Mappa például: <code>\\\\NAS\\Media\\Listak</code>, <code>Z:\\Listak</code> vagy <code>/mnt/nas/listak</code>.')}` : `${_t('Ezen az eszközön mappát nem lehet olvasni; add meg a NAS webes címét (pl. <code>http://192.168.1.10/listak/</code>), ahol a lejátszólisták elérhetők.')}`} ${_t('A listákban lévő relatív útvonalakat (pl. <code>Filmek/Film.mkv</code>) a lista helyéhez képest értelmezi.')}</p>`;
 
   if (box.dataset.bound) return;
   box.dataset.bound = '1';
@@ -2215,9 +2215,9 @@ export function renderOwnLists(box) {
     };
     switch (b.dataset.ol) {
       case 'rescan':
-        toast('A saját médiatár újraolvasása…');
+        toast(_t('A saját médiatár újraolvasása…'));
         await reload();
-        toast(`Kész: ${own.files.length} lejátszólista, ${own.movies.length} film, ${own.series.length} sorozat`);
+        toast(`${_t('Kész: {length} lejátszólista, {length2} film, {length3} sorozat', { length: own.files.length, length2: own.movies.length, length3: own.series.length })}`);
         break;
       case 'pick': {
         const p = await api.pickFolder();
@@ -2225,19 +2225,19 @@ export function renderOwnLists(box) {
         break;
       }
       case 'path': {
-        const p = await promptDialog('A mappa útvonala (pl. \\\\NAS\\Media\\Listak vagy /mnt/nas/listak):', '');
+        const p = await promptDialog(_t('A mappa útvonala (pl. \\\\NAS\\Media\\Listak vagy /mnt/nas/listak):'), '');
         if (p) addSource({ kind: 'folder', path: p.trim(), name: p.trim().split(/[\\/]/).filter(Boolean).pop() || p.trim() });
         break;
       }
       case 'url': {
-        const u = await promptDialog('A lejátszólisták címe (mappa a NAS webszerverén, vagy egy .m3u fájl):', 'http://');
+        const u = await promptDialog(_t('A lejátszólisták címe (mappa a NAS webszerverén, vagy egy .m3u fájl):'), 'http://');
         if (!u) return;
-        if (!isUrl(u)) return toast('Ez nem érvényes http(s) cím.');
+        if (!isUrl(u)) return toast(_t('Ez nem érvényes http(s) cím.'));
         addSource({ kind: 'url', url: u.trim(), name: guessName(u) || 'NAS' });
         break;
       }
       case 'rename': {
-        const n = await promptDialog('A forrás új neve:', src.name);
+        const n = await promptDialog(_t('A forrás új neve:'), src.name);
         if (!n) return;
         src.name = n;
         store.save();
@@ -2245,7 +2245,7 @@ export function renderOwnLists(box) {
         break;
       }
       case 'del':
-        if (!(await confirmDialog(`Eltávolítod a(z) „${src.name}” forrást? (A NAS-on lévő fájlok nem törlődnek.)`, { ok: 'Eltávolítás', danger: true }))) return;
+        if (!(await confirmDialog(`${_t('Eltávolítod a(z) „{name}” forrást? (A NAS-on lévő fájlok nem törlődnek.)', { name: src.name })}`, { ok: _t('Eltávolítás'), danger: true }))) return;
         s.ownSources = s.ownSources.filter((x) => x !== src);
         store.save();
         reload();

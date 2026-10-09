@@ -98,8 +98,8 @@ class NativePlayer implements Player.Listener {
     String text = o.optString("prefText", "auto");
     if (!audio.isEmpty()) p.setPreferredAudioLanguage(audio);
     if ("off".equals(text)) p.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true);
-    else if ("hu".equals(text) || "en".equals(text)) p.setPreferredTextLanguage(text);
-    else p.setPreferredTextLanguage("hu"); // 'auto': a jelölt (alapértelmezett) felirat, ill. a magyar
+    else if (text.matches("^[a-z]{2}$")) p.setPreferredTextLanguage(text);
+    else p.setPreferredTextLanguage(o.optString("uiLang", "hu")); // 'auto': a jelölt (alapértelmezett) felirat, ill. a felület nyelvű
     player.setTrackSelectionParameters(p.build());
 
     ensureSurface();

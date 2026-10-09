@@ -104,6 +104,12 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - Mentés és visszaállítás fájlba (beállítások, profilok, kedvencek, emlékeztetők)
 - Teljes billentyűzetes / távirányítós vezérlés (nyilak, Enter, Esc / Backspace)
 
+**Többnyelvű felület, első indítási varázsló (1.26)**
+- **Nyelvek:** magyar, angol, német, spanyol, francia – a felület, az üzenetek, a tálca / értesítések, a telefonos távirányító és a teljes súgó is (Beállítások → Megjelenés → *Nyelv / Language*; váltáskor újraindul)
+- **Első indítás:** nyelvválasztás → saját profil (név, profilkép) → gyerekprofil (átugorható); nem magyar nyelvnél a hazai ország, a műsorújság-forrás, a hírforrások és az időjárás városa is a nyelvhez igazodik
+- A dátumok, napok, pénznemek, a Wikipédia / TMDB-leírások és a feliratkeresés is a felület nyelvét követik; a sportfigyelő és a műsorkategóriák a német, angol, spanyol és francia műsorújságot is felismerik
+- Fordítás: a kulcs a magyar szöveg (`_t('…')`), a szótárak `src/i18n/<nyelv>.js`, a súgó `src/js/help/<nyelv>.js`
+
 **Kiadás a GitHubról, egérkurzor a távirányítón, új feliratforrás, egységes műfajok (1.25)**
 - **Kiadások:** a `v*` címke pusholásakor a GitHub Actions minden platformra lefordít, és GitHub Release-be tölti a fájlokat (Windows: telepítő, hordozható, MSI · Linux: AppImage, deb · macOS: dmg, zip · Android: APK), SHA256SUMS.txt-vel; az asztali változat innen frissül (induláskor keres, kikapcsolható)
 - **Kiegészítő csomagok** (`.adaspack`): nem nyilvános listák a programmal nem szállítva, beépítettként megjelenve – betöltés fájlból vagy az asztali „packs” mappából; a mentés és az átvitel is viszi. Készítés: `tools/make-pack.mjs`

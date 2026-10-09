@@ -28,6 +28,18 @@ import './remote.js'; // távirányító telefonról
 import { applySubStyle } from './backup.js'; // automatikus mentés, feliratstílus
 import './watchtime.js';
 import { loadCustomThemes } from './customthemes.js'; // saját témák (feltöltött + téma-mappa) // gyerekprofilok napi nézési ideje és korhatár
+import { _t, lang, savedLang, setLanguage, translateDom } from './i18n.js';
+import { needsOnboarding, runOnboarding } from './onboarding.js';
+
+// a lap nyelve és a statikus (index.html) szövegek fordítása – a felület felépítése előtt
+document.documentElement.lang = lang;
+translateDom();
+// nyelvváltáskor (Beállítások, varázsló) a választás a beállításokba és a főfolyamatnak is
+window.addEventListener('adas-lang', (e) => {
+  store.settings.lang = e.detail;
+  if (store.profiles.length && !store.firstRun) store.flush();
+  api.setLang?.(e.detail);
+});
 
 const view = $('#view');
 const nav = $('#nav');
@@ -96,7 +108,7 @@ function route({ keepScroll = false } = {}) {
   const { name, params } = parseHash();
   if (name === 'profiles') {
     if (adultGuardNeeded()) {
-      requireAdult('A profilok kezeléséhez').then((ok) => (ok ? showProfiles(true) : history.back()));
+      requireAdult(_t('A profilok kezeléséhez')).then((ok) => (ok ? showProfiles(true) : history.back()));
       return;
     }
     showProfiles(true);
@@ -104,7 +116,7 @@ function route({ keepScroll = false } = {}) {
   }
   // Gyerekprofilból a beállítások csak felnőtt PIN-jével nyithatók meg.
   if (name === 'settings' && adultGuardNeeded() && Date.now() > settingsGrant) {
-    requireAdult('A beállítások megnyitásához').then((ok) => {
+    requireAdult(_t('A beállítások megnyitásához')).then((ok) => {
       if (ok) {
         settingsGrant = Date.now() + 10 * 60e3;
         route();
@@ -202,17 +214,15 @@ function updateProfileButton() {
     .map((x) => `<button class="menu-item" data-switch="${esc(x.id)}">${avatarHtml(x, 'tiny')}${esc(x.name)}</button>`)
     .join('')}
     <div class="menu-sep"></div>
-    <button class="menu-item" data-menu="refresh">${ICON.refresh}<span>Csatornalista frissítése<small>${
-      catalog.loadedAt ? 'utoljára: ' + dayLabel(Math.round((dayStart(catalog.loadedAt) - dayStart()) / 86400e3)).toLowerCase() + ' ' + fmtTime(catalog.loadedAt) : ''
-    }</small></span></button>
-    <button class="menu-item" data-menu="add-channel">${ICON.plus}<span>Csatorna hozzáadása</span></button>
-    <a class="menu-item" href="#/settings?section=lists">${ICON.tv}<span>Listák kezelése</span></a>
-    ${api.caps.multiview ? `<button class="menu-item" data-menu="multi"><span class="mi-ico">▦</span><span>Több adás egyszerre</span></button>` : ''}
-    <a class="menu-item" href="#/stats"><span class="mi-ico">▮▯</span><span>Nézési statisztika</span></a>
+    <button class="menu-item" data-menu="refresh">${ICON.refresh}<span>${_t('Csatornalista frissítése')}<small>${catalog.loadedAt ? `${_t('utoljára:')} ` + dayLabel(Math.round((dayStart(catalog.loadedAt) - dayStart()) / 86400e3)).toLowerCase() + ' ' + fmtTime(catalog.loadedAt) : ''}</small></span></button>
+    <button class="menu-item" data-menu="add-channel">${ICON.plus}<span>${_t('Csatorna hozzáadása')}</span></button>
+    <a class="menu-item" href="#/settings?section=lists">${ICON.tv}<span>${_t('Listák kezelése')}</span></a>
+    ${api.caps.multiview ? `<button class="menu-item" data-menu="multi"><span class="mi-ico">▦</span><span>${_t('Több adás egyszerre')}</span></button>` : ''}
+    <a class="menu-item" href="#/stats"><span class="mi-ico">▮▯</span><span>${_t('Nézési statisztika')}</span></a>
     <div class="menu-sep"></div>
-    <a class="menu-item" href="#/help">${ICON.help}<span>Súgó</span></a>
-    <a class="menu-item" href="#/profiles">Profilok kezelése</a>
-    <a class="menu-item" href="#/settings">Beállítások</a>`;
+    <a class="menu-item" href="#/help">${ICON.help}<span>${_t('Súgó')}</span></a>
+    <a class="menu-item" href="#/profiles">${_t('Profilok kezelése')}</a>
+    <a class="menu-item" href="#/settings">${_t('Beállítások')}</a>`;
 }
 bus.on('catalog', updateProfileButton);
 
@@ -229,7 +239,7 @@ $('#profile-panel').addEventListener('click', (e) => {
       if (!ok) return;
       settingsGrant = 0;
       store.switchProfile(target.id);
-      toast(`Profil: ${store.profile.name}`);
+      toast(`${_t('Profil: {name}', { name: store.profile.name })}`);
       location.hash = '#/home';
     });
   }
@@ -288,27 +298,23 @@ function updateReminders() {
   const count = $('#reminder-count');
   count.hidden = !upcoming.length;
   count.textContent = upcoming.length;
-  $('#reminder-panel').innerHTML = `${
-    upcoming.length
-      ? `<h4>Emlékeztetők</h4>${upcoming
+  $('#reminder-panel').innerHTML = `${upcoming.length
+      ? `<h4>${_t('Emlékeztetők')}</h4>${upcoming
           .slice(0, 30)
           .map((r, i) => {
             const ch = catalog.byId.get(r.channelId);
             const d = Math.round((dayStart(r.start) - dayStart()) / 86400e3);
             return `<div class="rem-item"><button class="menu-item" data-open="${i}"><b>${r.series ? '↻ ' : ''}${esc(r.title)}</b>
             <small>${esc(ch?.name || '')} · ${dayLabel(d)} ${fmtTime(r.start)}</small></button>
-            <button class="round small" data-del="${i}" title="Törlés">${ICON.close}</button></div>`;
+            <button class="round small" data-del="${i}" title="${_t('Törlés')}">${ICON.close}</button></div>`;
           })
           .join('')}`
-      : '<p class="muted pad">Nincs beállított emlékeztető. A műsorújságban vagy a csatorna adatlapján a csengő ikonnal adhatsz hozzá.</p>'
-  }${
-    rules.length
-      ? `<h4>Minden adására</h4>${rules
+      : `<p class="muted pad">${_t('Nincs beállított emlékeztető. A műsorújságban vagy a csatorna adatlapján a csengő ikonnal adhatsz hozzá.')}</p>`}${rules.length
+      ? `<h4>${_t('Minden adására')}</h4>${rules
           .map((s, i) => `<div class="rem-item"><span class="menu-item"><span><b>↻ ${esc(s.title)}</b><small>${esc(catalog.byId.get(s.channelId)?.name || '')}</small></span></span>
-            <button class="round small" data-rule-del="${i}" title="Szabály törlése">${ICON.close}</button></div>`)
+            <button class="round small" data-rule-del="${i}" title="${_t('Szabály törlése')}">${ICON.close}</button></div>`)
           .join('')}`
-      : ''
-  }<a class="menu-item" href="#/settings?section=reminders"><small>Értesítés beállításai…</small></a>`;
+      : ''}<a class="menu-item" href="#/settings?section=reminders"><small>${_t('Értesítés beállításai…')}</small></a>`;
   $('#reminder-panel').onclick = (e) => {
     const del = e.target.closest('[data-del]');
     const op = e.target.closest('[data-open]');
@@ -572,7 +578,7 @@ document.addEventListener('keydown', (e) => {
       else location.hash = '#/home';
     } else if (started && api.caps.exit) {
       e.preventDefault();
-      confirmDialog('Kilépsz az alkalmazásból?', { ok: 'Kilépés', cancel: 'Maradok' }).then((ok) => ok && api.exit());
+      confirmDialog(_t('Kilépsz az alkalmazásból?'), { ok: _t('Kilépés'), cancel: _t('Maradok') }).then((ok) => ok && api.exit());
     }
     return;
   }
@@ -584,7 +590,7 @@ document.addEventListener('keydown', (e) => {
     const ch = cardId && catalog.byId.get(cardId);
     if (e.key === 'ColorF0Red' && ch) {
       const added = store.toggleFavorite(ch.id);
-      toast(added ? `${ch.name} hozzáadva a kedvencekhez` : `${ch.name} eltávolítva a kedvencek közül`);
+      toast(added ? `${_t('{name} hozzáadva a kedvencekhez', { name: ch.name })}` : `${_t('{name} eltávolítva a kedvencek közül', { name: ch.name })}`);
     } else if (e.key === 'ColorF1Green') {
       if (ch) openInfo(ch);
       else location.hash = '#/guide';
@@ -616,42 +622,42 @@ setInterval(() => {
 // Az indítóképernyő jobb alsó sarka: csak vicces, tévés hangulatú sorok – minden indításkor más
 // sorrendben (véletlen keverés), egy indításon belül ismétlés nélkül.
 const FUN_LINES = [
-  'Antenna irányba állítása…',
-  'Távirányító keresése a kanapé párnái között…',
-  'Képcső bemelegítése…',
-  'Reklámok óvatos kikerülése…',
-  'Csatornák sorba állítása magasság szerint…',
-  'Műsorújság kisimítása…',
-  'Pattogatott kukorica pattogtatása…',
-  'Hangerő egyeztetése a szomszédokkal…',
-  'Hangyás kép elhessegetése…',
-  'Időjárás-jelentő felébresztése…',
-  'Kábelek kibogozása…',
-  'Bemondó nyakkendőjének megigazítása…',
-  'Spoilerek elrejtése a sorozatokból…',
-  'Mesecsatorna lefektetése…',
-  'Szinkronhangok bemelegítése…',
-  'Végtelen sorozatok megszámolása…',
-  'Tesztkép kifényesítése…',
-  'Rossz adás jobb belátásra bírása…',
-  'Elemcsere a távirányítóban…',
-  'Képernyő letörlése (porrongy előkészítve)…',
-  'Főcímdalok dúdolása…',
-  'A „mindjárt kezdődik” jelentésének kutatása…',
-  'Kanapé bemelegítése…',
-  'Hűtő bejárása reklámszünetre…',
-  'Ismétlések ismétlésének ellenőrzése…',
-  'Műholdak udvarias megszólítása…',
-  'Felirat-fordítók kávéval ellátása…',
-  'Csatornaszámok fejben tartása…',
-  'Szappanopera-szereplők családfájának kibogozása…',
-  'Sportközvetítő torkának olajozása…',
-  'Késő esti filmek ébren tartása…',
-  'Pixelek egyenként beállítása…',
-  'Az „utolsó rész, és megyek aludni” ígéret előkészítése…',
-  'Rajzfilmfigurák sorakoztatása…',
-  'Nagymama kedvenc csatornájának megkeresése…',
-  'Kvízműsor helyes válaszainak elrejtése…',
+  _t('Antenna irányba állítása…'),
+  _t('Távirányító keresése a kanapé párnái között…'),
+  _t('Képcső bemelegítése…'),
+  _t('Reklámok óvatos kikerülése…'),
+  _t('Csatornák sorba állítása magasság szerint…'),
+  _t('Műsorújság kisimítása…'),
+  _t('Pattogatott kukorica pattogtatása…'),
+  _t('Hangerő egyeztetése a szomszédokkal…'),
+  _t('Hangyás kép elhessegetése…'),
+  _t('Időjárás-jelentő felébresztése…'),
+  _t('Kábelek kibogozása…'),
+  _t('Bemondó nyakkendőjének megigazítása…'),
+  _t('Spoilerek elrejtése a sorozatokból…'),
+  _t('Mesecsatorna lefektetése…'),
+  _t('Szinkronhangok bemelegítése…'),
+  _t('Végtelen sorozatok megszámolása…'),
+  _t('Tesztkép kifényesítése…'),
+  _t('Rossz adás jobb belátásra bírása…'),
+  _t('Elemcsere a távirányítóban…'),
+  _t('Képernyő letörlése (porrongy előkészítve)…'),
+  _t('Főcímdalok dúdolása…'),
+  _t('A „mindjárt kezdődik” jelentésének kutatása…'),
+  _t('Kanapé bemelegítése…'),
+  _t('Hűtő bejárása reklámszünetre…'),
+  _t('Ismétlések ismétlésének ellenőrzése…'),
+  _t('Műholdak udvarias megszólítása…'),
+  _t('Felirat-fordítók kávéval ellátása…'),
+  _t('Csatornaszámok fejben tartása…'),
+  _t('Szappanopera-szereplők családfájának kibogozása…'),
+  _t('Sportközvetítő torkának olajozása…'),
+  _t('Késő esti filmek ébren tartása…'),
+  _t('Pixelek egyenként beállítása…'),
+  _t('Az „utolsó rész, és megyek aludni” ígéret előkészítése…'),
+  _t('Rajzfilmfigurák sorakoztatása…'),
+  _t('Nagymama kedvenc csatornájának megkeresése…'),
+  _t('Kvízműsor helyes válaszainak elrejtése…'),
 ];
 const splashState = { lines: [], i: 0, timer: 0 };
 function renderSplash() {
@@ -686,8 +692,8 @@ async function loadWithRetry() {
     } catch (err) {
       console.error(err);
       splashMsg('');
-      const box = html(`<div class="splash-error"><p>Nem sikerült letölteni a csatornalistát.<br><small>${esc(err.message)}</small></p>
-        <button class="btn primary">Újrapróbálás</button></div>`);
+      const box = html(`<div class="splash-error"><p>${_t('Nem sikerült letölteni a csatornalistát.<br>')}<small>${esc(err.message)}</small></p>
+        <button class="btn primary">${_t('Újrapróbálás')}</button></div>`);
       $('#splash').append(box);
       await new Promise((r) => (box.querySelector('button').onclick = r));
       box.remove();
@@ -698,13 +704,32 @@ async function loadWithRetry() {
 async function boot() {
   await store.load();
   if (IS_TV) document.body.classList.add('tv');
+  // A nyelv a beállításokban is megvan (pl. szinkron / visszaállítás után): ha a helyi mentés hiányzik
+  // vagy eltér, ezt vesszük át (újratöltéssel)
+  // (a korábbi, nyelvválasztás előtti telepítések magyarul folytatják)
+  if (!savedLang && !needsOnboarding()) {
+    const l = store.settings.lang || 'hu';
+    setLanguage(l, { reload: false });
+    if (l !== lang) return void location.reload();
+  }
+  api.setLang?.(lang);
   await loadCustomThemes().catch((err) => console.warn('Saját témák', err));
   applyTheme();
   applySubStyle();
+  // Első indítás: nyelv, saját profil, gyerekprofil (a csatornalista közben nem töltődik – a
+  // hazai ország a választott nyelvtől függ)
+  const onboarding = needsOnboarding();
+  if (onboarding) {
+    splash.classList.add('hide');
+    await runOnboarding(profilesEl);
+    splash.classList.remove('hide');
+    applyTheme();
+  }
   updateProfileButton();
   startSplashStatus();
   const loading = loadWithRetry();
-  if (store.profiles.length > 1) await showProfiles(false);
+  if (onboarding) markUnlocked(store.profile);
+  else if (store.profiles.length > 1) await showProfiles(false);
   else if (hasPin(store.profile)) await showProfiles(false); // egyetlen, de zárolt profil
   else markUnlocked(store.profile);
   await loading;

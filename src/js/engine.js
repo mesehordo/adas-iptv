@@ -6,6 +6,7 @@ import { MediaBridge } from './bridge.js';
 import { ExoEngine } from './exo.js';
 import { NetWatch } from './netwatch.js';
 
+import { _t } from './i18n.js';
 const START_TIMEOUT = 20000;
 const TIMESHIFT_SEC = 30 * 60; // élő adás: legfeljebb ennyi tekerhető vissza (ha a memória engedi)
 const MEM_BUDGET = 110e6; // bájt: a böngésző videópufferének (kb. 150 MB) biztonságos része
@@ -38,18 +39,9 @@ function detectType(url) {
   return 'hls';
 }
 
-/** Magyar nyelvjelölés (hu, hun, hu-HU, magyar, hungarian). */
-export const isHuLang = (s) => /^(hu|hun|hu-[a-z]+|magyar|hungarian)\b/i.test(String(s || '').trim());
-export const isEnLang = (s) => /^(en|eng|en-[a-z]+|english|angol)\b/i.test(String(s || '').trim());
-
-/** Nyelvkód → magyar név a menükhöz. */
-export function langName(code, fallback = '') {
-  const c = String(code || '').toLowerCase();
-  if (isHuLang(c)) return 'magyar';
-  if (isEnLang(c)) return 'angol';
-  const map = { de: 'német', ger: 'német', deu: 'német', fr: 'francia', fre: 'francia', fra: 'francia', es: 'spanyol', spa: 'spanyol', it: 'olasz', ita: 'olasz', ru: 'orosz', rus: 'orosz', pl: 'lengyel', pol: 'lengyel', ro: 'román', ron: 'román', rum: 'román', sk: 'szlovák', slk: 'szlovák', cs: 'cseh', cze: 'cseh', ces: 'cseh', ja: 'japán', jpn: 'japán', zh: 'kínai', chi: 'kínai', zho: 'kínai', ko: 'koreai', kor: 'koreai', ar: 'arab', ara: 'arab', pt: 'portugál', por: 'portugál', nl: 'holland', dut: 'holland', nld: 'holland', tr: 'török', tur: 'török' };
-  return map[c.split('-')[0]] || fallback || c;
-}
+// (a nyelvfelismerők a langs.js-ben – a lejátszási híd is használja, körkörös függés nélkül)
+export { isHuLang, isEnLang, langMatcher, langName } from './langs.js';
+import { langName } from './langs.js';
 
 export class Engine {
   constructor(video, { onFail, onTracks, onStall } = {}) {
@@ -77,7 +69,7 @@ export class Engine {
       clearTimeout(this.stallTimer);
       const tok = this.token;
       this.stallTimer = setTimeout(() => {
-        if (tok === this.token && this.started) this.onFail(new Error('Az adás megakadt'));
+        if (tok === this.token && this.started) this.onFail(new Error(_t('Az adás megakadt')));
       }, this.stallMs || 30000);
       if (this.started) this.net.stall();
       this.onStall(true);
@@ -100,6 +92,7 @@ export class Engine {
     const video = this.video;
     video.muted = muted;
     await api.setStreamHeaders(stream.url, { ua: stream.ua, referrer: stream.referrer });
+    // (belső jelzés – a hívók ezzel a szöveggel ismerik fel, ezért nincs fordítva; a felületen nem jelenik meg)
     if (token !== this.token) throw new Error('megszakítva');
 
     this.type = exo ? 'exo' : bridge ? 'bridge' : detectType(stream.url);
@@ -124,18 +117,18 @@ export class Engine {
           this.onFail(err);
         }
       };
-      const t = setTimeout(() => fail(new Error('Időtúllépés – az adás nem indult el')), START_TIMEOUT);
+      const t = setTimeout(() => fail(new Error(_t('Időtúllépés – az adás nem indult el'))), START_TIMEOUT);
       video.addEventListener('playing', ok, { once: true });
       // Ha az adó egyáltalán nem válaszol, ne a teljes 20 másodpercet várjuk: a lista (hls.js-nél
       // a manifest, máshol a metaadatok) ennyi idő alatt megérkezik, ha él az adás.
       const headTimer = setTimeout(() => {
-        if (!settled && !this.headReceived) fail(new Error('Az adó nem válaszol'));
+        if (!settled && !this.headReceived) fail(new Error(_t('Az adó nem válaszol')));
       }, !timeshift ? HEAD_TIMEOUT_VOD : this.type === 'hls' ? HEAD_TIMEOUT : HEAD_TIMEOUT_NATIVE);
       this.headReceived = false;
       video.addEventListener('loadedmetadata', () => (this.headReceived = true), { once: true });
       const clearHead = () => clearTimeout(headTimer);
       video.addEventListener('playing', clearHead, { once: true });
-      video.onerror = () => fail(new Error('A videó nem játszható le'));
+      video.onerror = () => fail(new Error(_t('A videó nem játszható le')));
 
       const tryPlay = () => video.play().catch((e) => {
         if (e.name === 'NotAllowedError') {
@@ -240,7 +233,7 @@ export class Engine {
             hls.recoverMediaError();
             return;
           }
-          const err = new Error(data.details || 'HLS hiba');
+          const err = new Error(data.details || _t('HLS hiba'));
           err.httpStatus = data.response?.code || data.networkDetails?.status || 0; // 403 / 451: földrajzi korlát
           fail(err);
         });
@@ -263,7 +256,7 @@ export class Engine {
         const p = window.dashjs.MediaPlayer().create();
         this.dash = p;
         p.updateSettings({ debug: { logLevel: 0 }, streaming: { lowLatencyEnabled: false, text: { defaultEnabled: false } } });
-        p.on('error', (e) => fail(new Error('DASH hiba: ' + (e.error?.message || e.error || ''))));
+        p.on('error', (e) => fail(new Error(`${_t('DASH hiba:')} ` + (e.error?.message || e.error || ''))));
         p.on('streamInitialized', () => {
           this.headReceived = true;
           this.onTracks();
@@ -364,7 +357,7 @@ export class Engine {
     if (this.hls) {
       return this.hls.levels.map((l, i) => ({
         index: i,
-        label: l.height ? `${l.height}p` + (l.bitrate ? ` · ${(l.bitrate / 1e6).toFixed(1)} Mbps` : '') : `${Math.round((l.bitrate || 0) / 1000)} kbps`,
+        label: l.height ? `${l.height}p` + (l.bitrate ? ` ${_t('· {toFixed} Mbps', { toFixed: (l.bitrate / 1e6).toFixed(1) })}` : '') : `${_t('{round} kbps', { round: Math.round((l.bitrate || 0) / 1000) })}`,
       }));
     }
     if (this.dash) {
@@ -391,7 +384,7 @@ export class Engine {
   audioTracks() {
     const lab = (lang, name, i) => {
       const ln = langName(lang);
-      return name && ln && !name.toLowerCase().includes(ln) ? `${name} (${ln})` : name || ln || `${i + 1}. hangsáv`;
+      return name && ln && !name.toLowerCase().includes(ln) ? `${name} (${ln})` : name || ln || `${_t('{x}. hangsáv', { x: i + 1 })}`;
     };
     if (this.exo) return this.exo.audioTracks(lab);
     if (this.bridge) {
@@ -441,10 +434,10 @@ export class Engine {
     const out = [];
     if (this.exo) return this.exo.textTracks(langName);
     if (this.hls) {
-      this.hls.subtitleTracks.forEach((t, i) => out.push({ id: `hls:${i}`, lang: t.lang || '', label: t.name || langName(t.lang) || `${i + 1}. felirat` }));
+      this.hls.subtitleTracks.forEach((t, i) => out.push({ id: `hls:${i}`, lang: t.lang || '', label: t.name || langName(t.lang) || `${_t('{x}. felirat', { x: i + 1 })}` }));
     } else if (this.dash) {
       (this.dash.getTracksFor?.('text') || []).forEach((t, i) =>
-        out.push({ id: `dash:${i}`, lang: t.lang || '', label: t.labels?.[0]?.text || langName(t.lang) || `${i + 1}. felirat` })
+        out.push({ id: `dash:${i}`, lang: t.lang || '', label: t.labels?.[0]?.text || langName(t.lang) || `${_t('{x}. felirat', { x: i + 1 })}` })
       );
     }
     // A videóelem saját sávjai (MP4/MKV beágyazott felirat, TV-s CC-felirat), a mi sávunk nélkül
@@ -454,9 +447,9 @@ export class Engine {
       out.push({
         id: `tt:${i}`,
         lang: t.language || '',
-        label: (t.label && langName(t.language) && !t.label.toLowerCase().includes(langName(t.language)) ? `${t.label} (${langName(t.language)})` : t.label || langName(t.language) || `${i + 1}. felirat`) +
+        label: (t.label && langName(t.language) && !t.label.toLowerCase().includes(langName(t.language)) ? `${t.label} (${langName(t.language)})` : t.label || langName(t.language) || `${_t('{x}. felirat', { x: i + 1 })}`) +
           (t.kind === 'captions' ? ' (CC)' : '') +
-          (t.__adasForced ? ' – kényszerített' : ''),
+          (t.__adasForced ? ` ${_t('– kényszerített')}` : ''),
         default: !!t.__adasDefault,
         forced: !!t.__adasForced,
       });

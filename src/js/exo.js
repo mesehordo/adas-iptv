@@ -5,6 +5,7 @@
 // A felirat (a fájlba ágyazott ASS / SRT is) saját rétegben jelenik meg.
 import { store } from './store.js';
 
+import { _t, lang as uiLang } from './i18n.js';
 const A = () => window.AdasAndroid;
 export const exoAvailable = () => {
   try {
@@ -69,8 +70,9 @@ export class ExoEngine {
         ua: this.stream.ua || '',
         referrer: this.stream.referrer || '',
         start: this.opts.startAt || 0,
-        prefAudio: p.prefAudio === 'hu' || p.prefAudio === 'en' ? p.prefAudio : '',
+        prefAudio: /^[a-z]{2}$/.test(p.prefAudio || '') ? p.prefAudio : '',
         prefText: p.prefSubs || 'auto',
+        uiLang, // 'auto' feliratnál: a felület nyelvű felirat az előnyben részesített
       })
     );
   }
@@ -129,7 +131,7 @@ export class ExoEngine {
       this.cueText = ev.text || '';
       this.renderCues();
     } else if (ev.type === 'error') {
-      this.opts.onFail?.(new Error('Natív lejátszó: ' + (ev.message || 'hiba')));
+      this.opts.onFail?.(new Error(`${_t('Natív lejátszó:')} ` + (ev.message || _t('hiba'))));
     }
   }
 
@@ -203,7 +205,7 @@ export class ExoEngine {
     return this.text.map((t, i) => ({
       id: `exo:${i}`,
       lang: t.lang,
-      label: (t.label || langName(t.lang) || `${i + 1}. felirat`) + (t.forced ? ' – kényszerített' : ''),
+      label: (t.label || langName(t.lang) || `${_t('{x}. felirat', { x: i + 1 })}`) + (t.forced ? ` ${_t('– kényszerített')}` : ''),
       default: t.def,
       forced: t.forced,
     }));
@@ -240,7 +242,7 @@ export class ExoEngine {
 
 function codecNote(a) {
   const m = String(a.mime || '').replace(/^audio\//, '').replace(/^vnd\.dts.*/, 'dts').replace(/^mp4a-latm/, 'aac').replace(/^eac3/, 'e-ac3');
-  const ch = a.ch >= 6 ? ` · ${a.ch === 6 ? '5.1' : a.ch === 8 ? '7.1' : a.ch + ' csat.'}` : '';
+  const ch = a.ch >= 6 ? ` · ${a.ch === 6 ? '5.1' : a.ch === 8 ? '7.1' : a.ch + ` ${_t('csat.')}`}` : '';
   return m ? ` (${m.toUpperCase()}${ch})` : '';
 }
 

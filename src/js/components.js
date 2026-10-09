@@ -12,6 +12,7 @@ import { player } from './player.js';
 import { channelInfo, infoBoxHtml } from './meta.js';
 import { hasSeries, toggleSeries } from './reminders.js';
 
+import { _t } from './i18n.js';
 export const ICON = {
   play: '<svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg>',
   plus: '<svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>',
@@ -78,33 +79,34 @@ export function cardHtml(ch, { context = '' } = {}) {
   const off = offlineLabel(ch);
   // földrajzi korlát: ellenőrizve (innen elutasította), vagy a lista szerint minden forrása korlátozott
   const geo = geoState(ch);
-  const OFF_TEXT = { Adásszünet: 'Adásszünet – most nem sugároz', 'Földrajzi korlát': 'Földrajzi korlát – innen nem nézhető' };
+  // (az offlineLabel már fordított címkét ad – a kulcsok is a fordított címkék)
+  const OFF_TEXT = { [_t('Adásszünet')]: _t('Adásszünet – most nem sugároz'), [_t('Földrajzi korlát')]: _t('Földrajzi korlát – innen nem nézhető') };
   const sub = off
-    ? `<span class="off-text">${OFF_TEXT[off] || 'Offline – jelenleg nem elérhető'}</span>`
+    ? `<span class="off-text">${OFF_TEXT[off] || _t('Offline – jelenleg nem elérhető')}</span>`
     : now?.cur
       ? esc(now.cur.title)
       : esc([countryName(ch.country), categoryName(ch.categories[0])].filter(Boolean).join(' · '));
   return `<div class="card ${off ? 'is-off' : ''}" tabindex="0" data-id="${esc(ch.id)}" data-ctx="${esc(context)}">
     <div class="thumb" style="--h:${hashHue(ch.name)}">
       ${logoHtml(ch)}
-      ${off ? `<span class="off-badge ${geo === 'sure' ? 'geo' : ''}">${{ Adásszünet: 'ADÁSSZÜNET', 'Földrajzi korlát': '🌐 GEO-KORLÁT' }[off] || 'OFFLINE'}</span>` : ''}
-      ${!off && geo === 'maybe' ? '<span class="geo-mark" title="Földrajzilag korlátozott lehet – csak bizonyos országokból nézhető">🌐</span>' : ''}
+      ${off ? `<span class="off-badge ${geo === 'sure' ? 'geo' : ''}">${{ [_t('Adásszünet')]: _t('ADÁSSZÜNET'), [_t('Földrajzi korlát')]: _t('🌐 GEO-KORLÁT') }[off] || 'OFFLINE'}</span>` : ''}
+      ${!off && geo === 'maybe' ? `<span class="geo-mark" title="${_t('Földrajzilag korlátozott lehet – csak bizonyos országokból nézhető')}">🌐</span>` : ''}
       ${q ? `<span class="q">${q}</span>` : ''}
-      <span class="st st-${st}" title="${st === 'ok' ? 'Működik' : st === 'bad' ? 'Nem elérhető' : 'Nem ellenőrzött'}"></span>
+      <span class="st st-${st}" title="${st === 'ok' ? _t('Működik') : st === 'bad' ? _t('Nem elérhető') : _t('Nem ellenőrzött')}"></span>
       ${fav ? '<span class="fav-mark">★</span>' : ''}
       ${now?.cur ? `<div class="bar"><i style="width:${(now.progress * 100).toFixed(1)}%"></i></div>` : ''}
     </div>
     <div class="meta"><div class="name">${esc(ch.name)}</div><div class="sub">${sub}</div></div>
     <div class="pop">
       <div class="pop-btns">
-        <button class="round white" data-act="play" title="Lejátszás" tabindex="-1">${ICON.play}</button>
-        <button class="round" data-act="fav" title="${fav ? 'Eltávolítás a kedvencekből' : 'Kedvencekhez'}" tabindex="-1">${fav ? ICON.check : ICON.plus}</button>
+        <button class="round white" data-act="play" title="${_t('Lejátszás')}" tabindex="-1">${ICON.play}</button>
+        <button class="round" data-act="fav" title="${fav ? _t('Eltávolítás a kedvencekből') : _t('Kedvencekhez')}" tabindex="-1">${fav ? ICON.check : ICON.plus}</button>
         <span class="grow"></span>
-        <button class="round" data-act="info" title="Részletek (I)" tabindex="-1">${ICON.chevron}</button>
+        <button class="round" data-act="info" title="${_t('Részletek (I)')}" tabindex="-1">${ICON.chevron}</button>
       </div>
       <div class="pop-line">${flag} ${esc(countryName(ch.country))}${ch.categories[0] ? ' · ' + esc(categoryName(ch.categories[0])) : ''}${q ? ` <span class="pill">${q}</span>` : ''}</div>
       ${now?.cur ? `<div class="pop-now"><b>${fmtTime(now.cur.start)}</b> ${esc(now.cur.title)}</div>` : ''}
-      ${now?.next ? `<div class="pop-next">Utána: ${fmtTime(now.next.start)} ${esc(now.next.title)}</div>` : ''}
+      ${now?.next ? `<div class="pop-next">${_t('Utána: {fmtTime} {esc}', { fmtTime: fmtTime(now.next.start), esc: esc(now.next.title) })}</div>` : ''}
     </div>
   </div>`;
 }
@@ -132,7 +134,7 @@ document.addEventListener('click', (e) => {
   e.preventDefault();
   if (act === 'fav') {
     const added = store.toggleFavorite(ch.id);
-    toast(added ? `${ch.name} hozzáadva a kedvencekhez` : `${ch.name} eltávolítva a kedvencek közül`);
+    toast(added ? `${_t('{name} hozzáadva a kedvencekhez', { name: ch.name })}` : `${_t('{name} eltávolítva a kedvencek közül', { name: ch.name })}`);
   } else if (act === 'info') openInfo(ch);
   else player.play(ch, { context: getContext(card.dataset.ctx) });
 });
@@ -164,7 +166,7 @@ document.addEventListener('keydown', (e) => {
   } else if (e.key === 'f' || e.key === 'F') {
     e.preventDefault();
     const added = store.toggleFavorite(ch.id);
-    toast(added ? `${ch.name} hozzáadva a kedvencekhez` : `${ch.name} eltávolítva a kedvencek közül`);
+    toast(added ? `${_t('{name} hozzáadva a kedvencekhez', { name: ch.name })}` : `${_t('{name} eltávolítva a kedvencek közül', { name: ch.name })}`);
   }
 });
 
@@ -240,14 +242,14 @@ function replaceCard(card, ch) {
  */
 export function rowTitleHtml(title, href, count) {
   if (!href) return `<h2 class="row-title">${esc(title)}</h2>`;
-  return `<h2 class="row-title"><a href="${esc(href)}" title="${esc(title)} – az összes egy oldalon">
-    <span class="rt-text">${esc(title)}</span><span class="row-all" aria-hidden="true">${ICON.right}</span><span class="more">Összes${count ? ` (${count})` : ''}</span></a></h2>`;
+  return `<h2 class="row-title"><a href="${esc(href)}" title="${_t('{esc} – az összes egy oldalon', { esc: esc(title) })}">
+    <span class="rt-text">${esc(title)}</span><span class="row-all" aria-hidden="true">${ICON.right}</span><span class="more">${_t('Összes')}${count ? ` (${count})` : ''}</span></a></h2>`;
 }
 
 export function seeAllHtml(href, count, { poster = false } = {}) {
   if (!href) return '';
   return `<a class="see-all ${poster ? 'sa-poster' : ''}" href="${esc(href)}" aria-label="Összes megjelenítése${count ? ` (${count})` : ''}">
-    <span class="sa-ico">${ICON.right}</span><b>Összes</b>${count ? `<small>${count} db</small>` : ''}</a>`;
+    <span class="sa-ico">${ICON.right}</span>${_t('<b>Összes</b>')}${count ? `<small>${_t('{count} db', { count })}</small>` : ''}</a>`;
 }
 
 /**
@@ -287,9 +289,9 @@ export function rowEl(title, channels, { href = '', limit = 40, extraClass = '' 
   const el = html(`<section class="row ${extraClass}">
     ${rowTitleHtml(title, href, channels.length)}
     <div class="row-wrap">
-      <button class="row-arrow left" aria-label="Balra" tabindex="-1">${ICON.left}</button>
+      <button class="row-arrow left" aria-label="${_t('Balra')}" tabindex="-1">${ICON.left}</button>
       <div class="row-track">${shown.map((c) => cardHtml(c, { context: ctx })).join('')}${seeAllHtml(href, channels.length)}</div>
-      <button class="row-arrow right" aria-label="Jobbra" tabindex="-1">${ICON.right}</button>
+      <button class="row-arrow right" aria-label="${_t('Jobbra')}" tabindex="-1">${ICON.right}</button>
     </div>
   </section>`);
   const track = el.querySelector('.row-track');
@@ -319,14 +321,14 @@ export function rowOrderEditor(box, opts) {
         <span class="grip" aria-hidden="true">⋮⋮</span>
         <span class="r-num">${i + 1}.</span>
         <span class="r-label">${esc(opts.label(r.key))}</span>
-        <input type="checkbox" class="switch" data-row-on="${i}" ${r.on ? 'checked' : ''} aria-label="Megjelenik" />
-        <button class="round small" data-row-move="-1" data-i="${i}" title="Feljebb" ${i === 0 ? 'disabled' : ''}>${ICON.up}</button>
-        <button class="round small" data-row-move="1" data-i="${i}" title="Lejjebb" ${i === rows.length - 1 ? 'disabled' : ''}>${ICON.chevron}</button>
+        <input type="checkbox" class="switch" data-row-on="${i}" ${r.on ? 'checked' : ''} aria-label="${_t('Megjelenik')}" />
+        <button class="round small" data-row-move="-1" data-i="${i}" title="${_t('Feljebb')}" ${i === 0 ? 'disabled' : ''}>${ICON.up}</button>
+        <button class="round small" data-row-move="1" data-i="${i}" title="${_t('Lejjebb')}" ${i === rows.length - 1 ? 'disabled' : ''}>${ICON.chevron}</button>
       </li>`
       )
       .join('');
   box.innerHTML = `<ol class="row-order">${listHtml()}</ol>
-    <div class="inline"><button class="btn small" data-rows-reset>Alapértelmezett sorrend</button></div>`;
+    <div class="inline"><button class="btn small" data-rows-reset>${_t('Alapértelmezett sorrend')}</button></div>`;
   const list = box.querySelector('.row-order');
   const save = () => opts.onSave(rows.map((r) => ({ key: r.key, on: r.on })));
   const redraw = (focusSel) => {
@@ -359,7 +361,7 @@ export function rowOrderEditor(box, opts) {
       rows = opts.defaults();
       save();
       redraw();
-      toast(opts.resetMsg || 'A sorok visszaálltak az alapértelmezettre');
+      toast(opts.resetMsg || _t('A sorok visszaálltak az alapértelmezettre'));
     }
   });
   let dragFrom = null;
@@ -392,7 +394,7 @@ export function rowOrderEditor(box, opts) {
 // ---------------------------------------------------------------------------
 // Rács fokozatos betöltéssel
 // ---------------------------------------------------------------------------
-export function gridEl(channels, { title = '', chunk = 90, empty = 'Nincs találat.' } = {}) {
+export function gridEl(channels, { title = '', chunk = 90, empty = _t('Nincs találat.') } = {}) {
   const ctx = registerContext(title, channels);
   const el = html(`<div class="grid-wrap"><div class="grid"></div><div class="grid-sentinel"></div></div>`);
   const grid = el.firstElementChild;
@@ -422,7 +424,7 @@ export function openModal(content, { cls = '', onClose } = {}) {
   const root = document.getElementById('modal-root');
   const prevFocus = document.activeElement;
   const wrap = html(`<div class="modal-backdrop"><div class="modal ${cls}" role="dialog" aria-modal="true">
-    <button class="modal-close round" aria-label="Bezárás">${ICON.close}</button></div></div>`);
+    <button class="modal-close round" aria-label="${_t('Bezárás')}">${ICON.close}</button></div></div>`);
   const modal = wrap.firstElementChild;
   modal.append(content);
   const close = () => {
@@ -457,7 +459,7 @@ export function closeTopModal() {
 export const modalOpen = () => modalStack.length > 0;
 export const topModalEl = () => modalStack[modalStack.length - 1]?.el;
 
-export function confirmDialog(message, { ok = 'Rendben', cancel = 'Mégse', danger = false } = {}) {
+export function confirmDialog(message, { ok = _t('Rendben'), cancel = _t('Mégse'), danger = false } = {}) {
   return new Promise((resolve) => {
     const el = html(`<div class="dialog"><p>${esc(message)}</p><div class="dialog-btns">
       <button class="btn ${danger ? 'danger' : 'primary'}" data-v="1" autofocus>${esc(ok)}</button>
@@ -477,7 +479,7 @@ export function confirmDialog(message, { ok = 'Rendben', cancel = 'Mégse', dang
 export function promptDialog(message, value = '') {
   return new Promise((resolve) => {
     const el = html(`<form class="dialog"><label>${esc(message)}<input class="input" value="${esc(value)}" autofocus /></label>
-      <div class="dialog-btns"><button class="btn primary" type="submit">Mentés</button><button class="btn" type="button" data-cancel>Mégse</button></div></form>`);
+      <div class="dialog-btns"><button class="btn primary" type="submit">${_t('Mentés')}</button><button class="btn" type="button" data-cancel>${_t('Mégse')}</button></div></form>`);
     const close = openModal(el, { cls: 'small' });
     el.onsubmit = (e) => {
       e.preventDefault();
@@ -504,18 +506,18 @@ export function openInfo(ch) {
     const st = channelStatus(ch);
     const langs = ch.languages.map((l) => catalog.languages.get(l)?.name || languageName(l)).join(', ');
     const facts = [
-      ['Ország', `${countryFlag(ch.country)} ${esc(countryName(ch.country))}`],
-      ['Kategória', ch.categories.map((c) => esc(categoryName(c))).join(', ')],
-      ['Nyelv', esc(langs)],
-      ['Hálózat', esc(ch.network)],
-      ['Tulajdonos', esc(ch.owners.join(', '))],
-      ['Indulás', esc(ch.launched)],
-      ['Megszűnt', esc(ch.closed)],
-      ['Más néven', esc(ch.altNames.filter((n) => n !== ch.name).join(', '))],
-      ['Időzóna', esc(ch.timezones.join(', '))],
-      ['Csatornalisták', esc(ch.custom)],
+      [_t('Ország'), `${countryFlag(ch.country)} ${esc(countryName(ch.country))}`],
+      [_t('Kategória'), ch.categories.map((c) => esc(categoryName(c))).join(', ')],
+      [_t('Nyelv'), esc(langs)],
+      [_t('Hálózat'), esc(ch.network)],
+      [_t('Tulajdonos'), esc(ch.owners.join(', '))],
+      [_t('Indulás'), esc(ch.launched)],
+      [_t('Megszűnt'), esc(ch.closed)],
+      [_t('Más néven'), esc(ch.altNames.filter((n) => n !== ch.name).join(', '))],
+      [_t('Időzóna'), esc(ch.timezones.join(', '))],
+      [_t('Csatornalisták'), esc(ch.custom)],
       [
-        'Weboldal',
+        _t('Weboldal'),
         ch.website ? `<a href="#" data-ext="${esc(ch.website)}">${esc(ch.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''))}</a>` : '',
       ],
     ].filter((f) => f[1] && f[1].trim());
@@ -531,30 +533,29 @@ export function openInfo(ch) {
         <div class="info-head">
           <h1>${esc(ch.name)}</h1>
           <div class="info-tags">
-            <span class="st-label st-${st}">${st === 'ok' ? 'Működik' : st === 'bad' ? offlineLabel(ch) + ' – jelenleg nem elérhető' : 'Nem ellenőrzött'}</span>
+            <span class="st-label st-${st}">${st === 'ok' ? _t('Működik') : st === 'bad' ? offlineLabel(ch) + ` ${_t('– jelenleg nem elérhető')}` : _t('Nem ellenőrzött')}</span>
             ${qualityBadge(ch) ? `<span class="pill">${qualityBadge(ch)}</span>` : ''}
-            ${ch.streams.length > 1 ? `<span class="pill">${ch.streams.length} forrás</span>` : ''}
-            ${{ sure: '<span class="pill warn" title="Az adó innen elutasította a kérést (403 / 451)">🌐 Földrajzi korlát – innen nem nézhető</span>', maybe: '<span class="pill warn" title="A lista szerint csak bizonyos országokból nézhető">🌐 Földrajzilag korlátozott lehet</span>' }[geoState(ch)] || ''}
-            ${ch.streams.every((s) => s.notAlways) ? '<span class="pill warn">Nem 0–24</span>' : ''}
+            ${ch.streams.length > 1 ? `<span class="pill">${_t('{length} forrás', { length: ch.streams.length })}</span>` : ''}
+            ${{ sure: `<span class="pill warn" title="${_t('Az adó innen elutasította a kérést (403 / 451)')}">${_t('🌐 Földrajzi korlát – innen nem nézhető')}</span>`, maybe: `<span class="pill warn" title="${_t('A lista szerint csak bizonyos országokból nézhető')}">${_t('🌐 Földrajzilag korlátozott lehet')}</span>` }[geoState(ch)] || ''}
+            ${ch.streams.every((s) => s.notAlways) ? `<span class="pill warn">${_t('Nem 0–24')}</span>` : ''}
           </div>
-          ${now?.cur ? `<div class="info-now"><span class="now-label">MOST</span> <b>${esc(now.cur.title)}</b> <span class="muted">${fmtTime(now.cur.start)}–${fmtTime(now.cur.stop)}</span>
+          ${now?.cur ? `<div class="info-now"><span class="now-label">${_t('MOST')}</span> <b>${esc(now.cur.title)}</b> <span class="muted">${fmtTime(now.cur.start)}–${fmtTime(now.cur.stop)}</span>
             <div class="bar wide"><i style="width:${(now.progress * 100).toFixed(1)}%"></i></div>
             ${now.cur.desc ? `<p class="desc">${esc(now.cur.desc)}</p>` : ''}</div>` : ''}
           <div class="info-btns">
-            <button class="btn primary big" data-a="play" autofocus>${ICON.play} Lejátszás</button>
-            <button class="round" data-a="fav" title="${fav ? 'Eltávolítás a kedvencekből' : 'Kedvencekhez'}">${fav ? ICON.check : ICON.plus}</button>
-            ${store.profile.kids ? '' : `<button class="btn ${isKidsChannel(ch) ? 'on' : ''}" data-a="kids" title="Minden profilban: a gyerekprofilok alapból a gyerektartalmat nézhetik">${isKidsChannel(ch) ? ICON.check + ' ' : ''}Gyerektartalom</button>`}
+            <button class="btn primary big" data-a="play" autofocus>${_t('{play} Lejátszás', { play: ICON.play })}</button>
+            <button class="round" data-a="fav" title="${fav ? _t('Eltávolítás a kedvencekből') : _t('Kedvencekhez')}">${fav ? ICON.check : ICON.plus}</button>
+            ${store.profile.kids ? '' : `<button class="btn ${isKidsChannel(ch) ? 'on' : ''}" data-a="kids" title="${_t('Minden profilban: a gyerekprofilok alapból a gyerektartalmat nézhetik')}">${isKidsChannel(ch) ? ICON.check + ' ' : ''}${_t('Gyerektartalom')}</button>`}
           </div>
         </div>
       </div>
       <div class="info-body">
         <div class="info-schedule">
-          <div class="sched-head"><h3>Műsor</h3>
+          <div class="sched-head"><h3>${_t('Műsor')}</h3>
             <div class="tabs">${[-1, 0, 1, 2]
               .map((d) => `<button class="tab ${d === day ? 'active' : ''}" data-day="${d}">${dayLabel(d)}</button>`)
               .join('')}</div></div>
-          ${
-            progs.length
+          ${progs.length
               ? `<ol class="sched">${progs
                   .map((p) => {
                     const live = p.start <= t && p.stop > t;
@@ -565,29 +566,28 @@ export function openInfo(ch) {
                       <div class="pt"><b>${esc(p.title)}</b>${p.subtitle ? ` <span class="muted">– ${esc(p.subtitle)}</span>` : ''}
                         ${p.category ? `<span class="pill small">${esc(p.category)}</span>` : ''}
                         ${p.desc ? `<p>${esc(p.desc)}</p>` : ''}</div>
-                      ${live ? '<span class="now-label">MOST</span>' : ''}
-                      ${!past && !live ? `<button class="round small ${rem ? 'on' : ''}" data-rem="${p.start}" title="${rem ? 'Emlékeztető törlése' : 'Emlékeztető'}">${ICON.bell}</button>` : ''}
+                      ${live ? `<span class="now-label">${_t('MOST')}</span>` : ''}
+                      ${!past && !live ? `<button class="round small ${rem ? 'on' : ''}" data-rem="${p.start}" title="${rem ? _t('Emlékeztető törlése') : _t('Emlékeztető')}">${ICON.bell}</button>` : ''}
                     </li>`;
                   })
                   .join('')}</ol>`
-              : `<p class="empty">${epg.has(ch.id) ? 'Erre a napra nincs műsoradat.' : 'Ehhez a csatornához nem érhető el műsorújság. A beállításokban további forrásokat adhatsz meg.'}</p>`
-          }
+              : `<p class="empty">${epg.has(ch.id) ? _t('Erre a napra nincs műsoradat.') : _t('Ehhez a csatornához nem érhető el műsorújság. A beállításokban további forrásokat adhatsz meg.')}</p>`}
         </div>
         <div class="info-side">
           ${huHtml}
           <dl class="facts">${facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
-          <h3>Adásforrások</h3>
+          <h3>${_t('Adásforrások')}</h3>
           <ul class="streams">${streams
             .map((s, i) => {
               const h = store.healthOf(s.url);
               const sst = h ? (h.ok ? 'ok' : 'bad') : 'unknown';
               return `<li><span class="st st-${sst}"></span>
-                <span class="s-name">${esc(s.feedName && s.feedName !== 'SD' ? s.feedName : `Forrás ${i + 1}`)}${s.quality ? ` · ${esc(s.quality)}` : ''}
-                ${s.geoBlocked ? ' · <span class="warn">korlátozott</span>' : ''}${s.notAlways ? ' · <span class="warn">nem 0–24</span>' : ''}</span>
+                <span class="s-name">${esc(s.feedName && s.feedName !== 'SD' ? s.feedName : `${_t('Forrás {x}', { x: i + 1 })}`)}${s.quality ? ` · ${esc(s.quality)}` : ''}
+                ${s.geoBlocked ? ` · <span class="warn">${_t('korlátozott')}</span>` : ''}${s.notAlways ? ` · <span class="warn">${_t('nem 0–24')}</span>` : ''}</span>
                 <button class="btn small" data-stream="${esc(s.url)}">${ICON.play}</button></li>`;
             })
             .join('')}</ul>
-          ${health.available ? '<button class="btn small" data-a="check">Források ellenőrzése</button>' : ''}
+          ${health.available ? `<button class="btn small" data-a="check">${_t('Források ellenőrzése')}</button>` : ''}
         </div>
       </div>`;
   };
@@ -624,18 +624,18 @@ export function openInfo(ch) {
     } else if (a === 'kids') {
       // minden profilban közös jelölés (a gyerekprofilok alapból ezt nézhetik)
       setKidsMark('ch', ch, !isKidsChannel(ch));
-      toast(isKidsChannel(ch) ? `${ch.name}: gyerektartalomként jelölve` : `${ch.name}: nem gyerektartalom`);
+      toast(isKidsChannel(ch) ? `${_t('{name}: gyerektartalomként jelölve', { name: ch.name })}` : `${_t('{name}: nem gyerektartalom', { name: ch.name })}`);
       draw();
     } else if (a === 'check') {
       e.target.disabled = true;
-      e.target.textContent = 'Ellenőrzés…';
+      e.target.textContent = _t('Ellenőrzés…');
       try {
         const { results } = await api.checkStreams(ch.streams.map((s) => ({ url: s.url, ua: s.ua, referrer: s.referrer })));
         // ok: true / false, vagy 'geo' (403 / 451) – a szöveg „igaz” lenne, ezért külön adjuk át
       for (const [url, ok] of Object.entries(results)) store.setHealth(url, ok === true, 'probe', ok === 'geo');
         bus.emit('health');
       } catch (err) {
-        toast('Az ellenőrzés nem sikerült: ' + (err.message || err));
+        toast(`${_t('Az ellenőrzés nem sikerült:')} ` + (err.message || err));
       }
       draw();
     } else if (dayBtn) {
@@ -645,7 +645,7 @@ export function openInfo(ch) {
       const p = epg.list(ch.id).find((x) => x.start === Number(rem.dataset.rem));
       if (p) {
         const on = store.toggleReminder(ch.id, p);
-        toast(on ? `Emlékeztető beállítva: ${p.title} (${fmtTime(p.start)})` : 'Emlékeztető törölve');
+        toast(on ? `${_t('Emlékeztető beállítva: {title} ({fmtTime})', { title: p.title, fmtTime: fmtTime(p.start) })}` : _t('Emlékeztető törölve'));
         draw();
       }
     } else if (sb) {
@@ -688,13 +688,13 @@ export function openProgram(ch, p) {
     ${p.desc ? `<p class="desc">${esc(p.desc)}</p>` : ''}
     ${live ? `<div class="bar wide"><i style="width:${(((t - p.start) / (p.stop - p.start)) * 100).toFixed(1)}%"></i></div>` : ''}
     <div class="dialog-btns">
-      ${live || !future ? `<button class="btn primary" data-a="play" autofocus>${ICON.play} ${live ? 'Nézem most' : 'Csatorna lejátszása'}</button>` : ''}
-      ${future ? `<button class="btn ${store.hasReminder(ch.id, p.start) ? '' : 'primary'}" data-a="rem" autofocus>${ICON.bell} ${store.hasReminder(ch.id, p.start) ? 'Emlékeztető törlése' : 'Emlékeztető'}</button>` : ''}
-      ${future ? `<button class="btn" data-a="play">${ICON.play} Csatorna most</button>` : ''}
-      <button class="btn ${hasSeries(ch.id, p.title) ? 'on' : ''}" data-a="series" title="Emlékeztető a műsor minden adására ezen a csatornán">↻ ${hasSeries(ch.id, p.title) ? 'Minden adás: be' : 'Minden adására'}</button>
+      ${live || !future ? `<button class="btn primary" data-a="play" autofocus>${ICON.play} ${live ? _t('Nézem most') : _t('Csatorna lejátszása')}</button>` : ''}
+      ${future ? `<button class="btn ${store.hasReminder(ch.id, p.start) ? '' : 'primary'}" data-a="rem" autofocus>${ICON.bell} ${store.hasReminder(ch.id, p.start) ? _t('Emlékeztető törlése') : _t('Emlékeztető')}</button>` : ''}
+      ${future ? `<button class="btn" data-a="play">${_t('{play} Csatorna most', { play: ICON.play })}</button>` : ''}
+      <button class="btn ${hasSeries(ch.id, p.title) ? 'on' : ''}" data-a="series" title="${_t('Emlékeztető a műsor minden adására ezen a csatornán')}">↻ ${hasSeries(ch.id, p.title) ? _t('Minden adás: be') : _t('Minden adására')}</button>
       ${programExtras.map((x) => x.html(ch, p)).join('')}
-      ${future && api.saveFile ? '<button class="btn" data-a="ics" title="Naptárfájl (.ics) – Google, Outlook, telefon">Naptárba</button>' : ''}
-      <button class="btn" data-a="info">Csatorna adatai</button>
+      ${future && api.saveFile ? `<button class="btn" data-a="ics" title="${_t('Naptárfájl (.ics) – Google, Outlook, telefon')}">${_t('Naptárba')}</button>` : ''}
+      <button class="btn" data-a="info">${_t('Csatorna adatai')}</button>
     </div></div>`);
   const close = openModal(el, { cls: 'medium' });
   el.addEventListener('click', (e) => {
@@ -704,17 +704,17 @@ export function openProgram(ch, p) {
       player.play(ch);
     } else if (a === 'rem') {
       const on = store.toggleReminder(ch.id, p);
-      toast(on ? `Emlékeztető beállítva: ${p.title} (${fmtTime(p.start)})` : 'Emlékeztető törölve');
+      toast(on ? `${_t('Emlékeztető beállítva: {title} ({fmtTime})', { title: p.title, fmtTime: fmtTime(p.start) })}` : _t('Emlékeztető törölve'));
       close();
     } else if (a === 'series') {
       const on = toggleSeries(ch.id, p.title);
-      toast(on ? `Emlékeztető a(z) „${p.title}” minden adására (${ch.name})` : 'A „minden adására” emlékeztető törölve');
+      toast(on ? `${_t('Emlékeztető a(z) „{title}” minden adására ({name})', { title: p.title, name: ch.name })}` : _t('A „minden adására” emlékeztető törölve'));
       close();
     } else if (a === 'info') {
       close();
       openInfo(ch);
     } else if (a === 'ics') {
-      api.saveFile(`musor-${String(p.title).replace(/[\s\/\\:*?"<>|]+/g, '-').slice(0, 40)}.ics`, icsFor([{ ch, p }])).then((ok) => ok && toast('A naptárfájl elmentve – nyisd meg a naptáradban.'));
+      api.saveFile(`musor-${String(p.title).replace(/[\s\/\\:*?"<>|]+/g, '-').slice(0, 40)}.ics`, icsFor([{ ch, p }])).then((ok) => ok && toast(_t('A naptárfájl elmentve – nyisd meg a naptáradban.')));
     } else if (a) {
       if (programExtras.some((x) => x.run(a, ch, p))) close();
     }
@@ -724,7 +724,7 @@ export function openProgram(ch, p) {
 /** A TV oldal fülei: csatornák, műsorújság, böngészés (csak élő adások) és (asztali változatban) a tévéfelvételek. */
 export function tvTabs(cur) {
   const tab = (id, href, label) => `<a class="tab ${cur === id ? 'active' : ''}" href="${href}">${label}</a>`;
-  return `<div class="tabs vod-tabs tv-tabs">${tab('tv', '#/tv', 'Csatornák')}${tab('guide', '#/guide', 'Műsorújság')}${tab('browse', '#/browse', 'Böngészés')}${api.recStart ? tab('rec', '#/recordings', 'Felvételek') : ''}</div>`;
+  return `<div class="tabs vod-tabs tv-tabs">${tab('tv', '#/tv', _t('Csatornák'))}${tab('guide', '#/guide', _t('Műsorújság'))}${tab('browse', '#/browse', _t('Böngészés'))}${api.recStart ? tab('rec', '#/recordings', _t('Felvételek')) : ''}</div>`;
 }
 
 export function emptyState(title, text, action) {

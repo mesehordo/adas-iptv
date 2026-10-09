@@ -1,10 +1,11 @@
 // Műsorújság: XMLTV források letöltése, feldolgozása (worker) és a csatornákhoz rendelése.
 import { api, IS_ANDROID } from './api.js';
-import { store } from './store.js';
+import { store, epgSourceName } from './store.js';
 import { catalog } from './catalog.js';
 import { bus, key } from './util.js';
 
 // A TV-s (egy fájlba csomagolt) változatban az import.meta nem használható; ott a js/ mappából töltjük.
+import { _t } from './i18n.js';
 let workerUrl;
 try {
   workerUrl = new URL('./epg-worker.js', import.meta.url);
@@ -60,7 +61,7 @@ const fetchSource = (url, opts) =>
   api.fetchBytes && /^https?:\/\//i.test(url) ? api.fetchBytes(url, opts).then((r) => ({ data: r.bytes, cachedAt: r.cachedAt })) : api.fetchText(url, opts).then((r) => ({ data: r.text, cachedAt: r.cachedAt }));
 
 /** Program: { start, stop, title, desc, category, subtitle, episode, age (korhatár, 0 = nincs adat) } */
-const toProg = (r) => ({ start: r[0], stop: r[1], title: r[2] || 'Műsor', desc: r[3], category: r[4], subtitle: r[5], episode: r[6], age: r[7] || 0 });
+const toProg = (r) => ({ start: r[0], stop: r[1], title: r[2] || _t('Műsor'), desc: r[3], category: r[4], subtitle: r[5], episode: r[6], age: r[7] || 0 });
 // A háttérszál tömböket ad; a műsor-objektumok csatornánként, az első használatkor jönnek létre
 // (több százezer objektum egyszerre a felületet másodpercekre megakasztotta).
 const PROGS = Symbol('progs');
@@ -126,7 +127,7 @@ export const epg = {
         const start = conv ? x.start : x[0];
         const stop = conv ? x.stop : x[1];
         if (stop < now || start > until) continue;
-        const hay = conv ? x._n || (x._n = fold(x.title + ' ' + (x.subtitle || ''))) : fold((x[2] || 'Műsor') + ' ' + (x[5] || ''));
+        const hay = conv ? x._n || (x._n = fold(x.title + ' ' + (x.subtitle || ''))) : fold((x[2] || _t('Műsor')) + ' ' + (x[5] || ''));
         if (tokens.every((t) => hay.includes(t))) out.push({ channelId: id, prog: conv ? x : toProg(x) }); // csak a találat lesz objektum
       }
     }
@@ -136,8 +137,8 @@ export const epg = {
 
   sources() {
     const s = store.settings;
-    const list = s.epgSources.filter((x) => x.enabled).map((x) => ({ url: x.url, name: x.name }));
-    if (s.useEmbeddedEpg) for (const url of catalog.tvgUrls || []) if (!list.some((x) => x.url === url)) list.push({ url, name: 'Lejátszólista műsorújsága' });
+    const list = s.epgSources.filter((x) => x.enabled).map((x) => ({ url: x.url, name: epgSourceName(x) }));
+    if (s.useEmbeddedEpg) for (const url of catalog.tvgUrls || []) if (!list.some((x) => x.url === url)) list.push({ url, name: _t('Lejátszólista műsorújsága') });
     return list;
   },
 

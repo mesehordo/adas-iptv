@@ -15,20 +15,21 @@ import { exoAvailable } from './exo.js';
 import { toggleStreamInfo, stopStreamInfo, streamInfoOpen } from './streaminfo.js';
 import { ICON, logoHtml, openInfo, modalOpen } from './components.js';
 
+import { _t } from './i18n.js';
 /** A vezérlősáv kiegészítő gombjai (Beállítások → Lejátszás → A lejátszó gombjai): ki-be kapcsolhatók. */
 export const PLAYER_BUTTONS = [
-  ['rec', 'Felvétel ●'],
-  ['ts', '30 mp vissza / előre'],
-  ['recall', 'Vissza az előző csatornára'],
-  ['fav', 'Kedvenc'],
-  ['info', 'Adatlap'],
-  ['subs', 'Hang és felirat (CC)'],
-  ['sleep', 'Elalvási időzítő'],
-  ['list', 'Csatornalista'],
-  ['multi', 'Több adás egyszerre'],
-  ['cast', 'Kivetítés'],
-  ['mini', 'Mini lejátszó'],
-  ['full', 'Teljes képernyő'],
+  ['rec', _t('Felvétel ●')],
+  ['ts', _t('30 mp vissza / előre')],
+  ['recall', _t('Vissza az előző csatornára')],
+  ['fav', _t('Kedvenc')],
+  ['info', _t('Adatlap')],
+  ['subs', _t('Hang és felirat (CC)')],
+  ['sleep', _t('Elalvási időzítő')],
+  ['list', _t('Csatornalista')],
+  ['multi', _t('Több adás egyszerre')],
+  ['cast', _t('Kivetítés')],
+  ['mini', _t('Mini lejátszó')],
+  ['full', _t('Teljes képernyő')],
 ];
 const pb = (k) => store.settings.playerButtons?.[k] !== false;
 
@@ -70,14 +71,14 @@ function fmtClock(sec) {
 const RACE_DELAY = 3000; // ennyi után vált a lejátszó egy biztosan élő tartalék forrásra
 
 const SLEEP_OPTIONS = [
-  [0, 'Kikapcsolva'],
+  [0, _t('Kikapcsolva')],
   [15, '15 perc'],
   [30, '30 perc'],
   [45, '45 perc'],
-  [60, '1 óra'],
-  [90, '1,5 óra'],
-  [120, '2 óra'],
-  [-1, 'A műsor végén'],
+  [60, _t('1 óra')],
+  [90, _t('1,5 óra')],
+  [120, _t('2 óra')],
+  [-1, _t('A műsor végén')],
 ];
 
 const root = $('#player');
@@ -197,7 +198,7 @@ export const player = {
     this.tried.add(stream.url);
     // Ha van még kipróbálatlan forrás, egy megakadt élő adásnál hamarabb (10 mp) váltunk rá.
     this.engine.stallMs = !ch.vod && store.settings.autoFallback && orderedStreams(ch).some((s) => !this.tried.has(s.url)) ? 10000 : 30000;
-    this.setLoading(true, this.tried.size > 1 ? `Másik forrás kipróbálása (${this.tried.size}/${ch.streams.length})…` : 'Csatlakozás…');
+    this.setLoading(true, this.tried.size > 1 ? `${_t('Másik forrás kipróbálása ({size}/{length})…', { size: this.tried.size, length: ch.streams.length })}` : _t('Csatlakozás…'));
     $('.p-error', root).hidden = true;
     const mode = store.settings.playbackEngine;
     const preferNative = !forceHlsJs && (mode === 'native' || (mode === 'auto' && IS_WEBOS));
@@ -234,7 +235,7 @@ export const player = {
       const canBridge = !exo && ch.vod && api.mediaProbe && !this.castHooks?.active && store.settings.mediaBridge !== false && !/\.(m3u8|mpd)$/i.test(container);
       const probeFirst = canBridge && !bridge && !/\.(mp4|m4v|webm|mp3|m4a|aac|ogg|opus|flac|wav)$/i.test(container);
       if (probeFirst) {
-        this.setLoading(true, 'A fájl sávjainak felismerése…');
+        this.setLoading(true, _t('A fájl sávjainak felismerése…'));
         await api.setStreamHeaders(stream.url, { ua: stream.ua, referrer: stream.referrer });
         const info = await Promise.race([probeMedia(stream.url), new Promise((r) => setTimeout(() => r(null), 10000))]);
         if (this.channel !== ch) return;
@@ -244,10 +245,10 @@ export const player = {
           console.info('Lejátszási híd:', why, stream.url);
         } else if (!info || info.error) {
           // Ne csendben essünk vissza: így derül ki, ha a híd valamiért nem éri el a fájlt
-          console.warn('Lejátszási híd – a fájl nem elemezhető:', info?.error || 'időtúllépés', stream.url);
-          toast(`A lejátszási híd nem tudta megnyitni a fájlt (${info?.error || 'időtúllépés'}) – a beépített lejátszóval próbálom.`, { timeout: 7000 });
+          console.warn('Lejátszási híd – a fájl nem elemezhető:', info?.error || _t('időtúllépés'), stream.url);
+          toast(_t('A lejátszási híd nem tudta megnyitni a fájlt ({error}) – a beépített lejátszóval próbálom.', { error: info?.error || _t('időtúllépés') }), { timeout: 7000 });
         }
-        this.setLoading(true, 'Csatlakozás…');
+        this.setLoading(true, _t('Csatlakozás…'));
       }
       if (exo) await api.setStreamHeaders(stream.url, { ua: stream.ua, referrer: stream.referrer });
       this.bridged = !!bridge || exo;
@@ -257,7 +258,7 @@ export const player = {
         if (this.resumeAt > 0) {
           try {
             if (!bridge && !exo) video.currentTime = this.resumeAt; // a híd / a natív lejátszó eleve onnan indult
-            toast(`Folytatás ${fmtClock(this.resumeAt)}-tól`);
+            toast(`${_t('Folytatás {fmtClock}-tól', { fmtClock: fmtClock(this.resumeAt) })}`);
           } catch {}
         }
         this.resumeAt = 0;
@@ -271,7 +272,7 @@ export const player = {
             if (!why || this.channel !== ch || this.stream !== stream || this.engine.type === 'bridge') return;
             console.info('Lejátszási híd (utólag):', why, stream.url);
             this.resumeAt = video.currentTime || 0;
-            toast(why.startsWith('hang') ? 'A hangsáv átalakítása…' : 'A beágyazott felirat betöltése…', { timeout: 2500 });
+            toast(why.startsWith('hang') ? _t('A hangsáv átalakítása…') : _t('A beágyazott felirat betöltése…'), { timeout: 2500 });
             this.tryStream(stream, { forceBridge: info });
           });
         }
@@ -286,7 +287,7 @@ export const player = {
       console.warn('Lejátszási hiba', stream.url, err);
       // A natív lejátszó (Android) után ugyanez a fájl a WebView lejátszójával.
       if (this.engine.type === 'exo' && !noExo) {
-        toast('A natív lejátszó nem indult (' + (err.message || err).replace(/^Natív lejátszó: /, '') + ') – a beépített lejátszóval próbálom.', { timeout: 6000 });
+        toast(_t('A natív lejátszó nem indult ({error}) – a beépített lejátszóval próbálom.', { error: String(err.message || err).replace(/^[^:]+: /, '') }), { timeout: 6000 });
         return this.tryStream(stream, { noExo: true });
       }
       // A beépített lejátszó után ugyanezt a forrást a hls.js-sel is megpróbáljuk.
@@ -296,7 +297,7 @@ export const player = {
       // internet nélkül nem a forrás a hibás: várunk (az „online” esemény újraindítja), nem jelöljük hibásnak
       if (navigator.onLine === false) {
         wentOffline = true;
-        return this.setLoading(true, 'Nincs internetkapcsolat – várakozás…');
+        return this.setLoading(true, _t('Nincs internetkapcsolat – várakozás…'));
       }
       store.setHealth(stream.url, false, 'play', err.httpStatus === 403 || err.httpStatus === 451);
       this.fallback(err);
@@ -328,9 +329,9 @@ export const player = {
       const noVideo = video.videoWidth === 0 || video.webkitVideoDecodedByteCount === 0;
       if (!noAudio && !noVideo) return;
       const mkv = /\.mkv$/i.test(container);
-      const what = noVideo ? 'A videó képe' : 'A videó hangja (pl. AC3 / DTS)';
-      toast(`${what} itt nem játszható le${mkv ? ', és az MKV-be ágyazott felirat sem jelenik meg' : ''}. Külső lejátszóban (VLC, mpv…) mindkettő működik.`, {
-        action: 'Külső lejátszó',
+      const what = noVideo ? _t('A videó képe') : _t('A videó hangja (pl. AC3 / DTS)');
+      toast(`${_t('{what} itt nem játszható le', { what })}${mkv ? _t(', és az MKV-be ágyazott felirat sem jelenik meg') : ''}${_t('. Külső lejátszóban (VLC, mpv…) mindkettő működik.')}`, {
+        action: _t('Külső lejátszó'),
         onAction: () => this.vodHooks.external(ch),
         timeout: 15000,
       });
@@ -363,20 +364,20 @@ export const player = {
     const next = !ch.vod && store.settings.autoFallback && orderedStreams(ch).find((s) => !this.tried.has(s.url));
     if (d.kind === 'slow-source' && next && eng.net.recentStalls() >= 3 && !done.has('source')) {
       done.add('source');
-      toast(`${d.text} Másik forrásra váltok.`, { timeout: 6000 });
+      toast(`${_t('{text} Másik forrásra váltok.', { text: d.text })}`, { timeout: 6000 });
       return this.tryStream(next);
     }
     if (hls && hls.levels.length > 1 && (hls.currentLevel > 0 || hls.loadLevel > 0) && !done.has('down')) {
       done.add('down');
       const cur = hls.currentLevel >= 0 ? hls.currentLevel : hls.loadLevel;
       hls.autoLevelCapping = Math.max(0, cur - 1);
-      toast(`${d.kind === 'ok' ? 'Gyakori akadás.' : d.text} Kisebb minőségre váltottam (a ⚙ menüben visszaállítható).`, { timeout: 7000 });
+      toast(`${d.kind === 'ok' ? _t('Gyakori akadás.') : d.text} ${_t('Kisebb minőségre váltottam (a ⚙ menüben visszaállítható).')}`, { timeout: 7000 });
       return;
     }
     if (hls && !ch.vod && !done.has('cushion')) {
       done.add('cushion');
       hls.config.liveSyncDurationCount = Math.min(8, (hls.config.liveSyncDurationCount || 4) + 2);
-      toast(`${d.kind === 'ok' ? 'Gyakori akadás.' : d.text} Nagyobb tartalékkal folytatom (az adás néhány másodperccel később látszik).`, { timeout: 7000 });
+      toast(`${d.kind === 'ok' ? _t('Gyakori akadás.') : d.text} ${_t('Nagyobb tartalékkal folytatom (az adás néhány másodperccel később látszik).')}`, { timeout: 7000 });
     }
   },
 
@@ -389,23 +390,21 @@ export const player = {
     const geo = geoLimited(ch) || err?.httpStatus === 403 || err?.httpStatus === 451;
     const hasNext = ch.vod && this.vodHooks?.next(ch, 1);
     box.innerHTML = ch.vod
-      ? `<h2>Ez a videó most nem érhető el</h2>
-      <p>A tárhely nem válaszol, vagy a fájlt eltávolították. Ingyenes listáknál ez előfordul.</p>
+      ? `<h2>${_t('Ez a videó most nem érhető el')}</h2>
+      <p>${_t('A tárhely nem válaszol, vagy a fájlt eltávolították. Ingyenes listáknál ez előfordul.')}</p>
       ${err ? `<p class="muted small">${esc(err.message || err)}</p>` : ''}
-      <div class="dialog-btns"><button class="btn primary" data-e="retry">${P.retry} Újra</button>
-      ${hasNext ? `<button class="btn" data-e="next">${P.down} Következő rész</button>` : ''}
-      ${api.openInPlayer && this.vodHooks?.external ? '<button class="btn" data-e="external">Külső lejátszóban</button>' : ''}
-      <button class="btn" data-e="back">Vissza</button></div>`
-      : `<h2>Ez az adás most nem érhető el</h2>
-      <p>${
-        geo
-          ? '🌐 <b>Földrajzi korlátozás:</b> az adó csak bizonyos országokból nézhető, innen elutasította a kérést. (Más országban, vagy egy ottani VPN-nel működhet.)'
-          : 'Az adó nem válaszol, vagy megszűnt az adás. Ez az ingyenes listákon gyakori.'
-      }</p>
+      <div class="dialog-btns"><button class="btn primary" data-e="retry">${_t('{retry} Újra', { retry: P.retry })}</button>
+      ${hasNext ? `<button class="btn" data-e="next">${_t('{down} Következő rész', { down: P.down })}</button>` : ''}
+      ${api.openInPlayer && this.vodHooks?.external ? `<button class="btn" data-e="external">${_t('Külső lejátszóban')}</button>` : ''}
+      <button class="btn" data-e="back">${_t('Vissza')}</button></div>`
+      : `<h2>${_t('Ez az adás most nem érhető el')}</h2>
+      <p>${geo
+          ? `${_t('🌐 <b>Földrajzi korlátozás:</b> az adó csak bizonyos országokból nézhető, innen elutasította a kérést. (Más országban, vagy egy ottani VPN-nel működhet.)')}`
+          : _t('Az adó nem válaszol, vagy megszűnt az adás. Ez az ingyenes listákon gyakori.')}</p>
       ${err ? `<p class="muted small">${esc(err.message || err)}</p>` : ''}
-      <div class="dialog-btns"><button class="btn primary" data-e="retry">${P.retry} Újra</button>
-      <button class="btn" data-e="next">${P.down} Következő csatorna</button>
-      <button class="btn" data-e="back">Vissza</button></div>`;
+      <div class="dialog-btns"><button class="btn primary" data-e="retry">${_t('{retry} Újra', { retry: P.retry })}</button>
+      <button class="btn" data-e="next">${_t('{down} Következő csatorna', { down: P.down })}</button>
+      <button class="btn" data-e="back">${_t('Vissza')}</button></div>`;
     box.hidden = false;
     box.querySelector('[data-e="retry"]').focus();
     box.onclick = (e) => {
@@ -487,7 +486,7 @@ export const player = {
     if (this.channel?.vod) {
       const n = this.vodHooks?.next(this.channel, dir);
       if (n) this.playVod(n);
-      else toast(dir > 0 ? 'Ez az utolsó rész.' : 'Ez az első rész.');
+      else toast(dir > 0 ? _t('Ez az utolsó rész.') : _t('Ez az első rész.'));
       return;
     }
     const list = this.lineup();
@@ -519,7 +518,7 @@ export const player = {
       const box = $('.p-epg', root);
       if (!box.querySelector('.p-seek')) {
         box.innerHTML = `<div class="p-seek"><span class="t-cur">0:00</span>
-          <input type="range" class="seek" min="0" max="1" step="1" value="0" data-c="seek" aria-label="Pozíció" />
+          <input type="range" class="seek" min="0" max="1" step="1" value="0" data-c="seek" aria-label="${_t('Pozíció')}" />
           <span class="t-dur">–:–</span></div>`;
       }
       this.updateSeek();
@@ -533,11 +532,11 @@ export const player = {
     }
     box.innerHTML = `${
       n.cur
-        ? `<div class="p-now"><span class="now-label">MOST</span> <b>${esc(n.cur.title)}</b>
+        ? `<div class="p-now"><span class="now-label">${_t('MOST')}</span> <b>${esc(n.cur.title)}</b>
           <span class="muted">${fmtTime(n.cur.start)}–${fmtTime(n.cur.stop)}</span></div>
           <div class="bar wide"><i style="width:${(n.progress * 100).toFixed(1)}%"></i></div>`
         : ''
-    }${n.next ? `<div class="p-next muted">Utána: ${fmtTime(n.next.start)} ${esc(n.next.title)}</div>` : ''}`;
+    }${n.next ? `<div class="p-next muted">${_t('Utána: {fmtTime} {esc}', { fmtTime: fmtTime(n.next.start), esc: esc(n.next.title) })}</div>` : ''}`;
   },
 
   updateSeek() {
@@ -559,7 +558,7 @@ export const player = {
     if (!isFinite(video.duration)) return;
     video.currentTime = Math.max(0, Math.min(video.duration - 1, video.currentTime + sec));
     this.updateSeek();
-    this.showOsd(this.channel, `${sec > 0 ? '+' : ''}${sec} mp`);
+    this.showOsd(this.channel, `${sec > 0 ? '+' : ''}${_t('{sec} mp', { sec })}`);
   },
 
   // --- Élő adás időcsúsztatása (szünet, visszatekerés a pufferből) ------------------
@@ -574,15 +573,15 @@ export const player = {
     }
     if (!box.firstChild) {
       box.innerHTML = `<button class="ts-live" data-c="ts-live"></button>
-        <input type="range" class="seek ts-seek" data-c="ts-seek" min="0" max="1" step="1" value="0" aria-label="Időcsúsztatás" />
+        <input type="range" class="seek ts-seek" data-c="ts-seek" min="0" max="1" step="1" value="0" aria-label="${_t('Időcsúsztatás')}" />
         <span class="ts-behind"></span>`;
     }
     box.hidden = false;
     const live = t.behind < 12;
     const btn = box.querySelector('.ts-live');
     btn.classList.toggle('on', live);
-    btn.textContent = live ? '● ÉLŐ' : 'Ugrás élőbe ▸▸';
-    btn.title = live ? 'Élő adás' : 'Vissza az élő adáshoz';
+    btn.textContent = live ? _t('● ÉLŐ') : _t('Ugrás élőbe ▸▸');
+    btn.title = live ? _t('Élő adás') : _t('Vissza az élő adáshoz');
     const seek = box.querySelector('.ts-seek');
     const span = Math.max(1, Math.floor(t.edge - t.start));
     if (!this.tsSeeking) {
@@ -590,16 +589,16 @@ export const player = {
       seek.value = Math.floor(t.pos - t.start);
     }
     seek.style.setProperty('--pct', ((Number(seek.value) / span) * 100).toFixed(2) + '%');
-    box.querySelector('.ts-behind').textContent = live ? `${fmtClock(span)} visszatekerhető` : `−${fmtClock(this.tsSeeking ? span - Number(seek.value) : t.behind)}`;
+    box.querySelector('.ts-behind').textContent = live ? `${_t('{fmtClock} visszatekerhető', { fmtClock: fmtClock(span) })}` : `−${fmtClock(this.tsSeeking ? span - Number(seek.value) : t.behind)}`;
     root.classList.toggle('behind-live', !live);
   },
 
   tsBy(sec) {
     const t = this.engine.timeshiftInfo();
-    if (!t) return toast('Ennél az adásnál még nem lehet visszatekerni – a lejátszó most gyűjti a puffert.');
+    if (!t) return toast(_t('Ennél az adásnál még nem lehet visszatekerni – a lejátszó most gyűjti a puffert.'));
     video.currentTime = Math.max(t.start + 0.5, Math.min(t.edge - 2, t.pos + sec));
     this.updateTimeshift();
-    this.showOsd(this.channel, `${sec > 0 ? '+' : '−'}${Math.abs(sec)} mp`);
+    this.showOsd(this.channel, `${sec > 0 ? '+' : '−'}${_t('{abs} mp', { abs: Math.abs(sec) })}`);
   },
 
   togglePause() {
@@ -610,10 +609,10 @@ export const player = {
   // --- „Következő rész” ajánló a rész végén ------------------------------------
   showNextUp(next) {
     this.hideNextUp();
-    const box = html(`<div class="p-nextup"><div class="nu-label">Következő rész</div>
+    const box = html(`<div class="p-nextup"><div class="nu-label">${_t('Következő rész')}</div>
       <div class="nu-title">${esc(next.vod.subtitle)}</div>
-      <div class="dialog-btns"><button class="btn primary" data-nu="go">${ICON.play} Lejátszás <span class="nu-count">8</span></button>
-      <button class="btn" data-nu="cancel">Mégse</button></div></div>`);
+      <div class="dialog-btns"><button class="btn primary" data-nu="go">${_t('{play} Lejátszás', { play: ICON.play })} <span class="nu-count">8</span></button>
+      <button class="btn" data-nu="cancel">${_t('Mégse')}</button></div></div>`);
     root.append(box);
     box.querySelector('[data-nu="go"]').focus();
     let n = 8;
@@ -649,52 +648,52 @@ export const player = {
     const casting = !!this.castHooks?.active;
     const paused = casting ? this.castHooks.paused : video.paused && this.engine?.started;
     const castBtn = this.castHooks?.available && (pb('cast') || casting)
-      ? `<button class="icon-btn ${casting ? 'on' : ''}" data-c="cast" title="${casting ? 'Kivetítve: ' + esc(this.castHooks.deviceName) : 'Kivetítés tévére (Chromecast, DLNA)'}">${P.cast}</button>`
+      ? `<button class="icon-btn ${casting ? 'on' : ''}" data-c="cast" title="${casting ? `${_t('Kivetítve:')} ` + esc(this.castHooks.deviceName) : _t('Kivetítés tévére (Chromecast, DLNA)')}">${P.cast}</button>`
       : '';
     if (ch.vod) {
       const hasNext = !!this.vodHooks?.next(ch, 1);
       $('.p-controls', root).innerHTML = `
-      <button class="icon-btn" data-c="toggle" title="Szünet / lejátszás (Szóköz)">${paused ? ICON.play : P.pause}</button>
-      <button class="icon-btn" data-c="back10" title="10 mp vissza (←)">${P.back10}</button>
-      <button class="icon-btn" data-c="fwd10" title="10 mp előre (→)">${P.fwd10}</button>
-      ${hasNext ? `<button class="icon-btn" data-c="next" title="Következő rész (PageDown)">${P.nextEp}</button>` : ''}
+      <button class="icon-btn" data-c="toggle" title="${_t('Szünet / lejátszás (Szóköz)')}">${paused ? ICON.play : P.pause}</button>
+      <button class="icon-btn" data-c="back10" title="${_t('10 mp vissza (←)')}">${P.back10}</button>
+      <button class="icon-btn" data-c="fwd10" title="${_t('10 mp előre (→)')}">${P.fwd10}</button>
+      ${hasNext ? `<button class="icon-btn" data-c="next" title="${_t('Következő rész (PageDown)')}">${P.nextEp}</button>` : ''}
       <div class="vol">
-        <button class="icon-btn" data-c="mute" title="Némítás (M)">${video.muted || video.volume === 0 ? P.mute : P.vol}</button>
-        <input type="range" min="0" max="1" step="0.02" value="${video.muted ? 0 : video.volume}" data-c="volume" aria-label="Hangerő" />
+        <button class="icon-btn" data-c="mute" title="${_t('Némítás (M)')}">${video.muted || video.volume === 0 ? P.mute : P.vol}</button>
+        <input type="range" min="0" max="1" step="0.02" value="${video.muted ? 0 : video.volume}" data-c="volume" aria-label="${_t('Hangerő')}" />
       </div>
       <span class="grow"></span>
-      ${pb('info') ? `<button class="icon-btn" data-c="info" title="Adatlap (I)">${ICON.info}</button>` : ''}
+      ${pb('info') ? `<button class="icon-btn" data-c="info" title="${_t('Adatlap (I)')}">${ICON.info}</button>` : ''}
       ${castBtn}
-      ${pb('subs') ? `<button class="icon-btn cc-btn ${ccOn ? 'on' : ''}" data-c="subs" title="Hang és felirat (C)">${P.cc}</button>` : ''}
-      ${pb('sleep') || this.sleepAt ? `<button class="icon-btn ${this.sleepAt ? 'on' : ''}" data-c="sleep" title="Elalvási időzítő">${P.moon}${this.sleepAt ? `<span class="badge">${sleepLeft}′</span>` : ''}</button>` : ''}
-      <button class="icon-btn" data-c="settings" title="Minőség és forrás">${P.gear}</button>
-      ${api.caps.mini && pb('mini') ? `<button class="icon-btn" data-c="mini" title="Mini lejátszó (N)">${P.mini}</button>` : ''}
-      ${api.caps.fullscreen && pb('full') ? `<button class="icon-btn" data-c="full" title="Teljes képernyő (F)">${this.fullscreen ? P.exitFull : P.full}</button>` : ''}`;
+      ${pb('subs') ? `<button class="icon-btn cc-btn ${ccOn ? 'on' : ''}" data-c="subs" title="${_t('Hang és felirat (C)')}">${P.cc}</button>` : ''}
+      ${pb('sleep') || this.sleepAt ? `<button class="icon-btn ${this.sleepAt ? 'on' : ''}" data-c="sleep" title="${_t('Elalvási időzítő')}">${P.moon}${this.sleepAt ? `<span class="badge">${sleepLeft}′</span>` : ''}</button>` : ''}
+      <button class="icon-btn" data-c="settings" title="${_t('Minőség és forrás')}">${P.gear}</button>
+      ${api.caps.mini && pb('mini') ? `<button class="icon-btn" data-c="mini" title="${_t('Mini lejátszó (N)')}">${P.mini}</button>` : ''}
+      ${api.caps.fullscreen && pb('full') ? `<button class="icon-btn" data-c="full" title="${_t('Teljes képernyő (F)')}">${this.fullscreen ? P.exitFull : P.full}</button>` : ''}`;
       return;
     }
     $('.p-controls', root).innerHTML = `
-      <button class="icon-btn" data-c="toggle" title="Szünet / lejátszás (Szóköz)">${paused ? ICON.play : P.pause}</button>
-      <button class="icon-btn" data-c="prev" title="Előző csatorna (↑)">${P.up}</button>
-      <button class="icon-btn" data-c="next" title="Következő csatorna (↓)">${P.down}</button>
-      ${this.recallId && pb('recall') ? `<button class="icon-btn" data-c="recall" title="Vissza az előző csatornára (R)">${P.recall}</button>` : ''}
-      ${this.recHooks && !casting && (pb('rec') || this.recHooks.isRec(ch.id)) ? `<button class="icon-btn rec-btn ${this.recHooks.isRec(ch.id) ? 'on' : ''}" data-c="rec" title="${this.recHooks.isRec(ch.id) ? 'Felvétel leállítása' : 'Felvétel indítása (az adás mentése)'}">${P.rec}</button>` : ''}
-      ${casting || !pb('ts') ? '' : `<button class="icon-btn" data-c="ts-back" title="30 mp vissza (Shift+←)">${P.back30}</button>
-      <button class="icon-btn" data-c="ts-fwd" title="30 mp előre (Shift+→)">${P.fwd30}</button>`}
+      <button class="icon-btn" data-c="toggle" title="${_t('Szünet / lejátszás (Szóköz)')}">${paused ? ICON.play : P.pause}</button>
+      <button class="icon-btn" data-c="prev" title="${_t('Előző csatorna (↑)')}">${P.up}</button>
+      <button class="icon-btn" data-c="next" title="${_t('Következő csatorna (↓)')}">${P.down}</button>
+      ${this.recallId && pb('recall') ? `<button class="icon-btn" data-c="recall" title="${_t('Vissza az előző csatornára (R)')}">${P.recall}</button>` : ''}
+      ${this.recHooks && !casting && (pb('rec') || this.recHooks.isRec(ch.id)) ? `<button class="icon-btn rec-btn ${this.recHooks.isRec(ch.id) ? 'on' : ''}" data-c="rec" title="${this.recHooks.isRec(ch.id) ? _t('Felvétel leállítása') : _t('Felvétel indítása (az adás mentése)')}">${P.rec}</button>` : ''}
+      ${casting || !pb('ts') ? '' : `<button class="icon-btn" data-c="ts-back" title="${_t('30 mp vissza (Shift+←)')}">${P.back30}</button>
+      <button class="icon-btn" data-c="ts-fwd" title="${_t('30 mp előre (Shift+→)')}">${P.fwd30}</button>`}
       <div class="vol">
-        <button class="icon-btn" data-c="mute" title="Némítás (M)">${video.muted || video.volume === 0 ? P.mute : P.vol}</button>
-        <input type="range" min="0" max="1" step="0.02" value="${video.muted ? 0 : video.volume}" data-c="volume" aria-label="Hangerő" />
+        <button class="icon-btn" data-c="mute" title="${_t('Némítás (M)')}">${video.muted || video.volume === 0 ? P.mute : P.vol}</button>
+        <input type="range" min="0" max="1" step="0.02" value="${video.muted ? 0 : video.volume}" data-c="volume" aria-label="${_t('Hangerő')}" />
       </div>
       <span class="grow"></span>
-      ${pb('fav') ? `<button class="icon-btn ${fav ? 'on' : ''}" data-c="fav" title="Kedvenc (S)">${fav ? ICON.check : ICON.plus}</button>` : ''}
-      ${pb('info') ? `<button class="icon-btn" data-c="info" title="Csatorna adatai (I)">${ICON.info}</button>` : ''}
-      ${pb('subs') ? `<button class="icon-btn cc-btn ${ccOn ? 'on' : ''}" data-c="subs" title="Hang és felirat (C)">${P.cc}</button>` : ''}
-      ${pb('sleep') || this.sleepAt ? `<button class="icon-btn ${this.sleepAt ? 'on' : ''}" data-c="sleep" title="Elalvási időzítő">${P.moon}${this.sleepAt ? `<span class="badge">${sleepLeft}′</span>` : ''}</button>` : ''}
-      <button class="icon-btn" data-c="settings" title="Minőség és forrás">${P.gear}</button>
-      ${pb('list') ? `<button class="icon-btn" data-c="list" title="Csatornalista (L)">${P.list}</button>` : ''}
-      ${api.caps.multiview && !casting && pb('multi') ? `<button class="icon-btn" data-c="multi" title="Több adás egyszerre (V)">${P.multi}</button>` : ''}
+      ${pb('fav') ? `<button class="icon-btn ${fav ? 'on' : ''}" data-c="fav" title="${_t('Kedvenc (S)')}">${fav ? ICON.check : ICON.plus}</button>` : ''}
+      ${pb('info') ? `<button class="icon-btn" data-c="info" title="${_t('Csatorna adatai (I)')}">${ICON.info}</button>` : ''}
+      ${pb('subs') ? `<button class="icon-btn cc-btn ${ccOn ? 'on' : ''}" data-c="subs" title="${_t('Hang és felirat (C)')}">${P.cc}</button>` : ''}
+      ${pb('sleep') || this.sleepAt ? `<button class="icon-btn ${this.sleepAt ? 'on' : ''}" data-c="sleep" title="${_t('Elalvási időzítő')}">${P.moon}${this.sleepAt ? `<span class="badge">${sleepLeft}′</span>` : ''}</button>` : ''}
+      <button class="icon-btn" data-c="settings" title="${_t('Minőség és forrás')}">${P.gear}</button>
+      ${pb('list') ? `<button class="icon-btn" data-c="list" title="${_t('Csatornalista (L)')}">${P.list}</button>` : ''}
+      ${api.caps.multiview && !casting && pb('multi') ? `<button class="icon-btn" data-c="multi" title="${_t('Több adás egyszerre (V)')}">${P.multi}</button>` : ''}
       ${castBtn}
-      ${api.caps.mini && pb('mini') ? `<button class="icon-btn" data-c="mini" title="Mini lejátszó (N)">${P.mini}</button>` : ''}
-      ${api.caps.fullscreen && pb('full') ? `<button class="icon-btn" data-c="full" title="Teljes képernyő (F)">${this.fullscreen ? P.exitFull : P.full}</button>` : ''}`;
+      ${api.caps.mini && pb('mini') ? `<button class="icon-btn" data-c="mini" title="${_t('Mini lejátszó (N)')}">${P.mini}</button>` : ''}
+      ${api.caps.fullscreen && pb('full') ? `<button class="icon-btn" data-c="full" title="${_t('Teljes képernyő (F)')}">${this.fullscreen ? P.exitFull : P.full}</button>` : ''}`;
   },
 
   showOsd(ch, text) {
@@ -725,8 +724,8 @@ export const player = {
     side.hidden = !show;
     if (!show) return;
     const list = this.lineup();
-    const title = this.context?.title || (store.profile.favorites.length ? 'Kedvencek' : `${countryName(store.settings.homeCountry)} csatornái`);
-    side.innerHTML = `<div class="side-head"><h3>${esc(title)}</h3><input class="input" placeholder="Szűrés…" /></div><ul class="side-list"></ul>`;
+    const title = this.context?.title || (store.profile.favorites.length ? _t('Kedvencek') : `${_t('{countryName} csatornái', { countryName: countryName(store.settings.homeCountry) })}`);
+    side.innerHTML = `<div class="side-head"><h3>${esc(title)}</h3><input class="input" placeholder="${_t('Szűrés…')}" /></div><ul class="side-list"></ul>`;
     const ul = side.querySelector('ul');
     const fill = (q = '') => {
       const k = q.toLowerCase();
@@ -777,20 +776,18 @@ export const player = {
     if (kind === 'settings') {
       const levels = e.levels();
       const streams = orderedStreams(this.channel);
-      body = `${
-        levels.length > 1
-          ? `<h4>Minőség</h4>${[{ index: -1, label: 'Automatikus' }, ...levels.slice().reverse()]
+      body = `${levels.length > 1
+          ? `<h4>${_t('Minőség')}</h4>${[{ index: -1, label: _t('Automatikus') }, ...levels.slice().reverse()]
               .map((l) => `<button class="menu-item ${e.level === l.index ? 'sel' : ''}" data-level="${l.index}">${esc(l.label)}</button>`)
               .join('')}`
-          : '<h4>Minőség</h4><p class="muted small">Ez az adás egyetlen minőségben érhető el.</p>'
-      }<h4>Forrás</h4>${streams
+          : `<h4>${_t('Minőség')}</h4><p class="muted small">${_t('Ez az adás egyetlen minőségben érhető el.')}</p>`}<h4>${_t('Forrás')}</h4>${streams
         .map((s, i) => {
           const h = store.healthOf(s.url);
           return `<button class="menu-item ${s.url === this.stream?.url ? 'sel' : ''}" data-src="${i}">
             <span class="st st-${h ? (h.ok ? 'ok' : 'bad') : 'unknown'}"></span>
-            ${esc(s.feedName && s.feedName !== 'SD' ? s.feedName : `Forrás ${i + 1}`)}${s.quality ? ' · ' + esc(s.quality) : ''}</button>`;
+            ${esc(s.feedName && s.feedName !== 'SD' ? s.feedName : `${_t('Forrás {x}', { x: i + 1 })}`)}${s.quality ? ' · ' + esc(s.quality) : ''}</button>`;
         })
-        .join('')}<h4>Részletek</h4><button class="menu-item ${streamInfoOpen() ? 'sel' : ''}" data-stats>📊 Adás adatai (D)</button>`;
+        .join('')}<h4>${_t('Részletek')}</h4><button class="menu-item ${streamInfoOpen() ? 'sel' : ''}" data-stats>${_t('📊 Adás adatai (D)')}</button>`;
       menu.innerHTML = body;
       menu.onclick = (ev) => {
         const b = ev.target.closest('button');
@@ -804,7 +801,7 @@ export const player = {
         menu.hidden = true;
       };
     } else if (kind === 'sleep') {
-      menu.innerHTML = `<h4>Elalvási időzítő</h4>${SLEEP_OPTIONS.map(
+      menu.innerHTML = `<h4>${_t('Elalvási időzítő')}</h4>${SLEEP_OPTIONS.map(
         ([m, l]) => `<button class="menu-item" data-sleep="${m}">${esc(l)}</button>`
       ).join('')}`;
       menu.onclick = (ev) => {
@@ -828,15 +825,15 @@ export const player = {
     } else if (minutes === -1) {
       const n = this.channel && epg.now(this.channel.id);
       if (!n?.cur) {
-        toast('Ehhez a csatornához nincs műsoradat – válassz időtartamot.');
+        toast(_t('Ehhez a csatornához nincs műsoradat – válassz időtartamot.'));
         return this.renderControls();
       }
       this.sleepAt = n.cur.stop;
     } else if (minutes > 0) this.sleepAt = Date.now() + minutes * 60000;
     if (this.sleepAt) {
-      toast(`A lejátszás leáll ekkor: ${fmtTime(this.sleepAt)}`);
+      toast(`${_t('A lejátszás leáll ekkor: {fmtTime}', { fmtTime: fmtTime(this.sleepAt) })}`);
       this.sleepTimer = setInterval(() => this.sleepTick(), 1000);
-    } else toast('Elalvási időzítő kikapcsolva');
+    } else toast(_t('Elalvási időzítő kikapcsolva'));
     this.renderControls();
   },
 
@@ -847,7 +844,7 @@ export const player = {
       this.sleepAt = 0;
       video.volume = store.settings.volume;
       this.close();
-      toast('Az elalvási időzítő leállította a lejátszást. Jó éjszakát!', { timeout: 8000 });
+      toast(_t('Az elalvási időzítő leállította a lejátszást. Jó éjszakát!'), { timeout: 8000 });
       return;
     }
     // Az utolsó 15 másodpercben lágyan elhalkul.
@@ -869,7 +866,7 @@ export const player = {
     store.set('volume', v);
     this.rememberVolume(v);
     this.renderControls();
-    this.showOsd(this.channel, `Hangerő ${Math.round(v * 100)}%`);
+    this.showOsd(this.channel, `${_t('Hangerő {round}%', { round: Math.round(v * 100) })}`);
   },
 
   /** Csatornánkénti hangerő (Beállítások → Lejátszás): a halk / hangos adók szintje megmarad. */
@@ -889,7 +886,7 @@ export const player = {
   recall() {
     const ch = this.recallId && catalog.byId.get(this.recallId);
     if (ch) this.play(ch);
-    else toast('Még nincs előző csatorna.');
+    else toast(_t('Még nincs előző csatorna.'));
   },
 
   // --- számbillentyűk ------------------------------------------------------------
@@ -905,7 +902,7 @@ export const player = {
       const ch = this.numbered()[n - 1];
       if (ch) this.play(ch);
       else {
-        osd.innerHTML = `<div class="osd-name">Nincs ${n}. csatorna</div>`;
+        osd.innerHTML = `<div class="osd-name">${_t('Nincs {n}. csatorna', { n })}</div>`;
         setTimeout(() => (osd.hidden = true), 1500);
       }
     }, 1300);
@@ -1081,7 +1078,7 @@ export const player = {
       case 's':
       case 'S':
         store.toggleFavorite(this.channel.id);
-        toast(store.isFavorite(this.channel.id) ? 'Hozzáadva a kedvencekhez' : 'Eltávolítva a kedvencek közül');
+        toast(store.isFavorite(this.channel.id) ? _t('Hozzáadva a kedvencekhez') : _t('Eltávolítva a kedvencek közül'));
         this.renderControls();
         break;
       case 'r':
@@ -1111,7 +1108,7 @@ player.engine = new Engine(video, {
     // internet nélkül nem a forrás a hibás: nem jelöljük hibásnak, és nem próbáljuk végig a többit
     if (navigator.onLine === false) {
       wentOffline = true;
-      player.setLoading(true, 'Nincs internetkapcsolat – várakozás…');
+      player.setLoading(true, _t('Nincs internetkapcsolat – várakozás…'));
       return;
     }
     if (player.stream) store.setHealth(player.stream.url, false);
@@ -1128,7 +1125,7 @@ player.engine = new Engine(video, {
   },
   onStall: (on) => {
     if (!player.engine.started) return;
-    player.setLoading(on, on ? (navigator.onLine === false ? 'Nincs internetkapcsolat – várakozás…' : 'Pufferelés…') : '');
+    player.setLoading(on, on ? (navigator.onLine === false ? _t('Nincs internetkapcsolat – várakozás…') : _t('Pufferelés…')) : '');
     if (on) player.netCheck();
   },
 });
@@ -1137,12 +1134,12 @@ player.engine = new Engine(video, {
 window.addEventListener('offline', () => {
   if (!player.active) return;
   wentOffline = true;
-  toast('Megszakadt az internetkapcsolat – a lejátszás folytatódik, amint visszatér.', { timeout: 8000 });
+  toast(_t('Megszakadt az internetkapcsolat – a lejátszás folytatódik, amint visszatér.'), { timeout: 8000 });
 });
 window.addEventListener('online', () => {
   if (!wentOffline || !player.active) return;
   wentOffline = false;
-  toast('Újra van internet – folytatom.', { timeout: 4000 });
+  toast(_t('Újra van internet – folytatom.'), { timeout: 4000 });
   const ch = player.channel;
   // ha a lejátszás közben elakadt vagy hibával leállt: ugyanazt a forrást újra (filmnél a pozíció megmarad)
   const stuck = !$('.p-error', root).hidden || video.readyState < 3;
@@ -1287,7 +1284,7 @@ video.addEventListener('ended', () => {
   const next = player.vodHooks?.next(ch, 1);
   if (next && player.vodHooks.autoNext()) player.showNextUp(next);
   else if (!next) {
-    toast(ch.vod.ep ? 'Ez volt az utolsó rész.' : 'Vége a filmnek.');
+    toast(ch.vod.ep ? _t('Ez volt az utolsó rész.') : _t('Vége a filmnek.'));
     // (ha közben visszatekert, nem zárjuk be)
     setTimeout(() => player.channel === ch && video.ended && player.close(), 1500);
   }

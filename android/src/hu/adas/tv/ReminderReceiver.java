@@ -86,13 +86,13 @@ public class ReminderReceiver extends BroadcastReceiver {
     String channelId = intent.getStringExtra("channelId");
     long start = intent.getLongExtra("start", 0);
     long mins = Math.round((start - System.currentTimeMillis()) / 60000.0);
-    String when = mins > 0 ? mins + " perc múlva kezdődik" : "Elkezdődött";
-    String time = new SimpleDateFormat("HH:mm", new Locale("hu")).format(new Date(start));
+    String when = mins > 0 ? L.t(ctx, "{n} perc múlva kezdődik", mins) : L.t(ctx, "Elkezdődött");
+    String time = new SimpleDateFormat("HH:mm", L.locale(ctx)).format(new Date(start));
 
     NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
     if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CHANNEL) == null) {
-      NotificationChannel ch = new NotificationChannel(CHANNEL, "Műsor-emlékeztetők", NotificationManager.IMPORTANCE_HIGH);
-      ch.setDescription("Értesítés a megjelölt műsorok kezdetéről");
+      NotificationChannel ch = new NotificationChannel(CHANNEL, L.t(ctx, "Műsor-emlékeztetők"), NotificationManager.IMPORTANCE_HIGH);
+      ch.setDescription(L.t(ctx, "Értesítés a megjelölt műsorok kezdetéről"));
       nm.createNotificationChannel(ch);
     }
     Intent open = new Intent(ctx, MainActivity.class).putExtra("channel", channelId)
@@ -106,7 +106,7 @@ public class ReminderReceiver extends BroadcastReceiver {
         .setContentIntent(tap)
         .setAutoCancel(true)
         .setCategory(Notification.CATEGORY_REMINDER)
-        .addAction(new Notification.Action.Builder(null, "Nézem", tap).build());
+        .addAction(new Notification.Action.Builder(null, L.t(ctx, "Nézem"), tap).build());
     if (Build.VERSION.SDK_INT < 26) b.setPriority(Notification.PRIORITY_HIGH).setDefaults(Notification.DEFAULT_ALL);
     try {
       nm.notify(9000 + n, b.build());

@@ -10,6 +10,7 @@ import { Engine } from './engine.js';
 import { player } from './player.js';
 import { logoHtml, openModal } from './components.js';
 
+import { _t } from './i18n.js';
 const state = { el: null, tiles: [], sel: 0, layout: 4 };
 
 const maxTiles = () => api.caps?.multiview || 0;
@@ -18,29 +19,29 @@ export const multiOpen = () => !!state.el;
 function tileHtml(i) {
   return `<div class="mv-tile empty" data-i="${i}" tabindex="0">
     <video playsinline muted></video>
-    <div class="mv-empty"><span class="mv-plus">+</span><span>Csatorna választása</span></div>
+    <div class="mv-empty"><span class="mv-plus">+</span><span>${_t('Csatorna választása')}</span></div>
     <div class="mv-label"></div>
     <div class="mv-state"></div>
     <div class="mv-tools">
-      <button class="round small" data-mv="swap" title="Másik csatorna (OK)">⇄</button>
-      <button class="round small" data-mv="full" title="Teljes nézet (F)">⤢</button>
-      <button class="round small" data-mv="remove" title="Ablak ürítése (Del)">✕</button>
+      <button class="round small" data-mv="swap" title="${_t('Másik csatorna (OK)')}">⇄</button>
+      <button class="round small" data-mv="full" title="${_t('Teljes nézet (F)')}">⤢</button>
+      <button class="round small" data-mv="remove" title="${_t('Ablak ürítése (Del)')}">✕</button>
     </div>
   </div>`;
 }
 
 export function openMultiview(initial = []) {
-  if (!maxTiles()) return toast('Ezen az eszközön a többképes nézet nem érhető el.');
+  if (!maxTiles()) return toast(_t('Ezen az eszközön a többképes nézet nem érhető el.'));
   if (player.active) player.close();
   if (state.el) closeMultiview();
   state.layout = Math.min(store.profile.multiLayout || maxTiles(), maxTiles());
   const el = html(`<section id="multiview" class="layout-${state.layout}">
     <div class="mv-head">
-      <b>Több adás egyszerre</b>
-      <span class="muted small">Nyilak: ablak kijelölése · OK: csatorna · F: teljes nézet · M: némítás · Vissza: kilépés</span>
+      ${_t('<b>Több adás egyszerre</b>')}
+      <span class="muted small">${_t('Nyilak: ablak kijelölése · OK: csatorna · F: teljes nézet · M: némítás · Vissza: kilépés')}</span>
       <span class="grow"></span>
-      ${maxTiles() >= 4 ? `<button class="btn small" data-mvl="2">2 ablak</button><button class="btn small" data-mvl="4">4 ablak</button>` : ''}
-      <button class="btn small" data-mv-close>Bezárás</button>
+      ${maxTiles() >= 4 ? `<button class="btn small" data-mvl="2">${_t('2 ablak')}</button><button class="btn small" data-mvl="4">${_t('4 ablak')}</button>` : ''}
+      <button class="btn small" data-mv-close>${_t('Bezárás')}</button>
     </div>
     <div class="mv-grid">${Array.from({ length: 4 }, (_, i) => tileHtml(i)).join('')}</div>
   </section>`);
@@ -51,8 +52,8 @@ export function openMultiview(initial = []) {
     const v = t.querySelector('video');
     const tile = { el: t, video: v, ch: null, eng: null };
     tile.eng = new Engine(v, {
-      onFail: () => setTileState(tile, 'Az adás megszakadt'),
-      onStall: (on) => setTileState(tile, on ? 'Pufferelés…' : ''),
+      onFail: () => setTileState(tile, _t('Az adás megszakadt')),
+      onStall: (on) => setTileState(tile, on ? _t('Pufferelés…') : ''),
     });
     return tile;
   });
@@ -151,7 +152,7 @@ async function assign(i, ch) {
   tile.eng.stop();
   setTileState(tile, '');
   if (!ch) return;
-  setTileState(tile, 'Csatlakozás…');
+  setTileState(tile, _t('Csatlakozás…'));
   const streams = orderedStreams(ch);
   for (const s of streams.slice(0, 3)) {
     try {
@@ -167,7 +168,7 @@ async function assign(i, ch) {
       store.setHealth(s.url, false);
     }
   }
-  setTileState(tile, 'Ez az adás most nem érhető el');
+  setTileState(tile, _t('Ez az adás most nem érhető el'));
 }
 
 function select(i) {
@@ -184,13 +185,13 @@ function fullView(i) {
   if (!ch) return;
   const ids = state.tiles.map((t) => t.ch?.id).filter(Boolean);
   closeMultiview();
-  player.play(ch, { context: { title: 'Több adás', ids } });
+  player.play(ch, { context: { title: _t('Több adás'), ids } });
 }
 
 function pick(i) {
   const el = html(`<div class="dialog mv-pick">
-    <h2>Csatorna a(z) ${i + 1}. ablakba</h2>
-    <input class="input" type="search" placeholder="Keresés…" autofocus />
+    <h2>${_t('Csatorna a(z) {x}. ablakba', { x: i + 1 })}</h2>
+    <input class="input" type="search" placeholder="${_t('Keresés…')}" autofocus />
     <div class="mv-pick-list"></div>
   </div>`);
   const close = openModal(el, { cls: 'medium' });
@@ -209,7 +210,7 @@ function pick(i) {
         return `<button class="menu-item" data-id="${esc(c.id)}"><span class="side-logo" style="--h:${hashHue(c.name)}">${logoHtml(c, 'logo-sm')}</span>
           <span><b>${esc(c.name)}</b><small>${offlineLabel(c) ? esc(offlineLabel(c)) : n?.cur ? esc(n.cur.title) : ''}</small></span></button>`;
       })
-      .join('') || '<p class="muted">Nincs találat.</p>';
+      .join('') || `<p class="muted">${_t('Nincs találat.')}</p>`;
   };
   fill();
   input.addEventListener('input', fill);

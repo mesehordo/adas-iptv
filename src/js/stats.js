@@ -5,6 +5,7 @@ import { catalog, categoryName } from './catalog.js';
 import { player } from './player.js';
 import { logoHtml, confirmDialog } from './components.js';
 
+import { _t, LOCALE, weekdayNames } from './i18n.js';
 const TICK = 15; // másodperc
 const video = $('#video');
 let lastKey = '';
@@ -61,7 +62,7 @@ setTimeout(() => {
   if (!n) return;
   store.settings.brokenNotice = Date.now();
   store.save();
-  toast(`A héten ${n} kedvenc csatornád nem működött.`, { action: 'Részletek', onAction: () => (location.hash = '#/stats'), timeout: 10000 });
+  toast(`${_t('A héten {n} kedvenc csatornád nem működött.', { n })}`, { action: _t('Részletek'), onAction: () => (location.hash = '#/stats'), timeout: 10000 });
 }, 90e3);
 
 // ---------------------------------------------------------------------------
@@ -69,9 +70,9 @@ setTimeout(() => {
 // ---------------------------------------------------------------------------
 function fmtH(sec) {
   const m = Math.round(sec / 60);
-  if (m < 60) return `${m} perc`;
+  if (m < 60) return `${_t('{m} perc', { m })}`;
   const h = Math.floor(m / 60);
-  return `${h} óra${m % 60 ? ` ${m % 60} perc` : ''}`;
+  return `${_t('{h} óra', { h })}${m % 60 ? ` ${_t('{x} perc', { x: m % 60 })}` : ''}`;
 }
 
 function sumDays(s, n) {
@@ -84,8 +85,8 @@ function sumDays(s, n) {
   return t;
 }
 
-const WEEKDAYS = ['V', 'H', 'K', 'Sze', 'Cs', 'P', 'Szo'];
-const WEEKDAY_NAMES = ['vasárnap', 'hétfő', 'kedd', 'szerda', 'csütörtök', 'péntek', 'szombat'];
+const WEEKDAYS = weekdayNames('short');
+const WEEKDAY_NAMES = weekdayNames('long');
 
 /** Heti összesítő: az elmúlt 7 nap az előző 7-hez képest, a legaktívabb nap, a hét filmjei / sorozatai. */
 function weeklyHtml(s) {
@@ -100,10 +101,10 @@ function weeklyHtml(s) {
     if (!best || t > best.t) best = { d, t };
   }
   const vodWeek = Object.values(s.vod).filter((v) => v.last && Date.now() - v.last < 7 * 864e5).sort((a, b) => b.last - a.last);
-  return `<section class="stat-sec week-sum"><h2>Heti összesítő</h2>
-    <p><b>${fmtH(week)}</b> az elmúlt 7 napban${change !== null ? ` – <span class="${change > 0 ? 'up' : 'down'}">${change > 0 ? '+' : ''}${change}%</span> az előző héthez képest` : ''}.
-    ${best?.t ? ` A legtöbbet ${WEEKDAY_NAMES[best.d.getDay()]} néztél (${fmtH(best.t)}).` : ''}
-    ${vodWeek.length ? ` Filmek, sorozatok a héten: ${vodWeek.slice(0, 5).map((v) => esc(v.title)).join(', ')}${vodWeek.length > 5 ? ` és még ${vodWeek.length - 5}` : ''}.` : ''}</p>
+  return `<section class="stat-sec week-sum"><h2>${_t('Heti összesítő')}</h2>
+    <p>${_t('<b>{fmtH}</b> az elmúlt 7 napban', { fmtH: fmtH(week) })}${change !== null ? ` – <span class="${change > 0 ? 'up' : 'down'}">${change > 0 ? '+' : ''}${change}%</span> ${_t('az előző héthez képest')}` : ''}.
+    ${best?.t ? ` ${_t('A legtöbbet {x} néztél ({fmtH}).', { x: WEEKDAY_NAMES[best.d.getDay()], fmtH: fmtH(best.t) })}` : ''}
+    ${vodWeek.length ? ` ${_t('Filmek, sorozatok a héten:')} ${vodWeek.slice(0, 5).map((v) => esc(v.title)).join(', ')}${vodWeek.length > 5 ? ` ${_t('és még {x}', { x: vodWeek.length - 5 })}` : ''}.` : ''}</p>
   </section>`;
 }
 
@@ -118,11 +119,11 @@ function brokenHtml(p) {
       return h && !h.ok && h.t > week;
     }));
   if (!bad.length) return '';
-  return `<section class="stat-sec broken"><h2>Nem működő csatornák a héten</h2>
-    <p class="muted small">Kedvenc vagy nemrég nézett csatornák, amelyeknek az elmúlt héten egyik forrása sem működött. Érdemes megnézni, nincs-e másik listában ugyanez a csatorna.</p>
+  return `<section class="stat-sec broken"><h2>${_t('Nem működő csatornák a héten')}</h2>
+    <p class="muted small">${_t('Kedvenc vagy nemrég nézett csatornák, amelyeknek az elmúlt héten egyik forrása sem működött. Érdemes megnézni, nincs-e másik listában ugyanez a csatorna.')}</p>
     <ul class="top-list">${bad
       .map((ch) => `<li><span class="side-logo" style="--h:${hashHue(ch.name)}">${logoHtml(ch, 'logo-sm')}</span><span class="tl-name">${esc(ch.name)}</span>
-        <a class="btn small" href="#/search?q=${encodeURIComponent(ch.name)}">Másik forrás keresése</a><button class="btn small" data-play="${esc(ch.id)}">Újra próbálom</button></li>`)
+        <a class="btn small" href="#/search?q=${encodeURIComponent(ch.name)}">${_t('Másik forrás keresése')}</a><button class="btn small" data-play="${esc(ch.id)}">${_t('Újra próbálom')}</button></li>`)
       .join('')}</ul></section>`;
 }
 
@@ -148,68 +149,62 @@ export function renderStats(view) {
   const active30 = Object.keys(s.days).filter((k) => new Date(k) > Date.now() - 30 * 86400e3 && s.days[k] > 60).length;
 
   view.innerHTML = `<div class="page stats">
-    <div class="page-head"><h1>Nézési statisztika</h1><span class="muted">${esc(p.name)} profil · ${new Date(s.since).toLocaleDateString('hu-HU')} óta</span></div>
-    ${p.statsOff ? '<p class="note">A statisztika gyűjtése ki van kapcsolva ennél a profilnál.</p>' : ''}
+    <div class="page-head"><h1>${_t('Nézési statisztika')}</h1><span class="muted">${_t('{esc} profil ·', { esc: esc(p.name) })} ${new Date(s.since).toLocaleDateString(LOCALE)} ${_t('óta')}</span></div>
+    ${p.statsOff ? `<p class="note">${_t('A statisztika gyűjtése ki van kapcsolva ennél a profilnál.')}</p>` : ''}
     <div class="stat-cards">
-      <div class="stat-card"><small>Ma</small><b>${fmtH(sumDays(s, 1))}</b></div>
-      <div class="stat-card"><small>Az elmúlt 7 napban</small><b>${fmtH(sumDays(s, 7))}</b></div>
-      <div class="stat-card"><small>Az elmúlt 30 napban</small><b>${fmtH(sumDays(s, 30))}</b><small>${active30} napon néztél tévét</small></div>
-      <div class="stat-card"><small>Összesen</small><b>${fmtH(total)}</b><small>${Math.max(0, Math.round(Number(s.plays) || 0))} indítás</small></div>
-      <div class="stat-card"><small>Napi átlag (30 nap)</small><b>${fmtH(sumDays(s, 30) / 30)}</b></div>
-      <div class="stat-card"><small>Kedvenc időszak</small><b>${total ? `${peak}:00–${(peak + 1) % 24}:00` : '–'}</b></div>
+      <div class="stat-card"><small>${_t('Ma')}</small><b>${fmtH(sumDays(s, 1))}</b></div>
+      <div class="stat-card"><small>${_t('Az elmúlt 7 napban')}</small><b>${fmtH(sumDays(s, 7))}</b></div>
+      <div class="stat-card"><small>${_t('Az elmúlt 30 napban')}</small><b>${fmtH(sumDays(s, 30))}</b><small>${_t('{active30} napon néztél tévét', { active30 })}</small></div>
+      <div class="stat-card"><small>${_t('Összesen')}</small><b>${fmtH(total)}</b><small>${_t('{max} indítás', { max: Math.max(0, Math.round(Number(s.plays) || 0)) })}</small></div>
+      <div class="stat-card"><small>${_t('Napi átlag (30 nap)')}</small><b>${fmtH(sumDays(s, 30) / 30)}</b></div>
+      <div class="stat-card"><small>${_t('Kedvenc időszak')}</small><b>${total ? `${peak}:00–${(peak + 1) % 24}:00` : '–'}</b></div>
     </div>
 
     ${weeklyHtml(s)}
     ${brokenHtml(p)}
 
-    <section class="stat-sec"><h2>Az elmúlt két hét</h2>
+    <section class="stat-sec"><h2>${_t('Az elmúlt két hét')}</h2>
       <div class="bars days">${days14
-        .map(({ d, t }) => `<div class="bar-col" title="${d.toLocaleDateString('hu-HU')}: ${fmtH(t)}"><i style="height:${((t / max14) * 100).toFixed(1)}%"></i><span>${WEEKDAYS[d.getDay()]}<br>${d.getDate()}.</span></div>`)
+        .map(({ d, t }) => `<div class="bar-col" title="${d.toLocaleDateString(LOCALE)}: ${fmtH(t)}"><i style="height:${((t / max14) * 100).toFixed(1)}%"></i><span>${WEEKDAYS[d.getDay()]}<br>${d.getDate()}.</span></div>`)
         .join('')}</div>
     </section>
 
-    <section class="stat-sec"><h2>Mikor nézel tévét?</h2>
+    <section class="stat-sec"><h2>${_t('Mikor nézel tévét?')}</h2>
       <div class="bars hours">${s.hours
         .map((t, h) => `<div class="bar-col" title="${h}:00–${h + 1}:00: ${fmtH(t)}"><i style="height:${((t / maxH) * 100).toFixed(1)}%"></i><span>${h % 3 === 0 ? h : ''}</span></div>`)
         .join('')}</div>
     </section>
 
     <div class="stat-two">
-      <section class="stat-sec"><h2>Legtöbbet nézett csatornák</h2>
-        ${
-          topCh.length
+      <section class="stat-sec"><h2>${_t('Legtöbbet nézett csatornák')}</h2>
+        ${topCh.length
             ? `<ol class="top-list">${topCh
                 .map(({ ch, id, t }) => `<li ${ch ? `data-play="${esc(id)}" tabindex="0"` : ''}><span class="side-logo" style="--h:${hashHue(ch?.name || id)}">${ch ? logoHtml(ch, 'logo-sm') : ''}</span>
                   <span class="tl-name">${esc(ch?.name || id)}</span><span class="tl-time">${fmtH(t)}</span>
                   <span class="tl-bar"><i style="width:${((t / topCh[0].t) * 100).toFixed(1)}%"></i></span></li>`)
                 .join('')}</ol>`
-            : '<p class="muted">Még nincs adat – nézz egy kis tévét!</p>'
-        }
+            : `<p class="muted">${_t('Még nincs adat – nézz egy kis tévét!')}</p>`}
       </section>
-      <section class="stat-sec"><h2>Kategóriák</h2>
-        ${
-          topCat.length
+      <section class="stat-sec"><h2>${_t('Kategóriák')}</h2>
+        ${topCat.length
             ? `<ol class="top-list">${topCat
                 .map(([c, t]) => `<li><span class="tl-name">${esc(categoryName(c))}</span><span class="tl-time">${fmtH(t)}</span>
                   <span class="tl-bar"><i style="width:${((t / catMax) * 100).toFixed(1)}%"></i></span></li>`)
                 .join('')}</ol>`
-            : '<p class="muted">Még nincs adat.</p>'
-        }
-        <h2>VOD (filmek és sorozatok)</h2>
-        ${
-          topVod.length
+            : `<p class="muted">${_t('Még nincs adat.')}</p>`}
+        <h2>${_t('VOD (filmek és sorozatok)')}</h2>
+        ${topVod.length
             ? `<ol class="top-list">${topVod
-                .map((v) => `<li><span class="tl-name">${esc(v.title)} <small class="muted">${v.type === 'series' ? 'sorozat' : 'film'}</small></span><span class="tl-time">${fmtH(v.t)}</span></li>`)
+                .map((v) => `<li><span class="tl-name">${esc(v.title)} <small class="muted">${v.type === 'series' ? _t('sorozat') : _t('film')}</small></span><span class="tl-time">${fmtH(v.t)}</span></li>`)
                 .join('')}</ol>`
-            : '<p class="muted">Még nem néztél filmet vagy sorozatot.</p>'
-        }
+            : `<p class="muted">${_t('Még nem néztél filmet vagy sorozatot.')}</p>`}
       </section>
     </div>
 
     <section class="stat-sec">
-      <label class="setting"><span><b>Statisztika gyűjtése ennél a profilnál</b><small>Az adatok csak ezen az eszközön tárolódnak, sehova nem kerülnek elküldésre.</small></span>
+      <label class="setting"><span>${_t('<b>Statisztika gyűjtése ennél a profilnál</b>')}<small>${_t('Az adatok csak ezen az eszközön tárolódnak, sehova nem kerülnek elküldésre.')}</small></span>
         <input type="checkbox" class="switch" data-stat-on ${p.statsOff ? '' : 'checked'} /></label>
-      <button class="btn small" data-stat-reset>Statisztika törlése</button>
+      <button class="btn small" data-stat-reset>${_t('Statisztika törlése')}</button>
     </section>
   </div>`;
 
@@ -217,10 +212,10 @@ export function renderStats(view) {
     const li = e.target.closest('[data-play]');
     if (li) return player.play(catalog.byId.get(li.dataset.play));
     if (e.target.closest('[data-stat-reset]')) {
-      if (!(await confirmDialog('Törlöd a profil nézési statisztikáját?', { ok: 'Törlés', danger: true }))) return;
+      if (!(await confirmDialog(_t('Törlöd a profil nézési statisztikáját?'), { ok: _t('Törlés'), danger: true }))) return;
       p.stats = null;
       store.save();
-      toast('A statisztika törölve');
+      toast(_t('A statisztika törölve'));
       renderStats(view);
     }
   };

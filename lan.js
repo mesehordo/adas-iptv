@@ -1,4 +1,5 @@
 'use strict';
+const { _t } = require('./i18n-main');
 // Helyi hálózati szolgáltatások az asztali változathoz:
 //  - kis HTTP-kiszolgáló: adástovábbító (a kivetített adásokhoz CORS- és fejléc-gondok nélkül)
 //    és a beállítások átadása másik eszköznek (pl. a tévének) egy rövid kóddal;
@@ -111,7 +112,7 @@ async function ensureServer() {
       return port;
     } catch {}
   }
-  throw new Error('Nem sikerült helyi portot nyitni (47800–47829).');
+  throw new Error(_t('Nem sikerült helyi portot nyitni (47800–47829).'));
 }
 
 async function handle(req, res) {
@@ -993,7 +994,7 @@ class CastSession {
         while (buf.length >= 4) {
           const len = buf.readUInt32BE(0);
           // a Cast-üzenet legfeljebb 64 KB – a nagyobbat jelző (vagy félbehagyott óriás) keret hibás
-          if (len > 65536) return sock.destroy(new Error('hibás üzenet az eszköztől'));
+          if (len > 65536) return sock.destroy(new Error(_t('hibás üzenet az eszköztől')));
           if (buf.length < 4 + len) break;
           const msg = buf.slice(4, 4 + len);
           buf = buf.slice(4 + len);
@@ -1027,7 +1028,7 @@ class CastSession {
         const i = this.waiters.indexOf(w);
         if (i >= 0) {
           this.waiters.splice(i, 1);
-          reject(new Error('Az eszköz nem válaszolt'));
+          reject(new Error(_t('Az eszköz nem válaszolt')));
         }
       }, timeout);
     });
@@ -1036,10 +1037,10 @@ class CastSession {
   onMessage(m) {
     const d = m.data || {};
     if (m.ns === NS.beat && d.type === 'PING') return this.send(NS.beat, m.source, { type: 'PONG' }, m.dest);
-    if (m.ns === NS.conn && d.type === 'CLOSE' && m.source === this.transportId) return this.close('a vevőalkalmazás bezárult');
+    if (m.ns === NS.conn && d.type === 'CLOSE' && m.source === this.transportId) return this.close(_t('a vevőalkalmazás bezárult'));
     if (d.type === 'RECEIVER_STATUS') {
       const app = (d.status?.applications || []).find((a) => a.appId === DEFAULT_RECEIVER);
-      if (this.transportId && !app) this.close('a kivetítés véget ért az eszközön');
+      if (this.transportId && !app) this.close(_t('a kivetítés véget ért az eszközön'));
       if (d.status?.volume) this.volume = d.status.volume.level;
     }
     if (d.type === 'MEDIA_STATUS' && d.status?.[0]) {
@@ -1116,7 +1117,7 @@ class CastSession {
     try {
       this.sock?.destroy();
     } catch {}
-    this.waiters.forEach((w) => w.reject(new Error(reason || 'lezárva')));
+    this.waiters.forEach((w) => w.reject(new Error(reason || _t('lezárva'))));
     this.waiters = [];
     if (active === this) {
       active = null;
@@ -1221,7 +1222,7 @@ function contentTypeOf(url, hint) {
 
 async function castPlay({ deviceId, url, type, live, title, subtitle, image }) {
   const dev = devices.get(deviceId);
-  if (!dev) throw new Error('Az eszköz nem található – keresd újra.');
+  if (!dev) throw new Error(_t('Az eszköz nem található – keresd újra.'));
   if (active && active.dev.id !== deviceId) {
     active.stop();
     active = null;

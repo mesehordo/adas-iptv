@@ -1,4 +1,5 @@
 'use strict';
+const { _t } = require('./i18n-main');
 // Lejátszási híd (asztali változat) az FFmpeg segítségével – a beépített (Chromium) lejátszó
 // hiányosságaira:
 //  - AC3 / E-AC3 / DTS / TrueHD hang → menet közben AAC-re alakítva (a kép érintetlen marad);
@@ -228,7 +229,7 @@ function probe(url) {
           err.trim().split(/\r?\n/).filter(Boolean).pop();
         probeCache.delete(url);
         console.warn('Lejátszási híd – elemzési hiba:', url, why);
-        return resolve({ error: why || 'a fájl nem elemezhető' });
+        return resolve({ error: why || _t('a fájl nem elemezhető') });
       }
       resolve(info);
     });
@@ -256,7 +257,7 @@ function forgetFile(p) {
  * → { id, url } – a felület ezt a címet tölti le (töredékes MP4), a feliratok 'media-subs' eseményként jönnek.
  */
 async function start(plan) {
-  if (!FF) throw new Error('Az FFmpeg nem található');
+  if (!FF) throw new Error(_t('Az FFmpeg nem található'));
   await ensureServer();
   const id = String(++seq);
   sessions.set(id, { plan, proc: null });
@@ -408,7 +409,7 @@ async function cover(url) {
 /** Állapot a Beállításokhoz: megvan-e és elindul-e az FFmpeg. → { ok, version, path, error } */
 let statusP = null;
 function status() {
-  if (!FF) return Promise.resolve({ ok: false, error: 'Az FFmpeg nem található a programmal együtt (resources/ffmpeg).' });
+  if (!FF) return Promise.resolve({ ok: false, error: _t('Az FFmpeg nem található a programmal együtt (resources/ffmpeg).') });
   statusP ||= new Promise((resolve) => {
     let out = '';
     const proc = spawn(FF, ['-hide_banner', '-version'], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
@@ -423,7 +424,7 @@ function status() {
       clearTimeout(timer);
       const v = (/ffmpeg version (\S+)/.exec(out) || [])[1];
       if (!v) statusP = null;
-      resolve(v ? { ok: true, version: v, path: FF } : { ok: false, path: FF, error: `kilépési kód ${code}` });
+      resolve(v ? { ok: true, version: v, path: FF } : { ok: false, path: FF, error: _t('kilépési kód {code}', { code }) });
     });
   });
   return statusP;
@@ -450,7 +451,7 @@ let recSeq = 0;
  * until: a leállás ideje (ütemezett felvétel), 0 = kézi leállításig.
  */
 async function recStart({ url, dir, name, until }) {
-  if (!FF) throw new Error('Az FFmpeg nem érhető el.');
+  if (!FF) throw new Error(_t('Az FFmpeg nem érhető el.'));
   await ensureServer();
   fs.mkdirSync(dir, { recursive: true });
   const safe = String(name || 'felvetel').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) || 'felvetel';
@@ -496,7 +497,7 @@ async function recStart({ url, dir, name, until }) {
         rec.retry = setTimeout(run, 3000);
         return;
       }
-      finish(code && left > 5000 ? rec.err.trim().split('\n').pop() || `kilépési kód: ${code}` : '');
+      finish(code && left > 5000 ? rec.err.trim().split('\n').pop() || _t('kilépési kód: {code}', { code }) : '');
     });
   };
   if (until) rec.timer = setTimeout(() => recStop(id), Math.max(1000, until - Date.now()));
@@ -557,7 +558,7 @@ const isRecording = (p) => {
   return [...recordings.values()].some((r) => path.resolve(r.file) === abs);
 };
 function assertNotRecording(p) {
-  if (isRecording(p)) throw new Error('A felvétel még fut – a vágás a leállítása után lehetséges.');
+  if (isRecording(p)) throw new Error(_t('A felvétel még fut – a vágás a leállítása után lehetséges.'));
 }
 
 /**
@@ -565,10 +566,10 @@ function assertNotRecording(p) {
  * (A kezdet a legközelebbi előző kulcskockára esik – a kép így hibátlan marad.)
  */
 async function recTrim(p, start, end) {
-  if (!FF) throw new Error('Az FFmpeg nem érhető el.');
+  if (!FF) throw new Error(_t('Az FFmpeg nem érhető el.'));
   start = Math.max(0, +start || 0);
   end = +end || 0;
-  if (!(end > start + 1)) throw new Error('A vége legyen a kezdet után.');
+  if (!(end > start + 1)) throw new Error(_t('A vége legyen a kezdet után.'));
   assertNotRecording(p);
   const orig = originalOf(p);
   await fs.promises.mkdir(path.dirname(orig), { recursive: true });
@@ -580,7 +581,7 @@ async function recTrim(p, start, end) {
     let err = '';
     proc.stderr.on('data', (b) => err.length < 2000 && (err += b));
     proc.on('error', reject);
-    proc.on('close', (code) => (code ? reject(new Error(err.trim().split('\n').pop() || `kilépési kód: ${code}`)) : resolve()));
+    proc.on('close', (code) => (code ? reject(new Error(err.trim().split('\n').pop() || _t('kilépési kód: {code}', { code }))) : resolve()));
   }).catch(async (e) => {
     await fs.promises.rm(tmp, { force: true });
     // ha még nem volt vágott változat, az eredeti visszakerül a helyére (ha ez sem sikerül, azt jelezzük)

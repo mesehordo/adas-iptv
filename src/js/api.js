@@ -53,6 +53,7 @@ const idbClear = () => idb('readwrite', (s) => s.clear()).catch(() => {});
 import { bytesToText } from './unzip.js';
 
 // Letöltött dokumentum (lista, műsorújság) felső mérete – kicsomagolva is (egy kicsi, de erősen tömörített
+import { _t } from './i18n.js';
 // válasz se foglalhasson sokszoros memóriát).
 const MAX_DOC = 256 * 1024 * 1024;
 
@@ -67,7 +68,7 @@ async function readCapped(stream, max = MAX_DOC) {
     size += value.length;
     if (size > max) {
       reader.cancel().catch(() => {});
-      throw new Error('A letöltött fájl túl nagy');
+      throw new Error(_t('A letöltött fájl túl nagy'));
     }
     parts.push(value);
   }
@@ -80,7 +81,7 @@ async function readCapped(stream, max = MAX_DOC) {
 async function gunzipIfNeeded(buf) {
   const b = new Uint8Array(buf);
   if (b[0] === 0x1f && b[1] === 0x8b) {
-    if (!('DecompressionStream' in window)) throw new Error('A tömörített fájl itt nem bontható ki');
+    if (!('DecompressionStream' in window)) throw new Error(_t('A tömörített fájl itt nem bontható ki'));
     const stream = new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'));
     return bytesToText(await readCapped(stream));
   }
@@ -224,7 +225,7 @@ const webApi = {
     } catch {}
   },
   async appInfo() {
-    return { version: '1.25.0', dataDir: 'böngésző tárhely', platform: 'web' };
+    return { version: '1.25.0', dataDir: _t('böngésző tárhely'), platform: 'web' };
   },
   exit() {},
 };
@@ -235,7 +236,7 @@ const webApi = {
 const bridges = new Set(); // a hívás végéig hivatkozni kell rá, különben a szemétgyűjtő eldobja
 function luna(uri, params = {}) {
   return new Promise((resolve, reject) => {
-    if (typeof window.PalmServiceBridge !== 'function') return reject(new Error('Nem webOS környezet'));
+    if (typeof window.PalmServiceBridge !== 'function') return reject(new Error(_t('Nem webOS környezet')));
     const bridge = new window.PalmServiceBridge();
     bridges.add(bridge);
     bridge.onservicecallback = (msg) => {
@@ -244,9 +245,9 @@ function luna(uri, params = {}) {
       try {
         r = JSON.parse(msg);
       } catch {
-        return reject(new Error('Érvénytelen válasz'));
+        return reject(new Error(_t('Érvénytelen válasz')));
       }
-      if (r.returnValue === false) reject(new Error(r.errorText || 'Szolgáltatáshiba'));
+      if (r.returnValue === false) reject(new Error(r.errorText || _t('Szolgáltatáshiba')));
       else resolve(r);
     };
     bridge.call(uri, JSON.stringify(params));
@@ -329,7 +330,7 @@ const tvApi = {
   },
   notifyPermission() {},
   async appInfo() {
-    return { version: '1.25.0', dataDir: 'TV tárhely', platform: 'LG webOS' };
+    return { version: '1.25.0', dataDir: _t('TV tárhely'), platform: 'LG webOS' };
   },
   exit() {
     try {
@@ -353,7 +354,7 @@ window.__adasNative = (id, ok, payload) => {
   const p = androidWait.get(id);
   if (!p) return;
   androidWait.delete(id);
-  ok ? p.resolve(payload) : p.reject(new Error(payload || 'Hiba'));
+  ok ? p.resolve(payload) : p.reject(new Error(payload || _t('Hiba')));
 };
 function native(method, args = {}) {
   return new Promise((resolve, reject) => {
@@ -418,6 +419,12 @@ const androidApi = {
       window.AdasAndroid.setNowPlaying(String(title || ''));
     } catch {}
   },
+  // a felület nyelve a keret értesítéseihez (a bezárt alkalmazás emlékeztetőjéhez is)
+  setLang(l) {
+    try {
+      window.AdasAndroid.setLang?.(String(l || ''));
+    } catch {}
+  },
   // Helyi hálózat: beállítások átadása kóddal, távirányító (a keret LanServer-e)
   shareStart: (data, id) => native('shareStart', { data: JSON.stringify(data), id: id || '' }),
   shareStop: () => native('shareStop'),
@@ -455,7 +462,7 @@ const androidApi = {
   // Külső videólejátszó (VLC, MX Player, Kodi…) – a kiválasztott résszel
   async openInPlayer(items) {
     const x = items?.[0];
-    if (!x || !window.AdasAndroid.openVideo) return 'Ehhez frissítsd az alkalmazást.';
+    if (!x || !window.AdasAndroid.openVideo) return _t('Ehhez frissítsd az alkalmazást.');
     window.AdasAndroid.openVideo(x.url, x.title || '');
     return '';
   },
@@ -470,7 +477,7 @@ const androidApi = {
     window.AdasAndroid.setPlaying(!!on);
   },
   async appInfo() {
-    return { version: window.AdasAndroid.version(), dataDir: 'az alkalmazás saját tárhelye', platform: ANDROID_TV ? 'Android TV' : 'Android' };
+    return { version: window.AdasAndroid.version(), dataDir: _t('az alkalmazás saját tárhelye'), platform: ANDROID_TV ? 'Android TV' : 'Android' };
   },
   exit() {
     window.AdasAndroid.exit();

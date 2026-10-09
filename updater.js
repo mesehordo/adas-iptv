@@ -1,4 +1,5 @@
 'use strict';
+const { _t } = require('./i18n-main');
 // Frissítés-ellenőrzés az asztali változathoz.
 // Forrás: GitHub-tároló („tulajdonos/tároló” – a legutóbbi kiadás) vagy egy JSON-cím:
 //   { "version": "1.9.0", "notes": "…", "url": "https://…/Adás Setup 1.9.0.exe",
@@ -68,9 +69,9 @@ function pickAsset(names) {
 const isHttps = (u) => /^https:\/\//i.test(String(u || ''));
 
 async function getJson(url) {
-  if (!isHttps(url)) throw new Error('A frissítési forrás csak https:// cím lehet.');
+  if (!isHttps(url)) throw new Error(_t('A frissítési forrás csak https:// cím lehet.'));
   const res = await net.fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' } });
-  if (res.status === 404) throw new Error('A megadott forrásban nincs kiadás.');
+  if (res.status === 404) throw new Error(_t('A megadott forrásban nincs kiadás.'));
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -97,7 +98,7 @@ const verified = new Set();
 async function check(source) {
   offered = null; // egy sikertelen ellenőrzés után a korábbi ajánlat se maradjon letölthető
   source = String(source || '').trim();
-  if (!source) throw new Error('Nincs beállítva frissítési forrás.');
+  if (!source) throw new Error(_t('Nincs beállítva frissítési forrás.'));
   const current = app.getVersion();
   let latest;
   let notes = '';
@@ -127,11 +128,11 @@ async function check(source) {
     const sha256 = String((typeof j.sha256 === 'object' ? j.sha256?.[key] : j.sha256) || '').toLowerCase();
     if (typeof url === 'string' && url) asset = { name: decodeURIComponent(url.split('/').pop().split('?')[0]), url, size: 0, sha256: /^[0-9a-f]{64}$/.test(sha256) ? sha256 : '' };
   } else {
-    throw new Error('A forrás „tulajdonos/tároló” (GitHub) vagy egy https:// cím lehet.');
+    throw new Error(_t('A forrás „tulajdonos/tároló” (GitHub) vagy egy https:// cím lehet.'));
   }
   if (asset && !isHttps(asset.url)) asset = null; // csak titkosított kapcsolaton letölthető fájl
   offered = asset;
-  if (!latest) throw new Error('A forrás nem adott meg verziószámot.');
+  if (!latest) throw new Error(_t('A forrás nem adott meg verziószámot.'));
   return { current, latest: String(latest).replace(/^v/i, ''), newer: cmpVersion(latest, current) > 0, notes, page, asset, portable: isPortable() };
 }
 
@@ -142,10 +143,10 @@ let downloading = null;
  * számolásával; eltérés (vagy hiányzó összeg) esetén a fájl törlődik. onProgress(0..1).
  */
 async function download(req, onProgress) {
-  if (downloading) throw new Error('Már folyamatban van egy letöltés.');
+  if (downloading) throw new Error(_t('Már folyamatban van egy letöltés.'));
   const asset = offered && req && req.url === offered.url ? offered : null;
-  if (!asset) throw new Error('Előbb keress frissítést.');
-  if (!asset.sha256) throw new Error('Ehhez a kiadáshoz nincs ellenőrző összeg (SHA256SUMS.txt), ezért nem telepíthető automatikusan – töltsd le a kiadás oldaláról.');
+  if (!asset) throw new Error(_t('Előbb keress frissítést.'));
+  if (!asset.sha256) throw new Error(_t('Ehhez a kiadáshoz nincs ellenőrző összeg (SHA256SUMS.txt), ezért nem telepíthető automatikusan – töltsd le a kiadás oldaláról.'));
   const dir = fs.mkdtempSync(path.join(app.getPath('temp'), 'adas-update-'));
   const file = path.join(dir, asset.name.replace(/[\\/:*?"<>|]/g, '_'));
   downloading = true;
@@ -176,7 +177,7 @@ async function download(req, onProgress) {
     }
     if (writeErr) throw writeErr;
     await new Promise((r, j) => out.end((e) => (e ? j(e) : r())));
-    if (hash.digest('hex') !== asset.sha256) throw new Error('A letöltött fájl ellenőrző összege nem egyezik a kiadáséval – a frissítés megszakítva.');
+    if (hash.digest('hex') !== asset.sha256) throw new Error(_t('A letöltött fájl ellenőrző összege nem egyezik a kiadáséval – a frissítés megszakítva.'));
     verified.add(file);
     onProgress(1);
     return file;
@@ -193,7 +194,7 @@ async function download(req, onProgress) {
 /** A letöltött telepítő indítása, majd kilépés (Windows); máshol megnyitja a fájlt. */
 async function install(file) {
   // csak az itt letöltött és ellenőrzött fájl (a felülettől kapott tetszőleges útvonal nem)
-  if (!verified.has(file)) throw new Error('Ismeretlen frissítési fájl.');
+  if (!verified.has(file)) throw new Error(_t('Ismeretlen frissítési fájl.'));
   // hordozható változat: nincs telepítés, csak a letöltött fájl mappája nyílik meg (bármi is a neve)
   if (isPortable()) {
     shell.showItemInFolder(file);

@@ -11,6 +11,7 @@ import { openInfo, openModal } from './components.js';
 import { toggleStreamInfo } from './streaminfo.js';
 import { qrSvg } from './qr.js';
 
+import { _t, lang as uiLang } from './i18n.js';
 export const canRemote = !!api.rcStart;
 const video = $('#video');
 let info = null; // { port, addresses }
@@ -29,8 +30,8 @@ const newKey = () => [...crypto.getRandomValues(new Uint8Array(16))].map((b) => 
 
 /** A telefonon megnyíló vezérlőlap (önálló HTML, külső fájlok nélkül; régi telefonos böngészőkhöz is). */
 function pageHtml() {
-  return `<!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#111"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><title>Adás – távirányító</title><style>
+  return `<!doctype html><html lang="${uiLang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#111"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><title>${_t('Adás – távirányító')}</title><style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}[hidden]{display:none!important}
 :root{--a:#e50914;--bg:#111;--c:#1d1d1d;--c2:#2a2a2a;--t:#eee;--m:#9a9a9a}
 html,body{margin:0;background:var(--bg);color:var(--t);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
@@ -59,44 +60,44 @@ input.q{width:100%;font:inherit;font-size:17px;padding:12px 14px;border-radius:1
 .err{color:#ff6b6b;min-height:1.2em}.muted{color:var(--m);font-size:13px}.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#333;color:#fff;padding:8px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}.toast.show{opacity:1}
 .off{color:#ff8a80}
 </style></head><body>
-<div id="pin" class="pin" hidden><h1 style="color:var(--a);margin:0">ADÁS</h1><p>Írd be a tévén / gépen látható 4 jegyű PIN-t<br><small class="muted">(vagy olvasd be a QR-kódot: Beállítások → Távirányító és billentyűk → Távirányító telefonról)</small></p>
-<input id="pinIn" inputmode="numeric" maxlength="4" autocomplete="off"><button class="ok" id="pinOk">Csatlakozás</button><div class="err" id="pinErr"></div></div>
+<div id="pin" class="pin" hidden><h1 style="color:var(--a);margin:0">${_t('ADÁS')}</h1><p>${_t('Írd be a tévén / gépen látható 4 jegyű PIN-t<br>')}<small class="muted">${_t('(vagy olvasd be a QR-kódot: Beállítások → Távirányító és billentyűk → Távirányító telefonról)')}</small></p>
+<input id="pinIn" inputmode="numeric" maxlength="4" autocomplete="off"><button class="ok" id="pinOk">${_t('Csatlakozás')}</button><div class="err" id="pinErr"></div></div>
 <div id="ui" hidden>
-<div class="now" id="now"><div class="tx"><small>Csatlakozás…</small></div></div>
+<div class="now" id="now"><div class="tx"><small>${_t('Csatlakozás…')}</small></div></div>
 <div class="pane sel" id="p-ctl">
- <div class="seg" id="padMode"><button data-pm="mouse">🖱 Egér</button><button data-pm="arrows">✥ Nyilak</button></div>
+ <div class="seg" id="padMode"><button data-pm="mouse">${_t('🖱 Egér')}</button><button data-pm="arrows">${_t('✥ Nyilak')}</button></div>
  <div class="pad" id="pad"><div class="hint" id="padHint"></div><div class="dot" id="dot"></div></div>
- <div class="row r3"><button data-c="key" data-a="Escape">↩ Vissza</button><button data-c="nav" data-a="home">⌂ Főoldal</button><button data-c="menu" data-a="info">ⓘ Adatlap</button></div>
- <div class="row r4"><button data-c="nav" data-a="tv" class="sm">📺 TV</button><button data-c="nav" data-a="guide" class="sm">🗓 Műsorújság</button><button data-c="nav" data-a="browse" class="sm">⌕ Böngészés</button><button data-c="nav" data-a="vod" class="sm">🎬 VOD</button></div>
+ <div class="row r3"><button data-c="key" data-a="Escape">${_t('↩ Vissza')}</button><button data-c="nav" data-a="home">${_t('⌂ Főoldal')}</button><button data-c="menu" data-a="info">${_t('ⓘ Adatlap')}</button></div>
+ <div class="row r4"><button data-c="nav" data-a="tv" class="sm">${_t('📺 TV')}</button><button data-c="nav" data-a="guide" class="sm">${_t('🗓 Műsorújság')}</button><button data-c="nav" data-a="browse" class="sm">${_t('⌕ Böngészés')}</button><button data-c="nav" data-a="vod" class="sm">${_t('🎬 VOD')}</button></div>
  <div class="row r5"><button data-c="seek" data-a="-30" class="sm">−30″</button><button data-c="seek" data-a="-10" class="sm">−10″</button><button data-c="toggle" class="ok">⏯</button><button data-c="seek" data-a="10" class="sm">+10″</button><button data-c="seek" data-a="30" class="sm">+30″</button></div>
- <div class="row r4"><button data-c="chup">CH ▲</button><button data-c="chdown">CH ▼</button><button data-c="recall" class="sm">↺ Előző</button><button data-c="mute" id="muteBtn">🔇</button></div>
- <div class="vol"><span>🔈</span><input type="range" id="vol" min="0" max="1" step="0.02" aria-label="Hangerő"><span>🔊</span></div>
- <div class="row r4"><button data-c="menu" data-a="subs" class="sm">CC Felirat</button><button data-c="menu" data-a="settings" class="sm">⚙ Minőség</button><button data-c="menu" data-a="list" class="sm">☰ Lista</button><button data-c="menu" data-a="full" class="sm">⛶ Teljes</button></div>
- <h2>Nyilak</h2>
+ <div class="row r4"><button data-c="chup">CH ▲</button><button data-c="chdown">CH ▼</button><button data-c="recall" class="sm">${_t('↺ Előző')}</button><button data-c="mute" id="muteBtn">🔇</button></div>
+ <div class="vol"><span>🔈</span><input type="range" id="vol" min="0" max="1" step="0.02" aria-label="${_t('Hangerő')}"><span>🔊</span></div>
+ <div class="row r4"><button data-c="menu" data-a="subs" class="sm">${_t('CC Felirat')}</button><button data-c="menu" data-a="settings" class="sm">${_t('⚙ Minőség')}</button><button data-c="menu" data-a="list" class="sm">${_t('☰ Lista')}</button><button data-c="menu" data-a="full" class="sm">${_t('⛶ Teljes')}</button></div>
+ <h2>${_t('Nyilak')}</h2>
  <div class="dpad"><span class="e"></span><button data-c="key" data-a="ArrowUp">▲</button><span class="e"></span><button data-c="key" data-a="ArrowLeft">◀</button><button class="ok" data-c="key" data-a="Enter">OK</button><button data-c="key" data-a="ArrowRight">▶</button><span class="e"></span><button data-c="key" data-a="ArrowDown">▼</button><span class="e"></span></div>
- <h2>Csatornaszám</h2>
+ <h2>${_t('Csatornaszám')}</h2>
  <div class="row r5">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((n) => `<button data-c="num" data-a="${n}" class="sm">${n}</button>`).join('')}</div>
 </div>
 <div class="pane" id="p-ch">
- <input class="q" id="q" type="search" placeholder="Csatorna keresése…" autocomplete="off">
+ <input class="q" id="q" type="search" placeholder="${_t('Csatorna keresése…')}" autocomplete="off">
  <div class="list" id="results"></div>
- <h2>Kedvencek</h2><div class="list" id="favs"></div>
- <h2>Legutóbb nézett</h2><div class="list" id="recent"></div>
+ <h2>${_t('Kedvencek')}</h2><div class="list" id="favs"></div>
+ <h2>${_t('Legutóbb nézett')}</h2><div class="list" id="recent"></div>
 </div>
 <div class="pane" id="p-go">
- <h2>Ugrás</h2>
- <div class="row r3"><button data-c="nav" data-a="home" class="sm">⌂ Főoldal</button><button data-c="nav" data-a="tv" class="sm">📺 TV</button><button data-c="nav" data-a="guide" class="sm">☰ Műsorújság</button>
- <button data-c="nav" data-a="favorites" class="sm">★ Kedvencek</button><button data-c="nav" data-a="vod" class="sm">🎬 VOD</button><button data-c="nav" data-a="recordings" class="sm">● Felvételek</button>
- <button data-c="nav" data-a="browse" class="sm">⌕ Böngészés</button><button data-c="nav" data-a="help" class="sm">? Súgó</button><button data-c="menu" data-a="close" class="sm">✕ Lejátszó bezárása</button></div>
- <h2>Szöveg küldése</h2>
- <input class="q" id="txt" type="text" placeholder="Keresés az Adásban / gépelés a kijelölt mezőbe" autocomplete="off">
- <div class="row r3"><button id="sendTxt" class="ok sm">Küldés</button><button id="searchTxt" class="sm">⌕ Keresés</button><button data-c="key" data-a="Backspace" class="sm">⌫ Törlés</button></div>
- <h2>Lejátszó</h2>
- <div class="row r3"><button data-c="menu" data-a="stats" class="sm">📊 Adás adatai</button><button data-c="menu" data-a="multi" class="sm">▦ Több adás</button><button data-c="menu" data-a="sleep" class="sm">☾ Időzítő</button></div>
- <p class="muted">Tipp: a böngésző menüjében „Hozzáadás a kezdőképernyőhöz” – így alkalmazásként indul.</p>
+ <h2>${_t('Ugrás')}</h2>
+ <div class="row r3"><button data-c="nav" data-a="home" class="sm">${_t('⌂ Főoldal')}</button><button data-c="nav" data-a="tv" class="sm">${_t('📺 TV')}</button><button data-c="nav" data-a="guide" class="sm">${_t('☰ Műsorújság')}</button>
+ <button data-c="nav" data-a="favorites" class="sm">${_t('★ Kedvencek')}</button><button data-c="nav" data-a="vod" class="sm">${_t('🎬 VOD')}</button><button data-c="nav" data-a="recordings" class="sm">${_t('● Felvételek')}</button>
+ <button data-c="nav" data-a="browse" class="sm">${_t('⌕ Böngészés')}</button><button data-c="nav" data-a="help" class="sm">${_t('? Súgó')}</button><button data-c="menu" data-a="close" class="sm">${_t('✕ Lejátszó bezárása')}</button></div>
+ <h2>${_t('Szöveg küldése')}</h2>
+ <input class="q" id="txt" type="text" placeholder="${_t('Keresés az Adásban / gépelés a kijelölt mezőbe')}" autocomplete="off">
+ <div class="row r3"><button id="sendTxt" class="ok sm">${_t('Küldés')}</button><button id="searchTxt" class="sm">${_t('⌕ Keresés')}</button><button data-c="key" data-a="Backspace" class="sm">${_t('⌫ Törlés')}</button></div>
+ <h2>${_t('Lejátszó')}</h2>
+ <div class="row r3"><button data-c="menu" data-a="stats" class="sm">${_t('📊 Adás adatai')}</button><button data-c="menu" data-a="multi" class="sm">${_t('▦ Több adás')}</button><button data-c="menu" data-a="sleep" class="sm">${_t('☾ Időzítő')}</button></div>
+ <p class="muted">${_t('Tipp: a böngésző menüjében „Hozzáadás a kezdőképernyőhöz” – így alkalmazásként indul.')}</p>
 </div>
 </div>
-<nav class="tabs" id="tabs" hidden><button data-t="ctl" class="sel"><span>🎮</span>Vezérlő</button><button data-t="ch"><span>📺</span>Csatornák</button><button data-t="go"><span>☰</span>Továbbiak</button></nav>
+<nav class="tabs" id="tabs" hidden><button data-t="ctl" class="sel"><span>🎮</span>${_t('Vezérlő')}</button><button data-t="ch"><span>📺</span>${_t('Csatornák')}</button><button data-t="go"><span>☰</span>${_t('Továbbiak')}</button></nav>
 <div class="toast" id="toast"></div>
 <script>
 // Hitelesítés: a QR-kódból kapott kulcs (vagy a beírt PIN) soha nem megy át a hálózaton – minden kérést
@@ -128,27 +129,27 @@ function esc(s){return String(s||'').replace(/[&<>"]/g,function(c){return{'&':'&
 function toast(t){var e=$('toast');e.textContent=t;e.className='toast show';clearTimeout(e._t);e._t=setTimeout(function(){e.className='toast'},1400)}
 function chBtns(list,empty){return (list||[]).map(function(f){return '<button data-c="play" data-a="'+esc(f.id)+'">'+(f.logo?'<img src="'+esc(f.logo)+'" alt="" onerror="this.remove()">':'')+'<span>'+esc(f.name)+(f.sub?'<small>'+esc(f.sub)+'</small>':'')+'</span></button>'}).join('')||'<small class="muted">'+empty+'</small>'}
 function render(s){last=s;$('pin').hidden=true;$('ui').hidden=false;$('tabs').hidden=false;var n=s.now;
-$('now').innerHTML=n?((n.logo?'<img src="'+esc(n.logo)+'" alt="" onerror="this.remove()">':'')+'<div class="tx"><b>'+esc(n.name)+'</b><small>'+esc(n.title||'')+'</small>'+(n.next?'<small>Utána: '+esc(n.next)+'</small>':'')+(n.progress!=null?'<div class="bar"><i style="width:'+Math.round(n.progress*100)+'%"></i></div>':'')+'</div>'):'<div class="tx"><b>'+esc(s.profile||'Adás')+'</b><small>Most nem megy semmi – válassz csatornát a Csatornák fülön, vagy nyomd meg a CH gombot.</small></div>';
+$('now').innerHTML=n?((n.logo?'<img src="'+esc(n.logo)+'" alt="" onerror="this.remove()">':'')+'<div class="tx"><b>'+esc(n.name)+'</b><small>'+esc(n.title||'')+'</small>'+(n.next?'<small>'+${JSON.stringify(_t('Utána:'))}+' '+esc(n.next)+'</small>':'')+(n.progress!=null?'<div class="bar"><i style="width:'+Math.round(n.progress*100)+'%"></i></div>':'')+'</div>'):'<div class="tx"><b>'+esc(s.profile||'Adás')+'</b><small>'+${JSON.stringify(_t('Most nem megy semmi – válassz csatornát a Csatornák fülön, vagy nyomd meg a CH gombot.'))}+'</small></div>';
 if(document.activeElement!==$('vol'))$('vol').value=s.volume==null?1:s.volume;$('muteBtn').className=s.muted?'on':'';
-$('favs').innerHTML=chBtns(s.favs,'Nincs kedvenc csatorna.');$('recent').innerHTML=chBtns(s.recent,'Még nincs.');if(s.results)$('results').innerHTML=chBtns(s.results,'Nincs találat.')}
-function state(){if(!pin&&!key)return ask();api('state').then(render).catch(function(e){if(e.message==='wait')return ask('Túl sok hibás próbálkozás – várj néhány percet.');if(e.message==='pin'){try{localStorage.removeItem('adasPin');localStorage.removeItem('adasKey')}catch(x){}pin='';key='';ask('Hibás PIN, vagy a tévén / gépen új PIN készült. Olvasd be újra a QR-kódot, vagy írd be a PIN-t.')}})}
+$('favs').innerHTML=chBtns(s.favs,${JSON.stringify(_t('Nincs kedvenc csatorna.'))});$('recent').innerHTML=chBtns(s.recent,${JSON.stringify(_t('Még nincs.'))});if(s.results)$('results').innerHTML=chBtns(s.results,${JSON.stringify(_t('Nincs találat.'))})}
+function state(){if(!pin&&!key)return ask();api('state').then(render).catch(function(e){if(e.message==='wait')return ask(${JSON.stringify(_t('Túl sok hibás próbálkozás – várj néhány percet.'))});if(e.message==='pin'){try{localStorage.removeItem('adasPin');localStorage.removeItem('adasKey')}catch(x){}pin='';key='';ask(${JSON.stringify(_t('Hibás PIN, vagy a tévén / gépen új PIN készült. Olvasd be újra a QR-kódot, vagy írd be a PIN-t.'))})}})}
 // A parancsok sorban mennek ki (egymás után, nem párhuzamosan) – így gyors mozdulatnál sem keverednek össze
 var q0=Promise.resolve(),stT=0;
-function send(c,a){q0=q0.then(function(){return api('cmd?c='+encodeURIComponent(c)+'&a='+encodeURIComponent(a==null?'':a))}).then(function(){clearTimeout(stT);stT=setTimeout(state,350)}).catch(function(){toast('Nincs kapcsolat')});return q0}
+function send(c,a){q0=q0.then(function(){return api('cmd?c='+encodeURIComponent(c)+'&a='+encodeURIComponent(a==null?'':a))}).then(function(){clearTimeout(stT);stT=setTimeout(state,350)}).catch(function(){toast(${JSON.stringify(_t('Nincs kapcsolat'))})});return q0}
 function cmd(c,a){if(navigator.vibrate)navigator.vibrate(12);return send(c,a)}
 document.addEventListener('click',function(e){var t=e.target.closest('[data-t]');if(t){[].forEach.call(document.querySelectorAll('.tabs button'),function(b){b.className=b===t?'sel':''});[].forEach.call(document.querySelectorAll('.pane'),function(p){p.className='pane'+(p.id==='p-'+t.dataset.t?' sel':'')});return}
 var b=e.target.closest('button[data-c]');if(!b)return;cmd(b.dataset.c,b.dataset.a)});
 $('vol').addEventListener('input',function(){clearTimeout(this._t);var v=this.value;this._t=setTimeout(function(){cmd('vol',v)},120)});
 var qt;$('q').addEventListener('input',function(){clearTimeout(qt);var v=this.value.trim();qt=setTimeout(function(){if(v)cmd('find',v);else{$('results').innerHTML=''}},300)});
-$('sendTxt').onclick=function(){var v=$('txt').value;if(v){cmd('text',v);$('txt').value='';toast('Elküldve')}};
-$('searchTxt').onclick=function(){var v=$('txt').value.trim();if(v){cmd('search',v);toast('Keresés: '+v)}};
+$('sendTxt').onclick=function(){var v=$('txt').value;if(v){cmd('text',v);$('txt').value='';toast(${JSON.stringify(_t('Elküldve'))})}};
+$('searchTxt').onclick=function(){var v=$('txt').value.trim();if(v){cmd('search',v);toast(${JSON.stringify(_t('Keresés:'))}+' '+v)}};
 // Érintőpad – két mód:
 //  Egér: húzás = kurzor mozgatása a képernyőn, koppintás = kattintás, két ujjal húzás = görgetés
 //  Nyilak: húzás = nyíl (minden ~40 px után egy lépés), koppintás = OK
 //  Mindkettőben: hosszú nyomás = Vissza
 (function(){var pad=$('pad'),dot=$('dot'),sx=0,sy=0,t0=0,moved=false,lp=null,two=false,STEP=40;
 var mode='mouse';try{mode=localStorage.getItem('adasPad')||'mouse'}catch(e){}
-var HINT={mouse:'Húzd az ujjad: <b>kurzor</b> · Koppints: <b>kattintás</b><br>Két ujjal húzva: <b>görgetés</b> · Hosszan nyomva: <b>Vissza</b>',arrows:'Húzd az ujjad: <b>mozgás</b> · Koppints: <b>OK</b><br>Hosszan nyomva: <b>Vissza</b>'};
+var HINT={mouse:${JSON.stringify(_t('Húzd az ujjad: <b>kurzor</b> · Koppints: <b>kattintás</b><br>Két ujjal húzva: <b>görgetés</b> · Hosszan nyomva: <b>Vissza</b>'))},arrows:${JSON.stringify(_t('Húzd az ujjad: <b>mozgás</b> · Koppints: <b>OK</b><br>Hosszan nyomva: <b>Vissza</b>'))}};
 function setMode(m){mode=m;try{localStorage.setItem('adasPad',m)}catch(e){};$('padHint').innerHTML=HINT[m];[].forEach.call(document.querySelectorAll('[data-pm]'),function(b){b.className=b.dataset.pm===m?'sel':''})}
 setMode(mode);$('padMode').addEventListener('click',function(e){var b=e.target.closest('[data-pm]');if(b){setMode(b.dataset.pm);if(mode==='mouse')send('mouse','0,0')}});
 // a mozgás összegyűjtve, egyszerre legfeljebb egy kérés úton (a sorrend és a sebesség így egyenletes)
@@ -156,7 +157,7 @@ var acc=[0,0],sacc=[0,0],inflight=false;
 function flush(){if(inflight)return;if(acc[0]||acc[1]){var a=acc;acc=[0,0];inflight=true;send('mouse',Math.round(a[0])+','+Math.round(a[1])).then(function(){inflight=false;flush()});return}
 if(sacc[0]||sacc[1]){var s=sacc;sacc=[0,0];inflight=true;send('scroll',Math.round(s[0])+','+Math.round(s[1])).then(function(){inflight=false;flush()})}}
 function pos(e){var r=pad.getBoundingClientRect(),p=e.touches?e.touches[0]:e;return[p.clientX-r.left,p.clientY-r.top]}
-function start(e){e.preventDefault();two=!!(e.touches&&e.touches.length>1);var p=pos(e);sx=p[0];sy=p[1];t0=Date.now();moved=false;dot.style.display='block';dot.style.left=sx+'px';dot.style.top=sy+'px';clearTimeout(lp);lp=setTimeout(function(){if(!moved){cmd('key','Escape');toast('Vissza');moved=true}},650)}
+function start(e){e.preventDefault();two=!!(e.touches&&e.touches.length>1);var p=pos(e);sx=p[0];sy=p[1];t0=Date.now();moved=false;dot.style.display='block';dot.style.left=sx+'px';dot.style.top=sy+'px';clearTimeout(lp);lp=setTimeout(function(){if(!moved){cmd('key','Escape');toast(${JSON.stringify(_t('Vissza'))});moved=true}},650)}
 function move(e){if(!t0)return;e.preventDefault();if(e.touches&&e.touches.length>1)two=true;var p=pos(e),dx=p[0]-sx,dy=p[1]-sy;dot.style.left=p[0]+'px';dot.style.top=p[1]+'px';
 if(mode==='mouse'){if(Math.abs(dx)+Math.abs(dy)>2){moved=true;clearTimeout(lp)}
 // gyorsítás: lassú mozdulat = pontos, gyors = nagy ugrás
@@ -433,7 +434,7 @@ export async function openRemoteDialog() {
   const s = store.settings;
   const box = document.createElement('div');
   box.className = 'rc-dialog';
-  box.innerHTML = '<p class="muted">Indítás…</p>';
+  box.innerHTML = `<p class="muted">${_t('Indítás…')}</p>`;
   openModal(box, { cls: 'rc-modal' });
   if (!s.remoteOn || !info) {
     s.remoteOn = true;
@@ -443,7 +444,7 @@ export async function openRemoteDialog() {
     } catch (err) {
       s.remoteOn = false;
       store.save();
-      box.innerHTML = `<p class="warn">A távirányító nem indult el: ${esc(err.message || err)}</p>`;
+      box.innerHTML = `<p class="warn">${_t('A távirányító nem indult el: {esc}', { esc: esc(err.message || err) })}</p>`;
       return;
     }
   }
@@ -458,14 +459,13 @@ export function renderRemoteSettings(box) {
   const s = store.settings;
   const draw = () => {
     const urls = (info?.addresses || []).map((ip) => `http://${ip}${info.port === 80 ? '' : ':' + info.port}/adas/remote`);
-    box.innerHTML = `<h2>Távirányító telefonról <button class="help-link" data-help="remote" title="Súgó">?</button></h2>
-      <label class="setting"><span><b>Vezérlés telefonról vagy más eszköz böngészőjéből</b><small>Érintőpad és nyilak, OK / Vissza, csatornaváltás, hangerő, tekerés, felirat, csatornakereső, kedvencek, szövegbevitel – ugyanazon a (otthoni) hálózaton.</small></span>
+    box.innerHTML = `<h2>${_t('Távirányító telefonról')} <button class="help-link" data-help="remote" title="${_t('Súgó')}">?</button></h2>
+      <label class="setting"><span>${_t('<b>Vezérlés telefonról vagy más eszköz böngészőjéből</b>')}<small>${_t('Érintőpad és nyilak, OK / Vissza, csatornaváltás, hangerő, tekerés, felirat, csatornakereső, kedvencek, szövegbevitel – ugyanazon a (otthoni) hálózaton.')}</small></span>
         <input type="checkbox" class="switch" data-rc="on" ${s.remoteOn ? 'checked' : ''} /></label>
-      ${
-        s.remoteOn
+      ${s.remoteOn
           ? info
             ? `<div class="share-box rc-box">
-                <div class="rc-qr" title="Olvasd be a telefon kamerájával">${(() => {
+                <div class="rc-qr" title="${_t('Olvasd be a telefon kamerájával')}">${(() => {
                   if (!urls.length) return ''; // nincs hálózati cím: üres QR-t nem rajzolunk
                   try {
                     return qrSvg(`${urls[0]}#k=${s.remoteKey}`, { px: 5 });
@@ -474,15 +474,14 @@ export function renderRemoteSettings(box) {
                   }
                 })()}</div>
                 <div class="rc-text">
-                  <div><b>Olvasd be a QR-kódot a telefon kamerájával</b> – a lap megnyílik, és egy titkos kulcsot is megkap (ez a legbiztonságosabb, semmit nem kell begépelni).</div>
-                  ${urls.length ? `<div class="muted small">Vagy nyisd meg a telefon böngészőjében:</div>${urls.map((u) => `<code class="rc-url">${esc(u)}</code>`).join('')}` : '<div class="warn small">⚠ Nem található hálózati cím – csatlakozz egy (otthoni) hálózathoz, majd kapcsold ki és be a távirányítót.</div>'}
-                  <div>PIN: <span class="share-code rc-pin">${esc(s.remotePin)}</span></div>
-                  <div class="muted small">Tipp: a telefonon tedd ki a lapot a kezdőképernyőre, így alkalmazásként indul. Első alkalommal a Windows tűzfal engedélyt kérhet. Ha több cím látszik, azt válaszd, amelyik a telefonéval egy hálózaton van (a QR-kód az elsőt tartalmazza).</div>
-                  <div class="inline"><button class="btn small" data-rc="pin">Új PIN</button></div>
+                  <div>${_t('<b>Olvasd be a QR-kódot a telefon kamerájával</b> – a lap megnyílik, és egy titkos kulcsot is megkap (ez a legbiztonságosabb, semmit nem kell begépelni).')}</div>
+                  ${urls.length ? `<div class="muted small">${_t('Vagy nyisd meg a telefon böngészőjében:')}</div>${urls.map((u) => `<code class="rc-url">${esc(u)}</code>`).join('')}` : `<div class="warn small">${_t('⚠ Nem található hálózati cím – csatlakozz egy (otthoni) hálózathoz, majd kapcsold ki és be a távirányítót.')}</div>`}
+                  <div>${_t('PIN:')} <span class="share-code rc-pin">${esc(s.remotePin)}</span></div>
+                  <div class="muted small">${_t('Tipp: a telefonon tedd ki a lapot a kezdőképernyőre, így alkalmazásként indul. Első alkalommal a Windows tűzfal engedélyt kérhet. Ha több cím látszik, azt válaszd, amelyik a telefonéval egy hálózaton van (a QR-kód az elsőt tartalmazza).')}</div>
+                  <div class="inline"><button class="btn small" data-rc="pin">${_t('Új PIN')}</button></div>
                 </div></div>`
-            : '<p class="muted small">Indítás…</p>'
-          : ''
-      }`;
+            : `<p class="muted small">${_t('Indítás…')}</p>`
+          : ''}`;
   };
   box.onchange = async (e) => {
     if (e.target.dataset.rc !== 'on') return;
@@ -493,7 +492,7 @@ export function renderRemoteSettings(box) {
       if (s.remoteOn) await startRemote();
       else await stopRemote();
     } catch (err) {
-      toast('A távirányító nem indult el: ' + (err.message || err));
+      toast(`${_t('A távirányító nem indult el:')} ` + (err.message || err));
       s.remoteOn = false;
       store.save();
     }

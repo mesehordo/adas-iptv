@@ -1,4 +1,5 @@
 'use strict';
+const { _t, setLang, getLang } = require('./i18n-main');
 // Adás – Electron főfolyamat: ablak, gyorsítótárazott letöltés, adásfejlécek,
 // elérhetőség-ellenőrzés, fájlpárbeszédek, mini lejátszó mód.
 
@@ -90,7 +91,7 @@ async function maybeGunzip(buf) {
     try {
       return await gunzipAsync(buf, { maxOutputLength: MAX_DOC });
     } catch (err) {
-      if (err.code === 'ERR_BUFFER_TOO_LARGE' || /larger than/i.test(err.message)) throw new Error('A kicsomagolt fájl túl nagy');
+      if (err.code === 'ERR_BUFFER_TOO_LARGE' || /larger than/i.test(err.message)) throw new Error(_t('A kicsomagolt fájl túl nagy'));
       throw err;
     }
   }
@@ -109,7 +110,7 @@ async function readLimited(res, max = MAX_DOC) {
     size += value.length;
     if (size > max) {
       reader.cancel().catch(() => {});
-      throw new Error('A letöltött fájl túl nagy');
+      throw new Error(_t('A letöltött fájl túl nagy'));
     }
     parts.push(Buffer.from(value.buffer, value.byteOffset, value.length));
   }
@@ -434,21 +435,36 @@ function showWindow() {
   win.focus();
 }
 
+/** A tálca menüje és súgószövege (nyelvváltáskor újra). */
+function trayTexts() {
+  if (!tray) return;
+  tray.setToolTip(_t('Adás – a háttérben fut (emlékeztetők)'));
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: _t('Adás megnyitása'), click: showWindow },
+      { type: 'separator' },
+      { label: _t('Kilépés'), click: () => ((quitting = true), app.quit()) },
+    ])
+  );
+}
+
 function ensureTray() {
   if (tray) return;
   // A tálca ikonmérete: Windows 16, macOS menüsor 18, Linux (AppIndicator) 22–24 képpont.
   const size = process.platform === 'linux' ? 24 : process.platform === 'darwin' ? 18 : 16;
   tray = new Tray(nativeImage.createFromPath(path.join(__dirname, 'assets', 'icon.png')).resize({ width: size, height: size }));
-  tray.setToolTip('Adás – a háttérben fut (emlékeztetők)');
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: 'Adás megnyitása', click: showWindow },
-      { type: 'separator' },
-      { label: 'Kilépés', click: () => ((quitting = true), app.quit()) },
-    ])
-  );
+  trayTexts();
   tray.on('click', showWindow);
 }
+
+// A felület nyelve (a felület küldi; induláskor a mentett beállításból)
+try {
+  setLang(JSON.parse(fs.readFileSync(storeFile(), 'utf8'))?.settings?.lang || 'hu');
+} catch {}
+ipcMain.on('set-lang', (_e, l) => {
+  setLang(l);
+  trayTexts();
+});
 
 ipcMain.handle('set-background', (_e, { enabled, startWithSystem }) => {
   bg.enabled = !!enabled;
@@ -516,7 +532,7 @@ ipcMain.handle('fetch-bytes', (_e, url, opts) => {
   try {
     protocol = new URL(String(url)).protocol;
   } catch {}
-  if (protocol !== 'http:' && protocol !== 'https:') throw new Error('Érvénytelen cím');
+  if (protocol !== 'http:' && protocol !== 'https:') throw new Error(_t('Érvénytelen cím'));
   return fetchBytes(url, opts);
 });
 
@@ -580,7 +596,7 @@ ipcMain.handle('store-save', (_e, data) => writeJsonFile(storeFile(), data));
 // Általános HTTP-kérés (pl. OpenSubtitles, TMDB): a főfolyamatból nincs CORS, és a
 // User-Agent fejléc is beállítható.
 ipcMain.handle('http-request', async (_e, { method = 'GET', url, headers = {}, body, binary = false } = {}) => {
-  if (!/^https?:\/\//.test(url || '')) throw new Error('Érvénytelen cím');
+  if (!/^https?:\/\//.test(url || '')) throw new Error(_t('Érvénytelen cím'));
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 30000);
   try {
@@ -588,7 +604,7 @@ ipcMain.handle('http-request', async (_e, { method = 'GET', url, headers = {}, b
     // bájtként (pl. ZIP-be csomagolt vagy nem UTF-8 kódolású felirat): a megjelenítő dekódolja
     if (binary) {
       const buf = Buffer.from(await res.arrayBuffer());
-      if (buf.length > 20e6) throw new Error('A fájl túl nagy.');
+      if (buf.length > 20e6) throw new Error(_t('A fájl túl nagy.'));
       return { status: res.status, bytes: buf };
     }
     return { status: res.status, text: await res.text() };
@@ -617,7 +633,7 @@ ipcMain.handle('scan-folder', async (_e, dir) => {
     try {
       items = await fs.promises.readdir(d, { withFileTypes: true });
     } catch (err) {
-      if (depth === 0) throw new Error(`A mappa nem olvasható: ${err.message}`);
+      if (depth === 0) throw new Error(_t('A mappa nem olvasható: {message}', { message: err.message }));
       return;
     }
     for (const it of items) {
@@ -658,9 +674,9 @@ async function readSmallFile(p, max) {
 }
 
 ipcMain.handle('read-text-file', async (_e, p) => {
-  if (!LIST_EXT.test(p) && !SUB_EXT.test(p)) throw new Error('Csak lejátszólista és felirat olvasható.');
+  if (!LIST_EXT.test(p) && !SUB_EXT.test(p)) throw new Error(_t('Csak lejátszólista és felirat olvasható.'));
   const buf = await readSmallFile(p, 30 * 1024 * 1024);
-  if (!buf) throw new Error('A fájl túl nagy.');
+  if (!buf) throw new Error(_t('A fájl túl nagy.'));
   return decodeText(buf);
 });
 
@@ -750,7 +766,7 @@ ipcMain.handle('packs-scan', async () => {
     return [];
   }
   // → [{ name, text }] vagy [{ name, error }] – a kihagyott fájl oka is visszamegy (a felület jelzi)
-  const out = names.slice(MAX).map((name) => ({ name, error: `túl sok csomag a mappában (legfeljebb ${MAX})` }));
+  const out = names.slice(MAX).map((name) => ({ name, error: _t('túl sok csomag a mappában (legfeljebb {max})', { max: MAX }) }));
   for (const name of names.slice(0, MAX)) {
     let fh = null;
     try {
@@ -759,10 +775,10 @@ ipcMain.handle('packs-scan', async () => {
       fh = await fs.promises.open(path.join(packsDir(), name), fs.constants.O_RDONLY | (process.platform === 'win32' ? 0 : fs.constants.O_NONBLOCK || 0));
       const st = await fh.stat();
       if (!st.isFile()) continue;
-      if (st.size > 64e6) out.push({ name, error: 'túl nagy (legfeljebb 64 MB)' });
+      if (st.size > 64e6) out.push({ name, error: _t('túl nagy (legfeljebb 64 MB)') });
       else out.push({ name, text: await fh.readFile('utf8') });
     } catch (err) {
-      out.push({ name, error: `nem olvasható (${err.code || err.message})` });
+      out.push({ name, error: _t('nem olvasható ({error})', { error: err.code || err.message }) });
     } finally {
       await fh?.close().catch(() => {});
     }
@@ -797,7 +813,7 @@ ipcMain.handle('theme-dir-read', async (_e, dir) => {
   try {
     names = await fs.promises.readdir(d);
   } catch (err) {
-    throw new Error(`A téma-mappa nem olvasható: ${err.message}`);
+    throw new Error(_t('A téma-mappa nem olvasható: {message}', { message: err.message }));
   }
   const out = [];
   for (const n of names.filter((x) => /\.(adastheme|json)$/i.test(x)).slice(0, 200)) {
@@ -834,7 +850,7 @@ ipcMain.handle('open-external', (_e, url) => {
 // így a lejátszó a sorozat további részeit is látja. → hibaüzenet vagy ''.
 ipcMain.handle('open-in-player', async (_e, { items, name }) => {
   const list = (items || []).filter((x) => /^(https?|file):\/\//i.test(x?.url || ''));
-  if (!list.length) return 'Nincs megnyitható cím.';
+  if (!list.length) return _t('Nincs megnyitható cím.');
   // Saját, egyedi nevű ideiglenes mappa (csak a felhasználó érheti el), benne új fájl ('wx': meglévőt –
   // pl. egy más által odatett hivatkozást – nem ír felül). Kilépéskor törlődik.
   const dir = fs.mkdtempSync(path.join(app.getPath('temp'), 'adas-player-'));
@@ -917,7 +933,12 @@ app.on('will-quit', (e) => {
 
 // Felvételek: a Videók / Adás felvételek mappába
 // ADAS_REC_DIR: más mappa (pl. teszteléshez, a valódi Videók mappa érintése nélkül)
-const recDir = () => process.env.ADAS_REC_DIR || path.join(app.getPath('videos'), 'Adás felvételek');
+// (a mappa neve a felület nyelvén – de a már meglévő magyar nevű mappa marad, hogy a felvételek meglegyenek)
+const recDir = () => {
+  if (process.env.ADAS_REC_DIR) return process.env.ADAS_REC_DIR;
+  const legacy = path.join(app.getPath('videos'), 'Adás felvételek');
+  return getLang() === 'hu' || fs.existsSync(legacy) ? legacy : path.join(app.getPath('videos'), _t('Adás felvételek'));
+};
 ipcMain.handle('rec-start', (_e, o) => media.recStart({ ...o, dir: recDir() }));
 // Ütemezett felvételek indítási ideje: a főfolyamat időzítője pontos (a tálcára rejtett ablak időzítőit a
 // böngészőmotor akár percekre is visszafogja). Időben szól a felületnek, az indítja a felvételt.
@@ -934,7 +955,7 @@ ipcMain.handle('rec-schedule', (_e, list) => {
 });
 ipcMain.handle('rec-stop', (_e, id) => media.recStop(id));
 ipcMain.handle('rec-list', () => ({ dir: recDir(), files: media.recList(recDir()) }));
-ipcMain.handle('rec-open', (_e, p) => (inRecDir(p) ? shell.openPath(path.resolve(p)) : 'Érvénytelen fájl'));
+ipcMain.handle('rec-open', (_e, p) => (inRecDir(p) ? shell.openPath(path.resolve(p)) : _t('Érvénytelen fájl')));
 ipcMain.handle('rec-folder', () => {
   fs.mkdirSync(recDir(), { recursive: true });
   return shell.openPath(recDir());
@@ -953,7 +974,7 @@ ipcMain.handle('rec-trash', async (_e, p) => {
   if (fs.existsSync(orig)) await shell.trashItem(orig).catch(() => {});
   return true;
 });
-ipcMain.handle('rec-trim', (_e, { path: p, start, end } = {}) => (inRecDir(p) ? media.recTrim(path.resolve(p), start, end) : Promise.reject(new Error('Érvénytelen fájl'))));
+ipcMain.handle('rec-trim', (_e, { path: p, start, end } = {}) => (inRecDir(p) ? media.recTrim(path.resolve(p), start, end) : Promise.reject(new Error(_t('Érvénytelen fájl')))));
 ipcMain.handle('rec-original', (_e, p) => (inRecDir(p) ? { source: media.recSource(path.resolve(p)), trimmed: fs.existsSync(media.originalOf(path.resolve(p))) } : null));
 ipcMain.handle('rec-restore', (_e, p) => (inRecDir(p) ? media.recRestore(path.resolve(p)) : false));
 ipcMain.handle('cast-play', (_e, opts) => lan.castPlay(opts));
