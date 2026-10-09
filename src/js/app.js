@@ -2,7 +2,7 @@
 import { $, $$, esc, html, fmtTime, debounce, toast, bus, dayLabel, dayStart } from './util.js';
 import { api, IS_TV } from './api.js';
 import { store } from './store.js';
-import { catalog, loadCatalog } from './catalog.js';
+import { catalog, loadCatalog, catalogRefreshDue, reloadLists } from './catalog.js';
 import { epg } from './epg.js';
 import { player } from './player.js';
 import { ICON, closeTopModal, modalOpen, topModalEl, openProgram, openInfo, confirmDialog, avatarHtml } from './components.js';
@@ -10,7 +10,7 @@ import { applyTheme } from './themes.js';
 import { refreshAll, refreshing } from './refresh.js';
 import { channelDialog } from './lists.js';
 import { renderHelp, helpTopicForRoute } from './help.js';
-import { renderVod, renderOwn, loadVod, loadOwn, vodLists, vod } from './vod.js';
+import { renderVod, renderOwn, loadVod, loadOwn, vodLists, vod, vodRefreshDue } from './vod.js';
 import { syncPackFolder } from './packs.js';
 import './subtitles.js'; // a lejátszó felirat-kezelője
 import { unlockProfile, requireAdult, adultGuardNeeded, markUnlocked, hasPin } from './pin.js';
@@ -800,6 +800,23 @@ async function boot() {
   try {
     launchChannel(window.AdasAndroid?.takeLaunchChannel?.());
   } catch {}
+  // A listák frissítése a listánként beállított gyakorisággal (Beállítások → Csatornalisták / VOD, a lista
+  // sorában): 5 percenként megnézzük, esedékes-e valamelyik – csak az elavult listák töltődnek le újra.
+  // Lejátszás közben nem (az újraépítés megakasztaná a csatornaváltást); utána a következő körben.
+  let autoBusy = false;
+  setInterval(async () => {
+    if (autoBusy || player.active || refreshing()) return;
+    autoBusy = true;
+    try {
+      if (catalogRefreshDue()) await reloadLists();
+      if (vodRefreshDue()) await loadVod();
+    } catch (err) {
+      console.warn('Automatikus listafrissítés', err);
+    } finally {
+      autoBusy = false;
+    }
+  }, 5 * 60e3);
+
   // A VOD-listák a háttérben töltődnek be (az első megnyitáskor már készen legyenek).
   // Előtte az asztali „packs” mappa kiegészítő csomagjai (ha közben a VOD már betöltött, újratölt).
   syncPackFolder();

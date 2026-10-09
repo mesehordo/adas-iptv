@@ -2014,5 +2014,15 @@ export default {
  "<b>Sportfigyelő</b>": "<b>Sports tracker</b>",
  "Mit követsz: bajnokságok, csapatok, sportágak a tévében, versenynaptárak – és a forrásokhoz tartozó beállítások (időszak, csatornaajánlás, TheSportsDB-kulcs). Jelenleg: {n} követett tétel.": "What you follow: leagues, teams, sports on TV, competition calendars – and the source settings (period, channel suggestions, TheSportsDB key). Currently: {n} followed.",
  "A Sport oldal és a Sportfigyelő: milyen bajnokságokat, csapatokat, sportágakat követsz. Itt kapcsolhatod ki a Sport menüpontot is.": "The Sport page and the Sports tracker: which leagues, teams and sports you follow. You can also turn off the Sport menu item here.",
- "Sport – élő eredmények, menetrend, tabella": "Sport – live scores, fixtures, tables"
+ "Sport – élő eredmények, menetrend, tabella": "Sport – live scores, fixtures, tables",
+ "a forrás nem érhető el ({err}) – a csomagban mentett lista látszik": "the source is unreachable ({err}) – showing the list saved in the pack",
+ "Ilyen gyakran tölti le újra a listát (lejátszás közben nem)": "How often the list is downloaded again (not during playback)",
+ "Frissítés:": "Refresh:",
+ "{name} frissítése": "Refresh interval of {name}",
+ "óránként": "every hour",
+ "A webcímről töltött listák automatikusan is frissülnek – listánként beállítható, hány óránként (alapból 6); lejátszás közben nem. A gomb azonnal, a gyorsítótár megkerülésével tölt le mindent, a műsorújsággal együtt. A profilmenüből is elérhető.": "Lists loaded from a web address also refresh automatically – how many hours apart can be set per list (6 by default); not during playback. The button downloads everything right away, bypassing the cache, together with the TV guide. It’s also in the profile menu.",
+ "Mentve: a lista {h} óránként frissül.": "Saved: the list refreshes every {h} hours.",
+ "az \"url\" (forráscím) csak http(s):// cím lehet": "\"url\" (source address) must be an http(s):// address",
+ "az \"epg\" (műsorújság) csak http(s):// cím lehet": "\"epg\" (TV guide) must be an http(s):// address",
+ "a \"refresh\" értéke {list} óra lehet": "\"refresh\" must be one of {list} hours"
 };

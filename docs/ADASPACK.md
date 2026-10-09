@@ -45,7 +45,10 @@ A fájl **UTF-8 kódolású JSON-objektum** (BOM nélkül vagy BOM-mal):
 | `name` | ajánlott | szöveg | A megjelenő név (legfeljebb 80 karakter). Hiányában az `id`. |
 | `desc` | nem | szöveg | Leírás a beállításokban (legfeljebb 600 karakter). |
 | `off` | nem | igaz/hamis | `true`: betöltés után kikapcsolva jelenik meg (a felhasználó kapcsolja be). Alapból `false`. |
-| `text` | igen | szöveg | A teljes **M3U / M3U8 lejátszólista** szövege, egyetlen JSON-szövegként (a sortörések `\n`, az idézőjelek `\"`). Legfeljebb 60 MB. |
+| `text` | igen | szöveg | A teljes **M3U / M3U8 lejátszólista** szövege, egyetlen JSON-szövegként (a sortörések `\n`, az idézőjelek `\"`). Legfeljebb 60 MB. Forráscímes csomagnál (`url`) ez a tartalék: akkor látszik, ha a forrás nem érhető el. |
+| `url` | nem | szöveg | **Forráscím** (http/https): a program a listát innen tölti le, és a beállított gyakorisággal **frissíti** (lásd `refresh`). Lejáró címeket tartalmazó, rendszeresen újragenerált listákhoz (pl. GitHubon óránként frissülő M3U). |
+| `epg` | nem | szöveg | A lista **műsorújságának** (XMLTV, `.xml` / `.xml.gz`) címe – ha a lista fejléce nem tartalmazza (`url-tvg`). Tévés csomagnál a Beállítások → Műsorújság *lejátszólisták műsorújsága* kapcsolójával töltődik be. |
+| `refresh` | nem | szám | Javasolt frissítési gyakoriság órában: `1`, `2`, `3`, `6`, `12`, `24` vagy `48`. A felhasználó a lista sorában átállíthatja; hiányában 6 óra. Csak `url`-lel van hatása. |
 
 A program betöltéskor ellenőrzi: érvényes JSON, `adasPack: 1`, ismert `kind`, szabályos `id`, nem üres
 `text`, és **legalább egy lejátszható bejegyzés** a listában. Hibás fájlnál megmondja, mi a gond.
@@ -147,7 +150,8 @@ szűrése is ezekből dolgozik:
   frissíti.
 - **Másik eszközre:** a mentés és az eszközök közti átvitel a betöltött csomagokat is viszi (pl. a
   gépről a telefonra / tévére).
-- **Frissítés:** ugyanazzal az `id`-vel újra betöltve felülíródik.
+- **Frissítés:** ugyanazzal az `id`-vel újra betöltve felülíródik. Forráscímes csomag (`url`) a beállított
+  gyakorisággal magától is frissül (a lista sorában: *Frissítés: N óránként*).
 - **Eltávolítás:** a csomag sorában az *Eltávolítás* gomb (csak erről az eszközről törli; ha a
   `packs` mappában is ott van, a következő indításkor visszakerül).
 
@@ -163,6 +167,16 @@ node tools/make-pack.mjs filmek.m3u8 --kind vod --id pelda-filmek --name "Példa
 ```
 
 Az eredmény a lista mellé kerül: `pelda-csatornak_tv.adaspack`, `pelda-filmek_vod.adaspack`.
+
+**Frissülő (forráscímes) csomag** – a lista webcímét adva a csomag forráscíme is ez lesz (`url`), és a
+program a megadott gyakorisággal innen frissíti; a műsorújság címe külön is megadható:
+
+```
+node tools/make-pack.mjs https://raw.githubusercontent.com/…/pluto-live-GB.m3u --kind tv --id pluto-gb --name "Pluto TV (GB)" --refresh 6 --epg https://i.mjh.nz/PlutoTV/gb.xml.gz
+```
+
+A frissítés gyakorisága a programban **minden webcímről töltött listánál** (beépített, saját, forráscímes
+csomag; csatorna- és VOD-lista egyaránt) a lista sorában állítható: 1–48 óra. Lejátszás közben nem frissít.
 
 ---
 

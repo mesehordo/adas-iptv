@@ -1,6 +1,9 @@
-// Kiegészítő csomag (.adaspack) készítése egy M3U / M3U8 lejátszólistából.
-//   node tools/make-pack.mjs <lista.m3u8> --kind tv|vod --id azonosito --name "Név" [--desc "Leírás"] [--off] [--out mappa-vagy-fájl]
+// Kiegészítő csomag (.adaspack) készítése egy M3U / M3U8 lejátszólistából (helyi fájlból vagy webcímről).
+//   node tools/make-pack.mjs <lista.m3u8 | https://…/lista.m3u> --kind tv|vod --id azonosito --name "Név"
+//        [--desc "Leírás"] [--off] [--url https://…] [--epg https://…/epg.xml.gz] [--refresh 6] [--out mappa-vagy-fájl]
 // Kimenet: <azonosito>_tv.adaspack vagy <azonosito>_vod.adaspack (a lista mellé, vagy az --out helyre).
+// Webcímes forrásnál a csomag forráscíme (--url) magától ez a cím: a program innen frissíti a listát a
+// beállított gyakorisággal (--refresh óra, alapból a program alapértéke), a beépített szöveg csak tartalék.
 // A formátum leírása: docs/ADASPACK.md
 import fs from 'node:fs';
 import path from 'node:path';
@@ -11,11 +14,13 @@ const opt = (k) => {
   const i = args.indexOf('--' + k);
   return i >= 0 ? args[i + 1] : undefined;
 };
-const usage = 'Használat: node tools/make-pack.mjs <lista.m3u8> --kind tv|vod --id azonosito --name "Név" [--desc "Leírás"] [--off] [--out mappa-vagy-fájl]';
+const usage = 'Használat: node tools/make-pack.mjs <lista.m3u8 | https://…> --kind tv|vod --id azonosito --name "Név" [--desc "Leírás"] [--off] [--url https://…] [--epg https://…] [--refresh 1|2|3|6|12|24|48] [--out mappa-vagy-fájl]';
 const fail = (msg) => {
   console.error(msg + '\n' + usage);
   process.exit(1);
 };
+const REFRESH = [1, 2, 3, 6, 12, 24, 48];
+const isWeb = (u) => /^https?:\/\/\S+$/i.test(u || '');
 
 const src = args[0] && !args[0].startsWith('--') ? args[0] : undefined;
 const kind = opt('kind');
@@ -23,8 +28,20 @@ const id = opt('id');
 if (!src) fail('Hiányzik a lejátszólista.');
 if (kind !== 'tv' && kind !== 'vod') fail('A --kind értéke tv (tévécsatornák) vagy vod (filmek, sorozatok) legyen.');
 if (!id || !/^[a-z0-9_-]{1,40}$/i.test(id)) fail('Az --id csak betűt, számot, - és _ jelet tartalmazhat (legfeljebb 40 karakter).');
+const url = opt('url') ?? (isWeb(src) ? src : undefined);
+const epg = opt('epg');
+const refresh = opt('refresh');
+if (url !== undefined && !isWeb(url)) fail('Az --url csak http(s):// cím lehet.');
+if (epg !== undefined && !isWeb(epg)) fail('Az --epg csak http(s):// cím lehet.');
+if (refresh !== undefined && !REFRESH.includes(Number(refresh))) fail(`A --refresh értéke ${REFRESH.join(', ')} (óra) lehet.`);
 
-const text = fs.readFileSync(src, 'utf8').replace(/^﻿/, '');
+let text;
+if (isWeb(src)) {
+  const r = await fetch(src, { headers: { 'User-Agent': 'Mozilla/5.0 (Adas make-pack)' } });
+  if (!r.ok) fail(`A lista nem tölthető le (HTTP ${r.status}): ${src}`);
+  text = await r.text();
+} else text = fs.readFileSync(src, 'utf8');
+text = text.replace(/^﻿/, '');
 if (!/^#EXTM3U/m.test(text) || !/#EXTINF/i.test(text)) fail('A fájl nem M3U lista (#EXTM3U fejléc és #EXTINF sorok kellenek).');
 // minden #EXTINF után legyen egy cím (az első nem üres, nem # kezdetű sor)
 const lines = text.split(/\r?\n/);
@@ -43,7 +60,10 @@ if (!entries) fail('Nincs egyetlen #EXTINF bejegyzés sem.');
 if (missing) fail(`${missing} bejegyzésnél nincs érvényes cím (http://, https://, file://…) az #EXTINF sor után.`);
 
 const pack = { adasPack: 1, kind, id, name: opt('name') || id, desc: opt('desc') || '', off: args.includes('--off'), text };
-let out = opt('out') || path.dirname(src);
+if (url) pack.url = url;
+if (epg) pack.epg = epg;
+if (refresh) pack.refresh = Number(refresh);
+let out = opt('out') || (isWeb(src) ? '.' : path.dirname(src));
 if (!/\.adaspa(c)?k$/i.test(out)) out = path.join(out, `${id}_${kind}.adaspack`);
 fs.writeFileSync(out, JSON.stringify(pack));
-console.log(`Kész: ${out} (${kind === 'tv' ? 'tévécsatorna' : 'VOD'}-csomag, ${entries} bejegyzés, ${(fs.statSync(out).size / 1e6).toFixed(1)} MB)`);
+console.log(`Kész: ${out} (${kind === 'tv' ? 'tévécsatorna' : 'VOD'}-csomag, ${entries} bejegyzés, ${(fs.statSync(out).size / 1e6).toFixed(1)} MB${url ? `, forrás: ${url}${refresh ? ` (${refresh} óránként)` : ''}` : ''})`);

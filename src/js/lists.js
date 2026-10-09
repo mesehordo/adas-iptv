@@ -2,9 +2,9 @@
 // egyenként hozzáadott saját csatornák (hozzáadás, kipróbálás, szerkesztés, törlés).
 import { esc, html, toast, bus, fmtDay, fmtTime, hashHue } from './util.js';
 import { api } from './api.js';
-import { store, DEFAULT_PLAYLIST, PLAYLIST_PRESETS, BUILTIN_PLAYLISTS } from './store.js';
+import { store, DEFAULT_PLAYLIST, PLAYLIST_PRESETS, BUILTIN_PLAYLISTS, setRefreshHours } from './store.js';
 import { catalog, parseM3U, categoryName, countryName, MINE, CATEGORY_HU } from './catalog.js';
-import { ICON, openModal, confirmDialog, promptDialog } from './components.js';
+import { ICON, openModal, confirmDialog, promptDialog, refreshSelectHtml } from './components.js';
 import { player } from './player.js';
 import { refreshAll, refreshing } from './refresh.js';
 import { readPickedFiles } from './vod.js';
@@ -30,7 +30,7 @@ export function renderLists(box) {
       <button class="btn primary" data-l="refresh" ${busy ? 'disabled' : ''}>${ICON.refresh} ${busy ? _t('Frissítés folyamatban…') : _t('Minden lista frissítése most')}</button>
       <span class="muted">${_t('{length} csatorna · utolsó letöltés: {when}', { length: catalog.channels.length, when: catalog.loadedAt ? fmtDay(catalog.loadedAt) + ' ' + fmtTime(catalog.loadedAt) : '–' })}</span>
     </div>
-    <p class="muted small">${_t('A lista automatikusan is frissül (6 óránként); a gomb azonnal, a gyorsítótár megkerülésével tölt le mindent, a műsorújsággal együtt. A profilmenüből is elérhető.')}</p>
+    <p class="muted small">${_t('A webcímről töltött listák automatikusan is frissülnek – listánként beállítható, hány óránként (alapból 6); lejátszás közben nem. A gomb azonnal, a gyorsítótár megkerülésével tölt le mindent, a műsorújsággal együtt. A profilmenüből is elérhető.')}</p>
 
     <h3>${_t('Beépített listák')}</h3>
     <p class="muted small">${_t('Ha több lista is be van kapcsolva, a program az azonos csatornákat összevonja: egy csatorna csak egyszer jelenik meg, a különböző listákból származó adásai pedig egymás tartalék forrásai lesznek.')}</p>
@@ -43,6 +43,7 @@ export function renderLists(box) {
           : `${_t('{x} csatorna{movedTxt}', { x: counts[b.id] || 0, movedTxt: movedTxt(b.id) })}`;
       return `<li data-builtin="${esc(b.id)}"><input type="checkbox" class="switch" data-l-builtin ${on ? 'checked' : ''} aria-label="${_t('{esc} bekapcsolva', { esc: esc(b.name) })}" />
         <span><b>${esc(b.name)}</b>${b.pack ? ` <span class="pill">${_t('kiegészítő csomag')}</span>` : ''}<small>${esc(b.desc || '')} · ${info}</small></span>
+        ${b.url && !b.stream ? refreshSelectHtml('tv', b) : ''}
         ${b.id === 'iptvorg' ? `<button class="btn small" data-l="main-edit">${_t('Cím')}</button>` : ''}
         ${b.pack ? `<button class="btn small danger" data-l="pack-del">${_t('Eltávolítás')}</button>` : ''}</li>`;
     }).join('')}</ul>
@@ -63,6 +64,7 @@ export function renderLists(box) {
               : _t('kikapcsolva');
           return `<li data-pl="${esc(pl.id)}"><input type="checkbox" class="switch" data-l-toggle ${pl.enabled ? 'checked' : ''} aria-label="${_t('Bekapcsolva')}" />
             <span><b>${esc(pl.name)}</b><small>${esc(pl.url || _t('helyi fájlból'))} · ${info}</small></span>
+            ${pl.url && !pl.stream ? refreshSelectHtml('tv', pl) : ''}
             <button class="btn small" data-l="pl-rename">${_t('Átnevezés')}</button>
             ${pl.url ? `<button class="btn small" data-l="pl-url-edit">${_t('Cím')}</button>` : ''}
             <button class="btn small danger" data-l="pl-del">${_t('Törlés')}</button></li>`;
@@ -98,6 +100,12 @@ export function renderLists(box) {
   box.dataset.bound = '1';
   box.addEventListener('change', (e) => {
     e.stopPropagation();
+    if (e.target.matches('[data-refresh]')) {
+      const key = e.target.dataset.refresh;
+      const i = key.indexOf(':');
+      setRefreshHours(key.slice(0, i), key.slice(i + 1), Number(e.target.value));
+      return toast(_t('Mentve: a lista {h} óránként frissül.', { h: e.target.value }));
+    }
     const bi = e.target.closest('[data-builtin]');
     if (bi && e.target.matches('[data-l-builtin]')) {
       const id = bi.dataset.builtin;

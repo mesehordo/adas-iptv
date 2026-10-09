@@ -104,6 +104,10 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - Mentés és visszaállítás fájlba (beállítások, profilok, kedvencek, emlékeztetők)
 - Teljes billentyűzetes / távirányítós vezérlés (nyilak, Enter, Esc / Backspace)
 
+**Listák frissítése listánként, frissülő kiegészítő csomagok**
+- Minden webcímről töltött csatorna- és VOD-listánál (beépített, saját, kiegészítő csomag) a lista sorában beállítható, **hány óránként** töltse le újra: óránként … 48 óránként (alapból 6). A program futás közben is figyeli, lejátszás közben nem frissít.
+- **Forráscímes kiegészítő csomag**: a `.adaspack` nem kötelező `url` mezőjéből a lista a beállított gyakorisággal frissül (lejáró címeket tartalmazó, rendszeresen újragenerált listákhoz); ha a forrás nem érhető el, a csomagban mentett lista látszik. Új mezők még: `epg` (műsorújság), `refresh` (javasolt gyakoriság). A `tools/make-pack.mjs` webcímről is készít ilyet (`--url`, `--epg`, `--refresh`).
+
 **Sport oldal (1.26.5)**
 - Új menüpont a TV és a VOD mellett: irányítópult a Sportfigyelőben követett tételekhez
   - **Élő most**: a zajló események állással, egy gombnyomásra indítható csatornával
