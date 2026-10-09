@@ -108,7 +108,23 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - **Nyelvek:** magyar, angol, német, spanyol, francia – a felület, az üzenetek, a tálca / értesítések, a telefonos távirányító és a teljes súgó is (Beállítások → Megjelenés → *Nyelv / Language*; váltáskor újraindul)
 - **Első indítás:** nyelvválasztás → saját profil (név, profilkép) → gyerekprofil (átugorható); nem magyar nyelvnél a hazai ország, a műsorújság-forrás, a hírforrások és az időjárás városa is a nyelvhez igazodik
 - A dátumok, napok, pénznemek, a Wikipédia / TMDB-leírások és a feliratkeresés is a felület nyelvét követik; a sportfigyelő és a műsorkategóriák a német, angol, spanyol és francia műsorújságot is felismerik
-- Fordítás: a kulcs a magyar szöveg (`_t('…')`), a szótárak `src/i18n/<nyelv>.js`, a súgó `src/js/help/<nyelv>.js`
+- Fordítás: a kulcs a magyar szöveg (`_t('…')`); minden nyelv egyetlen fájl, `src/i18n/<nyelv>.js` (az elején a nyelv adatai: név, formázás, ország, alapértelmezett város, hírforrások, műsorújság), a súgó `src/js/help/<nyelv>.js`. A magyar és az angol teljes; a többi nyelvből hiányzó szöveg és súgótéma **angolul** jelenik meg
+- **Új nyelv:** az `src/i18n/en.js` másolata `<kód>.js` néven (adatok + fordítások, bármennyi elhagyható), egy sor az `src/i18n/index.js`-be; súgó nem kötelező (`src/js/help/<kód>.js` + egy sor a `help.js` LOADERS-ébe). Az Android-keret szövegei is ezekből a fájlokból készülnek. `npm run i18n:check` – az angol hiányait hibának jelzi, a többi nyelvnél kiírja, mennyi jelenik meg angolul (`npm run i18n:check -- de` – a hiányzó kulcsok listája)
+
+**Böngészés elérhetőség szerint (1.26)**
+- A böngészés ajánlott sorrendje az elérhetőség: elöl a működő, utána a még nem ellenőrzött, a végén az offline, épp nem sugárzó vagy innen nem nézhető csatornák; azon belül a hazai és a népszerű csatornák elöl. A kereső találatai a találati sorrendben maradnak, de a nem elérhetők ott is a végére kerülnek
+- Indításkor a profilválasztó (és az első indítási varázsló) mindig csak az indítóanimáció után jelenik meg
+
+**Felületi javítások (1.26)**
+- Kedvencek: újra látszik a csatornaszám, és újra működik a húzásos átrendezés; telefonon / tableten is (hosszan nyomva húzd a kártyát a helyére)
+- Profilszerkesztő: a profilképek rácsa nem lóg ki az ablakból, a Gyerekprofil kapcsoló a sor jobb szélén
+- Telefonon: a böngészés keresőmezője a teljes sor; a műsorújság napjai nagy kezdőbetűvel
+- Csatorna-adatlap: megnyitáskor a csatorna neve a helyén marad (csak a műsorlista görgetődik a mostani műsorhoz); a kedvenc gomb felirattal (☆ Kedvenc), mint a filmeknél
+- Műsorújság: a műsor nélküli csatornák sorában „Nincs műsoradat”; „Ugrás a mostani időre” gomb
+- Felvételek: a gombok felirattal (Vágás, Megnyitás, Törlés) – tévén nincs súgóbuborék
+- Profilok kezelése: látszik a szerkesztés ceruzája a képes profilképeken is
+- Témaválasztó: a világos témák neve is olvasható
+- Egységes szóhasználat (pl. „Most a tévében”, „Összes”, „Újrapróbálás”); a tizedes számok, a napok és a dátumok a felület nyelvének formájában; „Szép napot!” név nélkül, ha a profil neve az alapértelmezett „Én”
 
 **Kiadás a GitHubról, egérkurzor a távirányítón, új feliratforrás, egységes műfajok (1.25)**
 - **Kiadások:** a `v*` címke pusholásakor a GitHub Actions minden platformra lefordít, és GitHub Release-be tölti a fájlokat (Windows: telepítő, hordozható, MSI · Linux: AppImage, deb · macOS: dmg, zip · Android: APK), SHA256SUMS.txt-vel; az asztali változat innen frissül (induláskor keres, kikapcsolható)

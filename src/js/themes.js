@@ -260,7 +260,7 @@ export function rowLabel(key) {
   return {
     recent: _t('Legutóbb nézett'),
     favorites: _t('Kedvenceid'),
-    onair: _t('Most a TV-ben'),
+    onair: _t('Most a tévében'),
     home: _t('{country} csatornái', { country: countryName(store.settings.homeCountry) || _t('Hazai') }),
     custom: _t('Listák soronként (Pluto TV, Free-TV, saját listák…)'),
     countries: _t('Fedezz fel országokat'),

@@ -2,7 +2,7 @@
 // időeltolás, betűméret. A kiválasztott felirat profilonként megmarad az adott filmhez / részhez.
 import { api } from './api.js';
 import { store } from './store.js';
-import { esc, toast, bus } from './util.js';
+import { esc, toast, bus, fmtNum } from './util.js';
 import { player } from './player.js';
 import { isHuLang, isEnLang, langMatcher } from './engine.js';
 import { nightAvailable, nightOn, setNight } from './audiofx.js';
@@ -683,7 +683,7 @@ player.subsHooks = {
             ? `<div class="sub-adjust">
           <span>${_t('Időeltolás')}</span>
           <button class="btn small" data-s="off-" title="${_t('Korábban')}">${_t('−0,5 mp')}</button>
-          <b class="sub-offset">${(state.offset >= 0 ? '+' : '') + state.offset.toFixed(1).replace('.', ',')} ${_t('mp</b>')}
+          <b class="sub-offset">${(state.offset >= 0 ? '+' : '') + fmtNum(state.offset, 1)} ${_t('mp</b>')}
           <button class="btn small" data-s="off+" title="${_t('Később')}">${_t('+0,5 mp')}</button>
         </div>`
             : ''}

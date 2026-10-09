@@ -184,7 +184,7 @@ ${go('#/settings', 'Open Settings')}`,
 <h2>Up / down switching</h2>
 <p><kbd>↑</kbd>/<kbd>↓</kbd> (or CH+/CH−) steps through the list you started the channel from. If you started from the “Sport” row, for example, you switch between sports channels; if from your favourites, between your favourites. If you started from search or a details page, your favourites (or, if you have none, the home country’s channels) give the order.</p>
 <h2>Channel numbers</h2>
-<p>The numbers work just like on a TV: <b>the order of your favourites gives the first numbers</b> (1, 2, 3…), followed by the home country’s channels. You can change the order on the Favourites page by dragging. ${go('#/favorites', 'Favourites')}</p>
+<p>The numbers work just like on a TV: <b>the order of your favourites gives the first numbers</b> (1, 2, 3…), followed by the home country’s channels. You can change the order on the Favourites page by dragging (on a phone, press and hold a card, then drag it; with a keyboard Ctrl+← / Ctrl+→, on a TV CH+ / CH−). ${go('#/favorites', 'Favourites')}</p>
 <p>During playback, type the number (<kbd>0</kbd>–<kbd>9</kbd>, up to 4 digits) – it shows in the top-right corner, and switches after 1.3 seconds.</p>
 <h2>Channel list panel</h2>
 <p>During playback, <kbd>Enter</kbd> or <kbd>L</kbd> (the blue button on TV) opens the list’s channels on the right, with what’s on now. You can filter by name at the top.</p>`,
@@ -593,7 +593,7 @@ ${go('#/settings?section=dashboard', 'Home page settings')}`,
 <tr><td><b>Language</b></td><td>The stream’s language (where known).</td></tr>
 <tr><td><b>Quality</b></td><td>HD (720p) or Full HD (1080p) and better.</td></tr>
 <tr><td><b>Status</b></td><td>Working / not checked / unavailable. ${t('health', 'Checking')}</td></tr>
-<tr><td><b>Sort</b></td><td>Recommended order, by name or by country.</td></tr>
+<tr><td><b>Sort</b></td><td>Recommended order (working channels first, then those not yet checked, and at the end channels that are offline, off air or not watchable from here; within each group, home and popular channels first), by name or by country.</td></tr>
 </table>
 <p>The filters can be combined (e.g. Sport + Germany + HD). The <b>Clear filters</b> button resets them all. The list loads gradually as you scroll.</p>`,
   },

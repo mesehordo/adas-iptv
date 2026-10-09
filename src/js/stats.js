@@ -86,6 +86,7 @@ function sumDays(s, n) {
 }
 
 const WEEKDAYS = weekdayNames('short');
+const DAY_NUM = new Intl.DateTimeFormat(LOCALE, { day: 'numeric' }); // a hónap napja (magyarul „26.”, angolul „26”)
 const WEEKDAY_NAMES = weekdayNames('long');
 
 /** Heti összesítő: az elmúlt 7 nap az előző 7-hez képest, a legaktívabb nap, a hét filmjei / sorozatai. */
@@ -123,7 +124,7 @@ function brokenHtml(p) {
     <p class="muted small">${_t('Kedvenc vagy nemrég nézett csatornák, amelyeknek az elmúlt héten egyik forrása sem működött. Érdemes megnézni, nincs-e másik listában ugyanez a csatorna.')}</p>
     <ul class="top-list">${bad
       .map((ch) => `<li><span class="side-logo" style="--h:${hashHue(ch.name)}">${logoHtml(ch, 'logo-sm')}</span><span class="tl-name">${esc(ch.name)}</span>
-        <a class="btn small" href="#/search?q=${encodeURIComponent(ch.name)}">${_t('Másik forrás keresése')}</a><button class="btn small" data-play="${esc(ch.id)}">${_t('Újra próbálom')}</button></li>`)
+        <a class="btn small" href="#/search?q=${encodeURIComponent(ch.name)}">${_t('Másik forrás keresése')}</a><button class="btn small" data-play="${esc(ch.id)}">${_t('Újrapróbálás')}</button></li>`)
       .join('')}</ul></section>`;
 }
 
@@ -165,7 +166,7 @@ export function renderStats(view) {
 
     <section class="stat-sec"><h2>${_t('Az elmúlt két hét')}</h2>
       <div class="bars days">${days14
-        .map(({ d, t }) => `<div class="bar-col" title="${d.toLocaleDateString(LOCALE)}: ${fmtH(t)}"><i style="height:${((t / max14) * 100).toFixed(1)}%"></i><span>${WEEKDAYS[d.getDay()]}<br>${d.getDate()}.</span></div>`)
+        .map(({ d, t }) => `<div class="bar-col" title="${d.toLocaleDateString(LOCALE)}: ${fmtH(t)}"><i style="height:${((t / max14) * 100).toFixed(1)}%"></i><span>${WEEKDAYS[d.getDay()]}<br>${DAY_NUM.format(d)}</span></div>`)
         .join('')}</div>
     </section>
 

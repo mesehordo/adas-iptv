@@ -1,12 +1,12 @@
 // Adás adatai: élő panel a lejátszó fölött – felbontás, képkocka, kodekek, bitráta, mért sávszélesség,
 // puffer, késés az élőtől, eldobott képkockák, akadások, lejátszómotor, kiszolgáló és a hálózati kapcsolat.
 // A lejátszó „Minőség és forrás” menüjéből vagy a D billentyűvel kapcsolható.
-import { esc } from './util.js';
+import { esc, fmtNum } from './util.js';
 
 import { _t } from './i18n.js';
 const ENGINE = { hls: 'hls.js (HLS)', native: _t('Beépített lejátszó'), mpegts: 'mpegts.js (MPEG-TS / FLV)', dash: 'dash.js (DASH)', bridge: _t('Lejátszási híd (FFmpeg)'), exo: _t('Natív lejátszó (ExoPlayer)') };
-const mbit = (bps) => (bps > 0 ? (bps >= 1e6 ? `${_t('{toFixed} Mbit/s', { toFixed: (bps / 1e6).toFixed(1) })}` : `${_t('{round} kbit/s', { round: Math.round(bps / 1e3) })}`) : '–');
-const sec = (s) => (Number.isFinite(s) ? `${_t('{toFixed} mp', { toFixed: s.toFixed(1) })}` : '–');
+const mbit = (bps) => (bps > 0 ? (bps >= 1e6 ? `${_t('{toFixed} Mbit/s', { toFixed: fmtNum(bps / 1e6, 1) })}` : `${_t('{round} kbit/s', { round: Math.round(bps / 1e3) })}`) : '–');
+const sec = (s) => (Number.isFinite(s) ? `${_t('{toFixed} mp', { toFixed: fmtNum(s, 1) })}` : '–');
 
 let timer = null;
 let box = null;
@@ -101,7 +101,7 @@ function render(player, video) {
     } catch {}
   }
   const ratio = bw && bitrate ? bw / bitrate : 0;
-  add(_t('Mért letöltési sebesség'), bw ? `${mbit(bw)}${ratio ? ` ${_t('· a bitráta {toFixed}×-a', { toFixed: ratio.toFixed(1) })}` : ''}` : '–', ratio > 0 && ratio < 1.3);
+  add(_t('Mért letöltési sebesség'), bw ? `${mbit(bw)}${ratio ? ` ${_t('· a bitráta {toFixed}×-a', { toFixed: fmtNum(ratio, 1) })}` : ''}` : '–', ratio > 0 && ratio < 1.3);
   // A forrás vizsgálata (hálózatfigyelő): válaszidő és hogy a szegmensek valós időnél gyorsabban jönnek-e
   const net = e?.net;
   if (net?.samples) {
@@ -115,7 +115,7 @@ function render(player, video) {
   for (let i = 0; i < b.length; i++) if (b.start(i) <= t + 0.1 && b.end(i) >= t) ahead = b.end(i) - t;
   add(_t('Puffer (előre)'), sec(ahead), ahead < 3 && !video.paused);
   if (hls && Number.isFinite(hls.latency) && hls.latency > 0) add(_t('Késés az élő adástól'), sec(hls.latency));
-  if (q) add(_t('Eldobott képkockák'), `${q.droppedVideoFrames} / ${q.totalVideoFrames}${q.totalVideoFrames ? ` (${((q.droppedVideoFrames / q.totalVideoFrames) * 100).toFixed(1)}%)` : ''}`, q.totalVideoFrames > 100 && q.droppedVideoFrames / q.totalVideoFrames > 0.05);
+  if (q) add(_t('Eldobott képkockák'), `${q.droppedVideoFrames} / ${q.totalVideoFrames}${q.totalVideoFrames ? ` (${fmtNum((q.droppedVideoFrames / q.totalVideoFrames) * 100, 1)}%)` : ''}`, q.totalVideoFrames > 100 && q.droppedVideoFrames / q.totalVideoFrames > 0.05);
   const stallMs = stalls.ms + (stalls.since ? performance.now() - stalls.since : 0);
   add(_t('Akadás (a panel nyitása óta)'), `${_t('{n} alkalom · {sec}', { n: stalls.n, sec: sec(stallMs / 1000) })}`, stalls.n > 0);
   // Kapcsolat (amennyit a rendszer elárul)

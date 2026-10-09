@@ -684,6 +684,22 @@ function stopSplashStatus() {
   clearInterval(splashState.timer);
 }
 
+/**
+ * Az indítóanimáció vége (a profilválasztó és a varázsló csak utána jelenik meg). Ahol van
+ * getAnimations, a tényleges animációkat várjuk; a régi tévés motorokon a CSS-ben megadott hosszt
+ * (a lap betöltésétől számítva, egy kis ráhagyással). Rejtett ablakban (pl. tálcára induláskor) az
+ * animáció nem halad – ott legfeljebb SPLASH_MAX_MS-ig várunk, hogy az indulás ne akadjon meg.
+ */
+const SPLASH_ANIM_MS = 2200 + 150;
+const SPLASH_MAX_MS = 4000;
+function splashAnimDone() {
+  if (!splash || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return Promise.resolve();
+  const wait = (ms) => new Promise((r) => setTimeout(r, Math.max(0, ms - performance.now())));
+  const anims = typeof splash.getAnimations === 'function' ? splash.getAnimations({ subtree: true }).filter((a) => a.effect?.getTiming?.().iterations !== Infinity) : null;
+  if (anims && anims.length) return Promise.race([Promise.all(anims.map((a) => a.finished.catch(() => {}))), wait(SPLASH_MAX_MS)]).then(() => {});
+  return wait(SPLASH_ANIM_MS);
+}
+
 async function loadWithRetry() {
   for (;;) {
     try {
@@ -719,7 +735,9 @@ async function boot() {
   // Első indítás: nyelv, saját profil, gyerekprofil (a csatornalista közben nem töltődik – a
   // hazai ország a választott nyelvtől függ)
   const onboarding = needsOnboarding();
+  const animDone = splashAnimDone();
   if (onboarding) {
+    await animDone;
     splash.classList.add('hide');
     await runOnboarding(profilesEl);
     splash.classList.remove('hide');
@@ -728,11 +746,11 @@ async function boot() {
   updateProfileButton();
   startSplashStatus();
   const loading = loadWithRetry();
+  // (a csatornalista közben már töltődik; a profilválasztó az indítóanimáció után jelenik meg)
   if (onboarding) markUnlocked(store.profile);
-  else if (store.profiles.length > 1) await showProfiles(false);
-  else if (hasPin(store.profile)) await showProfiles(false); // egyetlen, de zárolt profil
+  else if (store.profiles.length > 1 || hasPin(store.profile)) await animDone.then(() => showProfiles(false)); // (egyetlen, de zárolt profilnál is)
   else markUnlocked(store.profile);
-  await loading;
+  await Promise.all([loading, animDone]);
 
   started = true;
   stopSplashStatus();

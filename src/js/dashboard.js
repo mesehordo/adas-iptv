@@ -1,6 +1,6 @@
 // Főoldal (irányítópult): időjárás, a kedvenc csatornák műsora, RSS-hírek, „Ma este a tévében”,
 // TV- és VOD-folytatás. Két oszlop × négy sor (telefonon, álló helyzetben egymás alatt).
-import { esc, html, hashHue, fmtTime, toast, debounce } from './util.js';
+import { esc, html, hashHue, fmtTime, fmtDay, toast, debounce, fmtNum } from './util.js';
 import { api, IS_TV } from './api.js';
 import { store } from './store.js';
 import { epg } from './epg.js';
@@ -13,7 +13,7 @@ import { watchList, loadSportEvents, sportEventsCached, sportStale, eventRowHtml
 import { vod, own, continueItems, playVod, loadVod, vodLists, findItem, displayTitle } from './vod.js';
 
 // ---------------------------------------------------------------------------
-import { _t, LOCALE, weekdayNames, lang as uiLang } from './i18n.js';
+import { _t, LOCALE, LANG, weekdayNames, lang as uiLang } from './i18n.js';
 // Időjárás (Open-Meteo – ingyenes, kulcs nélkül)
 // ---------------------------------------------------------------------------
 const WMO = {
@@ -28,16 +28,9 @@ const WMO = {
 const wmo = (c) => WMO[c] || ['', '🌡️'];
 const DAYS = weekdayNames('long');
 
-// A felület nyelvéhez illő alapértékek (a felhasználó beállításai ezeket felülírják): időjárás-település,
-// hírforrások, árfolyam-alap, névnaptár (nameday.abalin.net országkódja; null = nincs).
-const LOCALES = {
-  hu: { city: 'Budapest', fx: 'HUF', nd: 'hu', feeds: [{ name: 'Telex', url: 'https://telex.hu/rss' }, { name: 'HVG', url: 'https://hvg.hu/rss' }, { name: '444', url: 'https://444.hu/feed' }] },
-  en: { city: 'London', fx: 'GBP', nd: 'us', feeds: [{ name: 'BBC News', url: 'https://feeds.bbci.co.uk/news/rss.xml' }, { name: 'The Guardian', url: 'https://www.theguardian.com/world/rss' }] },
-  de: { city: 'Berlin', fx: 'EUR', nd: 'de', feeds: [{ name: 'tagesschau', url: 'https://www.tagesschau.de/xml/rss2/' }, { name: 'SPIEGEL', url: 'https://www.spiegel.de/schlagzeilen/index.rss' }] },
-  es: { city: 'Madrid', fx: 'EUR', nd: 'es', feeds: [{ name: 'RTVE', url: 'https://www.rtve.es/api/noticias.rss' }, { name: 'El País', url: 'https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada' }] },
-  fr: { city: 'Paris', fx: 'EUR', nd: 'fr', feeds: [{ name: 'Le Monde', url: 'https://www.lemonde.fr/rss/une.xml' }, { name: 'France 24', url: 'https://www.france24.com/fr/rss' }] },
-};
-const LOCAL = LOCALES[uiLang] || LOCALES.en;
+// A felület nyelvéhez illő alapértékek (a nyelvfájl "@lang" adataiból; a felhasználó beállításai ezeket
+// felülírják): időjárás-település, hírforrások, árfolyam-alap, névnaptár (nameday.abalin.net országkódja).
+const LOCAL = { city: LANG.city, fx: LANG.fx, nd: LANG.nameday, feeds: LANG.news || [] };
 const DAYS_SHORT = weekdayNames('short');
 
 /** Város → koordináták (Open-Meteo geokódolás, magyar nevekkel). → [{ name, admin, country, lat, lon }] */
@@ -692,7 +685,7 @@ Object.assign(UNITS, {
       return `<ul class="d-fx d-trim">${fx.rows
         .map((r) => {
           const ch = r.p ? ((r.v - r.p) / r.p) * 100 : 0;
-          return `<li><span class="fx-c">${r.c}</span>${wide ? `<span class="fx-n muted">${esc(r.n)}</span>` : ''}<b class="fx-v">${fmtMoney(r.v)}</b>${r.p ? `<span class="fx-d ${ch > 0.005 ? 'up' : ch < -0.005 ? 'down' : ''}">${ch > 0.005 ? '▲' : ch < -0.005 ? '▼' : '='} ${Math.abs(ch).toFixed(2)}%</span>` : ''}</li>`;
+          return `<li><span class="fx-c">${r.c}</span>${wide ? `<span class="fx-n muted">${esc(r.n)}</span>` : ''}<b class="fx-v">${fmtMoney(r.v)}</b>${r.p ? `<span class="fx-d ${ch > 0.005 ? 'up' : ch < -0.005 ? 'down' : ''}">${ch > 0.005 ? '▲' : ch < -0.005 ? '▼' : '='} ${fmtNum(Math.abs(ch), 2)}%</span>` : ''}</li>`;
         })
         .join('')}</ul><p class="muted small d-fx-src">${_t('EKB referencia-árfolyam · {esc}', { esc: esc(fx.date) })}</p>`;
     },
@@ -902,7 +895,7 @@ Object.assign(UNITS, {
         <li><span class="d-sun-ico">🌅</span><span>${_t('Napkelte')}</span><b>${hm(x.d.sunrise?.[0])}</b></li>
         <li><span class="d-sun-ico">🌇</span><span>${_t('Napnyugta')}</span><b>${hm(x.d.sunset?.[0])}</b></li>
         ${len ? `<li><span class="d-sun-ico">☀️</span><span>${_t('Nappal')}</span>${_t('<b>{floor} ó {round} p</b>', { floor: Math.floor(len / 3600), round: Math.round((len % 3600) / 60) })}</li>` : ''}
-        ${uv != null ? `<li><span class="d-sun-ico">🕶️</span><span>${_t('UV-index')}</span><b>${uv.toFixed(1)} <small class="muted">${uvTxt}</small></b></li>` : ''}
+        ${uv != null ? `<li><span class="d-sun-ico">🕶️</span><span>${_t('UV-index')}</span><b>${fmtNum(uv, 1)} <small class="muted">${uvTxt}</small></b></li>` : ''}
         ${aq ? `<li><span class="d-sun-ico">🍃</span><span>${_t('Levegő')}</span><b style="color:${aq[2]}">${esc(aq[1])} <small class="muted">(${Math.round(aqi)}${x.air.pm2_5 != null ? `, PM2,5: ${Math.round(x.air.pm2_5)}` : ''})</small></b></li>` : ''}
       </ul><p class="muted small d-sun-src">${_t('{esc} · Open-Meteo', { esc: esc(x.loc.name) })}</p>`;
     },
@@ -1046,7 +1039,11 @@ export function renderDashboard(view) {
   const ED = (a, t, ico, dis = false) => `<button class="ed-btn" data-ed="${a}" title="${t}" ${dis ? 'disabled' : ''}>${ico}</button>`;
 
   view.innerHTML = `<div class="page dash-page ${editing ? 'editing' : ''}">
-    <div class="dash-head"><h1>${esc(greeting())}, ${esc(p.name)}!</h1><span class="muted">${d.toLocaleDateString(LOCALE, { month: 'long', day: 'numeric' })}, ${DAYS[d.getDay()]}</span>
+    <div class="dash-head"><h1>${
+      // (az alapértelmezett „Én” nevű profilnál név nélkül – a „Szép napot, Én!” furcsa; a tárolt név
+      // a létrehozáskori nyelven van, ezért a magyar alakot is figyeljük)
+      p.name && p.name !== 'Én' && p.name !== _t('Én') ? `${esc(greeting())}, ${esc(p.name)}!` : `${esc(greeting())}!`
+    }</h1><span class="muted">${esc(fmtDay(d))}</span>
       ${canRemote && !editing ? `<button class="btn small dash-rc-btn" data-dash-rc title="${_t('Telefon csatlakoztatása távirányítóként (QR-kód)')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H8a3 3 0 0 0-3 3v16a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V4a3 3 0 0 0-3-3Zm1 19a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16Zm-5-3a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Z"/></svg>${_t('Távirányító')}</button>` : ''}
       <button class="btn small dash-edit-btn" data-ed="toggle">${editing ? `${_t('{check} Kész', { check: ICON.check })}` : _t('Testreszabás')}</button></div>
     ${

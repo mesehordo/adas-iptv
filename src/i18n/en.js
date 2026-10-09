@@ -1,5 +1,30 @@
-// Adás – en fordítás (a kulcs a magyar szöveg; generált, lásd i18n.js)
+// Adás – English (en). A kulcs a magyar szöveg, az érték a fordítás; ami hiányzik, angolul jelenik meg.
+// "@lang": a nyelv adatai (név, formázás, ország és a hozzá illő alapértékek) – lásd src/i18n/index.js.
 export default {
+ "@lang": {
+  "name": "English",
+  "locale": "en-GB",
+  "country": "GB",
+  "epg": "gb",
+  "city": "London",
+  "fx": "GBP",
+  "nameday": "us",
+  "news": [
+   {
+    "name": "BBC News",
+    "url": "https://feeds.bbci.co.uk/news/rss.xml"
+   },
+   {
+    "name": "The Guardian",
+    "url": "https://www.theguardian.com/world/rss"
+   }
+  ],
+  "wiki": {
+   "film": "film",
+   "series": "series",
+   "tv": "TV channel"
+  }
+ },
  "A letöltött fájl túl nagy": "The downloaded file is too large",
  "A tömörített fájl itt nem bontható ki": "The compressed file can’t be unpacked here",
  "böngésző tárhely": "browser storage",
@@ -1055,7 +1080,6 @@ export default {
  "Nem működő csatornák a héten": "Channels not working this week",
  "Kedvenc vagy nemrég nézett csatornák, amelyeknek az elmúlt héten egyik forrása sem működött. Érdemes megnézni, nincs-e másik listában ugyanez a csatorna.": "Favourite or recently watched channels none of whose sources worked in the past week. It’s worth checking whether the same channel is in another list.",
  "Másik forrás keresése": "Find another source",
- "Újra próbálom": "Try again",
  "{esc} profil ·": "{esc} profile ·",
  "óta": "since",
  "A statisztika gyűjtése ki van kapcsolva ennél a profilnál.": "Statistics collection is switched off for this profile.",
@@ -1417,13 +1441,11 @@ export default {
  "Szűrés ország, nyelv, kategória szerint ›": "Filter by country, language, category ›",
  "Műsorok": "Programmes",
  "VOD – filmek és sorozatok": "VOD – films and series",
- "Mind ({length})": "All ({length})",
  "Keresés: {q}": "Search: {q}",
  "Nincs találat": "No results",
  "Próbálj rövidebb vagy más kifejezést.": "Try a shorter or different term.",
  "Hírek, közélet": "News, current affairs",
  "Ismeretterjesztő": "Documentary",
- "Ugrás most-ra": "Jump to now",
  "Műsorkategória": "Programme category",
  "Minden műsor": "All programmes",
  "Idővonal": "Timeline",
@@ -1613,7 +1635,6 @@ export default {
  "▦ Csempék": "▦ Tiles",
  "Fülek": "Tabs",
  "☰ Fülek": "☰ Tabs",
- "Keresés a beállítások között (pl. felirat, téma, szinkron)…": "Search settings (e.g. subtitles, theme, sync)…",
  "Keresés a beállítások között": "Search settings",
  "‹ Minden beállítás": "‹ All settings",
  "Nincs ilyen beállítás. Próbálj más szót, vagy nézd meg a": "No such setting. Try another word, or look in the",
@@ -1891,7 +1912,6 @@ export default {
  "korlátlan nézési idő": "unlimited viewing time",
  "korhatár {maxAge} év": "age limit {maxAge}",
  "nincs korhatár": "no age limit",
- "Most a TV-ben": "On TV now",
  "{country} csatornái": "Channels of {country}",
  "https://… RSS-cím": "https://… RSS address",
  "https://példa.hu/live/index.m3u8": "https://example.com/live/index.m3u8",
@@ -1929,5 +1949,24 @@ export default {
  "Téma-mappa: {dir}": "Theme folder: {dir}",
  "Kész: {length} csatorna ({diff} új)": "Done: {length} channels ({diff} new)",
  "Kész: {length} csatorna ({x} eltűnt)": "Done: {length} channels ({x} gone)",
- "Utána: {time} {title}": "Next: {time} {title}"
+ "Utána: {time} {title}": "Next: {time} {title}",
+ "Nincs böngésző ehhez a címhez.": "No browser for this address.",
+ "Megnyitás ezzel": "Open with",
+ "Nincs videólejátszó telepítve (pl. VLC).": "No video player installed (e.g. VLC).",
+ "Fájl kiválasztása": "Choose a file",
+ "Ezen az eszközön nincs fájlkezelő.": "There is no file manager on this device.",
+ "A mentés itt nem érhető el.": "Saving is not available here.",
+ "Lejátszás a háttérben": "Background playback",
+ "Amíg az Adás a háttérben szól": "While Adás plays in the background",
+ "{n} perc múlva kezdődik": "Starts in {n} min",
+ "Műsor-emlékeztetők": "Programme reminders",
+ "Értesítés a megjelölt műsorok kezdetéről": "Notification when marked programmes start",
+ "Összes ({length})": "All ({length})",
+ "Ugrás a mostani időre": "Jump to now",
+ "Keresés a beállításokban…": "Search settings…",
+ "pl. felirat, téma, szinkron": "e.g. subtitles, theme, sync",
+ "Vágás": "Trim",
+ "Vágva": "Trimmed",
+ "Megnyitás": "Open",
+ "{length} csatorna · a sorrend adja a csatornaszámokat; áthelyezés: hosszan nyomva húzd a kártyát a helyére": "{length} channels · the order gives the channel numbers; move them by pressing and holding a card and dragging it into place"
 };

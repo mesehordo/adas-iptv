@@ -3,7 +3,8 @@ import { $, $$, esc, norm, debounce } from './util.js';
 import { _t, lang } from './i18n.js';
 
 // A súgó szövege nyelvenként külön modul, csak megnyitáskor töltődik be. (Szó szerinti importok:
-// a tévés csomag esbuild-je így be tudja csomagolni őket.)
+// a tévés csomag esbuild-je így be tudja csomagolni őket.) Nyelv nélküli súgónál, illetve a nyelvi
+// modulból hiányzó témáknál és témakör-címeknél az angol szöveg jelenik meg.
 const LOADERS = {
   hu: () => import('./help-content.js'),
   en: () => import('./help/en.js'),
@@ -16,9 +17,15 @@ let ARTICLES = [];
 let byId = new Map();
 let loading = null;
 const loadHelp = () =>
-  (loading ||= (LOADERS[lang] || LOADERS.hu)().then((m) => {
-    HELP_CATEGORIES = m.HELP_CATEGORIES;
-    ARTICLES = m.ARTICLES;
+  (loading ||= Promise.all([
+    LOADERS[lang] ? LOADERS[lang]() : null,
+    lang === 'hu' || lang === 'en' ? null : LOADERS.en(),
+  ]).then(([m, en]) => {
+    m = m || en;
+    // (az angol sorrendje és teljes témalistája, benne a meglévő fordításokkal)
+    const pick = (base, own) => (base && own !== base ? base.map((x) => own.find((y) => y.id === x.id) || x) : own);
+    HELP_CATEGORIES = pick(en && en.HELP_CATEGORIES, m.HELP_CATEGORIES);
+    ARTICLES = pick(en && en.ARTICLES, m.ARTICLES);
     byId = new Map(ARTICLES.map((a) => [a.id, a]));
   }).catch((err) => {
     loading = null; // a következő megnyitás újrapróbálja

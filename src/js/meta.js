@@ -4,15 +4,9 @@ import { api } from './api.js';
 import { store } from './store.js';
 import { esc, norm } from './util.js';
 
-import { _t, LOCALE, lang as ML } from './i18n.js';
-// keresőszavak nyelvenként (Wikipédia-keresés): film, sorozat, tévécsatorna
-const KIND_WORDS = {
-  hu: { film: 'film', series: 'sorozat', tv: 'televízió' },
-  en: { film: 'film', series: 'series', tv: 'TV channel' },
-  de: { film: 'Film', series: 'Fernsehserie', tv: 'Fernsehsender' },
-  es: { film: 'película', series: 'serie de televisión', tv: 'canal de televisión' },
-  fr: { film: 'film', series: 'série télévisée', tv: 'chaîne de télévision' },
-};
+import { _t, LOCALE, LANGS, lang as ML } from './i18n.js';
+// keresőszavak nyelvenként (Wikipédia-keresés): film, sorozat, tévécsatorna – a nyelvfájlok "@lang".wiki adatai
+const KIND_WORDS = Object.fromEntries(LANGS.map((l) => [l.id, l.wiki]));
 /** A keresés nyelvei: a felület nyelve, majd az angol. */
 const META_LANGS = [...new Set([ML, 'en'])];
 // a címkékből levágandó egyértelműsítő zárójeles rész (pl. „(film, 1968)”, „(série télévisée)”)

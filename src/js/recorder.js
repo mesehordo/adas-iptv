@@ -4,7 +4,7 @@
 //    a műsorújság ideje gyakran csúszik; a fölösleg utólag levágható). Az indítás idejét a főfolyamat
 //    időzítője adja (a tálcára rejtett ablakban is pontos). Ha az adás közben megszakad, a felvétel
 //    magától folytatódik ugyanabba a fájlba.
-import { esc, toast, fmtTime, fmtDay, bus, hashHue } from './util.js';
+import { esc, toast, fmtTime, fmtDay, bus, hashHue, fmtNum } from './util.js';
 import { api } from './api.js';
 import { store } from './store.js';
 import { catalog, orderedStreams } from './catalog.js';
@@ -18,7 +18,7 @@ import { _t, LOCALE } from './i18n.js';
 export const canRecord = !!api.recStart;
 const active = new Map(); // felvétel-azonosító → { chId, title, file, sched }
 const schedule = () => (store.settings.recSchedule ||= []);
-const fmtSize = (b) => (b > 1e9 ? `${(b / 1e9).toFixed(2)} GB` : `${Math.max(0.1, b / 1e6).toFixed(1)} MB`);
+const fmtSize = (b) => (b > 1e9 ? `${fmtNum(b / 1e9, 2)} GB` : `${fmtNum(Math.max(0.1, b / 1e6), 1)} MB`);
 /** Ráhagyás percben a műsor előtt / után (Beállítások → Felvételek) */
 export const recPre = () => Math.max(0, Number(store.settings.recPre ?? 3));
 export const recPost = () => Math.max(0, Number(store.settings.recPost ?? 10));
@@ -453,9 +453,9 @@ export async function renderRecordingsPage(view) {
                     <small>${esc([info.chName, new Date(info.at).toLocaleString(LOCALE, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }), fmtSize(f.size)].filter(Boolean).join(' · '))}${pr?.done ? ` ${_t('· megnézve')}` : ''}</small></div>
                   <div class="rec-btns">
                     <button class="btn small primary" data-r-play="${i}">${_t('{play} Lejátszás', { play: ICON.play })}</button>
-                    <button class="btn small" data-r-trim="${i}" title="${f.trimmed ? _t('Vágva – újravágás az eredetiből') : _t('Vágás: a felvétel elejének / végének levágása')}">✂${f.trimmed ? ' ✓' : ''}</button>
-                    <button class="btn small" data-r-open="${i}" title="${_t('VLC, mpv… (a rendszer alapértelmezett lejátszója)')}">${ICON.external}</button>
-                    <button class="btn small danger" data-r-del="${i}" title="${_t('Törlés (a Lomtárba)')}">✕</button>
+                    <button class="btn small" data-r-trim="${i}" title="${f.trimmed ? _t('Vágva – újravágás az eredetiből') : _t('Vágás: a felvétel elejének / végének levágása')}">✂ ${f.trimmed ? _t('Vágva') : _t('Vágás')}</button>
+                    <button class="btn small" data-r-open="${i}" title="${_t('VLC, mpv… (a rendszer alapértelmezett lejátszója)')}">${ICON.external} ${_t('Megnyitás')}</button>
+                    <button class="btn small danger" data-r-del="${i}" title="${_t('Törlés (a Lomtárba)')}">✕ ${_t('Törlés')}</button>
                   </div>
                 </article>`;
               })
