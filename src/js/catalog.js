@@ -387,6 +387,12 @@ async function fetchAndBuild({ force = false, onProgress } = {}) {
         try {
           // (a lista saját frissítési gyakoriságával – Beállítások → Csatornalisták, a lista sorában)
           r = await api.fetchText(pl.url, { maxAgeHours: refreshHoursOf('tv', pl), force });
+          // Hálózati hibánál az asztali letöltő a legutóbbi példányt adja (stale): ezt jelezzük, és ha a
+          // csomag mentett listája frissebb, az látszik
+          if (r.stale) {
+            if (pl.textKey && (pl.at || 0) > (r.cachedAt || 0)) throw new Error(_t('hálózati hiba'));
+            catalog.playlistErrors[pl.id] = _t('a forrás most nem érhető el – a legutóbb letöltött példány látszik');
+          }
         } catch (err) {
           // forráscímes csomag: ha a forrás nem érhető el, a csomagban mentett lista látszik
           if (!pl.textKey) throw err;

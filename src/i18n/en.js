@@ -2024,5 +2024,8 @@ export default {
  "Mentve: a lista {h} óránként frissül.": "Saved: the list refreshes every {h} hours.",
  "az \"url\" (forráscím) csak http(s):// cím lehet": "\"url\" (source address) must be an http(s):// address",
  "az \"epg\" (műsorújság) csak http(s):// cím lehet": "\"epg\" (TV guide) must be an http(s):// address",
- "a \"refresh\" értéke {list} óra lehet": "\"refresh\" must be one of {list} hours"
+ "a \"refresh\" értéke {list} óra lehet": "\"refresh\" must be one of {list} hours",
+ "hálózati hiba": "network error",
+ "a forrás most nem érhető el – a legutóbb letöltött példány látszik": "the source is unreachable right now – showing the last downloaded copy",
+ "a tárhely egyik listája sem tölthető le": "none of the repository’s lists could be downloaded"
 };

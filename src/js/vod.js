@@ -357,24 +357,42 @@ async function loadList(pl, force) {
   if (pl.entries) return pl.entries.map((e) => ({ ...e, fileHint: '' })); // csatornalistából átvett tételek
   if (pl.asset) return parseText(await assetText(pl.asset), '', '');
   if (!pl.url) return parseText(await listText(pl), '', '');
+  // Hálózati hibánál az asztali letöltő a legutóbbi példányt adja (stale): ezt jelezzük, és ha a csomag
+  // mentett listája frissebb, az látszik (a külső catch-ben)
+  const staleNote = (r) => {
+    if (!r.stale) return;
+    if (pl.textKey && (pl.at || 0) > (r.cachedAt || 0)) throw new Error(_t('hálózati hiba'));
+    vod.errors[pl.id] = _t('a forrás most nem érhető el – a legutóbb letöltött példány látszik');
+  };
   const fromUrl = async () => {
     const files = await expandGitHub(pl.url, opts.maxAgeHours);
-    if (!files) return parseText((await api.fetchText(pl.url, opts)).text, '', pl.url);
-    // Tárhely: a fájlokat kis párhuzamossággal töltjük le.
+    if (!files) {
+      const r = await api.fetchText(pl.url, opts);
+      staleNote(r);
+      return parseText(r.text, '', pl.url);
+    }
+    // Tárhely: a fájlokat kis párhuzamossággal töltjük le (egy-egy fájl hibája nem állítja meg a többit).
     const out = [];
     let i = 0;
+    let ok = 0;
+    let stale = 0;
     const worker = async () => {
       while (i < files.length) {
         const f = files[i++];
         try {
-          const { text } = await api.fetchText(f.url, opts);
-          out.push(...parseText(text, f.name, f.url));
+          const r = await api.fetchText(f.url, opts);
+          if (r.stale) stale++;
+          out.push(...parseText(r.text, f.name, f.url));
+          ok++;
         } catch (err) {
           console.warn('VOD fájl hiba', f.url, err);
         }
       }
     };
     await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
+    // (ha egyetlen fájl sem jött le, az forráshiba – a csomag mentett listája léphet életbe)
+    if (files.length && !ok) throw new Error(_t('a tárhely egyik listája sem tölthető le'));
+    if (stale) staleNote({ stale: true, cachedAt: Infinity });
     return out;
   };
   try {
