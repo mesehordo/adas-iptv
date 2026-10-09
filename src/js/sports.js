@@ -18,12 +18,12 @@ import { _t, LOCALE, weekdayNames } from './i18n.js';
 // ---------------------------------------------------------------------------
 export const SPORTS = [
   // (a kulcsszavak a műsorújságban keresnek: magyar mellett angol, német, spanyol és francia szavak is)
-  ['soccer', _t('Labdarúgás'), '⚽', 'soccer', 'labdarúg|foci|futball|bajnokok ligája|európa-liga|konferencia-liga|nb i\\b|premier league|bundesliga|la liga|serie a|ligue 1|selejtező|fußball|fussball|(?<!american |australian |aussie rules )\\bfootball\\b(?! am[eé]ricain| australien)|f[uú]tbol|soccer|champions league|liga de campeones|ligue des champions|europa league|\\bfa cup\\b|dfb-pokal|copa del rey|coupe de france'],
+  ['soccer', _t('Labdarúgás'), '⚽', 'soccer', 'labdarúg|foci|futball|bajnokok ligája|európa-liga|konferencia-liga|nb i\\b|premier league|bundesliga|la liga|serie a|ligue 1|selejtező|fußball|fussball|^(?!.*(american|australian|aussie rules) football).*\\bfootball\\b(?! am[eé]ricain| australien)|f[uú]tbol|soccer|champions league|liga de campeones|ligue des champions|europa league|\\bfa cup\\b|dfb-pokal|copa del rey|coupe de france'],
   ['basketball', _t('Kosárlabda'), '🏀', 'basketball', 'kosárlabda|\\bnba\\b|euroliga|basketball|baloncesto|basket-?ball|\\bacb\\b'],
   ['handball', _t('Kézilabda'), '🤾', '', 'kézilabda|handball|\\behf\\b|balonmano'],
   ['waterpolo', _t('Vízilabda'), '🤽', 'water-polo', 'vízilabda|water ?polo|wasserball|waterpolo'],
   ['hockey', _t('Jégkorong'), '🏒', 'hockey', 'jégkorong|jéghoki|\\bnhl\\b|erste liga|ice hockey|eishockey|hockey sobre hielo|hockey sur glace'],
-  ['tennis', _t('Tenisz'), '🎾', 'tennis', '(?<!asztali)\\btenisz|(?<!table )(?<!tisch)\\btennis\\b(?! de (table|mesa))|\\btenis\\b(?! de mesa)|\\batp\\b|\\bwta\\b|wimbledon|roland garros|australian open|davis.?(kupa|cup)|billie jean'],
+  ['tennis', _t('Tenisz'), '🎾', 'tennis', '\\btenisz|^(?!.*table tennis).*\\btennis\\b(?! de (table|mesa))|\\btenis\\b(?! de mesa)|\\batp\\b|\\bwta\\b|wimbledon|roland garros|australian open|davis.?(kupa|cup)|billie jean'],
   ['tabletennis', _t('Asztalitenisz'), '🏓', '', 'asztalitenisz|ping-?pong|table tennis|tischtennis|\\bttbl\\b|tenis de mesa|tennis de table'],
   ['badminton', _t('Tollaslabda'), '🏸', '', 'tollaslabda|badminton|b[aá]dminton'],
   ['volleyball', _t('Röplabda'), '🏐', 'volleyball', 'röplabda|volleyball|voleibol|volley-?ball'],

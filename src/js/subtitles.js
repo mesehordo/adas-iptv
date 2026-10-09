@@ -23,9 +23,12 @@ const UA = 'Adas v1.25';
 export const SUB_LANGS = uiLang === 'hu' ? ['hu', 'en'] : [...new Set([uiLang, 'en'])];
 const LANG_FILE_RX = { hu: 'hu|hun|magyar|hungarian', en: 'en|eng|english', de: 'de|ger|deu|german|deutsch', fr: 'fr|fre|fra|french|francais', es: 'es|spa|spanish|espanol' };
 /** A videó melletti feliratfájl ezen a nyelven van-e (a fájlnév nyelvjelölése alapján). */
-// (ismeretlen nyelvnél csak a kód betűi kerülnek a mintába – a beállításból érkező szöveg nem lehet minta)
+// (a minta csak a fenti, rögzített listából jön – a beállításból érkező szöveg nem lehet minta;
+// ismeretlen nyelvhez nincs jelölt fájl)
 const fileIsLang = (code) => {
-  const rx = new RegExp(`[._ -](${LANG_FILE_RX[code] || String(code).toLowerCase().replace(/[^a-z]/g, '') || 'xx'})\\b`, 'i');
+  const alt = Object.prototype.hasOwnProperty.call(LANG_FILE_RX, code) ? LANG_FILE_RX[code] : null;
+  if (!alt) return () => false;
+  const rx = new RegExp(`[._ -](${alt})\\b`, 'i');
   return (n) => rx.test(n);
 };
 const subsLangPref = () => (SUB_LANGS.includes(store.settings.subsLang) ? store.settings.subsLang : SUB_LANGS[0]);
