@@ -709,8 +709,8 @@ async function boot() {
   // (a korábbi, nyelvválasztás előtti telepítések magyarul folytatják)
   if (!savedLang && !needsOnboarding()) {
     const l = store.settings.lang || 'hu';
-    setLanguage(l, { reload: false });
-    if (l !== lang) return void location.reload();
+    // (csak sikeres mentés után töltünk újra – nem írható tárolónál különben újratöltési hurok lenne)
+    if (setLanguage(l, { reload: false }) && l !== lang) return void location.reload();
   }
   api.setLang?.(lang);
   await loadCustomThemes().catch((err) => console.warn('Saját témák', err));

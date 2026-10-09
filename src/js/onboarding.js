@@ -14,11 +14,15 @@ const getStep = () => {
     return '';
   }
 };
+/** → sikerült-e menteni (nem írható tárolónál false). */
 const setStep = (s) => {
   try {
     if (s) localStorage.setItem(STEP_KEY, s);
     else localStorage.removeItem(STEP_KEY);
-  } catch {}
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 /** Kell-e a varázsló (még nincs mentett profil, vagy egy félbehagyott varázsló folytatódik)? */
@@ -71,11 +75,14 @@ export function runOnboarding(root) {
         const b = e.target.closest('[data-l]');
         if (b) return choose(b);
         if (!e.target.closest('[data-next]')) return;
-        setStep('profile');
+        const stepSaved = setStep('profile');
         if (sel !== lang || !savedLang) {
-          // a választás mentése; más nyelvnél újratöltés – utána a profil lépés jön
-          setLanguage(sel, { reload: sel !== lang });
-          if (sel !== lang) return;
+          // a választás mentése; más nyelvnél újratöltés – utána a profil lépés jön. Ha a tároló nem
+          // írható, nincs újratöltés (különben körbe-körbe a nyelvválasztóhoz jutna): a varázsló a mostani
+          // nyelven megy tovább, a választott nyelv pedig a beállításokba kerül (finish).
+          const langSaved = setLanguage(sel, { reload: false });
+          if (sel !== lang && stepSaved && langSaved) return void setTimeout(() => location.reload(), 150);
+          if (sel !== lang) state.lang = sel;
         }
         stepProfile();
       };
@@ -154,11 +161,13 @@ export function runOnboarding(root) {
       }
       store.activeProfileId = me.id;
       const s = store.settings;
-      s.lang = lang;
-      if (lang !== 'hu' && s.homeCountry === 'HU') {
-        s.homeCountry = homeCountryFor(lang);
+      // (a választott nyelv – nem írható tárolónál a varázsló a régi nyelven futott végig)
+      const l = state.lang || lang;
+      s.lang = l;
+      if (l !== 'hu' && s.homeCountry === 'HU') {
+        s.homeCountry = homeCountryFor(l);
         // műsorújság: a magyar források helyett a hazai ország (ennek híján a nyelv) forrása
-        const cc = EPG_CC[s.homeCountry] || { en: 'gb', de: 'de', es: 'es', fr: 'fr' }[lang];
+        const cc = EPG_CC[s.homeCountry] || { en: 'gb', de: 'de', es: 'es', fr: 'fr' }[l];
         s.epgSources = (s.epgSources || []).map((src) => ({
           ...src,
           enabled: /epg-hu\.|_HU1\./.test(src.url) ? false : cc && src.url.endsWith(`/epg-${cc}.xml.gz`) ? true : src.enabled,

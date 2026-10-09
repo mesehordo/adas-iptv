@@ -72,24 +72,30 @@ export function languageName(code) {
 }
 
 /** Nyelv mentése (újratöltés nélkül – a hívó dönti el, mikor tölt újra). */
+/** → sikerült-e menteni (nem írható tárolónál false). */
 export function saveLang(l) {
-  if (!LANGS.some((x) => x.id === l)) return;
+  if (!LANGS.some((x) => x.id === l)) return false;
   try {
     localStorage.setItem(KEY, l);
-  } catch {}
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Nyelvváltás: mentés, értesítés (az app.js a beállításokba és a főfolyamatnak is továbbadja), majd
- * újratöltés – a felület minden szövege az új nyelven épül fel újra.
+ * újratöltés – a felület minden szövege az új nyelven épül fel újra. Ha a választás nem menthető,
+ * nem tölt újra (különben a régi nyelvvel indulna). → sikerült-e menteni
  */
 export function setLanguage(l, { reload = true } = {}) {
-  if (!LANGS.some((x) => x.id === l)) return;
-  saveLang(l);
+  if (!LANGS.some((x) => x.id === l)) return false;
+  const saved = saveLang(l);
   try {
     window.dispatchEvent(new CustomEvent('adas-lang', { detail: l }));
   } catch {}
-  if (reload && l !== lang) setTimeout(() => location.reload(), 150);
+  if (reload && saved && l !== lang) setTimeout(() => location.reload(), 150);
+  return saved;
 }
 
 /** A lap elemeinek fordítása: data-i18n (szöveg), data-i18n-title, data-i18n-aria, data-i18n-ph (placeholder). */
