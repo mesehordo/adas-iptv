@@ -1239,12 +1239,29 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 <div class="note">A TV’s built-in player (webOS) decides itself how much to keep; there, rewinding may be shorter or missing, depending on the broadcaster.</div>`,
   },
   {
+    id: 'sport-page',
+    cat: 'watch',
+    title: 'Sport page',
+    keywords: 'sport page live score match fixtures schedule table standings league team sports channel on tv now menu turn off reminder',
+    body: `
+<p>The <b>Sport</b> item in the menu bar (next to TV and VOD) is a dashboard for the sports events you follow. What you follow is set in the <b>Sports tracker</b>: Settings → <i>Sport</i> → <i>Open sports tracker</i>, or the <i>⚙ What do I follow?</i> button at the top of the page. ${t('sportwatch', 'Sports tracker')}</p>
+<table class="help-table">
+<tr><td><b>Sports</b></td><td>At the top, a button for each followed sport: it narrows every card to that sport (<i>All</i> shows everything).</td></tr>
+<tr><td><b>Live now</b></td><td>Events in progress with the current score; where the TV guide shows it on a channel, the channel button starts it right away. If nothing is live, the next event is shown.</td></tr>
+<tr><td><b>Sport on TV now</b></td><td>Sports programmes airing right now on the visible channels (even without following anything): favourite and home channels first, unavailable ones last.</td></tr>
+<tr><td><b>Coming up</b></td><td>Upcoming events by day (Today, Tomorrow…). For events with a channel, the 🔔 button sets a reminder.</td></tr>
+<tr><td><b>Results</b></td><td>Recent final scores, newest first.</td></tr>
+<tr><td><b>Table</b></td><td>The standings of followed ESPN leagues (football, basketball, ice hockey…); your followed team is highlighted, and the coloured mark shows qualification / relegation. Cups and individual sports have no table.</td></tr>
+</table>
+<div class="note">While an event is live the page refreshes every minute, otherwise every 5 minutes; the <i>Refresh</i> button reloads it at once. The menu item can be turned off under Settings → <i>Sport</i>; it is not shown in kids’ profiles.</div>`,
+  },
+  {
     id: 'sportwatch',
     cat: 'watch',
     title: 'Sports tracker',
     keywords: 'sport sports tracker league team match result football tennis handball water polo formula 1 disc golf world chase tag chess darts esports calendar ics thesportsdb espn channel',
     body: `
-<p>The Sports tracker is for following any sport, league, team or competition; the home page’s <b>Sport</b> unit shows their live, recent and upcoming events. To open it: <i>Sports tracker ›</i> in the Sport unit’s header, or Settings → Home → <i>Open Sports tracker</i>.</p>
+<p>The Sports tracker is for following any sport, league, team or competition; the home page’s <b>Sport</b> unit shows their live, recent and upcoming events. To open it: Settings → <i>Sport</i> → <i>Open sports tracker</i>, the <i>⚙ What do I follow?</i> button on the <b>Sport</b> page, or (with the Sport menu item turned off) <i>Sports tracker ›</i> in the Sport unit’s header. ${t('sport-page', 'Sport page')}</p>
 <p>The window’s tabs:</p>
 <table class="help-table">
 <tr><td><b>Followed</b></td><td>Everything you follow, grouped by sport. Each can be switched on/off or deleted.</td></tr>

@@ -20,6 +20,8 @@ import { renderHuSettings } from './subtitles.js';
 import { exoAvailable } from './exo.js';
 import { renderKidsSettings } from './kidsui.js';
 import { renderDashSettings } from './dashboard.js';
+import { watchList } from './sports.js';
+const sportWatchCount = () => watchList().filter((w) => w.on !== false).length;
 import { requireAdult, hasPin, choosePin, setPin } from './pin.js';
 import { renderTransfer, importData, attachDocs, restoreDocs } from './transfer.js';
 import { renderRecordings } from './recorder.js';
@@ -860,6 +862,12 @@ export function renderSettings(view) {
         .join('')}</select></label>
     </section>
 
+    <section class="set-section" id="sport" data-g="sport"><h2>${_t('Sport')} <button class="help-link" data-help="sport-page" title="${_t('Súgó')}">?</button></h2>
+      ${toggle('sportMenu', _t('Sport menüpont'), _t('A menüsoron a TV és a VOD mellett: élő eredmények, a tévében most futó sportműsorok, menetrend, eredmények és tabella a követett tételekből. Gyerekprofilban nem látszik.'))}
+      <div class="setting"><span>${_t('<b>Sportfigyelő</b>')}<small>${_t('Mit követsz: bajnokságok, csapatok, sportágak a tévében, versenynaptárak – és a forrásokhoz tartozó beállítások (időszak, csatornaajánlás, TheSportsDB-kulcs). Jelenleg: {n} követett tétel.', { n: sportWatchCount() })}</small></span>
+        <a class="btn small" href="#sportwatch">${_t('Sportfigyelő megnyitása')}</a></div>
+    </section>
+
     <section class="set-section" id="data" data-g="data"><h2>${_t('Profilok és mentés')} <button class="help-link" data-help="backup" title="${_t('Súgó')}">?</button></h2>
       <div class="inline"><a class="btn" href="#/profiles">${_t('Profilok kezelése')}</a>
       ${api.caps.files ? `<button class="btn" data-act="export">${_t('Mentés fájlba')}</button>
@@ -1067,6 +1075,7 @@ const SET_GROUPS = [
   ['tvlists', '📺', _t('Csatornalisták'), _t('A tévécsatornák forrásai: beépített és saját lejátszólisták, saját csatornák. Itt ellenőrizheted azt is, mely adások élnek.')],
   ['vod', '🎬', _t('VOD és médiatár'), _t('Film- és sorozatlisták, kiegészítő csomagok és a saját (NAS-) médiatár mappái. Itt rendezheted a VOD oldal sorait is.')],
   ['epg', '🗓️', _t('Műsorújság'), _t('A műsorújság forrásai és a frissítésük gyakorisága. Itt látod azt is, melyik forrás hány csatornát fed le.')],
+  ['sport', '🏆', _t('Sport'), _t('A Sport oldal és a Sportfigyelő: milyen bajnokságokat, csapatokat, sportágakat követsz. Itt kapcsolhatod ki a Sport menüpontot is.')],
   ['kids', '👪', _t('Tartalom és gyerekek'), _t('A hazai ország, a felnőtt tartalom és a nyelvek. Itt állíthatod be, mit nézhetnek a gyerekprofilok.')],
   ['notify', '🔔', _t('Értesítések'), _t('Emlékeztetők a kedvenc műsoraidra, automatikus átkapcsolás. Itt dől el az is, hogy az Adás a háttérben fusson-e.')],
   ['remote', '📱', _t('Távirányító és billentyűk'), _t('A telefon távirányítóként (QR-kóddal csatlakozik). Itt találod a billentyűzet és a tévé-távirányító gombjait is.')],

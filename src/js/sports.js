@@ -9,8 +9,8 @@ import { esc, toast, fmtTime, norm, debounce, html } from './util.js';
 import { api } from './api.js';
 import { store } from './store.js';
 import { epg } from './epg.js';
-import { visible, homeRank, rankScore, catalog } from './catalog.js';
-import { openModal, confirmDialog } from './components.js';
+import { visible, homeRank, rankScore, catalog, channelStatus } from './catalog.js';
+import { openModal, confirmDialog, ICON } from './components.js';
 
 // ---------------------------------------------------------------------------
 import { _t, LOCALE, weekdayNames } from './i18n.js';
@@ -64,7 +64,8 @@ export const SPORTS = [
 ];
 const SPORT = Object.fromEntries(SPORTS.map(([id, name, ico, espn, kw]) => [id, { id, name, ico, espn, kw }]));
 const ESPN_TO = { 'australian-football': 'aussie', baseball: 'baseball', basketball: 'basketball', cricket: 'cricket', 'field-hockey': 'floorball', football: 'americanfootball', golf: 'golf', hockey: 'hockey', lacrosse: 'aussie', mma: 'combat', racing: 'motorsport', rugby: 'rugby', 'rugby-league': 'rugby', soccer: 'soccer', tennis: 'tennis', volleyball: 'volleyball', 'water-polo': 'waterpolo' };
-const sportOf = (id) => SPORT[id] || SPORT.other;
+/** Sportág adatai: { id, name, ico, espn, kw } (ismeretlennél az „Egyéb”). */
+export const sportOf = (id) => SPORT[id] || SPORT.other;
 const userKw = (s) =>
   String(s || '')
     .slice(0, 200)
@@ -150,13 +151,15 @@ function loadCatalog() {
 const json = async (url, hours) => JSON.parse((await api.fetchText(url, { maxAgeHours: hours })).text);
 const ym = (t) => new Date(t).toISOString().slice(0, 7).replace('-', '');
 const cfg = () => ({ back: store.settings.sportBack ?? 2, ahead: store.settings.sportAhead ?? 7 });
+// Élő állásnál (a Sport oldal frissítése) az aktuális eredménylista legfeljebb 1 perces lehet
+let fresh = false;
 
 async function loadEspn(w) {
   const { back, ahead } = cfg();
   const now = Date.now();
   const base = `https://site.api.espn.com/apis/site/v2/sports/${w.ref}/scoreboard`;
   const urls = [base, ...new Set([ym(now - back * 864e5), ym(now), ym(now + ahead * 864e5)])].map((m, i) => (i === 0 ? m : `${base}?dates=${m}&limit=400`));
-  const parts = await Promise.all(urls.map((u) => json(u, 0.15).catch(() => ({ events: [] }))));
+  const parts = await Promise.all(urls.map((u, i) => json(u, i === 0 && fresh ? 1 / 60 : 0.15).catch(() => ({ events: [] }))));
   const seen = new Set();
   const lg = parts.find((p) => p.leagues?.[0])?.leagues?.[0];
   const out = [];
@@ -339,6 +342,61 @@ export function channelFor(ev) {
   return best ? { id: best.ch.id, name: best.ch.name, start: best.p.start, title: best.p.title, sure: best.score >= 3 } : null;
 }
 
+/**
+ * Most futó sportműsorok a tévében (sportcsatorna vagy sport kategóriájú műsor), csatornánként egy,
+ * a kedvenc / hazai csatornák elöl, a nem elérhetők a végén. → [{ ch, p }]
+ */
+export function sportOnTvNow(limit = 12) {
+  const now = Date.now();
+  const seen = new Set();
+  return epgIndex()
+    .filter((x) => x.sporty && x.p.start <= now && x.p.stop > now && norm(x.p.title) !== norm(x.ch.name))
+    .sort((a, b) => (channelStatus(a.ch) === 'bad') - (channelStatus(b.ch) === 'bad') || b.bonus - a.bonus || rankScore(b.ch) - rankScore(a.ch))
+    .filter((x) => !seen.has(x.ch.id) && seen.add(x.ch.id))
+    .slice(0, limit);
+}
+
+/** A követett ESPN-bajnokságok (tabellához): [{ ref, name, sport, teams: Set(csapat-azonosító) }] */
+export function followedLeagues() {
+  const m = new Map();
+  for (const w of watchList()) {
+    if (w.kind !== 'espn' || w.on === false || !w.ref) continue;
+    const x = m.get(w.ref) || { ref: w.ref, name: w.name, sport: w.sport, teams: new Set() };
+    if (w.team) x.teams.add(String(w.team));
+    m.set(w.ref, x);
+  }
+  return [...m.values()];
+}
+
+/**
+ * Tabella (ESPN): [{ name, rows: [{ id, team, logo, note, color, stats: { név: kiírt érték } }] }]
+ * – csoportonként (pl. NBA: Keleti / Nyugati főcsoport). Ha a bajnokságnak nincs tabellája: [].
+ */
+export async function loadStandings(ref) {
+  const j = await json(`https://site.api.espn.com/apis/v2/sports/${ref}/standings`, 1);
+  const groups = j.children || (j.standings ? [j] : []);
+  const num = (e, k) => Number(e.stats?.find((s) => s.name === k)?.value);
+  return groups
+    .map((g) => {
+      const entries = (g.standings?.entries || []).slice();
+      // a sorrend: helyezés, ennek híján rájátszás-kiemelés, majd győzelmi arány
+      const key = ['rank', 'playoffSeed'].find((k) => entries.every((e) => Number.isFinite(num(e, k))));
+      entries.sort((a, b) => (key ? num(a, key) - num(b, key) : (num(b, 'winPercent') || 0) - (num(a, 'winPercent') || 0)));
+      return {
+        name: g.name || '',
+        rows: entries.map((e) => ({
+          id: String(e.team?.id || ''),
+          team: e.team?.shortDisplayName || e.team?.displayName || '',
+          logo: e.team?.logos?.[0]?.href || '',
+          note: e.note?.description || '',
+          color: /^#[0-9a-f]{3,8}$/i.test(e.note?.color || '') ? e.note.color : '',
+          stats: Object.fromEntries((e.stats || []).map((s) => [s.name, s.displayValue ?? String(s.value ?? '')])),
+        })),
+      };
+    })
+    .filter((g) => g.rows.length);
+}
+
 // ---------------------------------------------------------------------------
 // Az összes követett tétel eseményei (gyorsítótárazva)
 // ---------------------------------------------------------------------------
@@ -350,10 +408,12 @@ export const sportErrors = () => cache.errors;
 /** Elavult-e a gyorsítótár (5 perc, vagy azóta betöltődött a műsorújság – a csatornaajánláshoz). */
 export const sportStale = () => !cache.events || cache.ek !== dataKey() || Date.now() - cache.at > 5 * 60e3;
 
-export function loadSportEvents(force = false) {
+/** force: a gyorsítótár mellőzése; live: az élő állás friss (legfeljebb 1 perces) legyen. */
+export function loadSportEvents(force = false, { live = false } = {}) {
   const ek = dataKey();
   if (!force && cache.events && cache.ek === ek && Date.now() - cache.at < 5 * 60e3) return Promise.resolve(cache.events);
   if (loading) return loading;
+  fresh = live;
   loading = (async () => {
     const errors = {};
     const { back, ahead } = cfg();
@@ -392,7 +452,8 @@ export function loadSportEvents(force = false) {
 // ---------------------------------------------------------------------------
 // Megjelenítés: egy esemény sora (a főoldali Sport egységben)
 // ---------------------------------------------------------------------------
-const dayLbl = (t) => {
+/** Nap mondat közepére: ma, holnap, tegnap, a hét napja, távolabb dátum. */
+export const dayLbl = (t) => {
   const d = new Date(t);
   const t0 = new Date();
   const diff = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(t0.getFullYear(), t0.getMonth(), t0.getDate())) / 864e5);
@@ -406,11 +467,13 @@ function shortLg(s) {
   const w = s.split(/[\s\-–,.]+/).filter((x) => x && !/^(of|the|de|a|az)$/i.test(x));
   return w.length > 1 ? w.slice(0, 4).map((x) => (/^\d/.test(x) ? x : x[0].toUpperCase())).join('') : s.slice(0, 5) + '.';
 }
-export function eventRowHtml(e, { logos = true, channels = true } = {}) {
+/** remind: a közelgő, csatornával talált eseményhez emlékeztető gomb (🔔); time: csak az időpont (napra bontott listában). */
+export function eventRowHtml(e, { logos = true, channels = true, remind = false, time = false } = {}) {
   const sp = sportOf(e.sport);
   const live = e.state === 'in';
-  const when = live ? `<span class="live-badge">${_t('ÉLŐ')}</span> ${esc(e.detail || '')}` : e.state === 'pre' ? `${dayLbl(e.start)} ${e.allDay ? '' : fmtTime(e.start)}` : esc(e.detail || dayLbl(e.start));
+  const when = live ? `<span class="live-badge">${_t('ÉLŐ')}</span> ${esc(e.detail || '')}` : e.state === 'pre' ? `${time ? '' : dayLbl(e.start)} ${e.allDay ? (time ? _t('egész nap') : '') : fmtTime(e.start)}` : esc(e.detail || dayLbl(e.start));
   const ch = channels && e.state !== 'post' ? channelFor(e) : null;
+  const rem = remind && ch && e.state === 'pre' ? store.hasReminder(ch.id, ch.start) : null;
   const head = e.home
     ? `<span class="sp-team home">${esc(e.home)}${logos && e.logoH ? `<img src="${esc(e.logoH)}" alt="" loading="lazy" onerror="this.remove()" />` : ''}</span>
        <b class="sp-score">${e.state === 'pre' ? '–' : `${esc(e.hs ?? '')} : ${esc(e.as ?? '')}`}</b>
@@ -418,7 +481,7 @@ export function eventRowHtml(e, { logos = true, channels = true } = {}) {
     : `<span class="sp-title">${esc(e.title)}</span>`;
   return `<li class="${e.state} ${e.home ? 'vs' : 'ev'}"><span class="sp-lg" title="${esc(sp.name)} · ${esc(e.leagueName || '')}">${sp.ico}<small>${esc(shortLg(e.league))}</small></span>
     ${head}
-    <small class="sp-when muted">${when}${ch ? ` <button class="sp-ch ${ch.sure ? '' : 'maybe'}" data-play="${esc(ch.id)}" title="${esc(ch.title)} – ${fmtTime(ch.start)}${ch.sure ? '' : ` ${_t('(valószínű)')}`}">📺 ${esc(ch.name)}</button>` : ''}</small></li>`;
+    <small class="sp-when muted">${when}${ch ? ` <button class="sp-ch ${ch.sure ? '' : 'maybe'}" data-play="${esc(ch.id)}" title="${esc(ch.title)} – ${fmtTime(ch.start)}${ch.sure ? '' : ` ${_t('(valószínű)')}`}">📺 ${esc(ch.name)}</button>` : ''}${rem !== null ? ` <button class="sp-rem ${rem ? 'on' : ''}" data-rem-ch="${esc(ch.id)}" data-rem-start="${ch.start}" title="${rem ? _t('Emlékeztető törlése') : _t('Emlékeztető')}" aria-label="${rem ? _t('Emlékeztető törlése') : _t('Emlékeztető')}">${ICON.bell}</button>` : ''}</small></li>`;
 }
 
 // ---------------------------------------------------------------------------

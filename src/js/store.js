@@ -158,6 +158,7 @@ const DEFAULT_SETTINGS = {
   playbackEngine: 'auto', // 'auto' | 'native' | 'hlsjs' – auto: TV-n a beépített lejátszó, máshol hls.js
   hideOffline: false,
   autoCheck: true,
+  sportMenu: true, // Sport menüpont (a TV, VOD mellett) – Beállítások → Sport
   heroPreview: true,  resumeLast: false,
   showAdult: false,
   mediaBridge: true, // asztali: FFmpeg-híd az AC3/DTS hanghoz, beágyazott feliratokhoz, régi formátumokhoz

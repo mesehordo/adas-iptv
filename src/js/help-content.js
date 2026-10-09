@@ -1239,12 +1239,29 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
 <div class="note">A tévék beépített lejátszója (webOS) maga dönt arról, mennyit tárol; ott a visszatekerés az adótól függően rövidebb lehet vagy hiányozhat.</div>`,
   },
   {
+    id: 'sport-page',
+    cat: 'watch',
+    title: 'Sport oldal',
+    keywords: 'sport oldal élő eredmény állás meccs menetrend tabella táblázat bajnokság csapat sportcsatorna most a tévében menüpont kikapcsolás emlékeztető',
+    body: `
+<p>A menüsor <b>Sport</b> pontja (a TV és a VOD mellett) egy irányítópult a követett sporteseményekhez. Mit követsz, azt a <b>Sportfigyelőben</b> adod meg: Beállítások → <i>Sport</i> → <i>Sportfigyelő megnyitása</i>, vagy az oldal tetején a <i>⚙ Mit követek?</i> gomb. ${t('sportwatch', 'Sportfigyelő')}</p>
+<table class="help-table">
+<tr><td><b>Sportágak</b></td><td>Fent a követett sportágak gombjai: egy sportágra szűkít minden kártyát (a <i>Mind</i> mindent mutat).</td></tr>
+<tr><td><b>Élő most</b></td><td>A most zajló események az aktuális állással; ahol a műsorújság szerint nézhető, a csatorna gombjával rögtön indul az adás. Ha nincs élő esemény, a következő látszik.</td></tr>
+<tr><td><b>Sport a tévében most</b></td><td>A látható csatornákon éppen futó sportműsorok (követés nélkül is): a kedvenc és a hazai csatornák elöl, a nem elérhetők a végén.</td></tr>
+<tr><td><b>Következik</b></td><td>A közelgő események napokra bontva (Ma, Holnap…). A csatornával talált eseményekhez a 🔔 gombbal emlékeztető kérhető.</td></tr>
+<tr><td><b>Eredmények</b></td><td>A friss végeredmények, a legújabb elöl.</td></tr>
+<tr><td><b>Tabella</b></td><td>A követett ESPN-bajnokságok táblázata (foci, kosárlabda, jégkorong…); a követett csapat kiemelve, a színes jel a továbbjutást / kiesést mutatja. Kupáknál és egyéni sportágaknál nincs tabella.</td></tr>
+</table>
+<div class="note">Az oldal élő esemény közben percenként, egyébként 5 percenként magától frissül; a <i>Frissítés</i> gomb azonnal újratölti. A menüpont a Beállítások → <i>Sport</i> alatt kikapcsolható; gyerekprofilban nem látszik.</div>`,
+  },
+  {
     id: 'sportwatch',
     cat: 'watch',
     title: 'Sportfigyelő',
     keywords: 'sport sportfigyelő bajnokság csapat meccs eredmény foci tenisz kézilabda vízilabda forma-1 disc golf world chase tag sakk darts esport naptár ics thesportsdb espn csatorna',
     body: `
-<p>A Sportfigyelő bármilyen sportág, bajnokság, csapat vagy verseny követésére való; a főoldal <b>Sport</b> egysége ezek élő, friss és következő eseményeit mutatja. Megnyitása: a Sport egység fejlécében a <i>Sportfigyelő ›</i>, vagy Beállítások → Főoldal → <i>Sportfigyelő megnyitása</i>.</p>
+<p>A Sportfigyelő bármilyen sportág, bajnokság, csapat vagy verseny követésére való; a főoldal <b>Sport</b> egysége ezek élő, friss és következő eseményeit mutatja. Megnyitása: Beállítások → <i>Sport</i> → <i>Sportfigyelő megnyitása</i>, a <b>Sport</b> oldal <i>⚙ Mit követek?</i> gombja, vagy (kikapcsolt Sport menüpontnál) a Sport egység fejlécében a <i>Sportfigyelő ›</i>. ${t('sport-page', 'Sport oldal')}</p>
 <p>Az ablak fülei:</p>
 <table class="help-table">
 <tr><td><b>Követett</b></td><td>Minden, amit figyelsz, sportáganként csoportosítva. Egyenként ki-be kapcsolható vagy törölhető.</td></tr>

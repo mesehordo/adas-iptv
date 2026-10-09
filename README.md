@@ -104,6 +104,15 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - Mentés és visszaállítás fájlba (beállítások, profilok, kedvencek, emlékeztetők)
 - Teljes billentyűzetes / távirányítós vezérlés (nyilak, Enter, Esc / Backspace)
 
+**Sport oldal (1.26.5)**
+- Új menüpont a TV és a VOD mellett: irányítópult a Sportfigyelőben követett tételekhez
+  - **Élő most**: a zajló események állással, egy gombnyomásra indítható csatornával
+  - **Sport a tévében most**: a látható csatornákon éppen futó sportműsorok (követés nélkül is), a nem elérhetők a végén
+  - **Következik** napokra bontva (🔔 emlékeztetővel), **Eredmények**, **Tabella** (ESPN: foci, kosárlabda, jégkorong…; a követett csapat kiemelve, továbbjutási / kiesési zónák)
+  - sportág-szűrő; élő esemény közben percenként, egyébként 5 percenként frissül
+- Beállítások → **Sport**: a menüpont kikapcsolható (gyerekprofilban nem látszik), innen nyílik a Sportfigyelő is
+- Felvétel vágása: a videó arányosan látszik (eddig egy kinagyított csík), a pozíció-csúszka a kijelölés sávján van, a műsorújság-jel minden témában látszik
+
 **Többnyelvű felület, első indítási varázsló (1.26)**
 - **Nyelvek:** magyar, angol, német, spanyol, francia – a felület, az üzenetek, a tálca / értesítések, a telefonos távirányító és a teljes súgó is (Beállítások → Megjelenés → *Nyelv / Language*; váltáskor újraindul)
 - **Első indítás:** nyelvválasztás → saját profil (név, profilkép) → gyerekprofil (átugorható); nem magyar nyelvnél a hazai ország, a műsorújság-forrás, a hírforrások és az időjárás városa is a nyelvhez igazodik
