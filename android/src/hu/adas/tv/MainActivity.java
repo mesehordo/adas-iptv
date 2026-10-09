@@ -100,6 +100,7 @@ public class MainActivity extends Activity {
   volatile String launchChannel;
   final Map<String, String[]> hostHeaders = new ConcurrentHashMap<>();
   final ExecutorService pool = Executors.newFixedThreadPool(8);
+  Covers covers; // tartós képtár (borítók, logók) – files/covers
   ValueCallback<Uri[]> fileCallback;
   int saveId;
   String saveText;
@@ -108,6 +109,7 @@ public class MainActivity extends Activity {
   protected void onCreate(Bundle state) {
     super.onCreate(state);
     instance = this;
+    covers = new Covers(new java.io.File(getFilesDir(), "covers"), (url, h) -> open(url, "GET", streamHeaders(url, h), null, 30000));
     UiModeManager ui = (UiModeManager) getSystemService(Context.UI_MODE_SERVICE);
     tv = (ui != null && ui.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION)
         || getPackageManager().hasSystemFeature(PackageManager.FEATURE_LEANBACK);
@@ -445,6 +447,11 @@ public class MainActivity extends Activity {
           else if ("probe".equals(method)) out = probeAll(a.getJSONArray("items")).toString();
           else if ("lanGet".equals(method)) out = lanGet(a.getJSONArray("urls"), a.optInt("timeout", 2500)).toString();
           else if ("lanIps".equals(method)) out = new JSONArray(LanServer.localIps()).toString();
+          else if ("coverStats".equals(method)) out = covers.stats().toString();
+          else if ("coverClear".equals(method)) {
+            covers.clear();
+            out = "true";
+          }
           else if ("shareStart".equals(method)) out = lan().shareStart(a.getString("data"), a.optInt("minutes", 15), a.optString("id", "")).toString();
           else if ("shareStop".equals(method)) {
             lan().shareStop();
@@ -741,6 +748,11 @@ public class MainActivity extends Activity {
       if (HOST.equals(u.getHost())) return asset(u.getPath());
       if ("OPTIONS".equals(method)) return simple(204, "No Content", "text/plain", new byte[0]);
       if (!"GET".equals(method) && !"HEAD".equals(method)) return null; // a POST a hídon megy
+      // képek (borítók, logók): a tartós képtárból – a WebView a proxyn átadott választ nem tárolná
+      if ("GET".equals(method) && covers != null && Covers.isImage(req.getRequestHeaders())) {
+        WebResourceResponse r = covers.get(u.toString(), req.getRequestHeaders());
+        if (r != null) return r;
+      }
       return proxy(u.toString(), method, req.getRequestHeaders());
     }
 

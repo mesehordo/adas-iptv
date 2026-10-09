@@ -3,7 +3,8 @@ const { _t, setLang, getLang } = require('./i18n-main');
 // Adás – Electron főfolyamat: ablak, gyorsítótárazott letöltés, adásfejlécek,
 // elérhetőség-ellenőrzés, fájlpárbeszédek, mini lejátszó mód.
 
-const { app, BrowserWindow, ipcMain, dialog, shell, session, net, powerSaveBlocker, Menu, Notification, Tray, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, session, net, protocol, powerSaveBlocker, Menu, Notification, Tray, nativeImage } = require('electron');
+const covers = require('./covers');
 const path = require('path');
 const fs = require('fs');
 const zlib = require('zlib');
@@ -528,11 +529,11 @@ ipcMain.handle('notify', (_e, { title, body, channelId }) => {
 ipcMain.handle('fetch-text', (_e, url, opts) => fetchText(url, opts));
 // csak http(s): a felület által adott cím ne olvashasson helyi fájlt (file:) a net.fetch-csel
 ipcMain.handle('fetch-bytes', (_e, url, opts) => {
-  let protocol = '';
+  let scheme = '';
   try {
-    protocol = new URL(String(url)).protocol;
+    scheme = new URL(String(url)).protocol;
   } catch {}
-  if (protocol !== 'http:' && protocol !== 'https:') throw new Error(_t('Érvénytelen cím'));
+  if (scheme !== 'http:' && scheme !== 'https:') throw new Error(_t('Érvénytelen cím'));
   return fetchBytes(url, opts);
 });
 
@@ -1018,7 +1019,13 @@ app.commandLine.appendSwitch('enable-blink-features', 'AudioVideoTracks');
 // A Windows értesítései az alkalmazás azonosítójához kötődnek.
 if (process.platform === 'win32') app.setAppUserModelId('hu.adas.tv');
 
+// Tartós borítótár (covers.js): az adasimg:// sémát még az app „ready” előtt kell bejegyezni.
+covers.registerScheme(protocol);
+ipcMain.handle('covers-stats', () => covers.stats());
+ipcMain.handle('covers-clear', () => covers.clear());
+
 app.whenReady().then(() => {
+  covers.install(protocol, net, dataDir());
   // macOS-en a menüsor nélkül a Cmd+C / Cmd+V / Cmd+Q sem működne: ott egy minimális menü kell.
   Menu.setApplicationMenu(
     process.platform === 'darwin'

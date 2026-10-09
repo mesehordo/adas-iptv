@@ -938,9 +938,30 @@ export function search(query, list = visible()) {
     else if (ch.nameKey.includes(full)) rank = 2;
     hits.push([rank, ch, homeRank(ch)]);
   }
-  // A pontos névegyezés marad legelöl, utána a hazai és hazai nyelvű találatok.
+  // Elsőként az elérhetőség (a működők elöl, a nem elérhetők a végén); azon belül a pontos névegyezés,
+  // utána a hazai és hazai nyelvű találatok.
   hits.sort((a, b) => (a[0] > 0) - (b[0] > 0) || b[2] - a[2] || a[0] - b[0] || a[1].name.localeCompare(b[1].name, LOCALE));
-  return hits.map((h) => h[1]);
+  return byAvailability(hits.map((h) => h[1]));
+}
+
+/**
+ * Elérhetőség szerinti fokozat: 3 – működik; 2 – még nem ellenőrzött; 1 – nem ellenőrzött, de lehet,
+ * hogy innen nem nézhető vagy épp nem sugároz (csak korlátozott / időszakos forrásai vannak);
+ * 0 – nem elérhető (offline, adásszünet, földrajzi korlát).
+ */
+export function availability(c) {
+  const st = channelStatus(c);
+  if (st === 'ok') return 3;
+  if (st === 'bad') return 0;
+  return geoState(c) || c.streams.every((s) => s.notAlways) ? 1 : 2;
+}
+
+/** Stabil rendezés elérhetőség szerint: a működők elöl, a nem elérhetők a végén; egy fokozaton belül a sorrend marad. */
+export function byAvailability(list) {
+  return list
+    .map((c, i) => [c, availability(c), i])
+    .sort((a, b) => b[1] - a[1] || a[2] - b[2])
+    .map((x) => x[0]);
 }
 
 /** Népszerűség-közelítés: működő, van logója, HD, nem korlátozott. */

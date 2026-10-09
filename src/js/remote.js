@@ -4,7 +4,7 @@
 import { $, esc, toast, bus, norm } from './util.js';
 import { api } from './api.js';
 import { store } from './store.js';
-import { catalog, getChannels, visible } from './catalog.js';
+import { catalog, getChannels, visible, byAvailability } from './catalog.js';
 import { epg } from './epg.js';
 import { player } from './player.js';
 import { openInfo, openModal } from './components.js';
@@ -221,8 +221,8 @@ function search(q) {
 function findChannels(q) {
   const t = norm(q).split(/\s+/).filter(Boolean);
   if (!t.length) return (results = null);
-  results = visible()
-    .filter((c) => t.every((w) => c.search.includes(w)))
+  // (az elérhetők elöl)
+  results = byAvailability(visible().filter((c) => t.every((w) => c.search.includes(w))))
     .slice(0, 30)
     .map(chItem);
 }

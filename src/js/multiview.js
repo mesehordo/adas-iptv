@@ -5,7 +5,7 @@ import { $, html, esc, hashHue, toast } from './util.js';
 import { api } from './api.js';
 import { store } from './store.js';
 import { epg } from './epg.js';
-import { orderedStreams, visible, getChannels, search, offlineLabel } from './catalog.js';
+import { orderedStreams, visible, getChannels, search, offlineLabel, byAvailability } from './catalog.js';
 import { Engine } from './engine.js';
 import { player } from './player.js';
 import { logoHtml, openModal } from './components.js';
@@ -202,7 +202,7 @@ function pick(i) {
     const favs = getChannels(store.profile.favorites);
     const vis = visible();
     const visSet = new Set(vis);
-    const items = q ? search(q) : [...favs.filter((c) => visSet.has(c)), ...vis.filter((c) => c.country === store.settings.homeCountry && !favs.includes(c))];
+    const items = q ? search(q) : [...favs.filter((c) => visSet.has(c)), ...byAvailability(vis.filter((c) => c.country === store.settings.homeCountry && !favs.includes(c)))];
     list.innerHTML = items
       .slice(0, 80)
       .map((c) => {

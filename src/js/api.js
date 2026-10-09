@@ -225,7 +225,7 @@ const webApi = {
     } catch {}
   },
   async appInfo() {
-    return { version: '1.26.5', dataDir: _t('böngésző tárhely'), platform: 'web' };
+    return { version: '1.27.0', dataDir: _t('böngésző tárhely'), platform: 'web' };
   },
   exit() {},
 };
@@ -330,7 +330,7 @@ const tvApi = {
   },
   notifyPermission() {},
   async appInfo() {
-    return { version: '1.26.5', dataDir: _t('TV tárhely'), platform: 'LG webOS' };
+    return { version: '1.27.0', dataDir: _t('TV tárhely'), platform: 'LG webOS' };
   },
   exit() {
     try {
@@ -381,6 +381,9 @@ const androidApi = {
   },
   fetchText: (url, opts) => cachedFetchText(url, opts, directDownload),
   request: (opts) => native('request', { method: opts.method || 'GET', url: opts.url, headers: opts.headers || {}, body: opts.body || '' }),
+  // tartós képtár (Covers.java): a képek kérése magától azon megy át; itt a mérete és az ürítése
+  coverStats: () => native('coverStats'),
+  coverClear: () => native('coverClear'),
   async setStreamHeaders(url, h) {
     try {
       window.AdasAndroid.setStreamHeaders(url, h?.ua || '', h?.referrer || '');
@@ -485,3 +488,9 @@ const androidApi = {
 };
 
 export const api = window.api || (IS_ANDROID ? androidApi : IS_WEBOS ? tvApi : webApi);
+
+/**
+ * A borítókép címe a tartós borítótárból (asztali változat: adasimg://, a főfolyamat lemezre menti).
+ * Androidon a képtár a kéréseket magától kezeli; a többi változatban a böngésző gyorsítótára marad.
+ */
+export const coverSrc = (url) => (api.coverUrl ? api.coverUrl(url) : url);
