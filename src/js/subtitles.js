@@ -23,7 +23,11 @@ const UA = 'Adas v1.25';
 export const SUB_LANGS = uiLang === 'hu' ? ['hu', 'en'] : [...new Set([uiLang, 'en'])];
 const LANG_FILE_RX = { hu: 'hu|hun|magyar|hungarian', en: 'en|eng|english', de: 'de|ger|deu|german|deutsch', fr: 'fr|fre|fra|french|francais', es: 'es|spa|spanish|espanol' };
 /** A videó melletti feliratfájl ezen a nyelven van-e (a fájlnév nyelvjelölése alapján). */
-const fileIsLang = (code) => (n) => new RegExp(`[._ -](${LANG_FILE_RX[code] || code})\\b`, 'i').test(n);
+// (ismeretlen nyelvnél csak a kód betűi kerülnek a mintába – a beállításból érkező szöveg nem lehet minta)
+const fileIsLang = (code) => {
+  const rx = new RegExp(`[._ -](${LANG_FILE_RX[code] || String(code).toLowerCase().replace(/[^a-z]/g, '') || 'xx'})\\b`, 'i');
+  return (n) => rx.test(n);
+};
 const subsLangPref = () => (SUB_LANGS.includes(store.settings.subsLang) ? store.settings.subsLang : SUB_LANGS[0]);
 
 const state = {
@@ -97,7 +101,8 @@ export function parseSubs(text) {
 // ---------------------------------------------------------------------------
 function ensureTrack(video) {
   if (!state.track) {
-    state.track = video.addTextTrack('subtitles', _t('Felirat'), LOCALE);
+    // a címke belső jelölő (az engine.js erről ismeri fel a saját sávot), a felületen nem jelenik meg – nem fordítjuk
+    state.track = video.addTextTrack('subtitles', 'Felirat', LOCALE);
   }
   return state.track;
 }
@@ -211,7 +216,8 @@ export async function osLogin() {
 // kiegészítés), majd a Kodi-kiegészítőknek szóló JSON-felület (évad, rész). Az évadcsomagok ZIP-ek.
 // ---------------------------------------------------------------------------
 const FE = 'https://feliratok.eu/index.php';
-const FE_LANG = { hu: _t('Magyar'), en: _t('Angol') };
+// (protokollértékek: a kérés `nyelv` paramétere és a válasz `language` mezője – nem fordítjuk)
+const FE_LANG = { hu: 'Magyar', en: 'Angol' };
 const feOn = () => store.settings.subsFeliratok !== false;
 // HTML-részlet → sima szöveg (a böngésző saját feldolgozójával: a címkék és a jelölések egy lépésben,
 // szkript nem fut le). A kapott szöveget megjelenítéskor mindig escape-eljük.
@@ -516,7 +522,10 @@ async function findSidecars(url) {
     if (/^https?:/.test(url) && !/\.m3u8(\?|$)/i.test(url)) {
       // Hálózati cím: a leggyakoribb elnevezések kipróbálása (nem létező fájl esetén csendben kihagyja).
       const base = url.split(/[?#]/)[0].replace(/\.[^./]+$/, '');
-      const names = ['.hu.srt', '.hun.srt', '.srt', '.en.srt', '.eng.srt'];
+      // a felület feliratnyelvei (a gyakori 2 és 3 betűs jelöléssel), plusz a jelöletlen fájl
+      const SUFFIX = { hu: ['hu', 'hun'], en: ['en', 'eng'], de: ['de', 'ger', 'deu'], fr: ['fr', 'fre', 'fra'], es: ['es', 'spa'] };
+      const tags = [...new Set(SUB_LANGS.flatMap((l) => SUFFIX[l] || [l]))];
+      const names = [...tags.slice(0, 2).map((x) => `.${x}.srt`), '.srt', ...tags.slice(2).map((x) => `.${x}.srt`)];
       const res = await Promise.all(
         names.map(async (ext) => {
           try {

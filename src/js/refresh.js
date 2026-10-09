@@ -24,8 +24,11 @@ export function refreshAll({ force = true, epgToo = true, quiet = false } = {}) 
       const diff = catalog.channels.length - before;
       if (!quiet) {
         toast(
-          `${_t('Kész: {length} csatorna', { length: catalog.channels.length })}` +
-            (diff > 0 ? ` ${_t('({diff} új)', { diff })}` : diff < 0 ? ` ${_t('({x} eltűnt)', { x: -diff })}` : '')
+          diff > 0
+            ? _t('Kész: {length} csatorna ({diff} új)', { length: catalog.channels.length, diff })
+            : diff < 0
+              ? _t('Kész: {length} csatorna ({x} eltűnt)', { length: catalog.channels.length, x: -diff })
+              : _t('Kész: {length} csatorna', { length: catalog.channels.length })
         );
       }
       if (epgToo) epg.load({ force });

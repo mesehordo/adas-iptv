@@ -107,7 +107,8 @@ export function renderKidsSettings(box) {
       const v = all.dataset.kAll;
       const p = prof(all.dataset.p);
       for (const x of ui._filtered || []) setKidsAllowed(p, state.kind, x, v === 'reset' ? null : v === '1');
-      toast(`${_t('{name}: {length} tétel –', { name: p.name, length: (ui._filtered || []).length })} ${v === 'reset' ? _t('alapértelmezés') : v === '1' ? _t('nézheti') : _t('nem nézheti')}`);
+      const vars = { name: p.name, length: (ui._filtered || []).length };
+      toast(v === 'reset' ? _t('{name}: {length} tétel – alapértelmezés', vars) : v === '1' ? _t('{name}: {length} tétel – nézheti', vars) : _t('{name}: {length} tétel – nem nézheti', vars));
       draw();
     }
   });

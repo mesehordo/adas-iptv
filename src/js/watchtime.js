@@ -146,6 +146,7 @@ export function bindLimits(box) {
     if (!p) return;
     p[sel.dataset.kl] = Number(sel.value);
     store.save();
-    toast(`${p.name}: ${sel.dataset.kl === 'dailyLimit' ? (p.dailyLimit ? `${_t('napi {dailyLimit} perc', { dailyLimit: p.dailyLimit })}` : _t('korlátlan nézési idő')) : p.maxAge ? `${_t('korhatár {maxAge} év', { maxAge: p.maxAge })}` : _t('nincs korhatár')}`);
+    const v = { name: p.name, dailyLimit: p.dailyLimit, maxAge: p.maxAge };
+    toast(sel.dataset.kl === 'dailyLimit' ? (p.dailyLimit ? _t('{name}: napi {dailyLimit} perc', v) : _t('{name}: korlátlan nézési idő', v)) : p.maxAge ? _t('{name}: korhatár {maxAge} év', v) : _t('{name}: nincs korhatár', v));
   });
 }

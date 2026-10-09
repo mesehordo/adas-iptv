@@ -20,6 +20,9 @@ const loadHelp = () =>
     HELP_CATEGORIES = m.HELP_CATEGORIES;
     ARTICLES = m.ARTICLES;
     byId = new Map(ARTICLES.map((a) => [a.id, a]));
+  }).catch((err) => {
+    loading = null; // a következő megnyitás újrapróbálja
+    throw err;
   }));
 let index = null;
 
@@ -99,7 +102,12 @@ function snippet(text, n, tokens) {
 export async function renderHelp(view, params) {
   if (!ARTICLES.length) {
     view.innerHTML = `<div class="page help"><div class="page-head"><h1>${_t('Súgó')}</h1></div></div>`;
-    await loadHelp();
+    try {
+      await loadHelp();
+    } catch {
+      if (view.isConnected) view.querySelector('.page-head')?.insertAdjacentHTML('afterend', `<p class="muted">${_t('A súgó nem tölthető be. Próbáld újra.')}</p>`);
+      return;
+    }
     if (!view.isConnected || !location.hash.startsWith('#/help')) return; // közben máshová lépett
   }
   const q = params.get('q') || '';

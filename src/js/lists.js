@@ -301,7 +301,7 @@ function pasteDialog(done) {
   const el = html(`<form class="dialog">
     <h2>${_t('Lista beillesztése')}</h2>
     <p class="muted">${_t('Másold ide egy M3U lista tartalmát (az <code>#EXTM3U</code> sorral kezdődő szöveget), vagy egyszerűen adáscímeket soronként.')}</p>
-    <label>${_t('A lista neve')}<input class="input" name="name" value="Beillesztett lista" /></label>
+    <label>${_t('A lista neve')}<input class="input" name="name" value="${esc(_t('Beillesztett lista'))}" /></label>
     <label>${_t('Tartalom')}<textarea class="input" name="text" rows="10" spellcheck="false" placeholder="${_t('#EXTM3U&#10;#EXTINF:-1 tvg-logo=&quot;…&quot; group-title=&quot;News&quot;,Csatorna neve&#10;https://…/index.m3u8')}"></textarea></label>
     <div class="dialog-btns"><button class="btn primary" type="submit">${_t('Hozzáadás')}</button><button class="btn" type="button" data-cancel>${_t('Mégse')}</button></div>
   </form>`);

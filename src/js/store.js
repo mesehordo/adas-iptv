@@ -174,9 +174,12 @@ const DEFAULT_SETTINGS = {
 /** A gyári beállítások mély másolata – a tömbök / objektumok ne legyenek közösek a mentett adatokkal. */
 const defaults = () => JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 
+/** Véletlen azonosító (8 karakter, a-z0-9) kriptográfiai forrásból. */
+const randomId = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => (b % 36).toString(36)).join('');
+
 function newProfile(name, color, kids = false) {
   return {
-    id: Math.random().toString(36).slice(2, 10),
+    id: randomId(),
     name,
     color,
     kids,
@@ -205,7 +208,7 @@ const numMap = (o) => {
  * kerülhet a mentésből jelölőkód.
  */
 export function cleanProfile(p) {
-  p.id = str(p.id, 40) || Math.random().toString(36).slice(2, 10);
+  p.id = str(p.id, 40) || randomId();
   p.name = str(p.name, 40) || '?';
   p.color = str(p.color, 40);
   p.kids = !!p.kids;

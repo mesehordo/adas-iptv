@@ -933,11 +933,24 @@ app.on('will-quit', (e) => {
 
 // Felvételek: a Videók / Adás felvételek mappába
 // ADAS_REC_DIR: más mappa (pl. teszteléshez, a valódi Videók mappa érintése nélkül)
-// (a mappa neve a felület nyelvén – de a már meglévő magyar nevű mappa marad, hogy a felvételek meglegyenek)
+// A mappa neve az első használatkor a felület nyelvén (egy már meglévő magyar nevű mappa marad), és ez a
+// választás megmarad (recdir.json), hogy nyelvváltás után is ugyanott legyenek a felvételek.
+let recDirCache = null;
 const recDir = () => {
   if (process.env.ADAS_REC_DIR) return process.env.ADAS_REC_DIR;
+  if (recDirCache) return recDirCache;
+  const saved = path.join(app.getPath('userData'), 'recdir.json');
+  try {
+    const d = JSON.parse(fs.readFileSync(saved, 'utf8')).dir;
+    if (typeof d === 'string' && path.isAbsolute(d)) return (recDirCache = d);
+  } catch {}
   const legacy = path.join(app.getPath('videos'), 'Adás felvételek');
-  return getLang() === 'hu' || fs.existsSync(legacy) ? legacy : path.join(app.getPath('videos'), _t('Adás felvételek'));
+  const local = path.join(app.getPath('videos'), _t('Adás felvételek'));
+  recDirCache = getLang() === 'hu' || fs.existsSync(legacy) ? legacy : local;
+  try {
+    fs.writeFileSync(saved, JSON.stringify({ dir: recDirCache }));
+  } catch {}
+  return recDirCache;
 };
 ipcMain.handle('rec-start', (_e, o) => media.recStart({ ...o, dir: recDir() }));
 // Ütemezett felvételek indítási ideje: a főfolyamat időzítője pontos (a tálcára rejtett ablak időzítőit a

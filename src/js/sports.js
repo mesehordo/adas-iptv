@@ -234,7 +234,7 @@ function parseIcs(text, w) {
     if (!m) continue;
     const start = m[4] ? (m[7] ? Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)) : new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5]).getTime()) : new Date(+m[1], m[2] - 1, +m[3], 9).getTime();
     const title = get('SUMMARY').replace(/\\,/g, ',').replace(/\\n/g, ' ');
-    out.push({ id: 'ics:' + w.id + ':' + start + ':' + title.slice(0, 30), sport: w.sport, league: w.name, leagueName: w.name, title, home: '', away: '', state: start > Date.now() ? 'pre' : 'post', start, allDay: !m[4], detail: get('LOCATION').replace(/\\,/g, ','), kw: [title, w.name], src: _t('Naptár') });
+    out.push({ id: 'ics:' + w.id + ':' + start + ':' + title.slice(0, 30), sport: w.sport, league: w.name, leagueName: w.name, title, home: '', away: '', state: start > Date.now() ? 'pre' : 'post', start, allDay: !m[4], detail: get('LOCATION').replace(/\\,/g, ','), kw: [title, w.name], src: _t('Naptár'), kind: 'ics' });
   }
   return out;
 }
@@ -310,6 +310,7 @@ function loadEpgWatch(w) {
     channel: { id: ch.id, name: ch.name, start: p.start, title: p.title },
     kw: [],
     src: _t('Műsorújság'),
+    kind: 'epg',
   }));
 }
 
@@ -377,9 +378,9 @@ export function loadSportEvents(force = false) {
     const events = all
       .flatMap((list) => [...list.filter((e) => e.start && inWin(e)), ...nextOf(list.filter((e) => e.start))])
       .filter((e) => !seen.has(e.id) && seen.add(e.id))
-      .map((e) => (e.state === 'pre' && e.start < now - 4 * 3600e3 && e.src === _t('Naptár') ? { ...e, state: 'post' } : e));
+      .map((e) => (e.state === 'pre' && e.start < now - 4 * 3600e3 && e.kind === 'ics' ? { ...e, state: 'post' } : e));
     // Élő → a követett bajnokságok / csapatok / naptárak közelgő eseményei → a tévében talált műsorok → friss eredmények
-    const rank = (e) => (e.state === 'in' ? 0 : e.state === 'pre' ? (e.src === _t('Műsorújság') ? 2 : 1) : 3);
+    const rank = (e) => (e.state === 'in' ? 0 : e.state === 'pre' ? (e.kind === 'epg' ? 2 : 1) : 3);
     events.sort((a, b) => rank(a) - rank(b) || (a.state === 'post' ? b.start - a.start : a.start - b.start));
     cache = { at: Date.now(), events, errors, ek };
     loading = null;

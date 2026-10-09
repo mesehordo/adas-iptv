@@ -37,7 +37,7 @@ const hostOf = (url) => {
 export const metaPaused = (url = WD) => Date.now() < (pauseUntil.get(hostOf(url)) || 0);
 
 async function getJSON(url, headers, { method, body } = {}) {
-  if (metaPaused(url)) throw new Error(_t('szünetel (túl sok kérés)'));
+  if (metaPaused(url)) throw Object.assign(new Error(_t('szünetel (túl sok kérés)')), { paused: true });
   try {
     if (headers || method) {
       const r = await api.request({ method: method || 'GET', url, headers: headers || {}, body });
@@ -126,7 +126,7 @@ const AL = 'https://graphql.anilist.co';
 const AL_FIELDS = 'id title{romaji english native} synonyms description(asHtml:false) coverImage{large} genres averageScore popularity seasonYear startDate{year} format episodes studios(isMain:true){nodes{name}} siteUrl';
 // Az AniList 404-et ad, ha egy keresett cím nincs meg – ilyenkor is a válasz többi része érvényes.
 async function alPost(query, variables) {
-  if (metaPaused(AL)) throw new Error(_t('szünetel (túl sok kérés)'));
+  if (metaPaused(AL)) throw Object.assign(new Error(_t('szünetel (túl sok kérés)')), { paused: true });
   const r = await api.request({ method: 'POST', url: AL, headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ query, variables }) });
   if (r.status === 429) {
     pauseUntil.set(hostOf(AL), Date.now() + 90e3);
@@ -372,7 +372,7 @@ export function filmInfo(x) {
   const useTmdb = !!(store.settings.tmdbKey || '').trim();
   return cached(`${useTmdb ? 'tmdb' : 'wd'}:${x.id}`, async () => {
     const got = [];
-    const safe = (p) => p.catch((err) => (metaPaused(AL) || /429|szünetel/.test(err.message) ? Promise.reject(err) : null));
+    const safe = (p) => p.catch((err) => (metaPaused(AL) || err.paused || /\b429\b/.test(err.message) ? Promise.reject(err) : null));
     const anime = isAnime(x);
     if (useTmdb) got.push(await safe(tmdbInfo(x)));
     if (!got[0] || got[0].descLang !== ML) {

@@ -114,7 +114,7 @@ export function renderThemeTools(box, onChange) {
   const draw = () => {
     const defs = allDefs();
     box.innerHTML = `<h3>${_t('Saját témák')} <button class="help-link" data-help="custom-theme" title="${_t('Súgó: saját téma készítése')}">?</button></h3>
-      <p class="muted small">${_t('Téma-fájl (.adastheme vagy .json) feltöltésével,')} ${api.themeDirRead ? _t('vagy a téma-mappába másolva') : ''} ${_t('saját kinézetet adhatsz az alkalmazásnak. A témák csak a kinézetet változtatják (színek, betűk, keretek, minták), az elrendezést nem. Leírás és minta: a ? gomb.')}</p>
+      <p class="muted small">${api.themeDirRead ? _t('Téma-fájl (.adastheme vagy .json) feltöltésével vagy a téma-mappába másolva saját kinézetet adhatsz az alkalmazásnak. A témák csak a kinézetet változtatják (színek, betűk, keretek, minták), az elrendezést nem. Leírás és minta: a ? gomb.') : _t('Téma-fájl (.adastheme vagy .json) feltöltésével saját kinézetet adhatsz az alkalmazásnak. A témák csak a kinézetet változtatják (színek, betűk, keretek, minták), az elrendezést nem. Leírás és minta: a ? gomb.')}</p>
       ${defs.length
           ? `<ul class="src-list">${defs
               .map((d) => `<li><span class="ct-sw" style="${d.preview[0] ? `background:${esc(d.preview[0])}` : ''}"><i style="${d.preview[1] ? `background:${esc(d.preview[1])}` : ''}"></i><i style="${d.preview[2] ? `background:${esc(d.preview[2])}` : ''}"></i></span>
@@ -128,7 +128,7 @@ export function renderThemeTools(box, onChange) {
         ${api.themeDirRead ? `<button class="btn small" data-ct="reload">${_t('Téma-mappa újraolvasása')}</button><button class="btn small" data-ct="opendir">${_t('Téma-mappa megnyitása')}</button><button class="btn small" data-ct="pickdir">${_t('Másik téma-mappa…')}</button>` : ''}
         ${api.saveFile ? `<button class="btn small" data-ct="template">${_t('Sablon mentése a mostani stílusból')}</button>` : ''}
       </div>
-      ${api.themeDirRead ? `<p class="muted small">${_t('Téma-mappa: <code>')}${esc(folderInfo.dir || store.settings.themeDir || _t('az adatmappa „themes” almappája'))}</code></p>` : ''}`;
+      ${api.themeDirRead ? `<p class="muted small">${_t('Téma-mappa: {dir}', { dir: `<code>${esc(folderInfo.dir || store.settings.themeDir || _t('az adatmappa „themes” almappája'))}</code>` })}</p>` : ''}`;
   };
   box.onclick = async (e) => {
     const b = e.target.closest('button');

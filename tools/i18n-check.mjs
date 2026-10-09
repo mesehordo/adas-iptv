@@ -30,7 +30,8 @@ let bad = 0;
 for (const l of LANGS) {
   const t = fs.readFileSync(path.join(root, 'src/i18n', `${l}.js`), 'utf8');
   const dict = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1));
-  const missing = [...keys].filter(([k]) => !(k in dict));
+  // (az üres fordítás is hiány: a futásidejű _t ilyenkor a magyar szöveget mutatná)
+  const missing = [...keys].filter(([k]) => !String(dict[k] ?? '').trim());
   const wrongPh = Object.entries(dict).filter(([k, v]) => ph(k) !== ph(v));
   for (const [k, w] of missing) console.log(`[${l}] hiányzik: ${JSON.stringify(k)}  (${w})`);
   for (const [k] of wrongPh) console.log(`[${l}] helyőrző eltér: ${JSON.stringify(k)}`);

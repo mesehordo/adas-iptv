@@ -106,7 +106,7 @@ export function cardHtml(ch, { context = '' } = {}) {
       </div>
       <div class="pop-line">${flag} ${esc(countryName(ch.country))}${ch.categories[0] ? ' · ' + esc(categoryName(ch.categories[0])) : ''}${q ? ` <span class="pill">${q}</span>` : ''}</div>
       ${now?.cur ? `<div class="pop-now"><b>${fmtTime(now.cur.start)}</b> ${esc(now.cur.title)}</div>` : ''}
-      ${now?.next ? `<div class="pop-next">${_t('Utána: {fmtTime} {esc}', { fmtTime: fmtTime(now.next.start), esc: esc(now.next.title) })}</div>` : ''}
+      ${now?.next ? `<div class="pop-next">${_t('Utána: {time} {title}', { time: fmtTime(now.next.start), title: esc(now.next.title) })}</div>` : ''}
     </div>
   </div>`;
 }
@@ -248,7 +248,7 @@ export function rowTitleHtml(title, href, count) {
 
 export function seeAllHtml(href, count, { poster = false } = {}) {
   if (!href) return '';
-  return `<a class="see-all ${poster ? 'sa-poster' : ''}" href="${esc(href)}" aria-label="Összes megjelenítése${count ? ` (${count})` : ''}">
+  return `<a class="see-all ${poster ? 'sa-poster' : ''}" href="${esc(href)}" aria-label="${count ? _t('Összes megjelenítése ({count})', { count }) : _t('Összes megjelenítése')}">
     <span class="sa-ico">${ICON.right}</span>${_t('<b>Összes</b>')}${count ? `<small>${_t('{count} db', { count })}</small>` : ''}</a>`;
 }
 

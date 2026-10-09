@@ -157,13 +157,13 @@ async function openShare(env, key) {
     const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(env.iv) }, key, fromB64(env.ct));
     return JSON.parse(new TextDecoder().decode(pt));
   } catch {
-    throw new Error(_t('Hibás vagy lejárt kód.'));
+    throw codeError(_t('Hibás vagy lejárt kód.'));
   }
 }
 
 async function getJson(url) {
   const r = await api.request({ url, headers: { Accept: 'application/json' } });
-  if (r.status === 404) throw new Error(_t('Hibás vagy lejárt kód.'));
+  if (r.status === 404) throw codeError(_t('Hibás vagy lejárt kód.'));
   if (r.status !== 200) throw new Error(`HTTP ${r.status}`);
   return JSON.parse(r.text);
 }
@@ -190,7 +190,7 @@ const unseal = async (data, key) => (key ? openShare(data, key) : data);
  */
 async function fetchByCode(code, onStatus) {
   const oct = Number(code.slice(0, 3));
-  if (!(oct >= 1 && oct <= 254)) throw new Error(_t('Hibás kód.'));
+  if (!(oct >= 1 && oct <= 254)) throw codeError(_t('Hibás kód.'));
   const ips = (await api.lanIps()) || [];
   const prefixes = [...new Set(ips.map((ip) => ip.split('.').slice(0, 3).join('.')))];
   if (!prefixes.length) throw new Error(_t('Ez az eszköz nincs helyi hálózaton.'));
@@ -199,7 +199,7 @@ async function fetchByCode(code, onStatus) {
   const tryUrls = async (urls, timeout) => {
     const r = await api.lanGet(urls, timeout);
     if (r?.status === 200) return { data: await unseal(JSON.parse(r.text), key), from: new URL(r.url).hostname };
-    if (r?.status === 404) throw new Error(_t('Hibás vagy lejárt kód.'));
+    if (r?.status === 404) throw codeError(_t('Hibás vagy lejárt kód.'));
     return null;
   };
   onStatus(_t('Az eszköz keresése…'));
@@ -214,6 +214,9 @@ async function fetchByCode(code, onStatus) {
   throw new Error(_t('Nem található az eszköz. Ugyanazon a hálózaton van, fut rajta az Adás, és még érvényes a kód?'));
 }
 
+/** Hibás / lejárt kód (nem érdemes más portokon próbálkozni) – jelölve, nem az üzenet szövege alapján. */
+const codeError = (msg) => Object.assign(new Error(msg), { badCode: true });
+
 /** Cím + kód → a megosztó gép beállításai. A port nélküli címnél a szokásos portokat próbálja. */
 async function fetchShared(addr, code) {
   addr = addr.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
@@ -226,7 +229,7 @@ async function fetchShared(addr, code) {
       return await unseal(await getJson(`http://${addr}${p}${path}`), key);
     } catch (err) {
       last = err;
-      if (/kód/.test(err.message)) throw err;
+      if (err.badCode) throw err;
     }
   }
   throw new Error(_t('A gép nem érhető el ({error}). Fut rajta az Adás, és el van indítva az átadás?', { error: last?.message || _t('nincs válasz') }));

@@ -277,7 +277,7 @@ export function renderFavorites(view) {
   // (a kedvenc filmekhez a filmlisták kellenek: ha még nem töltődtek be, most – a „vod” esemény újrarajzol)
   if ((p.vodFavs || []).length && !vod.ready) loadVod();
   view.innerHTML = `<div class="page">
-    <div class="page-head"><h1>${_t('Kedvencek')}</h1><span class="muted">${_t('{length} csatorna · a sorrend adja a csatornaszámokat; áthelyezés: húzással,', { length: favs.length })} ${IS_TV ? 'CH+ / CH− gombbal' : /Mac/.test(navigator.platform) ? _t('⌘← / ⌘→ billentyűvel') : _t('Ctrl+← / Ctrl+→ billentyűvel')}</span></div>
+    <div class="page-head"><h1>${_t('Kedvencek')}</h1><span class="muted">${IS_TV ? _t('{length} csatorna · a sorrend adja a csatornaszámokat; áthelyezés: húzással vagy a CH+ / CH− gombbal', { length: favs.length }) : /Mac/.test(navigator.platform) ? _t('{length} csatorna · a sorrend adja a csatornaszámokat; áthelyezés: húzással vagy a ⌘← / ⌘→ billentyűvel', { length: favs.length }) : _t('{length} csatorna · a sorrend adja a csatornaszámokat; áthelyezés: húzással vagy a Ctrl+← / Ctrl+→ billentyűvel', { length: favs.length })}</span></div>
     ${favs.length
         ? `<div class="grid fav-grid">${favs
             .map((c, i) => cardHtml(c, { context: ctx }).replace('<div class="card"', `<div class="card" draggable="true" data-num="${i + 1}"`))
@@ -697,7 +697,7 @@ export function renderSettings(view) {
       <p class="muted">${_t('A műsorújságban vagy a csatorna adatlapján a csengővel jelölhetsz meg műsort; a műsor adatlapján <i>Minden adására</i> is kérhetsz emlékeztetőt (sorozatokhoz, rendszeres műsorokhoz).')}</p>
       <label class="setting"><span>${_t('<b>Értesítés a kezdés előtt</b>')}</span>
         <select data-set-num="reminderLead">${[0, 1, 2, 5, 10, 15, 30]
-          .map((m) => `<option value="${m}" ${Number(s.reminderLead ?? 2) === m ? 'selected' : ''}>${m ? m + ' perccel' : _t('a kezdéskor')}</option>`)
+          .map((m) => `<option value="${m}" ${Number(s.reminderLead ?? 2) === m ? 'selected' : ''}>${m ? _t('{m} perccel előtte', { m }) : _t('a kezdéskor')}</option>`)
           .join('')}</select></label>
       ${toggle('reminderAutoSwitch', _t('Automatikus átkapcsolás a kezdéskor'), _t('Ha az Adás nyitva van, a műsor kezdetekor (8 másodperces visszaszámlálás után) átkapcsol a csatornára.'))}
       ${api.caps.background

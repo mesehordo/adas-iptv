@@ -149,7 +149,7 @@ export function renderStats(view) {
   const active30 = Object.keys(s.days).filter((k) => new Date(k) > Date.now() - 30 * 86400e3 && s.days[k] > 60).length;
 
   view.innerHTML = `<div class="page stats">
-    <div class="page-head"><h1>${_t('Nézési statisztika')}</h1><span class="muted">${_t('{esc} profil ·', { esc: esc(p.name) })} ${new Date(s.since).toLocaleDateString(LOCALE)} ${_t('óta')}</span></div>
+    <div class="page-head"><h1>${_t('Nézési statisztika')}</h1><span class="muted">${_t('{name} profil · {date} óta', { name: esc(p.name), date: new Date(s.since).toLocaleDateString(LOCALE) })}</span></div>
     ${p.statsOff ? `<p class="note">${_t('A statisztika gyűjtése ki van kapcsolva ennél a profilnál.')}</p>` : ''}
     <div class="stat-cards">
       <div class="stat-card"><small>${_t('Ma')}</small><b>${fmtH(sumDays(s, 1))}</b></div>
