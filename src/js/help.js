@@ -46,6 +46,7 @@ const ROUTE_TOPICS = {
   vod: 'vod',
   own: 'own',
   stats: 'stats',
+  sport: 'sport-page',
 };
 
 /** Kereshető szöveg témánként (címkék nélkül, ékezet nélkül). */

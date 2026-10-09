@@ -17,6 +17,7 @@ import { unlockProfile, requireAdult, adultGuardNeeded, markUnlocked, hasPin } f
 import './cast.js'; // kivetítés (Chromecast / DLNA)
 import { openMultiview, multiKey, multiOpen } from './multiview.js';
 import { renderStats } from './stats.js';
+import { renderSport, sportMenuOn } from './sportpage.js';
 import { autoCheckUpdate } from './update.js';
 import { checkReminders, toggleSeries, syncSeries, scheduleNative } from './reminders.js';
 import {
@@ -68,6 +69,7 @@ function routeFn(name) {
     case 'own': return renderOwn;
     case 'recordings': return renderRecordingsPage;
     case 'stats': return renderStats;
+    case 'sport': return renderSport;
     default: return renderDashboard;
   }
 }
@@ -124,6 +126,8 @@ function route({ keepScroll = false } = {}) {
     });
     return;
   }
+  // kikapcsolt (vagy gyerekprofilban rejtett) Sport menüpontnál a főoldal
+  if (name === 'sport' && !sportMenuOn()) return void location.replace('#/home');
   const fn = routeFn(name);
   if (name !== 'tv') leaveHome();
   const full = location.hash;
@@ -147,7 +151,7 @@ window.addEventListener('hashchange', () => route());
 const rerender = debounce(() => {
   if (!started || player.active) return;
   const { name } = parseHash();
-  if (['home', 'tv', 'guide', 'search', 'favorites', 'browse'].includes(name)) route({ keepScroll: true });
+  if (['home', 'tv', 'guide', 'search', 'favorites', 'browse', 'sport'].includes(name)) route({ keepScroll: true });
 }, 300);
 bus.on('epg', rerender);
 bus.on('vod', () => ['vod', 'search', 'home', 'favorites'].includes(parseHash().name) && !player.active && route({ keepScroll: true }));
@@ -163,6 +167,13 @@ bus.on('profile', () => {
   rerender();
 });
 bus.on('favorites', () => parseHash().name === 'favorites' && rerender());
+// Sport menüpont: Beállítások → Sport (gyerekprofilban nem látszik)
+const applySportMenu = () => {
+  const a = $('.links a[data-route="sport"]', nav);
+  if (a) a.hidden = !sportMenuOn();
+};
+bus.on('settings', (k) => k === 'sportMenu' && applySportMenu());
+bus.on('profile', applySportMenu);
 bus.on('profile-theme', () => leaveHome());
 bus.on('settings', (k) => ['hideOffline', 'showAdult', 'homeCountry'].includes(k) && parseHash().name !== 'settings' && rerender());
 bus.on('player-closed', () => {
@@ -744,6 +755,7 @@ async function boot() {
     applyTheme();
   }
   updateProfileButton();
+  applySportMenu();
   startSplashStatus();
   const loading = loadWithRetry();
   // (a csatornalista közben már töltődik; a profilválasztó az indítóanimáció után jelenik meg)

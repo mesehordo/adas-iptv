@@ -10,6 +10,7 @@ import { player, startPreview, stopPreview } from './player.js';
 import { minutesLeft as watchLeft } from './watchtime.js';
 import { canRemote, openRemoteDialog } from './remote.js';
 import { watchList, loadSportEvents, sportEventsCached, sportStale, eventRowHtml } from './sports.js';
+import { sportMenuOn } from './sportpage.js';
 import { vod, own, continueItems, playVod, loadVod, vodLists, findItem, displayTitle } from './vod.js';
 
 // ---------------------------------------------------------------------------
@@ -692,7 +693,10 @@ Object.assign(UNITS, {
   },
   sport: {
     title: _t('Sport'),
-    link: ['#sportwatch', _t('Sportfigyelő ›')],
+    // (bekapcsolt Sport menüpontnál a Sport oldalra visz, különben a Sportfigyelő ablakot nyitja)
+    get link() {
+      return sportMenuOn() ? ['#/sport', _t('Sport oldal ›')] : ['#sportwatch', _t('Sportfigyelő ›')];
+    },
     mobile: 380,
     render(b, { w, h }) {
       const ev = sportEventsCached();

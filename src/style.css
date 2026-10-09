@@ -1392,6 +1392,71 @@ body.rc-nav .tile:focus, body.rc-nav .see-all:focus { transform: scale(1.06); z-
 .sp-ch { margin-left: 6px; padding: 0 6px; border-radius: 10px; border: 1px solid var(--accent); background: transparent; color: var(--text); font: inherit; font-size: 0.72rem; cursor: pointer; white-space: nowrap; }
 .sp-ch.maybe { opacity: 0.6; border-style: dashed; }
 .sp-ch:hover, .sp-ch:focus-visible { background: var(--accent); color: #fff; outline: none; }
+/* Sport oldal (dashboard): kártyák rácsban – a főoldali egységek (dcard) kinézetével */
+.sport-page .sp-head { flex-wrap: wrap; }
+.sp-head-btns { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.sp-head-btns svg { width: 16px; height: 16px; vertical-align: -3px; fill: currentColor; }
+.sp-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+.sp-chips .sw-chip.on { background: var(--bg-3); color: var(--text-strong, var(--text)); border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); font-weight: 700; } /* (kitöltés nélkül: minden témában olvasható) */
+.sp-chips .sw-chip small { opacity: 0.75; font-weight: 700; margin-left: 2px; }
+.sport-page .spc { margin-bottom: 16px; }
+.sp-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; align-items: start; }
+.sp-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.sp-col .spc { margin-bottom: 0; }
+.sport-page .dcard { overflow: visible; }
+.sport-page .dc-body { overflow: visible; }
+.spc-done ul.d-sport, .sp-tvlist { max-height: 520px; overflow-y: auto; }
+.spc-next .sp-body { max-height: 900px; overflow-y: auto; }
+.sp-table-box { max-height: 640px; overflow-y: auto; }
+/* telefonon nincs görgetés a görgetésben: a kártyák teljes hosszukban */
+@media (max-width: 700px) { .spc-done ul.d-sport, .sp-tvlist, .spc-next .sp-body, .sp-table-box { max-height: none; overflow: visible; } }
+.sport-page .d-sport { list-style: none; margin: 0 0 6px; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.sp-day { margin: 10px 0 4px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.sp-day:first-child { margin-top: 0; }
+.sp-rem { margin-left: 4px; width: 22px; height: 22px; padding: 3px; border-radius: 50%; border: 1px solid var(--line); background: transparent; color: var(--text); cursor: pointer; vertical-align: middle; }
+.sp-rem svg { width: 100%; height: 100%; fill: currentColor; }
+.sp-rem.on, .sp-rem:hover, .sp-rem:focus-visible { background: var(--accent); border-color: var(--accent); color: #fff; outline: none; }
+/* élő eredmények */
+.spl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 10px; }
+.spl-tile { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 10px; background: var(--bg-3); border: 1px solid var(--line); min-width: 0; }
+.spl-tile:focus-visible { outline: 3px solid var(--focus, var(--accent)); }
+.spl-lg { font-size: 0.75rem; color: var(--muted); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spl-teams { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; text-align: center; }
+.spl-t { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; font-size: 0.85rem; }
+.spl-t b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.spl-t img { width: 40px; height: 40px; object-fit: contain; }
+.spl-sc { font-size: 1.7rem; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+.spl-title b { font-size: 1rem; }
+.spl-det { font-size: 0.8rem; color: var(--muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.spl-play { align-self: flex-start; }
+.spl-play.maybe { opacity: 0.75; }
+.spl-play svg { width: 14px; height: 14px; fill: currentColor; }
+/* sport a tévében most */
+.sp-tvlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.sp-tvrow { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px; border: 0; border-radius: 8px; background: transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.sp-tvrow:hover, .sp-tvrow:focus-visible { background: var(--bg-3); outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
+.sp-tvrow.is-off { opacity: 0.5; }
+.sp-tvlogo { flex: none; width: 64px; height: 40px; display: flex; align-items: center; justify-content: center; background: #111; border-radius: 6px; overflow: hidden; }
+.sp-tvlogo img { max-width: 90%; max-height: 80%; object-fit: contain; }
+.sp-tvtxt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.sp-tvtxt b, .sp-tvtxt small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-tvtxt .bar { display: block; height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.sp-tvtxt .bar i { display: block; height: 100%; background: var(--accent); }
+/* tabella */
+.sp-table-sel { margin: 0 0 10px; max-width: 100%; }
+.sp-table-name { margin: 0 0 8px; }
+.sp-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.sp-table th, .sp-table td { padding: 5px 4px; text-align: center; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.sp-table th { font-size: 0.72rem; color: var(--muted); font-weight: 700; }
+.sp-table .t { text-align: left; width: 100%; max-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.sp-table td.t { display: flex; align-items: center; gap: 6px; max-width: none; }
+.sp-table td.t span { overflow: hidden; text-overflow: ellipsis; }
+.sp-table td.t img { width: 18px; height: 18px; object-fit: contain; flex: none; }
+.sp-table td.n { width: 2em; color: var(--muted); }
+.sp-table td.n.zone { box-shadow: inset 3px 0 0 var(--zone); }
+.sp-table tr.mine td { background: rgba(255, 255, 255, 0.08); background: color-mix(in srgb, var(--accent) 18%, transparent); font-weight: 700; }
+.sp-table .c-points { font-weight: 800; }
+@media (max-width: 480px) { .sp-table .c-wins, .sp-table .c-ties, .sp-table .c-losses { display: none; } }
 /* Sportfigyelő ablak */
 .sport-watch .sw-body { flex: 1 1 auto; min-height: 160px; overflow-y: auto; margin: 4px 0; padding-right: 4px; }
 .sport-watch .sw-tabs { flex-wrap: wrap; }
@@ -1479,14 +1544,21 @@ body.rc-nav .tile:focus, body.rc-nav .see-all:focus { transform: scale(1.06); z-
 
 /* Felvétel vágása */
 .trim-ed { gap: 12px; }
-.trim-ed .tr-video { position: relative; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 9; max-height: 46vh; display: grid; place-items: center; }
-.trim-ed .tr-video video { width: 100%; height: 100%; object-fit: contain; }
+.trim-ed .tr-video { position: relative; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 9; width: 100%; max-width: calc(46vh * 16 / 9); margin: 0 auto; }
+.trim-ed .tr-video video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .trim-ed .tr-wait { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 8px; text-align: center; padding: 12px; }
-.trim-ed .tr-line { position: relative; padding-top: 14px; }
-.trim-ed .tr-bar { position: absolute; left: 0; right: 0; top: 0; height: 10px; border-radius: 5px; background: var(--bg-3); overflow: hidden; }
-.trim-ed .tr-sel { position: absolute; top: 0; bottom: 0; background: var(--accent); opacity: 0.85; }
-.trim-ed .tr-mark { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1px; background: #ffd23f; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5); }
-.trim-ed .tr-pos { width: 100%; }
+.trim-ed .tr-line { position: relative; height: 28px; }
+.trim-ed .tr-bar { position: absolute; left: 0; right: 0; top: 9px; height: 10px; border-radius: 5px; background: var(--bg-3); pointer-events: none; }
+.trim-ed .tr-sel { position: absolute; top: 0; bottom: 0; border-radius: 5px; background: var(--accent); opacity: 0.85; }
+.trim-ed .tr-mark { position: absolute; top: -6px; bottom: -6px; width: 4px; margin-left: -2px; border-radius: 2px; background: #ffd23f; box-shadow: 0 0 0 2px #000; }
+.trim-ed .tr-pos { -webkit-appearance: none; appearance: none; position: absolute; left: 0; top: 0; width: 100%; height: 28px; margin: 0; background: transparent; cursor: pointer; }
+.trim-ed .tr-pos::-webkit-slider-runnable-track { height: 28px; background: transparent; border: 0; }
+.trim-ed .tr-pos::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 6px; height: 28px; border-radius: 3px; background: #fff; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.5); }
+.trim-ed .tr-pos::-moz-range-track { background: transparent; border: 0; }
+.trim-ed .tr-pos::-moz-range-thumb { width: 6px; height: 28px; border: 0; border-radius: 3px; background: #fff; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6); }
+.trim-ed .tr-pos:focus-visible { outline: none; }
+.trim-ed .tr-pos:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px var(--focus, var(--accent)), 0 2px 6px rgba(0, 0, 0, 0.5); }
+.trim-ed .tr-pos:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--focus, var(--accent)), 0 2px 6px rgba(0, 0, 0, 0.5); }
 .trim-ed .tr-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
 .trim-ed .tr-now { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 4.5em; text-align: right; }
 .trim-ed .tr-dur { font-variant-numeric: tabular-nums; min-width: 4.5em; }
@@ -1496,7 +1568,7 @@ body.rc-nav .tile:focus, body.rc-nav .see-all:focus { transform: scale(1.06); z-
 .trim-ed .tr-pt .input { width: 6.5em; font-variant-numeric: tabular-nums; text-align: center; }
 .trim-ed .tr-epg p { margin: 0; }
 .trim-ed .tr-foot .grow { flex: 1; }
-@media (max-height: 560px) { .trim-ed .tr-video { max-height: 34vh; } }
+@media (max-height: 560px) { .trim-ed .tr-video { max-width: calc(34vh * 16 / 9); } }
 
 /* Távirányító: QR-kód a beállításokban */
 .rc-box { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
