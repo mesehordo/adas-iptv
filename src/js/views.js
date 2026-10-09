@@ -6,7 +6,7 @@ import { epg } from './epg.js';
 import { health } from './health.js';
 import {
   catalog, visible, getChannels, search, countryName, countryFlag, categoryName, rankScore, loadCatalog,
-  KIDS_CATEGORIES, channelStatus, bestQuality, MINE, activeLists, homeRank, homeFirst, COUNTRY_LANG, geoState,
+  KIDS_CATEGORIES, channelStatus, bestQuality, MINE, activeLists, homeRank, homeFirst, COUNTRY_LANG, geoState, byAvailability,
 } from './catalog.js';
 import {
   ICON, rowEl, gridEl, cardHtml, registerContext, openProgram, openModal, confirmDialog, promptDialog,
@@ -33,13 +33,18 @@ import { renderUpdate } from './update.js';
 import { _t, LOCALE, LANGS, lang as uiLang, setLanguage } from './i18n.js';
 const daySeed = () => Math.floor(Date.now() / 86400e3);
 
-/** Sorrend: hazai, majd hazai nyelvű csatornák elöl, azon belül működő / logós / HD, napi változatossággal. */
+/**
+ * Ajánlott sorrend (a TV oldal sorai, a műsorújság, a böngészés): elsőként az elérhetőség (a működők elöl,
+ * a nem elérhetők a végén), azon belül hazai, majd hazai nyelvű csatornák, működő / logós / HD, napi változatossággal.
+ */
 function popular(list) {
   const jitter = new Map(seededShuffle(list.map((c) => c.id), daySeed()).map((id, i) => [id, (i % 17) / 17]));
-  return list
-    .map((c) => [c, homeRank(c) * 1000 + rankScore(c) + jitter.get(c.id) * 25])
-    .sort((a, b) => b[1] - a[1])
-    .map((x) => x[0]);
+  return byAvailability(
+    list
+      .map((c) => [c, homeRank(c) * 1000 + rankScore(c) + jitter.get(c.id) * 25])
+      .sort((a, b) => b[1] - a[1])
+      .map((x) => x[0])
+  );
 }
 
 /** Világos-e egy #rgb / #rrggbb szín (a saját témák előnézetén ehhez igazodik a felirat színe). */
@@ -51,31 +56,6 @@ function isLightColor(c) {
   return 0.299 * r + 0.587 * g + 0.114 * b > 160;
 }
 
-/**
- * Elérhetőség szerinti fokozat: 3 – működik; 2 – még nem ellenőrzött; 1 – nem ellenőrzött, de lehet,
- * hogy innen nem nézhető vagy épp nem sugároz (csak korlátozott / időszakos forrásai vannak);
- * 0 – nem elérhető (offline, adásszünet, földrajzi korlát).
- */
-function availability(c) {
-  const st = channelStatus(c);
-  if (st === 'ok') return 3;
-  if (st === 'bad') return 0;
-  return geoState(c) || c.streams.every((s) => s.notAlways) ? 1 : 2;
-}
-
-/**
- * Stabil rendezés elérhetőség szerint (a nem elérhetők a végére); egy fokozaton belül a sorrend marad.
- * top: a legmagasabb figyelembe vett fokozat (1: csak a nem elérhetők kerülnek hátra, a többi sorrendje marad).
- */
-function byAvailability(list, top = 3) {
-  return list
-    .map((c, i) => [c, Math.min(top, availability(c)), i])
-    .sort((a, b) => b[1] - a[1] || a[2] - b[2])
-    .map((x) => x[0]);
-}
-
-/** A böngészés ajánlott sorrendje: elsőként az elérhetőség, azon belül a szokásos (hazai, népszerű) sorrend. */
-const popularAvailable = (list) => byAvailability(popular(list));
 
 function lazyRows(container, factories, initial = 4) {
   let i = 0;
@@ -243,10 +223,12 @@ export function renderBrowse(view, params) {
       // a kereső szövege minden szűrővel együtt érvényes (név, más név, ország, kategória)
       (!qTokens.length || qTokens.every((t) => c.search.includes(t)))
   );
-  if (f.sort === 'popular') list = popularAvailable(list);
+  // (mindegyik rendezésben az elérhetők elöl, a nem elérhetők a végén – azon belül a választott sorrend)
+  if (f.sort === 'popular') list = popular(list);
   else if (f.sort === 'country')
-    list = homeFirst(list.slice().sort((a, b) => countryName(a.country).localeCompare(countryName(b.country), LOCALE) || a.name.localeCompare(b.name, LOCALE)));
+    list = byAvailability(homeFirst(list.slice().sort((a, b) => countryName(a.country).localeCompare(countryName(b.country), LOCALE) || a.name.localeCompare(b.name, LOCALE))));
   // 'name': a látható lista már így rendezett: hazaiak elöl, azon belül név szerint
+  else list = byAvailability(list);
 
   const titleParts = [f.cat && categoryName(f.cat), f.country && countryName(f.country), f.lang && catalog.languages.get(f.lang)?.name].filter(Boolean);
   const plName = f.pl && (f.pl === MINE ? _t('Saját csatornák') : [...BUILTIN_PLAYLISTS, ...store.settings.customPlaylists].find((x) => x.id === f.pl)?.name);
@@ -472,8 +454,8 @@ export function renderSearch(view, params) {
     view.innerHTML = `<div class="page">${emptyState(_t('Keresés'), _t('Írd be egy csatorna, ország, kategória vagy műsor nevét.'))}</div>`;
     return;
   }
-  // (a találati sorrendben, de a nem elérhetők – offline, adásszünet, földrajzi korlát – a végén)
-  const chans = byAvailability(search(q), 1);
+  // (a keresés maga is az elérhetőket teszi előre – catalog.search)
+  const chans = search(q);
   const vis = new Set(visible().map((c) => c.id));
   const progs = homeFirst(
     epg.searchPrograms(tokens).filter((x) => vis.has(x.channelId)),
