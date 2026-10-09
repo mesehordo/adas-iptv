@@ -46,8 +46,8 @@ public class PlaybackService extends Service {
     String title = intent != null ? intent.getStringExtra("title") : null;
     NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
     if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CHANNEL) == null) {
-      NotificationChannel ch = new NotificationChannel(CHANNEL, "Lejátszás a háttérben", NotificationManager.IMPORTANCE_LOW);
-      ch.setDescription("Amíg az Adás a háttérben szól");
+      NotificationChannel ch = new NotificationChannel(CHANNEL, L.t(this, "Lejátszás a háttérben"), NotificationManager.IMPORTANCE_LOW);
+      ch.setDescription(L.t(this, "Amíg az Adás a háttérben szól"));
       nm.createNotificationChannel(ch);
     }
     Intent open = new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
@@ -56,11 +56,11 @@ public class PlaybackService extends Service {
     Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
     b.setSmallIcon(R.drawable.ic_stat_tv)
         .setContentTitle(title != null && !title.isEmpty() ? title : "Adás")
-        .setContentText("Lejátszás a háttérben")
+        .setContentText(L.t(this, "Lejátszás a háttérben"))
         .setContentIntent(tap)
         .setOngoing(true)
         .setCategory(Notification.CATEGORY_TRANSPORT)
-        .addAction(new Notification.Action.Builder(null, "Leállítás", stop).build());
+        .addAction(new Notification.Action.Builder(null, L.t(this, "Leállítás"), stop).build());
     Notification n = b.build();
     try {
       if (Build.VERSION.SDK_INT >= 29) startForeground(ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);

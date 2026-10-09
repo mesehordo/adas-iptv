@@ -83,6 +83,7 @@ contextBridge.exposeInMainWorld('api', {
   rcStart: (html, pin, key) => ipcRenderer.invoke('rc-start', html, pin, key),
   rcStop: () => ipcRenderer.invoke('rc-stop'),
   rcState: (json) => ipcRenderer.send('rc-state', json),
+  setLang: (l) => ipcRenderer.send('set-lang', String(l || '')),
   onRemoteCmd: (cb) => ipcRenderer.on('remote-cmd', (_e, x) => cb(x)),
   updateCheck: (source) => ipcRenderer.invoke('update-check', source),
   updateDownload: (asset) => ipcRenderer.invoke('update-download', asset),

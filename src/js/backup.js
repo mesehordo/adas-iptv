@@ -5,6 +5,7 @@ import { api } from './api.js';
 import { store } from './store.js';
 import { confirmDialog } from './components.js';
 
+import { _t, LOCALE } from './i18n.js';
 const KEY = 'backups';
 const KEEP = 7;
 const DAY = 24 * 3600e3;
@@ -43,18 +44,16 @@ export async function renderBackups(box) {
   if (!api.docSet) return box.remove();
   const draw = async () => {
     const items = await list();
-    box.innerHTML = `<h3>Automatikus mentés</h3>
-      <label class="setting"><span><b>Napi mentési pont ezen az eszközön</b><small>Az utolsó ${KEEP} nap beállításai, profiljai, kedvencei és előzményei – ha valami elromlik vagy véletlenül törölsz, visszaállítható.</small></span>
+    box.innerHTML = `<h3>${_t('Automatikus mentés')}</h3>
+      <label class="setting"><span>${_t('<b>Napi mentési pont ezen az eszközön</b>')}<small>${_t('Az utolsó {KEEP} nap beállításai, profiljai, kedvencei és előzményei – ha valami elromlik vagy véletlenül törölsz, visszaállítható.', { KEEP })}</small></span>
         <input type="checkbox" class="switch" data-bk="on" ${store.settings.autoBackup === false ? '' : 'checked'} /></label>
-      ${
-        items.length
+      ${items.length
           ? `<ul class="src-list">${items
-              .map((b, i) => `<li><span><b>${new Date(b.at).toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' })}</b><small>${b.reason === 'manual' ? 'kézi mentés' : b.reason === 'before-restore' ? 'visszaállítás előtti állapot' : 'automatikus'} · ${b.profiles} profil</small></span>
-                <button class="btn small" data-bk-restore="${i}">Visszaállítás</button></li>`)
+              .map((b, i) => `<li><span><b>${new Date(b.at).toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' })}</b><small>${b.reason === 'manual' ? _t('kézi mentés') : b.reason === 'before-restore' ? _t('visszaállítás előtti állapot') : _t('automatikus')} ${_t('· {profiles} profil', { profiles: b.profiles })}</small></span>
+                <button class="btn small" data-bk-restore="${i}">${_t('Visszaállítás')}</button></li>`)
               .join('')}</ul>`
-          : '<p class="muted small">Még nincs mentési pont.</p>'
-      }
-      <div class="inline"><button class="btn small" data-bk="now">Mentés most</button></div>`;
+          : `<p class="muted small">${_t('Még nincs mentési pont.')}</p>`}
+      <div class="inline"><button class="btn small" data-bk="now">${_t('Mentés most')}</button></div>`;
     box._items = items;
   };
   box.onchange = (e) => {
@@ -69,17 +68,18 @@ export async function renderBackups(box) {
     if (b.dataset.bk === 'now') {
       e.stopPropagation();
       await backupNow('manual');
-      toast('Mentési pont elkészült');
+      toast(_t('Mentési pont elkészült'));
       draw();
     } else if (b.dataset.bkRestore !== undefined) {
       e.stopPropagation();
       const it = box._items[Number(b.dataset.bkRestore)];
       if (!it) return;
-      const ok = await confirmDialog(`Visszaállítod a ${new Date(it.at).toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' })} állapotot? A mostani beállítások felülíródnak (előtte erről is készül mentési pont).`, { ok: 'Visszaállítás', danger: true });
+      const when = new Date(it.at).toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' });
+      const ok = await confirmDialog(_t('Visszaállítod a(z) {when} állapotot? A mostani beállítások felülíródnak (előtte erről is készül mentési pont).', { when }), { ok: _t('Visszaállítás'), danger: true });
       if (!ok) return;
       await backupNow('before-restore');
       await store.replaceAll({ ...it.data, health: store.health });
-      toast('Visszaállítva – újraindítás…');
+      toast(_t('Visszaállítva – újraindítás…'));
       setTimeout(() => location.reload(), 700);
     }
   };

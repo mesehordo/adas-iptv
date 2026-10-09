@@ -1,9 +1,45 @@
 // A beépített súgó: témakörök oldalsávval, kereséssel, kapcsolódó témákkal.
 import { $, $$, esc, norm, debounce } from './util.js';
-import { HELP_CATEGORIES, ARTICLES, ROUTE_TOPICS } from './help-content.js';
+import { _t, lang } from './i18n.js';
 
-const byId = new Map(ARTICLES.map((a) => [a.id, a]));
+// A súgó szövege nyelvenként külön modul, csak megnyitáskor töltődik be. (Szó szerinti importok:
+// a tévés csomag esbuild-je így be tudja csomagolni őket.)
+const LOADERS = {
+  hu: () => import('./help-content.js'),
+  en: () => import('./help/en.js'),
+  de: () => import('./help/de.js'),
+  es: () => import('./help/es.js'),
+  fr: () => import('./help/fr.js'),
+};
+let HELP_CATEGORIES = [];
+let ARTICLES = [];
+let byId = new Map();
+let loading = null;
+const loadHelp = () =>
+  (loading ||= (LOADERS[lang] || LOADERS.hu)().then((m) => {
+    HELP_CATEGORIES = m.HELP_CATEGORIES;
+    ARTICLES = m.ARTICLES;
+    byId = new Map(ARTICLES.map((a) => [a.id, a]));
+  }).catch((err) => {
+    loading = null; // a következő megnyitás újrapróbálja
+    throw err;
+  }));
 let index = null;
+
+/** Melyik téma tartozik az egyes képernyőkhöz (F1 / ? gomb). */
+const ROUTE_TOPICS = {
+  home: 'dashboard',
+  recordings: 'recording',
+  tv: 'home',
+  guide: 'guide-grid',
+  browse: 'browse',
+  favorites: 'favorites',
+  search: 'search',
+  settings: 'settings-overview',
+  vod: 'vod',
+  own: 'own',
+  stats: 'stats',
+};
 
 /** Kereshető szöveg témánként (címkék nélkül, ékezet nélkül). */
 function buildIndex() {
@@ -63,15 +99,25 @@ function snippet(text, n, tokens) {
   return s;
 }
 
-export function renderHelp(view, params) {
+export async function renderHelp(view, params) {
+  if (!ARTICLES.length) {
+    view.innerHTML = `<div class="page help"><div class="page-head"><h1>${_t('Súgó')}</h1></div></div>`;
+    try {
+      await loadHelp();
+    } catch {
+      if (view.isConnected) view.querySelector('.page-head')?.insertAdjacentHTML('afterend', `<p class="muted">${_t('A súgó nem tölthető be. Próbáld újra.')}</p>`);
+      return;
+    }
+    if (!view.isConnected || !location.hash.startsWith('#/help')) return; // közben máshová lépett
+  }
   const q = params.get('q') || '';
   const topic = byId.has(params.get('topic')) ? params.get('topic') : 'welcome';
 
   view.innerHTML = `<div class="page help">
-    <div class="page-head"><h1>Súgó</h1><span class="muted">${ARTICLES.length} témakör · <kbd>F1</kbd> vagy <kbd>?</kbd> bárhonnan</span></div>
+    <div class="page-head"><h1>${_t('Súgó')}</h1><span class="muted">${_t('{length} témakör · <kbd>F1</kbd> vagy <kbd>?</kbd> bárhonnan', { length: ARTICLES.length })}</span></div>
     <div class="help-layout">
       <aside class="help-nav">
-        <input class="input help-search" type="search" placeholder="Keresés a súgóban…" value="${esc(q)}" aria-label="Keresés a súgóban" />
+        <input class="input help-search" type="search" placeholder="${_t('Keresés a súgóban…')}" value="${esc(q)}" aria-label="${_t('Keresés a súgóban')}" />
         <nav>${HELP_CATEGORIES.map(
           (c) => `<div class="help-cat"><h4>${esc(c.title)}</h4>${ARTICLES.filter((a) => a.cat === c.id)
             .map((a) => `<a href="#/help?topic=${a.id}" class="${!q && a.id === topic ? 'active' : ''}">${esc(a.title)}</a>`)
@@ -119,7 +165,7 @@ function renderArticle(box, a) {
     <div class="help-body">${a.body}</div>
     ${
       related.length
-        ? `<div class="help-related"><h4>Ebben a témakörben még</h4>${related
+        ? `<div class="help-related"><h4>${_t('Ebben a témakörben még')}</h4>${related
             .map((r) => `<a href="#/help?topic=${r.id}">${esc(r.title)}</a>`)
             .join('')}</div>`
         : ''
@@ -134,10 +180,9 @@ function renderArticle(box, a) {
 function renderResults(box, q) {
   const tokens = norm(q).split(/\s+/).filter((x) => x.length > 1);
   const hits = searchHelp(q);
-  box.innerHTML = `<div class="help-crumbs">Keresés</div>
-    <h1>Találatok: „${esc(q)}”</h1>
-    ${
-      hits.length
+  box.innerHTML = `<div class="help-crumbs">${_t('Keresés')}</div>
+    <h1>${_t('Találatok: „{esc}”', { esc: esc(q) })}</h1>
+    ${hits.length
         ? `<ol class="help-results">${hits
             .map(
               (h) => `<li><a href="#/help?topic=${h.a.id}"><b>${esc(h.a.title)}</b>
@@ -145,6 +190,5 @@ function renderResults(box, q) {
                 <p>${snippet(h.text, h.n, tokens)}</p></li>`
             )
             .join('')}</ol>`
-        : `<p class="muted">Nincs találat. Próbálj más kifejezést (pl. „kedvenc”, „frissítés”, „távirányító”, „nem indul”).</p>`
-    }`;
+        : `<p class="muted">${_t('Nincs találat. Próbálj más kifejezést (pl. „kedvenc”, „frissítés”, „távirányító”, „nem indul”).')}</p>`}`;
 }

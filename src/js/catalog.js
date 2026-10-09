@@ -5,40 +5,41 @@ import { packsOf } from './packs.js';
 import { norm, key, bus } from './util.js';
 import { kidsAllowed } from './kids.js';
 
+import { _t, lang as uiLang, LOCALE } from './i18n.js';
 const API = 'https://iptv-org.github.io/api/';
 
 export const CATEGORY_HU = {
-  animation: 'Animáció',
-  auto: 'Autó-motor',
-  business: 'Gazdaság',
-  classic: 'Klasszikus',
-  comedy: 'Vígjáték',
-  cooking: 'Gasztronómia',
-  culture: 'Kultúra',
-  documentary: 'Dokumentum',
-  education: 'Oktatás',
-  entertainment: 'Szórakoztató',
-  family: 'Családi',
-  general: 'Általános',
-  interactive: 'Interaktív',
-  kids: 'Gyerek',
-  legislative: 'Közélet, parlament',
-  lifestyle: 'Életmód',
-  movies: 'Filmek',
-  music: 'Zene',
-  news: 'Hírek',
-  outdoor: 'Szabadidő, természet',
-  public: 'Közszolgálati',
-  relax: 'Relaxáció',
-  religious: 'Vallás',
-  science: 'Tudomány',
-  series: 'Sorozatok',
-  shop: 'Vásárlás',
-  sports: 'Sport',
-  travel: 'Utazás',
-  weather: 'Időjárás',
-  xxx: 'Felnőtt',
-  other: 'Egyéb',
+  animation: _t('Animáció'),
+  auto: _t('Autó-motor'),
+  business: _t('Gazdaság'),
+  classic: _t('Klasszikus'),
+  comedy: _t('Vígjáték'),
+  cooking: _t('Gasztronómia'),
+  culture: _t('Kultúra'),
+  documentary: _t('Dokumentum'),
+  education: _t('Oktatás'),
+  entertainment: _t('Szórakoztató'),
+  family: _t('Családi'),
+  general: _t('Általános'),
+  interactive: _t('Interaktív'),
+  kids: _t('Gyerek'),
+  legislative: _t('Közélet, parlament'),
+  lifestyle: _t('Életmód'),
+  movies: _t('Filmek'),
+  music: _t('Zene'),
+  news: _t('Hírek'),
+  outdoor: _t('Szabadidő, természet'),
+  public: _t('Közszolgálati'),
+  relax: _t('Relaxáció'),
+  religious: _t('Vallás'),
+  science: _t('Tudomány'),
+  series: _t('Sorozatok'),
+  shop: _t('Vásárlás'),
+  sports: _t('Sport'),
+  travel: _t('Utazás'),
+  weather: _t('Időjárás'),
+  xxx: _t('Felnőtt'),
+  other: _t('Egyéb'),
 };
 
 export const KIDS_CATEGORIES = new Set(['kids', 'animation', 'family', 'education']);
@@ -60,8 +61,8 @@ const LANG3TO1 = {
 let regionNames = null;
 let languageNames = null;
 try {
-  regionNames = new Intl.DisplayNames(['hu'], { type: 'region' });
-  languageNames = new Intl.DisplayNames(['hu'], { type: 'language' });
+  regionNames = new Intl.DisplayNames([LOCALE], { type: 'region' });
+  languageNames = new Intl.DisplayNames([LOCALE], { type: 'language' });
 } catch {}
 
 /** Az egyenként hozzáadott saját csatornák „listájának” azonosítója. */
@@ -372,7 +373,7 @@ export function setVodLive(libId, mine) {
 
 async function fetchAndBuild({ force = false, onProgress } = {}) {
   const step = (msg) => onProgress?.(msg);
-  step('Csatornalisták letöltése…');
+  step(_t('Csatornalisták letöltése…'));
   const lists = activeLists();
   catalog.playlistErrors = {};
 
@@ -402,7 +403,7 @@ async function fetchAndBuild({ force = false, onProgress } = {}) {
       )
     ),
   ]);
-  step('Csatornák összefésülése…');
+  step(_t('Csatornák összefésülése…'));
   const [channels, feeds, logos, countries, , languages, blocklist] = meta;
   // Szétválogatás: a filmek / sorozatrészek a VOD-ba mennek (listánként), a VOD-listák élő adásai ide jönnek
   catalog.tvVod = [];
@@ -420,7 +421,7 @@ async function fetchAndBuild({ force = false, onProgress } = {}) {
     country: c.country || '', url: c.url, ua: c.ua || '', referrer: c.referrer || '', quality: '', labels: [],
   }));
   if (!loaded.some((l) => l.entries.length) && !mine.length) {
-    throw new Error(Object.values(catalog.playlistErrors)[0] || 'Nincs bekapcsolt csatornalista');
+    throw new Error(Object.values(catalog.playlistErrors)[0] || _t('Nincs bekapcsolt csatornalista'));
   }
 
   build({ loaded, mine, channels, feeds, logos, countries, languages, blocklist });
@@ -448,7 +449,8 @@ function snapshotKey() {
   const mine = JSON.stringify(s.customChannels);
   let h = 0;
   for (let i = 0; i < mine.length; i++) h = (h * 31 + mine.charCodeAt(i)) | 0;
-  return `catalog:${SNAPSHOT_VERSION}:${lists}:${h}:${vodLive.sig}`;
+  // (a nyelv is része: a pillanatkép fordított szövegeket – pl. listaneveket – is tárol)
+  return `catalog:${SNAPSHOT_VERSION}:${uiLang}:${lists}:${h}:${vodLive.sig}`;
 }
 
 /** Listánként a csatornák száma. */
@@ -658,11 +660,11 @@ function build({ loaded, mine, channels, feeds, logos, countries, languages, blo
   for (const e of mine) {
     const g = getGroup(`c:${MINE}:${e.customId}`, '', e.country);
     g.lists.add(MINE);
-    g.entries.push({ ...e, feed: '', listId: MINE, listName: 'Saját csatornák', cc: e.country });
+    g.entries.push({ ...e, feed: '', listId: MINE, listName: _t('Saját csatornák'), cc: e.country });
   }
 
   const listNameById = new Map(loaded.map((l) => [l.pl.id, l.pl.name]));
-  listNameById.set(MINE, 'Saját csatornák');
+  listNameById.set(MINE, _t('Saját csatornák'));
 
   const list = [];
   for (const g of groups.values()) {
@@ -751,7 +753,7 @@ function build({ loaded, mine, channels, feeds, logos, countries, languages, blo
       catalog.languages.set(l, x);
     }
   }
-  list.sort((a, b) => a.name.localeCompare(b.name, 'hu'));
+  list.sort((a, b) => a.name.localeCompare(b.name, LOCALE));
   catalog.channels = list;
   catalog.byId = new Map(list.map((c) => [c.id, c]));
   countPlaylists();
@@ -783,8 +785,8 @@ export function channelStatus(ch) {
  */
 export function offlineLabel(ch) {
   if (channelStatus(ch) !== 'bad') return null;
-  if (geoLimited(ch)) return 'Földrajzi korlát';
-  return ch.streams.some((s) => s.notAlways) ? 'Adásszünet' : 'Offline';
+  if (geoLimited(ch)) return _t('Földrajzi korlát');
+  return ch.streams.some((s) => s.notAlways) ? _t('Adásszünet') : _t('Offline');
 }
 
 /**
@@ -900,7 +902,7 @@ export function search(query, list = visible()) {
     hits.push([rank, ch, homeRank(ch)]);
   }
   // A pontos névegyezés marad legelöl, utána a hazai és hazai nyelvű találatok.
-  hits.sort((a, b) => (a[0] > 0) - (b[0] > 0) || b[2] - a[2] || a[0] - b[0] || a[1].name.localeCompare(b[1].name, 'hu'));
+  hits.sort((a, b) => (a[0] > 0) - (b[0] > 0) || b[2] - a[2] || a[0] - b[0] || a[1].name.localeCompare(b[1].name, LOCALE));
   return hits.map((h) => h[1]);
 }
 

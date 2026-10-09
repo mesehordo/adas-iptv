@@ -2,6 +2,7 @@
 import { store } from './store.js';
 import { categoryName, countryName } from './catalog.js';
 
+import { _t } from './i18n.js';
 /**
  * Minden stílus ugyanazzal az elrendezéssel (felső menüsáv, azonos kártyaméretek);
  * a stílus csak a kinézetet adja (színek, betűk, keretek, árnyékok, minták) – themes.css, body[data-theme].
@@ -9,92 +10,92 @@ import { categoryName, countryName } from './catalog.js';
 export const THEMES = {
   netflix: {
     label: 'Kurenai',
-    desc: 'Kurenai (bíborvörös): az esti mozi hangulata – fekete háttér, vörös kiemelés, rámutatásra kinagyuló kártyák.',
+    desc: _t('Kurenai (bíborvörös): az esti mozi hangulata – fekete háttér, vörös kiemelés, rámutatásra kinagyuló kártyák.'),
   },
   disney: {
     label: 'Mahō',
-    desc: 'Mahō (varázslat): mesés, csillagos mélykék színátmenet, fénylő keretes, lekerekített kártyák.',
+    desc: _t('Mahō (varázslat): mesés, csillagos mélykék színátmenet, fénylő keretes, lekerekített kártyák.'),
   },
   skyshowtime: {
     label: 'Murasaki',
-    desc: 'Murasaki (bíbor): sötét alap lila–rózsaszín színátmenetekkel és fénylő kiemeléssel.',
+    desc: _t('Murasaki (bíbor): sötét alap lila–rózsaszín színátmenetekkel és fénylő kiemeléssel.'),
   },
   rakuten: {
     label: 'Akane',
-    desc: 'Akane (mélyvörös): fekete alap, vörös jelölések, nagybetűs sorcímek – mozivászon-hangulat.',
+    desc: _t('Akane (mélyvörös): fekete alap, vörös jelölések, nagybetűs sorcímek – mozivászon-hangulat.'),
   },
   prime: {
     label: 'Shinkai',
-    desc: 'Shinkai (mélytenger): sötét éjkék háttér, tengerkék kiemelés.',
+    desc: _t('Shinkai (mélytenger): sötét éjkék háttér, tengerkék kiemelés.'),
   },
   apple: {
     label: 'Garasu',
-    desc: 'Garasu (üveg): mélyfekete háttér, áttetsző, elmosott üvegfelületek, lebegő árnyékok, letisztult betűk.',
+    desc: _t('Garasu (üveg): mélyfekete háttér, áttetsző, elmosott üvegfelületek, lebegő árnyékok, letisztult betűk.'),
   },
   zen: {
     label: 'Zen',
-    desc: 'Zen: világos rizspapír-háttér, mohazöld kiemelés, sok levegő és csendes, lassú mozgások.',
+    desc: _t('Zen: világos rizspapír-háttér, mohazöld kiemelés, sok levegő és csendes, lassú mozgások.'),
     light: true,
   },
   wabisabi: {
     label: 'Wabi-sabi',
-    desc: 'Wabi-sabi: meleg, földszínű papírtextúra, kissé szabálytalan, kézműves kártyák, arany kintsugi-repedés.',
+    desc: _t('Wabi-sabi: meleg, földszínű papírtextúra, kissé szabálytalan, kézműves kártyák, arany kintsugi-repedés.'),
     light: true,
   },
   nintendo: {
     label: 'Asobiba',
-    desc: 'Asobiba (játszótér): világos, csíkos háttér, fehér keretes buborékkártyák, ruganyos mozgás – játékbolt-hangulat.',
+    desc: _t('Asobiba (játszótér): világos, csíkos háttér, fehér keretes buborékkártyák, ruganyos mozgás – játékbolt-hangulat.'),
     light: true,
   },
   switch: {
     label: 'Futago',
-    desc: 'Futago (ikrek): kézikonzol-menü – sötétszürke alap, piros–kék kontrollerpár, szögletes csempék türkiz kerettel.',
+    desc: _t('Futago (ikrek): kézikonzol-menü – sötétszürke alap, piros–kék kontrollerpár, szögletes csempék türkiz kerettel.'),
   },
   wii: {
     label: 'Hiroba',
-    desc: 'Hiroba (tér): a „csatornás” konzolmenü – fehér, finoman csíkos háttér, fényes, szürke keretes csempék.',
+    desc: _t('Hiroba (tér): a „csatornás” konzolmenü – fehér, finoman csíkos háttér, fényes, szürke keretes csempék.'),
     light: true,
   },
   cyberpunk: {
     label: 'Neon City',
-    desc: 'Neon City: éjszakai neonváros – neonsárga, cián és bíbor, levágott sarkú kártyák, pásztázó sorok, „glitch”.',
+    desc: _t('Neon City: éjszakai neonváros – neonsárga, cián és bíbor, levágott sarkú kártyák, pásztázó sorok, „glitch”.'),
   },
   neotokyo: {
     label: 'Neo-Tokyo',
-    desc: 'Neo-Tokyo: az AKIRA világa – éjszakai romváros sziluettje, Kaneda-vörös, száguldó motorfény-csíkok, fehér kapszula-jelvény, döntött tömbös címbetűk.',
+    desc: _t('Neo-Tokyo: az AKIRA világa – éjszakai romváros sziluettje, Kaneda-vörös, száguldó motorfény-csíkok, fehér kapszula-jelvény, döntött tömbös címbetűk.'),
   },
   manga: {
     label: 'Manga',
-    desc: 'Manga: fekete tus fehér papíron – rasztertónus, vastag panelkeretek, beszédbuborék-gombok, dőlt tömör címek.',
+    desc: _t('Manga: fekete tus fehér papíron – rasztertónus, vastag panelkeretek, beszédbuborék-gombok, dőlt tömör címek.'),
     light: true,
   },
   comic: {
     label: 'Pow!',
-    desc: 'Pow!: amerikai képregény – Ben-Day pöttyök, vörös–sárga–kék, vastag fekete kontúr eltolt árnyékkal, sárga szövegdobozok, „POW!” csillagrobbanás.',
+    desc: _t('Pow!: amerikai képregény – Ben-Day pöttyök, vörös–sárga–kék, vastag fekete kontúr eltolt árnyékkal, sárga szövegdobozok, „POW!” csillagrobbanás.'),
     light: true,
   },
   snes: {
     label: '16-Bit',
-    desc: '16-Bit: a 90-es évek szürke konzolja – lila gombok, színes A–B–X–Y pöttyök, pixeles keretek és képernyő-pásztázás, kockás betűk.',
+    desc: _t('16-Bit: a 90-es évek szürke konzolja – lila gombok, színes A–B–X–Y pöttyök, pixeles keretek és képernyő-pásztázás, kockás betűk.'),
     light: true,
   },
   bauhaus: {
     label: 'Kikagaku',
-    desc: 'Kikagaku (geometria): plakátművészet – törtfehér papír, vörös–kék–sárga–fekete, vastag keretek kemény árnyékkal.',
+    desc: _t('Kikagaku (geometria): plakátművészet – törtfehér papír, vörös–kék–sárga–fekete, vastag keretek kemény árnyékkal.'),
     light: true,
   },
   aurora: {
     label: 'Kyokkō',
-    desc: 'Kyokkō (sarki fény): lassan hullámzó színes háttér, matt üveg kártyák és lágy fénylés.',
+    desc: _t('Kyokkō (sarki fény): lassan hullámzó színes háttér, matt üveg kártyák és lágy fénylés.'),
   },
   sketch: {
     label: 'Rakugaki',
-    desc: 'Rakugaki (firka): vonalas füzetlap kézírással – a csatornák beragasztott polaroid fotók, ceruzás keretek.',
+    desc: _t('Rakugaki (firka): vonalas füzetlap kézírással – a csatornák beragasztott polaroid fotók, ceruzás keretek.'),
     light: true,
   },
   terminal: {
     label: 'Phosphor',
-    desc: 'Phosphor: régi zöld foszforos monitor – fix szélességű betűk, parancssori feliratok, inverz kijelölés.',
+    desc: _t('Phosphor: régi zöld foszforos monitor – fix szélességű betűk, parancssori feliratok, inverz kijelölés.'),
   },
 };
 
@@ -196,13 +197,13 @@ export function parseThemeFile(text, source = '') {
   try {
     j = JSON.parse(String(text).replace(/^﻿/, ''));
   } catch (err) {
-    throw new Error(`Hibás JSON (${source || 'téma-fájl'}): ${err.message}`);
+    throw new Error(`${_t('Hibás JSON (')}${source || _t('téma-fájl')}): ${err.message}`);
   }
-  if (!j || typeof j !== 'object' || (j.adasTheme !== THEME_FORMAT && j.adasTheme !== String(THEME_FORMAT))) throw new Error('Ez nem Adás téma-fájl (hiányzik: "adasTheme": 1).');
+  if (!j || typeof j !== 'object' || (j.adasTheme !== THEME_FORMAT && j.adasTheme !== String(THEME_FORMAT))) throw new Error(_t('Ez nem Adás téma-fájl (hiányzik: "adasTheme": 1).'));
   const id = String(j.id || '').toLowerCase();
-  if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(id)) throw new Error('Az "id" 2–40 karakter lehet: kisbetű, számjegy, kötőjel.');
+  if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(id)) throw new Error(_t('Az "id" 2–40 karakter lehet: kisbetű, számjegy, kötőjel.'));
   const name = String(j.name || '').trim().slice(0, 40);
-  if (!name) throw new Error('Hiányzik a téma neve ("name").');
+  if (!name) throw new Error(_t('Hiányzik a téma neve ("name").'));
   const root = `body[data-custom="${id}"]`;
   const vars = [];
   for (const [k, v] of Object.entries(j.colors || {})) if (COLOR_VARS[k] && safeValue(v)) vars.push(`${COLOR_VARS[k]}: ${v}`);
@@ -211,7 +212,7 @@ export function parseThemeFile(text, source = '') {
   let compiled = `${root} { ${vars.join('; ')}${safeValue(j.background) ? `; background: ${j.background}` : j.colors?.bg && safeValue(j.colors.bg) ? `; background: ${j.colors.bg}` : ''} }\n`;
   if (safeValue(j.fonts?.headings)) compiled += `${root} h1, ${root} h2, ${root} h3, ${root} .row-title, ${root} .dc-title, ${root} .hero h1, ${root} .brand { font-family: ${j.fonts.headings} }\n`;
   if (j.css) {
-    if (String(j.css).length > 200000) throw new Error('A téma CSS-e túl hosszú (legfeljebb 200 000 karakter).');
+    if (String(j.css).length > 200000) throw new Error(_t('A téma CSS-e túl hosszú (legfeljebb 200 000 karakter).'));
     compiled += scopeCss(j.css, root);
   }
   const preview = (Array.isArray(j.preview) ? j.preview : [j.colors?.bg, j.colors?.accent, j.colors?.bg3 || j.colors?.bg2]).filter(safeValue).slice(0, 3);
@@ -233,7 +234,7 @@ export function parseThemeFile(text, source = '') {
 /** Saját témák felvétele a választható stílusok közé (a korábbiak cseréjével). */
 export function registerCustomThemes(defs) {
   for (const k of Object.keys(THEMES)) if (THEMES[k].custom) delete THEMES[k];
-  for (const d of defs) THEMES[d.key] = { label: d.name, desc: `${d.description || 'Saját téma.'}${d.author ? ` – ${d.author}` : ''}`, light: d.tone === 'light', custom: d };
+  for (const d of defs) THEMES[d.key] = { label: d.name, desc: `${d.description || _t('Saját téma.')}${d.author ? ` – ${d.author}` : ''}`, light: d.tone === 'light', custom: d };
 }
 
 // ---------------------------------------------------------------------------
@@ -257,13 +258,13 @@ const DEFAULT_OFF = new Set(['cattiles']);
 export function rowLabel(key) {
   if (key.startsWith('cat:')) return categoryName(key.slice(4));
   return {
-    recent: 'Legutóbb nézett',
-    favorites: 'Kedvenceid',
-    onair: 'Most a TV-ben',
-    home: `${countryName(store.settings.homeCountry) || 'Hazai'} csatornái`,
-    custom: 'Listák soronként (Pluto TV, Free-TV, saját listák…)',
-    countries: 'Fedezz fel országokat',
-    cattiles: 'Kategóriák (csempék)',
+    recent: _t('Legutóbb nézett'),
+    favorites: _t('Kedvenceid'),
+    onair: _t('Most a TV-ben'),
+    home: _t('{country} csatornái', { country: countryName(store.settings.homeCountry) || _t('Hazai') }),
+    custom: _t('Listák soronként (Pluto TV, Free-TV, saját listák…)'),
+    countries: _t('Fedezz fel országokat'),
+    cattiles: _t('Kategóriák (csempék)'),
   }[key] || key;
 }
 

@@ -4,6 +4,7 @@ import { html, esc } from './util.js';
 import { store } from './store.js';
 import { openModal } from './components.js';
 
+import { _t } from './i18n.js';
 /** Egyszerű, sózott ujjlenyomat (nem titkosítás – a PIN csak helyben, ezen az eszközön véd). */
 export function hashPin(pin, salt) {
   let h = 0x811c9dc5;
@@ -62,9 +63,9 @@ export function askPin({ title, text, accept }) {
       <p class="pin-msg"></p>
       <div class="pin-pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9]
         .map((n) => `<button class="btn" data-k="${n}">${n}</button>`)
-        .join('')}<button class="btn" data-k="del" aria-label="Törlés">⌫</button><button class="btn" data-k="0">0</button><button class="btn" data-k="cancel">Mégse</button></div>
-      <details class="pin-forgot"><summary>Elfelejtettem a PIN-t</summary>
-        <p class="muted small">A profil PIN-jét egy másik felnőtt profilból lehet törölni (Profilok kezelése → a profil szerkesztése). Ha nincs ilyen profil, az alkalmazás adatainak törlésével (az asztali változatban az adatmappa <code>store.json</code> fájljával) minden beállítás visszaáll.</p></details>
+        .join('')}<button class="btn" data-k="del" aria-label="${_t('Törlés')}">⌫</button><button class="btn" data-k="0">0</button><button class="btn" data-k="cancel">${_t('Mégse')}</button></div>
+      <details class="pin-forgot"><summary>${_t('Elfelejtettem a PIN-t')}</summary>
+        <p class="muted small">${_t('A profil PIN-jét egy másik felnőtt profilból lehet törölni (Profilok kezelése → a profil szerkesztése). Ha nincs ilyen profil, az alkalmazás adatainak törlésével (az asztali változatban az adatmappa <code>store.json</code> fájljával) minden beállítás visszaáll.')}</p></details>
     </div>`);
     const finish = (ok) => {
       if (done) return;
@@ -78,7 +79,7 @@ export function askPin({ title, text, accept }) {
     const draw = () => dots.forEach((d, i) => d.classList.toggle('on', i < pin.length));
     const press = (k) => {
       if (Date.now() < lockedUntil) {
-        msg.textContent = `Túl sok hibás próbálkozás – várj ${Math.ceil((lockedUntil - Date.now()) / 1000)} másodpercet.`;
+        msg.textContent = `${_t('Túl sok hibás próbálkozás – várj {ceil} másodpercet.', { ceil: Math.ceil((lockedUntil - Date.now()) / 1000) })}`;
         return;
       }
       if (k === 'cancel') return finish(false);
@@ -95,7 +96,7 @@ export function askPin({ title, text, accept }) {
           lockedUntil = Date.now() + 30000;
           failCount = 0;
         }
-        msg.textContent = 'Hibás PIN-kód.';
+        msg.textContent = _t('Hibás PIN-kód.');
         el.classList.remove('shake');
         void el.offsetWidth;
         el.classList.add('shake');
@@ -128,11 +129,11 @@ export async function unlockProfile(p) {
   // gyerekprofilból kilépni (nem gyerekprofilra) csak felnőtt jóváhagyásával lehet – akkor is, ha a cél nincs zárolva
   const leavingKids = !!cur?.kids && !p.kids && p.id !== cur.id;
   if (!hasPin(p) || (unlocked.has(p.id) && !cur?.kids)) {
-    if (leavingKids && !(await requireAdult('A gyerekprofilból való kilépéshez'))) return false;
+    if (leavingKids && !(await requireAdult(_t('A gyerekprofilból való kilépéshez')))) return false;
     markUnlocked(p);
     return true;
   }
-  const ok = await askPin({ title: `${p.name} profil`, text: 'Ez a profil zárolva van. Add meg a PIN-kódját.', accept: [p] });
+  const ok = await askPin({ title: `${_t('{name} profil', { name: p.name })}`, text: _t('Ez a profil zárolva van. Add meg a PIN-kódját.'), accept: [p] });
   if (ok) markUnlocked(p);
   return ok;
 }
@@ -140,7 +141,7 @@ export async function unlockProfile(p) {
 /** Felnőtt jóváhagyás kérése (pl. gyerekprofilból a beállításokhoz). */
 export async function requireAdult(reason) {
   if (!adultGuardNeeded()) return true;
-  return askPin({ title: 'Szülői jóváhagyás', text: `${reason} Add meg egy felnőtt profil PIN-kódját.`, accept: adultPins() });
+  return askPin({ title: _t('Szülői jóváhagyás'), text: `${_t('{reason} Add meg egy felnőtt profil PIN-kódját.', { reason })}`, accept: adultPins() });
 }
 
 /** Új PIN megadása kétszer. → Promise<string|null> */
@@ -150,13 +151,13 @@ export function choosePin(name) {
     let pin = '';
     let done = false;
     const el = html(`<div class="dialog pin-dialog">
-      <h2>PIN-kód: ${esc(name)}</h2>
-      <p class="muted step">Adj meg egy 4 jegyű PIN-kódot.</p>
+      <h2>${_t('PIN-kód: {esc}', { esc: esc(name) })}</h2>
+      <p class="muted step">${_t('Adj meg egy 4 jegyű PIN-kódot.')}</p>
       <div class="pin-dots">${'<i></i>'.repeat(4)}</div>
       <p class="pin-msg"></p>
       <div class="pin-pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9]
         .map((n) => `<button class="btn" data-k="${n}">${n}</button>`)
-        .join('')}<button class="btn" data-k="del" aria-label="Törlés">⌫</button><button class="btn" data-k="0">0</button><button class="btn" data-k="cancel">Mégse</button></div>
+        .join('')}<button class="btn" data-k="del" aria-label="${_t('Törlés')}">⌫</button><button class="btn" data-k="0">0</button><button class="btn" data-k="cancel">${_t('Mégse')}</button></div>
     </div>`);
     const finish = (v) => {
       if (done) return;
@@ -176,15 +177,15 @@ export function choosePin(name) {
       if (!first) {
         first = pin;
         pin = '';
-        el.querySelector('.step').textContent = 'Írd be még egyszer a megerősítéshez.';
+        el.querySelector('.step').textContent = _t('Írd be még egyszer a megerősítéshez.');
         el.querySelector('.pin-msg').textContent = '';
         setTimeout(draw, 200);
       } else if (pin === first) finish(pin);
       else {
         first = '';
         pin = '';
-        el.querySelector('.step').textContent = 'Adj meg egy 4 jegyű PIN-kódot.';
-        el.querySelector('.pin-msg').textContent = 'A két PIN nem egyezett, kezdd újra.';
+        el.querySelector('.step').textContent = _t('Adj meg egy 4 jegyű PIN-kódot.');
+        el.querySelector('.pin-msg').textContent = _t('A két PIN nem egyezett, kezdd újra.');
         setTimeout(draw, 200);
       }
     };

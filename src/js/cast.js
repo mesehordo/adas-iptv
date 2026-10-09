@@ -7,18 +7,19 @@ import { player } from './player.js';
 import { openModal, confirmDialog } from './components.js';
 import { epg } from './epg.js';
 
+import { _t } from './i18n.js';
 const state = { device: null, status: '', paused: false, devices: [], scanning: false };
 const root = $('#player');
 const video = $('#video');
 
 const CAST_ICON = '<svg viewBox="0 0 24 24"><path d="M21 3H3a2 2 0 0 0-2 2v3h2V5h18v14h-7v2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2ZM1 18v3h3a3 3 0 0 0-3-3Zm0-4v2a5 5 0 0 1 5 5h2a7 7 0 0 0-7-7Zm0-4v2a9 9 0 0 1 9 9h2A11 11 0 0 0 1 10Z"/></svg>';
-const STATE_TEXT = { PLAYING: 'Lejátszás', PAUSED: 'Szüneteltetve', BUFFERING: 'Betöltés…', IDLE: 'Várakozik', LOADING: 'Csatlakozás…' };
+const STATE_TEXT = { PLAYING: _t('Lejátszás@@állapot'), PAUSED: _t('Szüneteltetve'), BUFFERING: _t('Betöltés…'), IDLE: _t('Várakozik'), LOADING: _t('Csatlakozás…') };
 
 function overlay() {
   let el = $('.p-cast', root);
   if (!el) {
     el = html(`<div class="p-cast" hidden><div class="pc-ico">${CAST_ICON}</div><div class="pc-text"></div>
-      <div class="dialog-btns"><button class="btn" data-pc="toggle"></button><button class="btn" data-pc="voldown" title="Halkabban">−</button><button class="btn" data-pc="volup" title="Hangosabban">+</button><button class="btn primary" data-pc="stop">Kivetítés leállítása</button></div></div>`);
+      <div class="dialog-btns"><button class="btn" data-pc="toggle"></button><button class="btn" data-pc="voldown" title="${_t('Halkabban')}">−</button><button class="btn" data-pc="volup" title="${_t('Hangosabban')}">+</button><button class="btn primary" data-pc="stop">${_t('Kivetítés leállítása')}</button></div></div>`);
     root.insertBefore(el, $('.p-top', root));
     el.addEventListener('click', (e) => {
       const a = e.target.closest('[data-pc]')?.dataset.pc;
@@ -46,31 +47,31 @@ function drawOverlay() {
   const n = ch && !ch.vod ? epg.now(ch.id) : null;
   el.hidden = false;
   root.classList.add('casting');
-  el.querySelector('.pc-text').innerHTML = `<div class="muted small">Kivetítve ide</div>
+  el.querySelector('.pc-text').innerHTML = `<div class="muted small">${_t('Kivetítve ide')}</div>
     <h2>${esc(state.device.name)}</h2>
     <div>${esc(ch?.vod?.title || ch?.name || '')}${n?.cur ? ` · ${esc(n.cur.title)}` : ''}</div>
     <div class="muted small">${esc(STATE_TEXT[state.status] || state.status || '')}${state.device.kind === 'dlna' ? ' · DLNA' : ' · Chromecast'}</div>`;
-  el.querySelector('[data-pc="toggle"]').textContent = state.paused ? '▶ Folytatás' : '❚❚ Szünet';
+  el.querySelector('[data-pc="toggle"]').textContent = state.paused ? _t('▶ Folytatás') : _t('❚❚ Szünet');
 }
 
 async function scan(listEl) {
   state.scanning = true;
-  listEl.innerHTML = '<p class="muted"><span class="spinner small-spin"></span> Eszközök keresése a hálózaton…</p>';
+  listEl.innerHTML = `<p class="muted"><span class="spinner small-spin"></span> ${_t('Eszközök keresése a hálózaton…')}</p>`;
   try {
     state.devices = await api.castDiscover();
   } catch (err) {
     state.devices = [];
-    listEl.innerHTML = `<p class="muted">Hiba a keresésben: ${escerrText(err)}</p>`;
+    listEl.innerHTML = `<p class="muted">${_t('Hiba a keresésben: {escerrText}', { escerrText: escerrText(err) })}</p>`;
   }
   state.scanning = false;
 }
 
 function openMenu() {
   const el = html(`<div class="dialog cast-dialog">
-    <h2>Kivetítés</h2>
-    <p class="muted small">Chromecast, illetve DLNA-képes tévék és lejátszók ugyanazon a hálózaton. Az adást ez a gép továbbítja, ezért a kivetítés alatt maradjon bekapcsolva.</p>
+    <h2>${_t('Kivetítés')}</h2>
+    <p class="muted small">${_t('Chromecast, illetve DLNA-képes tévék és lejátszók ugyanazon a hálózaton. Az adást ez a gép továbbítja, ezért a kivetítés alatt maradjon bekapcsolva.')}</p>
     <div class="cast-list"></div>
-    <div class="dialog-btns"><button class="btn" data-cm="rescan">Újrakeresés</button>${state.device ? '<button class="btn danger" data-cm="stop">Kivetítés leállítása</button>' : ''}</div>
+    <div class="dialog-btns"><button class="btn" data-cm="rescan">${_t('Újrakeresés')}</button>${state.device ? `<button class="btn danger" data-cm="stop">${_t('Kivetítés leállítása')}</button>` : ''}</div>
   </div>`);
   const close = openModal(el, { cls: 'small' });
   const list = el.querySelector('.cast-list');
@@ -82,7 +83,7 @@ function openMenu() {
               <span><b>${esc(d.name)}</b><small>${esc(d.kind === 'chromecast' ? 'Chromecast' : 'DLNA')}${d.model ? ' · ' + esc(d.model) : ''} · ${esc(d.host)}</small></span></button>`
           )
           .join('')
-      : '<p class="muted">Nem található eszköz. Ellenőrizd, hogy a tévé / Chromecast be van-e kapcsolva, és ugyanazon a hálózaton van-e. Első használatkor a Windows tűzfal engedélyt kérhet – engedélyezd a magánhálózaton.</p>';
+      : `<p class="muted">${_t('Nem található eszköz. Ellenőrizd, hogy a tévé / Chromecast be van-e kapcsolva, és ugyanazon a hálózaton van-e. Első használatkor a Windows tűzfal engedélyt kérhet – engedélyezd a magánhálózaton.')}</p>`;
     list.querySelector('[data-dev]')?.focus();
   };
   const run = async () => {
@@ -127,7 +128,7 @@ function stopCast(resume, reason = '') {
   state.device = null;
   api.castControl('disconnect');
   drawOverlay();
-  if (reason) toast(`Kivetítés vége (${name}): ${reason}`);
+  if (reason) toast(`${_t('Kivetítés vége ({name}): {reason}', { name, reason })}`);
   if (resume && player.active && player.channel) {
     if (player.channel.vod && state.time) player.resumeAt = state.time;
     player.tried = new Set();
@@ -169,20 +170,20 @@ const hooks = {
       // A Chromecast tanúsítványa más, mint amit első kapcsolódáskor megjegyeztünk: csak a felhasználó
       // jóváhagyásával fogadjuk el az újat (pl. gyári visszaállítás után) – különben egy álcázott eszköz lehet.
       if (/CERT_CHANGED/.test(errText(err)) && api.castForget) {
-        const ok = await confirmDialog(`A(z) „${state.device.name}” eszköz azonosító tanúsítványa megváltozott az előző kapcsolódás óta. Ez gyári visszaállítás után normális, de jelentheti azt is, hogy egy másik eszköz adja ki magát érte. Megbízol benne, és kivetíted rá?`, { ok: 'Megbízom benne', danger: true });
-        if (!ok) throw new Error('Kivetítés: az eszköz tanúsítványa megváltozott – megszakítva.');
+        const ok = await confirmDialog(`${_t('A(z) „{name}” eszköz azonosító tanúsítványa megváltozott az előző kapcsolódás óta. Ez gyári visszaállítás után normális, de jelentheti azt is, hogy egy másik eszköz adja ki magát érte. Megbízol benne, és kivetíted rá?', { name: state.device.name })}`, { ok: _t('Megbízom benne'), danger: true });
+        if (!ok) throw new Error(_t('Kivetítés: az eszköz tanúsítványa megváltozott – megszakítva.'));
         await api.castForget(state.device.id);
         try {
           await api.castPlay(opts);
         } catch (err2) {
-          throw new Error('Kivetítés: ' + errText(err2));
+          throw new Error(`${_t('Kivetítés:')} ` + errText(err2));
         }
-      } else throw new Error('Kivetítés: ' + errText(err));
+      } else throw new Error(`${_t('Kivetítés:')} ` + errText(err));
     }
     if (at > 30) setTimeout(() => api.castControl('seek', at), 1500);
     state.paused = false;
     drawOverlay();
-    toast(`Kivetítve: ${state.device.name}`);
+    toast(`${_t('Kivetítve: {name}', { name: state.device.name })}`);
   },
   toggle() {
     if (!state.device) return;
@@ -195,7 +196,7 @@ const hooks = {
     if (!state.device) return;
     state.time = Math.max(0, (state.time || 0) + sec);
     api.castControl('seek', state.time);
-    player.showOsd(player.channel, `${sec > 0 ? '+' : ''}${sec} mp`);
+    player.showOsd(player.channel, `${sec > 0 ? '+' : ''}${_t('{sec} mp', { sec })}`);
   },
   onClose() {
     // A lejátszó bezárásakor a kivetítés is leáll.
@@ -213,7 +214,7 @@ if (api.onCastStatus) {
     if (s.state === 'PLAYING') state.paused = false;
     if (typeof s.time === 'number') state.time = s.time;
     if (typeof s.volume === 'number') state.volume = s.volume;
-    if (s.state === 'IDLE' && s.idle === 'ERROR') toast('A kivetítő eszköz nem tudta lejátszani ezt az adást.');
+    if (s.state === 'IDLE' && s.idle === 'ERROR') toast(_t('A kivetítő eszköz nem tudta lejátszani ezt az adást.'));
     if (s.state === 'IDLE' && s.idle === 'FINISHED' && player.channel?.vod) {
       const next = player.vodHooks?.next(player.channel, 1);
       if (next && player.vodHooks.autoNext()) player.playVod(next);

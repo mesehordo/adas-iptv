@@ -1,3 +1,4 @@
+import { _t, LOCALE } from './i18n.js';
 // Apró segédfüggvények: HTML-escape, DOM, idő, szöveg-normalizálás, eseménybusz.
 
 export const $ = (sel, root = document) => root.querySelector(sel);
@@ -55,8 +56,8 @@ export function debounce(fn, ms) {
   };
 }
 
-const timeFmt = new Intl.DateTimeFormat('hu-HU', { hour: '2-digit', minute: '2-digit' });
-const dayFmt = new Intl.DateTimeFormat('hu-HU', { weekday: 'long', month: 'long', day: 'numeric' });
+const timeFmt = new Intl.DateTimeFormat(LOCALE, { hour: '2-digit', minute: '2-digit' });
+const dayFmt = new Intl.DateTimeFormat(LOCALE, { weekday: 'long', month: 'long', day: 'numeric' });
 export const fmtTime = (t) => timeFmt.format(new Date(t));
 export const fmtDay = (t) => dayFmt.format(new Date(t));
 
@@ -68,17 +69,17 @@ export function dayStart(t = Date.now(), offsetDays = 0) {
 }
 
 export function dayLabel(offset) {
-  if (offset === 0) return 'Ma';
-  if (offset === 1) return 'Holnap';
-  if (offset === -1) return 'Tegnap';
-  return new Intl.DateTimeFormat('hu-HU', { weekday: 'long' }).format(new Date(dayStart(Date.now(), offset)));
+  if (offset === 0) return _t('Ma');
+  if (offset === 1) return _t('Holnap');
+  if (offset === -1) return _t('Tegnap');
+  return new Intl.DateTimeFormat(LOCALE, { weekday: 'long' }).format(new Date(dayStart(Date.now(), offset)));
 }
 
 export function fmtDuration(ms) {
   const m = Math.round(ms / 60000);
-  if (m < 60) return `${m} perc`;
+  if (m < 60) return `${_t('{m} perc', { m })}`;
   const h = Math.floor(m / 60);
-  return m % 60 ? `${h} óra ${m % 60} perc` : `${h} óra`;
+  return m % 60 ? `${_t('{h} óra {x} perc', { h, x: m % 60 })}` : `${_t('{h} óra', { h })}`;
 }
 
 /** Nagyon egyszerű eseménybusz. */

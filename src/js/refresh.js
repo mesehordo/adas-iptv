@@ -3,6 +3,7 @@ import { catalog, loadCatalog } from './catalog.js';
 import { epg } from './epg.js';
 import { toast, bus } from './util.js';
 
+import { _t } from './i18n.js';
 let running = null;
 
 export const refreshing = () => !!running;
@@ -14,7 +15,7 @@ export const refreshing = () => !!running;
  */
 export function refreshAll({ force = true, epgToo = true, quiet = false } = {}) {
   if (running) return running;
-  if (!quiet) toast(force ? 'Csatornalista frissítése…' : 'Csatornalista újratöltése…');
+  if (!quiet) toast(force ? _t('Csatornalista frissítése…') : _t('Csatornalista újratöltése…'));
   bus.emit('refresh', true);
   running = (async () => {
     const before = catalog.channels.length;
@@ -23,14 +24,17 @@ export function refreshAll({ force = true, epgToo = true, quiet = false } = {}) 
       const diff = catalog.channels.length - before;
       if (!quiet) {
         toast(
-          `Kész: ${catalog.channels.length} csatorna` +
-            (diff > 0 ? ` (${diff} új)` : diff < 0 ? ` (${-diff} eltűnt)` : '')
+          diff > 0
+            ? _t('Kész: {length} csatorna ({diff} új)', { length: catalog.channels.length, diff })
+            : diff < 0
+              ? _t('Kész: {length} csatorna ({x} eltűnt)', { length: catalog.channels.length, x: -diff })
+              : _t('Kész: {length} csatorna', { length: catalog.channels.length })
         );
       }
       if (epgToo) epg.load({ force });
       return true;
     } catch (err) {
-      toast('Nem sikerült frissíteni: ' + (err.message || err), { timeout: 8000 });
+      toast(`${_t('Nem sikerült frissíteni:')} ` + (err.message || err), { timeout: 8000 });
       return false;
     } finally {
       running = null;

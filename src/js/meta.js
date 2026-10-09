@@ -1,14 +1,28 @@
-// Magyar információk filmekről, sorozatokról és tévécsatornákról.
-// Alapból Wikidata + Wikipédia (kulcs nélkül, ingyenes); ha van TMDB-kulcs, a TMDB magyar adatai.
+// Információk filmekről, sorozatokról és tévécsatornákról – a felület nyelvén, ennek híján angolul.
+// Alapból Wikidata + Wikipédia (kulcs nélkül, ingyenes); ha van TMDB-kulcs, a TMDB adatai is.
 import { api } from './api.js';
 import { store } from './store.js';
 import { esc, norm } from './util.js';
 
+import { _t, LOCALE, lang as ML } from './i18n.js';
+// keresőszavak nyelvenként (Wikipédia-keresés): film, sorozat, tévécsatorna
+const KIND_WORDS = {
+  hu: { film: 'film', series: 'sorozat', tv: 'televízió' },
+  en: { film: 'film', series: 'series', tv: 'TV channel' },
+  de: { film: 'Film', series: 'Fernsehserie', tv: 'Fernsehsender' },
+  es: { film: 'película', series: 'serie de televisión', tv: 'canal de televisión' },
+  fr: { film: 'film', series: 'série télévisée', tv: 'chaîne de télévision' },
+};
+/** A keresés nyelvei: a felület nyelve, majd az angol. */
+const META_LANGS = [...new Set([ML, 'en'])];
+// a címkékből levágandó egyértelműsítő zárójeles rész (pl. „(film, 1968)”, „(série télévisée)”)
+const DISAMBIG_RX = /\s*\((?:[^)]*\b(?:film|sorozat|televíziós|tévé|műsor|anime|series|tv|fernsehserie|serie|série|película|télévisée)\b[^)]*|\d{4})\)\s*$/i;
 const WD = 'https://www.wikidata.org/w/api.php';
 const TTL_HOURS = 24 * 30; // a nyers válaszok gyorsítótárban tartása
 const memo = new Map();
 // A keresési logika változásakor növelni kell, hogy a régi (pl. üres) eredmények ne maradjanak meg.
-const META_V = 'meta:7:';
+// (a nyelv is része: más nyelvű felületnél más leírás)
+const META_V = `meta:7:${ML === 'hu' ? '' : ML + ':'}`;
 
 // Túl sok kérés (HTTP 429) után az adott szolgáltatónál egy ideig szünetel a lekérdezés, hogy ne tiltson ki.
 const pauseUntil = new Map(); // gazdagép -> időpont
@@ -23,7 +37,7 @@ const hostOf = (url) => {
 export const metaPaused = (url = WD) => Date.now() < (pauseUntil.get(hostOf(url)) || 0);
 
 async function getJSON(url, headers, { method, body } = {}) {
-  if (metaPaused(url)) throw new Error('szünetel (túl sok kérés)');
+  if (metaPaused(url)) throw Object.assign(new Error(_t('szünetel (túl sok kérés)')), { paused: true });
   try {
     if (headers || method) {
       const r = await api.request({ method: method || 'GET', url, headers: headers || {}, body });
@@ -77,13 +91,13 @@ const claimYear = (ent, p = 'P577') => {
   const t = ent?.claims?.[p]?.[0]?.mainsnak?.datavalue?.value?.time;
   return t ? parseInt(t.slice(1, 5), 10) : 0;
 };
-const label = (ent) => ent?.labels?.hu?.value || ent?.labels?.en?.value || '';
+const label = (ent) => ent?.labels?.[ML]?.value || ent?.labels?.en?.value || '';
 
 async function wdEntities(ids, props = 'labels|claims|sitelinks|descriptions', allLangs = false) {
   if (!ids.length) return {};
   const out = {};
   for (let i = 0; i < ids.length; i += 45) {
-    const r = await getJSON(`${WD}?${q({ action: 'wbgetentities', ids: ids.slice(i, i + 45).join('|'), props, ...(allLangs ? {} : { languages: 'hu|en' }), format: 'json', origin: '*' })}`);
+    const r = await getJSON(`${WD}?${q({ action: 'wbgetentities', ids: ids.slice(i, i + 45).join('|'), props, ...(allLangs ? {} : { languages: META_LANGS.join('|') }), format: 'json', origin: '*' })}`);
     Object.assign(out, r.entities || {});
   }
   return out;
@@ -112,7 +126,7 @@ const AL = 'https://graphql.anilist.co';
 const AL_FIELDS = 'id title{romaji english native} synonyms description(asHtml:false) coverImage{large} genres averageScore popularity seasonYear startDate{year} format episodes studios(isMain:true){nodes{name}} siteUrl';
 // Az AniList 404-et ad, ha egy keresett cím nincs meg – ilyenkor is a válasz többi része érvényes.
 async function alPost(query, variables) {
-  if (metaPaused(AL)) throw new Error('szünetel (túl sok kérés)');
+  if (metaPaused(AL)) throw Object.assign(new Error(_t('szünetel (túl sok kérés)')), { paused: true });
   const r = await api.request({ method: 'POST', url: AL, headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ query, variables }) });
   if (r.status === 429) {
     pauseUntil.set(hostOf(AL), Date.now() + 90e3);
@@ -160,7 +174,7 @@ async function anilistBatch(items) {
   const vars = Object.fromEntries(items.map((x, i) => [`s${i}`, x.title]));
   const q = `query(${items.map((_, i) => `$s${i}:String`).join(',')}){${parts.join(' ')}}`;
   const r = await alPost(q, vars);
-  if (!r?.data) throw new Error('AniList: üres válasz');
+  if (!r?.data) throw new Error(_t('AniList: üres válasz'));
   return new Map(items.map((x, i) => [x.id, fromAniList(r.data[`a${i}`]?.media?.[0], x)]));
 }
 
@@ -227,20 +241,20 @@ async function describe(ent, { people = true } = {}) {
   const labels = await wdEntities([...new Set([...genres, ...directors, ...cast, ...countries])], 'labels');
   const names = (ids) => ids.map((id) => label(labels[id])).filter(Boolean);
   // A címkéből az egyértelműsítő zárójeles rész (pl. „(film, 1968)”) elhagyva.
-  const huTitle = (ent.labels?.hu?.value || '').replace(/\s*\((?:[^)]*\b(?:film|sorozat|televíziós|tévé|műsor)\b[^)]*|\d{4})\)\s*$/i, '');
+  const huTitle = (ent.labels?.[ML]?.value || '').replace(DISAMBIG_RX, '');
   let summary = null;
-  let lang = 'hu';
-  if (ent.sitelinks?.huwiki) summary = await wikiSummary('hu', ent.sitelinks.huwiki.title);
-  if (!summary && ent.sitelinks?.enwiki) {
+  let lang = ML;
+  if (ent.sitelinks?.[ML + 'wiki']) summary = await wikiSummary(ML, ent.sitelinks[ML + 'wiki'].title);
+  if (!summary && ML !== 'en' && ent.sitelinks?.enwiki) {
     summary = await wikiSummary('en', ent.sitelinks.enwiki.title);
     lang = 'en';
   }
   return {
     source: 'wikidata',
     huTitle,
-    description: summary?.text || ent.descriptions?.hu?.value || ent.descriptions?.en?.value || '',
-    descLang: summary ? lang : ent.descriptions?.hu ? 'hu' : ent.descriptions?.en ? 'en' : '',
-    shortDesc: ent.descriptions?.hu?.value || '',
+    description: summary?.text || ent.descriptions?.[ML]?.value || ent.descriptions?.en?.value || '',
+    descLang: summary ? lang : ent.descriptions?.[ML] ? ML : ent.descriptions?.en ? 'en' : '',
+    shortDesc: ent.descriptions?.[ML]?.value || '',
     genres: names(genres),
     directors: names(directors),
     cast: names(cast),
@@ -258,7 +272,7 @@ function merge(list) {
   if (!xs.length) return null;
   // Leírás: a magyar, ha érdemi (nem csak egy „japán animesorozat” jellegű címke), különben a leghosszabb
   const len = (m) => (m.description || '').length;
-  const hu = xs.find((m) => m.descLang === 'hu' && len(m) >= 80);
+  const hu = xs.find((m) => m.descLang === ML && len(m) >= 80);
   const any = hu || xs.filter((m) => m.description).sort((a, b) => len(b) - len(a))[0];
   const pick = (k) => xs.map((m) => m[k]).find((v) => (Array.isArray(v) ? v.length : v)) || (Array.isArray(xs[0][k]) ? [] : xs[0][k]);
   const main = any || xs[0];
@@ -287,7 +301,7 @@ function merge(list) {
 async function tmdb(path, params = {}) {
   const key = (store.settings.tmdbKey || '').trim();
   const isToken = key.length > 40;
-  const url = `https://api.themoviedb.org/3${path}?${q({ ...(isToken ? {} : { api_key: key }), language: 'hu-HU', ...params })}`;
+  const url = `https://api.themoviedb.org/3${path}?${q({ ...(isToken ? {} : { api_key: key }), language: LOCALE, ...params })}`;
   return getJSON(url, isToken ? { Authorization: `Bearer ${key}`, Accept: 'application/json' } : null);
 }
 
@@ -298,8 +312,8 @@ async function tmdbInfo(x) {
   if (!hit) return null;
   const d = await tmdb(`/${isTv ? 'tv' : 'movie'}/${hit.id}`, { append_to_response: 'credits' });
   let overview = d.overview;
-  let descLang = 'hu';
-  if (!overview) {
+  let descLang = ML;
+  if (!overview && ML !== 'en') {
     const en = await tmdb(`/${isTv ? 'tv' : 'movie'}/${hit.id}`, { language: 'en-US' });
     overview = en.overview;
     descLang = overview ? 'en' : '';
@@ -317,7 +331,7 @@ async function tmdbInfo(x) {
     rating: d.vote_average ? Math.round(d.vote_average * 10) / 10 : 0,
     votes: d.vote_count || 0,
     poster: d.poster_path ? `https://image.tmdb.org/t/p/w342${d.poster_path}` : '',
-    url: `https://www.themoviedb.org/${isTv ? 'tv' : 'movie'}/${hit.id}?language=hu-HU`,
+    url: `https://www.themoviedb.org/${isTv ? 'tv' : 'movie'}/${hit.id}?language=${LOCALE}`,
   };
 }
 
@@ -358,16 +372,16 @@ export function filmInfo(x) {
   const useTmdb = !!(store.settings.tmdbKey || '').trim();
   return cached(`${useTmdb ? 'tmdb' : 'wd'}:${x.id}`, async () => {
     const got = [];
-    const safe = (p) => p.catch((err) => (metaPaused(AL) || /429|szünetel/.test(err.message) ? Promise.reject(err) : null));
+    const safe = (p) => p.catch((err) => (metaPaused(AL) || err.paused || /\b429\b/.test(err.message) ? Promise.reject(err) : null));
     const anime = isAnime(x);
     if (useTmdb) got.push(await safe(tmdbInfo(x)));
-    if (!got[0] || got[0].descLang !== 'hu') {
+    if (!got[0] || got[0].descLang !== ML) {
       let wd = await safe(wikidataFilm(x));
       // Animénél az azonos nevű élőszereplős feldolgozás / manga nem jó találat
       if (anime && wd && !/anim|manga|rajzfilm|cartoon|OVA\b/i.test(`${wd.shortDesc} ${wd.description.slice(0, 200)} ${wd.genres.join(' ')}`)) wd = null;
       got.push(wd);
     }
-    const huOk = got.some((m) => m?.descLang === 'hu' && (m.description || '').length >= 80);
+    const huOk = got.some((m) => m?.descLang === ML && (m.description || '').length >= 80);
     const hasPoster = got.some((m) => m?.poster);
     if (!huOk || !hasPoster || anime) {
       // Animénél az AniList műfajai / éve pontosabbak: előre tesszük
@@ -430,7 +444,7 @@ export function titleInfo(x) {
     const list = ids.map((id) => ents[id]).filter(Boolean);
     const ent = x.year ? list.find((e) => Math.abs(claimYear(e) - x.year) <= 1 && Object.values(e.labels || {}).some((l) => sameTitle(l.value, x.title))) || list.find((e) => Math.abs(claimYear(e) - x.year) <= 1) : list.find((e) => Object.values(e.labels || {}).some((l) => sameTitle(l.value, x.title)));
     if (!ent) return { huTitle: '', poster: '' };
-    const hu = (ent.labels?.hu?.value || '').replace(/\s*\((?:[^)]*\b(?:film|sorozat|televíziós|tévé|műsor|anime)\b[^)]*|\d{4})\)\s*$/i, '');
+    const hu = (ent.labels?.[ML]?.value || '').replace(DISAMBIG_RX, '');
     return { huTitle: hu && !sameTitle(hu, x.title) ? hu : '', poster: commonsImage(ent) };
   });
 }
@@ -459,14 +473,14 @@ export async function posterCandidates(x, query = '', onUpdate = null) {
   if (x.type === 'series' || query) {
     t(getJSON(`https://api.tvmaze.com/search/shows?q=${encodeURIComponent(q)}`).then((r) => (r || []).slice(0, 8).forEach((h) => add(h.show?.image?.medium, 'TVmaze', h.show?.name, (h.show?.premiered || '').slice(0, 4)))));
   }
-  // Wikipédia: a keresés találatainak képe (filmeknél többnyire a plakát) – magyarul és angolul
-  for (const lang of ['hu', 'en']) {
-    const kind = lang === 'hu' ? (x.type === 'series' ? ' sorozat' : ' film') : x.type === 'series' ? ' series' : ' film';
+  // Wikipédia: a keresés találatainak képe (filmeknél többnyire a plakát) – a felület nyelvén és angolul
+  for (const lang of META_LANGS) {
+    const kind = ' ' + (KIND_WORDS[lang] || KIND_WORDS.en)[x.type === 'series' ? 'series' : 'film'];
     t(
       getJSON(`https://${lang}.wikipedia.org/w/api.php?${new URLSearchParams({ action: 'query', generator: 'search', gsrsearch: q + kind, gsrlimit: '8', prop: 'pageimages', piprop: 'thumbnail', pithumbsize: '400', format: 'json', origin: '*' })}`).then((r) =>
         Object.values(r?.query?.pages || {})
           .sort((a, b) => a.index - b.index)
-          .forEach((p) => add(p.thumbnail?.source, `Wikipédia (${lang})`, p.title))
+          .forEach((p) => add(p.thumbnail?.source, `${_t('Wikipédia ({lang})', { lang })}`, p.title))
       )
     );
   }
@@ -477,7 +491,7 @@ export async function posterCandidates(x, query = '', onUpdate = null) {
     t(getJSON(`https://www.omdbapi.com/?${new URLSearchParams({ apikey: store.settings.omdbKey.trim(), s: q, type: x.type === 'series' ? 'series' : 'movie' })}`).then((r) => (r?.Search || []).forEach((h) => h.Poster && h.Poster !== 'N/A' && add(h.Poster, 'OMDb (IMDb)', h.Title, h.Year))));
   }
   if (own) {
-    t(filmInfo(x).then((m) => add(m?.poster, 'Wikidata / Wikipédia', m?.huTitle || '')));
+    t(filmInfo(x).then((m) => add(m?.poster, _t('Wikidata / Wikipédia'), m?.huTitle || '')));
     t(titleInfo(x).then((m) => add(m?.poster, 'Wikimedia Commons')));
   }
   await Promise.all(tasks);
@@ -523,7 +537,7 @@ export function channelInfo(ch) {
       const cents = await wdEntities(countryIds, 'claims');
       const iso = (cid) => cents[cid]?.claims?.P297?.[0]?.mainsnak?.datavalue?.value || '';
       const nameOk = (e) => Object.values(e.labels || {}).some((l) => base(l.value) === want1);
-      const isTv = (e) => typed || TV_RX.test([e.descriptions?.hu?.value, e.descriptions?.en?.value].join(' '));
+      const isTv = (e) => typed || TV_RX.test([e.descriptions?.[ML]?.value, e.descriptions?.en?.value].join(' '));
       const cands = ids.map((id) => ents[id]).filter((e) => e && isTv(e) && nameOk(e));
       return (
         cands.find((e) => !want || claimIds(e, 'P17').some((c) => iso(c) === want)) ||
@@ -546,8 +560,8 @@ export function channelInfo(ch) {
 
 /** Csatorna az angol (illetve előbb a magyar) Wikipédiában, ha a Wikidatában nincs meg. */
 async function enwikiChannel(ch, want1, base, TV_RX) {
-  for (const lang of ['hu', 'en']) {
-    const r = await getJSON(`https://${lang}.wikipedia.org/w/api.php?${new URLSearchParams({ action: 'query', list: 'search', srsearch: `${ch.name} ${lang === 'hu' ? 'televízió' : 'TV channel'}`, srlimit: '5', format: 'json', origin: '*' })}`);
+  for (const lang of META_LANGS) {
+    const r = await getJSON(`https://${lang}.wikipedia.org/w/api.php?${new URLSearchParams({ action: 'query', list: 'search', srsearch: `${ch.name} ${(KIND_WORDS[lang] || KIND_WORDS.en).tv}`, srlimit: '5', format: 'json', origin: '*' })}`);
     for (const hit of r.query?.search || []) {
       if (base(hit.title.replace(/\s*\([^)]*\)\s*$/, '')) !== want1) continue;
       const sum = await wikiSummary(lang, hit.title);
@@ -561,26 +575,27 @@ async function enwikiChannel(ch, want1, base, TV_RX) {
 /** Az információs doboz HTML-je (a szövegek mind escape-elve). */
 export function infoBoxHtml(m, { kind = 'film' } = {}) {
   if (!m) {
-    return `<div class="hu-info empty"><p class="muted small">Ehhez ${kind === 'channel' ? 'a csatornához' : 'a címhez'} nem találtunk leírást${kind === 'channel' ? '' : ' (Wikipédia, AniList, TVmaze' + ((store.settings.tmdbKey || '').trim() ? ', TMDB' : '') + ')'}.</p></div>`;
+    const srcs = 'Wikipédia, AniList, TVmaze' + ((store.settings.tmdbKey || '').trim() ? ', TMDB' : '');
+    return `<div class="hu-info empty"><p class="muted small">${kind === 'channel' ? _t('Ehhez a csatornához nem találtunk leírást.') : _t('Ehhez a címhez nem találtunk leírást ({sources}).', { sources: srcs })}</p></div>`;
   }
   const row = (k, v) => (v && v.length ? `<dt>${k}</dt><dd>${esc(Array.isArray(v) ? v.join(', ') : v)}</dd>` : '');
-  const NAMES = { tmdb: 'TMDB', wikidata: 'Wikidata', wikipedia: 'Wikipédia', enwiki: 'angol Wikipédia', anilist: 'AniList', tvmaze: 'TVmaze', animeaddicts: 'AnimeAddicts' };
-  const srcName = (s) => (s.source === 'wikidata' && /wikipedia/.test(s.url) ? (/\/\/hu\./.test(s.url) ? 'Wikipédia' : 'angol Wikipédia') : NAMES[s.source] || s.source);
+  const NAMES = { tmdb: 'TMDB', wikidata: 'Wikidata', wikipedia: _t('Wikipédia'), enwiki: _t('angol Wikipédia'), anilist: 'AniList', tvmaze: 'TVmaze', animeaddicts: 'AnimeAddicts' };
+  const srcName = (s) => (s.source === 'wikidata' && /wikipedia/.test(s.url) ? (s.url.includes(`//${ML}.`) ? _t('Wikipédia') : _t('angol Wikipédia')) : NAMES[s.source] || s.source);
   const sources = (m.sources || [{ source: m.source, url: m.url }]).filter((s) => s.url);
   // a távoli forrásból jött értékelés csak véges szám lehet (mentett / hamisított válaszból se kerülhessen jelölő a HTML-be)
   const rating = Number.isFinite(Number(m.rating)) ? Math.round(Number(m.rating) * 10) / 10 : 0;
   const votes = Number.isFinite(Number(m.votes)) ? Math.round(Number(m.votes)) : 0;
   return `<div class="hu-info">
-    <h3>Információk</h3>
-    ${m.huTitle ? `<div class="hu-title">Magyar cím: <b>${esc(m.huTitle)}</b></div>` : ''}
-    ${m.altTitle ? `<div class="hu-title muted">Más címen: ${esc(m.altTitle)}</div>` : ''}
+    <h3>${_t('Információk')}</h3>
+    ${m.huTitle ? `<div class="hu-title">${_t('Magyar cím: <b>{esc}</b>', { esc: esc(m.huTitle) })}</div>` : ''}
+    ${m.altTitle ? `<div class="hu-title muted">${_t('Más címen: {esc}', { esc: esc(m.altTitle) })}</div>` : ''}
     ${m.description ? `<p class="hu-desc">${esc(m.description)}</p>` : ''}
-    ${m.descLang === 'en' ? '<p class="muted small">Magyar leírás nem érhető el, ez az angol nyelvű leírás.</p>' : ''}
+    ${m.descLang && m.descLang !== ML ? `<p class="muted small">${_t('Magyar leírás nem érhető el, ez az angol nyelvű leírás.')}</p>` : ''}
     <dl class="facts">
-      ${rating ? `<dt>Értékelés</dt><dd>★ ${rating} / 10${votes ? ` (${votes} szavazat)` : ''}</dd>` : ''}
-      ${row('Műfaj', m.genres)}${row('Rendező', m.directors)}${row('Stúdió', m.studios)}${row('Szereplők', m.cast)}${row('Ország', m.countries)}
-      ${m.year ? row('Év', String(m.year)) : ''}${row('Tulajdonos', m.owners)}${m.launched ? row('Indulás', String(m.launched)) : ''}
+      ${rating ? `<dt>${_t('Értékelés')}</dt><dd>★ ${rating} / 10${votes ? ` ${_t('({votes} szavazat)', { votes })}` : ''}</dd>` : ''}
+      ${row(_t('Műfaj'), m.genres)}${row(_t('Rendező'), m.directors)}${row(_t('Stúdió'), m.studios)}${row(_t('Szereplők'), m.cast)}${row(_t('Ország'), m.countries)}
+      ${m.year ? row(_t('Év'), String(m.year)) : ''}${row(_t('Tulajdonos'), m.owners)}${m.launched ? row(_t('Indulás'), String(m.launched)) : ''}
     </dl>
-    <p class="muted small">Forrás: ${sources.map((s) => `<a href="#" data-ext="${esc(s.url)}">${esc(srcName(s))}</a>`).join(', ')}</p>
+    <p class="muted small">${_t('Forrás:')} ${sources.map((s) => `<a href="#" data-ext="${esc(s.url)}">${esc(srcName(s))}</a>`).join(', ')}</p>
   </div>`;
 }

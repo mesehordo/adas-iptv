@@ -1,3 +1,4 @@
+import { _t } from './i18n.js';
 // Egyszerű ZIP-kibontó (tárolt és „deflate” tömörítésű tételek) a böngésző saját
 // DecompressionStream-jével. Lejátszólista-csomagok (pl. egy mappányi .m3u8) importjához.
 
@@ -22,7 +23,7 @@ const MAX_TOTAL = 512 * 1024 * 1024;
 
 /** deflate-raw kibontás folyamként, legfeljebb `max` bájtig (afölött hiba, a folyam leáll). */
 async function inflateRaw(data, max = MAX_ENTRY) {
-  if (typeof DecompressionStream === 'undefined') throw new Error('Ezen az eszközön a ZIP nem bontható ki – csomagold ki, és a fájlokat add hozzá.');
+  if (typeof DecompressionStream === 'undefined') throw new Error(_t('Ezen az eszközön a ZIP nem bontható ki – csomagold ki, és a fájlokat add hozzá.'));
   const reader = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw')).getReader();
   const parts = [];
   let size = 0;
@@ -32,7 +33,7 @@ async function inflateRaw(data, max = MAX_ENTRY) {
     size += value.length;
     if (size > max) {
       reader.cancel().catch(() => {});
-      throw new Error('A ZIP egy fájlja kibontva túl nagy.');
+      throw new Error(_t('A ZIP egy fájlja kibontva túl nagy.'));
     }
     parts.push(value);
   }
@@ -59,13 +60,13 @@ export async function unzip(buf, want = () => true) {
       break;
     }
   }
-  if (eocd < 0) throw new Error('Hibás vagy nem ZIP fájl.');
+  if (eocd < 0) throw new Error(_t('Hibás vagy nem ZIP fájl.'));
   const count = dv.getUint16(eocd + 10, true);
   let p = dv.getUint32(eocd + 16, true);
   const out = [];
   let total = 0;
   for (let n = 0; n < count; n++) {
-    if (dv.getUint32(p, true) !== 0x02014b50) throw new Error('Hibás ZIP-könyvtár.');
+    if (dv.getUint32(p, true) !== 0x02014b50) throw new Error(_t('Hibás ZIP-könyvtár.'));
     const flags = dv.getUint16(p + 8, true);
     const method = dv.getUint16(p + 10, true);
     const csize = dv.getUint32(p + 20, true);
@@ -76,7 +77,7 @@ export async function unzip(buf, want = () => true) {
     const path = decodeName(u8.subarray(p + 46, p + 46 + nameLen), flags & 0x800);
     p += 46 + nameLen + extraLen + commentLen;
     if (path.endsWith('/') || !want(path)) continue;
-    if (flags & 1) throw new Error('Jelszóval védett ZIP nem támogatott.');
+    if (flags & 1) throw new Error(_t('Jelszóval védett ZIP nem támogatott.'));
     const lNameLen = dv.getUint16(local + 26, true);
     const lExtraLen = dv.getUint16(local + 28, true);
     const start = local + 30 + lNameLen + lExtraLen;
@@ -84,9 +85,9 @@ export async function unzip(buf, want = () => true) {
     let bytes;
     if (method === 0) bytes = raw;
     else if (method === 8) bytes = await inflateRaw(raw, Math.min(MAX_ENTRY, MAX_TOTAL - total));
-    else throw new Error(`Nem támogatott tömörítés a ZIP-ben (${method}).`);
+    else throw new Error(`${_t('Nem támogatott tömörítés a ZIP-ben ({method}).', { method })}`);
     total += bytes.length;
-    if (total > MAX_TOTAL) throw new Error('A ZIP tartalma kibontva túl nagy.');
+    if (total > MAX_TOTAL) throw new Error(_t('A ZIP tartalma kibontva túl nagy.'));
     out.push({ path, name: path.split('/').pop(), bytes });
   }
   return out;

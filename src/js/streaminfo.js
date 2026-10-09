@@ -3,9 +3,10 @@
 // A lejátszó „Minőség és forrás” menüjéből vagy a D billentyűvel kapcsolható.
 import { esc } from './util.js';
 
-const ENGINE = { hls: 'hls.js (HLS)', native: 'Beépített lejátszó', mpegts: 'mpegts.js (MPEG-TS / FLV)', dash: 'dash.js (DASH)', bridge: 'Lejátszási híd (FFmpeg)', exo: 'Natív lejátszó (ExoPlayer)' };
-const mbit = (bps) => (bps > 0 ? (bps >= 1e6 ? `${(bps / 1e6).toFixed(1)} Mbit/s` : `${Math.round(bps / 1e3)} kbit/s`) : '–');
-const sec = (s) => (Number.isFinite(s) ? `${s.toFixed(1)} mp` : '–');
+import { _t } from './i18n.js';
+const ENGINE = { hls: 'hls.js (HLS)', native: _t('Beépített lejátszó'), mpegts: 'mpegts.js (MPEG-TS / FLV)', dash: 'dash.js (DASH)', bridge: _t('Lejátszási híd (FFmpeg)'), exo: _t('Natív lejátszó (ExoPlayer)') };
+const mbit = (bps) => (bps > 0 ? (bps >= 1e6 ? `${_t('{toFixed} Mbit/s', { toFixed: (bps / 1e6).toFixed(1) })}` : `${_t('{round} kbit/s', { round: Math.round(bps / 1e3) })}`) : '–');
+const sec = (s) => (Number.isFinite(s) ? `${_t('{toFixed} mp', { toFixed: s.toFixed(1) })}` : '–');
 
 let timer = null;
 let box = null;
@@ -19,9 +20,9 @@ export function toggleStreamInfo(player, root, video, force) {
   if (box) return;
   box = document.createElement('div');
   box.className = 'p-stats';
-  box.setAttribute('aria-label', 'Adás adatai');
+  box.setAttribute('aria-label', _t('Adás adatai'));
   // (a másodpercenként frissülő mérőlista nem élő régió; csak a figyelmeztetés az, és csak ha változik)
-  box.innerHTML = '<div class="ps-head"><b>Adás adatai</b><button class="ps-close" aria-label="Bezárás" title="Bezárás (D)">✕</button></div><dl></dl><p class="ps-hint" role="status" aria-live="polite"></p>';
+  box.innerHTML = `<div class="ps-head">${_t('<b>Adás adatai</b>')}<button class="ps-close" aria-label="${_t('Bezárás')}" title="${_t('Bezárás (D)')}">✕</button></div><dl></dl><p class="ps-hint" role="status" aria-live="polite"></p>`;
   box.querySelector('.ps-close').onclick = () => stopStreamInfo(video);
   root.append(box);
   stalls = { n: 0, ms: 0, since: 0 };
@@ -68,8 +69,8 @@ function render(player, video) {
     const u = new URL(url);
     host = `${u.protocol === 'https:' ? '🔒 ' : ''}${u.host}`;
   } catch {}
-  add('Lejátszó', esc(ENGINE[e?.type] || e?.type || '–'));
-  add('Kiszolgáló', esc(host || '–'));
+  add(_t('Lejátszó'), esc(ENGINE[e?.type] || e?.type || '–'));
+  add(_t('Kiszolgáló'), esc(host || '–'));
   // Kép
   const w = video.videoWidth;
   const h = video.videoHeight;
@@ -77,9 +78,9 @@ function render(player, video) {
   const hls = e?.hls;
   const lvl = hls && hls.levels?.[hls.currentLevel >= 0 ? hls.currentLevel : hls.loadLevel];
   const fps = lvl?.frameRate || lvl?.attrs?.['FRAME-RATE'];
-  add('Felbontás', w ? `${w}×${h}${h >= 2000 ? ' (4K)' : h >= 1000 ? ' (Full HD)' : h >= 700 ? ' (HD)' : ' (SD)'}${fps ? ` · ${Math.round(fps)} kép/mp` : ''}` : '–');
+  add(_t('Felbontás'), w ? `${w}×${h}${h >= 2000 ? ' (4K)' : h >= 1000 ? ` ${_t('(Full HD)')}` : h >= 700 ? ' (HD)' : ' (SD)'}${fps ? ` ${_t('· {round} kép/mp', { round: Math.round(fps) })}` : ''}` : '–');
   const codecs = [lvl?.videoCodec, lvl?.audioCodec].filter(Boolean).join(', ');
-  add('Kodekek', esc(codecs));
+  add(_t('Kodekek'), esc(codecs));
   // Bitráta: a kiválasztott minőségi szint (HLS / DASH), vagy a letöltött adatból becsülve
   let bitrate = lvl?.bitrate || 0;
   if (!bitrate && e?.dash) {
@@ -89,8 +90,8 @@ function render(player, video) {
     } catch {}
   }
   if (!bitrate && e?.fragBitrate) bitrate = e.fragBitrate; // a letöltött szegmensekből mérve
-  add('Bitráta', bitrate ? mbit(bitrate) + (lvl?.bitrate ? '' : ' (mért)') : '–');
-  if (hls?.levels?.length > 1) add('Minőségi szint', `${(hls.currentLevel >= 0 ? hls.currentLevel : hls.loadLevel) + 1} / ${hls.levels.length}${hls.autoLevelEnabled ? ' (automatikus)' : ''}`);
+  add(_t('Bitráta'), bitrate ? mbit(bitrate) + (lvl?.bitrate ? '' : ` ${_t('(mért)')}`) : '–');
+  if (hls?.levels?.length > 1) add(_t('Minőségi szint'), `${(hls.currentLevel >= 0 ? hls.currentLevel : hls.loadLevel) + 1} / ${hls.levels.length}${hls.autoLevelEnabled ? ' (automatikus)' : ''}`);
   // Hálózat
   let bw = hls?.bandwidthEstimate || 0;
   if (!bw && e?.mpegts) bw = (e.mpegts.statisticsInfo?.speed || 0) * 8 * 1024; // kB/s → bit/s
@@ -100,41 +101,41 @@ function render(player, video) {
     } catch {}
   }
   const ratio = bw && bitrate ? bw / bitrate : 0;
-  add('Mért letöltési sebesség', bw ? `${mbit(bw)}${ratio ? ` · a bitráta ${ratio.toFixed(1)}×-a` : ''}` : '–', ratio > 0 && ratio < 1.3);
+  add(_t('Mért letöltési sebesség'), bw ? `${mbit(bw)}${ratio ? ` ${_t('· a bitráta {toFixed}×-a', { toFixed: ratio.toFixed(1) })}` : ''}` : '–', ratio > 0 && ratio < 1.3);
   // A forrás vizsgálata (hálózatfigyelő): válaszidő és hogy a szegmensek valós időnél gyorsabban jönnek-e
   const net = e?.net;
   if (net?.samples) {
-    if (net.ttfb) add('A forrás válaszideje', `${Math.round(net.ttfb)} ms`, net.ttfb > 1500);
-    if (net.ratio) add('Szegmens letöltése', `a hossza ${Math.round(net.ratio * 100)}%-a alatt${net.ratio > 0.75 ? ' (alig valós idejű)' : ''}`, net.ratio > 0.75);
+    if (net.ttfb) add(_t('A forrás válaszideje'), `${_t('{round} ms', { round: Math.round(net.ttfb) })}`, net.ttfb > 1500);
+    if (net.ratio) add(_t('Szegmens letöltése'), `${_t('a hossza {round}%-a alatt', { round: Math.round(net.ratio * 100) })}${net.ratio > 0.75 ? ` ${_t('(alig valós idejű)')}` : ''}`, net.ratio > 0.75);
   }
   // a lejátszási pozíciót tartalmazó pufferelt tartomány (tekerés után a többi tartomány nem számít)
   const b = video.buffered;
   const t = video.currentTime;
   let ahead = 0;
   for (let i = 0; i < b.length; i++) if (b.start(i) <= t + 0.1 && b.end(i) >= t) ahead = b.end(i) - t;
-  add('Puffer (előre)', sec(ahead), ahead < 3 && !video.paused);
-  if (hls && Number.isFinite(hls.latency) && hls.latency > 0) add('Késés az élő adástól', sec(hls.latency));
-  if (q) add('Eldobott képkockák', `${q.droppedVideoFrames} / ${q.totalVideoFrames}${q.totalVideoFrames ? ` (${((q.droppedVideoFrames / q.totalVideoFrames) * 100).toFixed(1)}%)` : ''}`, q.totalVideoFrames > 100 && q.droppedVideoFrames / q.totalVideoFrames > 0.05);
+  add(_t('Puffer (előre)'), sec(ahead), ahead < 3 && !video.paused);
+  if (hls && Number.isFinite(hls.latency) && hls.latency > 0) add(_t('Késés az élő adástól'), sec(hls.latency));
+  if (q) add(_t('Eldobott képkockák'), `${q.droppedVideoFrames} / ${q.totalVideoFrames}${q.totalVideoFrames ? ` (${((q.droppedVideoFrames / q.totalVideoFrames) * 100).toFixed(1)}%)` : ''}`, q.totalVideoFrames > 100 && q.droppedVideoFrames / q.totalVideoFrames > 0.05);
   const stallMs = stalls.ms + (stalls.since ? performance.now() - stalls.since : 0);
-  add('Akadás (a panel nyitása óta)', `${stalls.n} alkalom · ${sec(stallMs / 1000)}`, stalls.n > 0);
+  add(_t('Akadás (a panel nyitása óta)'), `${_t('{n} alkalom · {sec}', { n: stalls.n, sec: sec(stallMs / 1000) })}`, stalls.n > 0);
   // Kapcsolat (amennyit a rendszer elárul)
   // (az effectiveType „4g” csak sebességkategória, nem mobilnet – ezért nem írjuk ki; a downlink-et a
   // böngésző legfeljebb 10 Mbit/s-ig becsüli)
   const c = navigator.connection;
   if (c) {
-    const type = { wifi: 'Wi-Fi', ethernet: 'vezetékes', cellular: 'mobilnet', none: 'nincs kapcsolat' }[c.type] || '';
-    const dl = c.downlink ? (c.downlink >= 10 ? '10+ Mbit/s' : `~${c.downlink} Mbit/s`) : '';
-    add('Hálózat (rendszerbecslés)', [type, dl, Number.isFinite(c.rtt) && c.rtt ? `${c.rtt} ms válaszidő` : ''].filter(Boolean).join(' · ') || '–');
+    const type = { wifi: 'Wi-Fi', ethernet: _t('vezetékes'), cellular: 'mobilnet', none: _t('nincs kapcsolat') }[c.type] || '';
+    const dl = c.downlink ? (c.downlink >= 10 ? '10+ Mbit/s' : `${_t('~{downlink} Mbit/s', { downlink: c.downlink })}`) : '';
+    add(_t('Hálózat (rendszerbecslés)'), [type, dl, Number.isFinite(c.rtt) && c.rtt ? `${_t('{rtt} ms válaszidő', { rtt: c.rtt })}` : ''].filter(Boolean).join(' · ') || '–');
   }
   // Értékelés: miért akadhat?
   let hint = '';
   const diag = net?.diagnose(bitrate);
-  if (diag?.kind === 'offline') hint = 'Nincs internetkapcsolat – a lejátszás folytatódik, amint visszatér.';
-  else if (diag?.kind === 'slow-net') hint = `${diag.text} Válassz kisebb minőséget (⚙ → Minőség), vagy állíts be legnagyobb minőséget a Beállításokban.`;
-  else if (diag?.kind === 'slow-source') hint = `${diag.text} A te kapcsolatod nem tehet róla – próbáld másik forrással (⚙ → Forrás), ha van.`;
-  else if (ratio > 0 && ratio < 1.2) hint = 'A letöltés alig gyorsabb a lejátszásnál – a szerver vagy a kapcsolat lassú. Válassz kisebb minőséget vagy másik forrást (Minőség és forrás).';
-  else if (q && q.totalVideoFrames > 300 && q.droppedVideoFrames / q.totalVideoFrames > 0.05) hint = 'Sok eldobott képkocka: az eszköz nem bírja a dekódolást – kisebb minőség segíthet.';
-  else if (stalls.n >= 3) hint = 'Gyakori akadás: próbáld másik forrással, vagy kisebb minőségben.';
+  if (diag?.kind === 'offline') hint = _t('Nincs internetkapcsolat – a lejátszás folytatódik, amint visszatér.');
+  else if (diag?.kind === 'slow-net') hint = `${_t('{text} Válassz kisebb minőséget (⚙ → Minőség), vagy állíts be legnagyobb minőséget a Beállításokban.', { text: diag.text })}`;
+  else if (diag?.kind === 'slow-source') hint = `${_t('{text} A te kapcsolatod nem tehet róla – próbáld másik forrással (⚙ → Forrás), ha van.', { text: diag.text })}`;
+  else if (ratio > 0 && ratio < 1.2) hint = _t('A letöltés alig gyorsabb a lejátszásnál – a szerver vagy a kapcsolat lassú. Válassz kisebb minőséget vagy másik forrást (Minőség és forrás).');
+  else if (q && q.totalVideoFrames > 300 && q.droppedVideoFrames / q.totalVideoFrames > 0.05) hint = _t('Sok eldobott képkocka: az eszköz nem bírja a dekódolást – kisebb minőség segíthet.');
+  else if (stalls.n >= 3) hint = _t('Gyakori akadás: próbáld másik forrással, vagy kisebb minőségben.');
   box.querySelector('dl').innerHTML = rows.join('');
   const hintEl = box.querySelector('p.ps-hint');
   const txt = hint ? '⚠ ' + hint : '';

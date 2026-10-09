@@ -4,12 +4,14 @@
 import { api } from './api.js';
 import { store } from './store.js';
 
+import { _t, lang as uiLang } from './i18n.js';
+import { langMatcher } from './langs.js';
 const AUDIO_OK = new Set(['aac', 'mp3', 'opus', 'vorbis', 'flac']);
 const AHEAD_SEC = 90; // ennyit töltünk előre (a többit az FFmpeg a hálózat terhelése nélkül kivárja)
 const BEHIND_SEC = 60; // ennyi marad meg a lejátszott részből (gyors visszatekeréshez)
 
-const isHu = (s) => /^(hu|hun|magyar|hungarian)\b/i.test(String(s || ''));
-const isEn = (s) => /^(en|eng|english|angol)\b/i.test(String(s || ''));
+// a felület nyelvének felismerője (az „auto” felirat ehhez igazodik: idegen hangnál ezen a nyelven)
+const isUi = langMatcher(uiLang);
 
 const mse = (type) => {
   try {
@@ -40,14 +42,14 @@ function videoPlan(v) {
 export function bridgeReason(info, url) {
   if (!info || info.error || !api.mediaStart) return '';
   const v = info.video[0];
-  if (v && !videoPlan(v).vcopy) return `videó: ${v.codec}`;
+  if (v && !videoPlan(v).vcopy) return `${_t('videó: {codec}', { codec: v.codec })}`;
   const badAudio = info.audio.find((a) => !AUDIO_OK.has(a.codec));
-  if (badAudio) return `hang: ${badAudio.codec}`;
-  if (info.subs.some((s) => s.text)) return 'beágyazott felirat';
+  if (badAudio) return `${_t('hang: {codec}', { codec: badAudio.codec })}`;
+  if (info.subs.some((s) => s.text)) return _t('beágyazott felirat');
   // MKV-ben több hangsáv: a böngésző nem mindig váltja őket
-  if (info.audio.length > 1 && /\.mkv(\?|$)/i.test(url)) return 'több hangsáv';
+  if (info.audio.length > 1 && /\.mkv(\?|$)/i.test(url)) return _t('több hangsáv');
   // A böngésző az MKV-ből csak H.264 / VP8 / VP9 / AV1 képet tud; MPEG-TS (pl. a saját felvételek) tárolót egyáltalán nem
-  if (/\.(avi|wmv|flv|mov|ts|m2ts|mts|vob|rmvb?|3gp)(\?|$)/i.test(url)) return 'tároló';
+  if (/\.(avi|wmv|flv|mov|ts|m2ts|mts|vob|rmvb?|3gp)(\?|$)/i.test(url)) return _t('tároló');
   return '';
 }
 
@@ -91,8 +93,7 @@ export class MediaBridge {
   /** Kezdő hangsáv: a profil kedvenc nyelve, különben a fájl alapértelmezése. */
   pickAudio() {
     if (!this.audio.length) return -1;
-    const pref = store.profile.prefAudio;
-    const m = pref === 'hu' ? isHu : pref === 'en' ? isEn : null;
+    const m = langMatcher(store.profile.prefAudio);
     const a = (m && this.audio.find((x) => m(x.lang) || m(x.title))) || this.audio.find((x) => x.default) || this.audio[0];
     return a.rel;
   }
@@ -104,7 +105,7 @@ export class MediaBridge {
 
   /** Indulás: MediaSource felépítése, feliratsávok, majd az első folyam. */
   async open() {
-    if (!mse(this.mime)) throw new Error('A böngésző nem támogatja: ' + this.mime);
+    if (!mse(this.mime)) throw new Error(`${_t('A böngésző nem támogatja:')} ` + this.mime);
     const ms = new MediaSource();
     this.ms = ms;
     this.objUrl = URL.createObjectURL(ms);
@@ -130,12 +131,12 @@ export class MediaBridge {
     });
     // Kezdő felirat a profil beállítása szerint ('auto': a fájl kényszerített / alapértelmezett felirata)
     const pref = store.profile.prefSubs || 'auto';
-    const m = pref === 'hu' ? isHu : pref === 'en' ? isEn : null;
+    const m = langMatcher(pref);
     const forced = this.subs.findIndex((s) => s.forced);
-    // ('auto' és nincs jelölés: ha a hang nem magyar, a magyar felirat – pl. rajongói feliratos kiadás)
+    // ('auto' és nincs jelölés: ha a hang nem a felület nyelvén szól, a felület nyelvű felirat – pl. rajongói feliratos kiadás)
     const curAudio = this.audio.find((a) => a.rel === this.audioRel);
-    const huSub = isHu(curAudio?.lang) || isHu(curAudio?.title) ? -1 : this.subs.findIndex((s) => isHu(s.lang) || isHu(s.title));
-    const auto = forced >= 0 ? forced : this.subs.findIndex((s) => s.default) >= 0 ? this.subs.findIndex((s) => s.default) : huSub;
+    const uiSub = isUi(curAudio?.lang) || isUi(curAudio?.title) ? -1 : this.subs.findIndex((s) => isUi(s.lang) || isUi(s.title));
+    const auto = forced >= 0 ? forced : this.subs.findIndex((s) => s.default) >= 0 ? this.subs.findIndex((s) => s.default) : uiSub;
     const pick = m ? this.subs.findIndex((s) => m(s.lang) || m(s.title)) : pref === 'auto' ? auto : -1;
     if (pick >= 0) this.tracks[pick].track.mode = 'showing';
     this.run(this.opts.startAt || 0);
@@ -388,7 +389,7 @@ export const forgetProbe = (url) => probes.delete(url);
 export function probeMedia(url) {
   if (!api.mediaProbe) return Promise.resolve(null);
   if (!probes.has(url)) {
-    const p = Promise.race([api.mediaProbe(url), new Promise((r) => setTimeout(() => r({ error: 'időtúllépés' }), 15000))]).catch((e) => ({ error: String(e) }));
+    const p = Promise.race([api.mediaProbe(url), new Promise((r) => setTimeout(() => r({ error: _t('időtúllépés') }), 15000))]).catch((e) => ({ error: String(e) }));
     probes.set(url, p);
     // A hibát (pl. átmeneti hálózati gond) nem jegyezzük meg – legközelebb újra megpróbáljuk.
     p.then((r) => r?.error && probes.delete(url));

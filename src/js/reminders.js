@@ -9,6 +9,7 @@ import { catalog } from './catalog.js';
 import { epg } from './epg.js';
 import { player } from './player.js';
 
+import { _t } from './i18n.js';
 const DAY = 86400e3;
 export const seriesKey = (title) => norm(String(title || '').replace(/\s*[-–:(]\s*(\d+\.?\s*(rész|évad|epizód)|s\d+e\d+).*$/i, '')).trim();
 
@@ -82,8 +83,8 @@ export function checkReminders() {
       r.notified = true;
       changed = true;
       const mins = Math.round((r.start - now) / 60000);
-      const when = mins > 0 ? `${mins} perc múlva kezdődik` : 'Elkezdődött';
-      toast(`${when}: ${r.title} – ${ch.name}`, { action: 'Nézem', onAction: () => player.play(ch), timeout: 30000 });
+      const when = mins > 0 ? `${_t('{mins} perc múlva kezdődik', { mins })}` : _t('Elkezdődött');
+      toast(`${when}: ${r.title} – ${ch.name}`, { action: _t('Nézem'), onAction: () => player.play(ch), timeout: 30000 });
       api.notify?.({ title: `${when}: ${r.title}`, body: `${ch.name} · ${fmtTime(r.start)}`, channelId: ch.id, icon: ch.logo || '' });
     }
     // 2) automatikus átkapcsolás a kezdéskor (ha be van kapcsolva és az alkalmazás előtérben van)
@@ -92,7 +93,7 @@ export function checkReminders() {
       changed = true;
       if (player.channel?.id === ch.id) continue;
       let cancelled = false;
-      toast(`Átkapcsolás 8 mp múlva: ${ch.name} – ${r.title}`, { action: 'Maradok', onAction: () => (cancelled = true), timeout: 8000 });
+      toast(`${_t('Átkapcsolás 8 mp múlva: {name} – {title}', { name: ch.name, title: r.title })}`, { action: _t('Maradok'), onAction: () => (cancelled = true), timeout: 8000 });
       setTimeout(() => !cancelled && player.play(ch), 8000);
     }
   }

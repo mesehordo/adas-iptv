@@ -18,7 +18,8 @@
     "android": "node tools/build-android.mjs",
     "ffmpeg": "node tools/fetch-ffmpeg.mjs",
     "linux-tools": "node tools/fetch-linux-tools.mjs",
-    "android-deps": "node tools/fetch-android-deps.mjs"
+    "android-deps": "node tools/fetch-android-deps.mjs",
+    "i18n:check": "node tools/i18n-check.mjs"
   },
   "dependencies": {
     "dashjs": "^4.7.4",
@@ -41,6 +42,7 @@
       "lan.js",
       "updater.js",
       "media.js",
+      "i18n-main.js",
       "src/**/*",
       "assets/**/*"
     ],

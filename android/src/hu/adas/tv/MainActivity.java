@@ -268,6 +268,12 @@ public class MainActivity extends Activity {
   }
 
   class Bridge {
+    /** A felület nyelve (a keret értesítéseihez és üzeneteihez). */
+    @JavascriptInterface
+    public void setLang(String l) {
+      L.setLang(MainActivity.this, l);
+    }
+
     @JavascriptInterface
     public boolean isTv() {
       return tv;
@@ -293,7 +299,7 @@ public class MainActivity extends Activity {
       try {
         startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
       } catch (ActivityNotFoundException e) {
-        runOnUiThread(() -> Toast.makeText(MainActivity.this, "Nincs böngésző ehhez a címhez.", Toast.LENGTH_SHORT).show());
+        runOnUiThread(() -> Toast.makeText(MainActivity.this, L.t(MainActivity.this, "Nincs böngésző ehhez a címhez."), Toast.LENGTH_SHORT).show());
       }
     }
 
@@ -354,9 +360,9 @@ public class MainActivity extends Activity {
           i.putExtra("title", title); // VLC, MX Player
           i.putExtra(Intent.EXTRA_TITLE, title);
         }
-        startActivity(Intent.createChooser(i, "Megnyitás ezzel"));
+        startActivity(Intent.createChooser(i, L.t(MainActivity.this, "Megnyitás ezzel")));
       } catch (ActivityNotFoundException e) {
-        runOnUiThread(() -> Toast.makeText(MainActivity.this, "Nincs videólejátszó telepítve (pl. VLC).", Toast.LENGTH_LONG).show());
+        runOnUiThread(() -> Toast.makeText(MainActivity.this, L.t(MainActivity.this, "Nincs videólejátszó telepítve (pl. VLC)."), Toast.LENGTH_LONG).show());
       }
     }
 
@@ -828,10 +834,10 @@ public class MainActivity extends Activity {
       fileCallback = cb;
       Intent i = new Intent(Intent.ACTION_GET_CONTENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
       try {
-        startActivityForResult(Intent.createChooser(i, "Fájl kiválasztása"), REQ_FILE);
+        startActivityForResult(Intent.createChooser(i, L.t(MainActivity.this, "Fájl kiválasztása")), REQ_FILE);
       } catch (ActivityNotFoundException e) {
         fileCallback = null;
-        Toast.makeText(MainActivity.this, "Ezen az eszközön nincs fájlkezelő.", Toast.LENGTH_LONG).show();
+        Toast.makeText(MainActivity.this, L.t(MainActivity.this, "Ezen az eszközön nincs fájlkezelő."), Toast.LENGTH_LONG).show();
         return false;
       }
       return true;
@@ -853,7 +859,7 @@ public class MainActivity extends Activity {
           .putExtra(Intent.EXTRA_TITLE, a.optString("name", "adas.json"));
       startActivityForResult(i, REQ_SAVE);
     } catch (Exception e) {
-      reply(id, false, JSONObject.quote("A mentés itt nem érhető el."));
+      reply(id, false, JSONObject.quote(L.t(MainActivity.this, "A mentés itt nem érhető el.")));
     }
   }
 

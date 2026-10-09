@@ -1,3 +1,4 @@
+import { _t } from './i18n.js';
 // Hálózatfigyelő: lejátszás közben szegmensenként méri a letöltési sebességet, a forrás válaszidejét
 // (az első bájtig) és azt, hogy a szegmensek valós időnél gyorsabban érkeznek-e; jegyzi az akadásokat.
 // Ebből megállapítja, mi okozza a pufferelést: nincs internet, lassú a saját hálózat, vagy lassú az adó.
@@ -58,17 +59,17 @@ export class NetWatch {
    * → { kind: 'offline' | 'slow-net' | 'slow-source' | 'ok' | 'unknown', text }
    */
   diagnose(bitrate = 0) {
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) return { kind: 'offline', text: 'Nincs internetkapcsolat.' };
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return { kind: 'offline', text: _t('Nincs internetkapcsolat.') };
     if (this.samples < 3) return { kind: 'unknown', text: '' };
     // ismeretlen bitrátánál: sebesség × (letöltési idő / hossz) = a szegmensek adatmennyisége / hossza
     const rate = bitrate || this.tput * this.ratio;
     const tight = this.ratio > 0.75 || (bitrate && this.tput < bitrate * 1.3);
     if (tight) {
       // A hálózat már bizonyítottan gyorsabb volt (bármelyik adásnál): akkor az adó küld lassan.
-      if (networkPeak() > rate * 2) return { kind: 'slow-source', text: 'Az adó szervere lassan küldi az adást.' };
-      return { kind: 'slow-net', text: 'Lassú a hálózatod ehhez a minőséghez.' };
+      if (networkPeak() > rate * 2) return { kind: 'slow-source', text: _t('Az adó szervere lassan küldi az adást.') };
+      return { kind: 'slow-net', text: _t('Lassú a hálózatod ehhez a minőséghez.') };
     }
-    if (this.ttfb > 2500) return { kind: 'slow-source', text: 'Az adó szervere lassan válaszol.' };
+    if (this.ttfb > 2500) return { kind: 'slow-source', text: _t('Az adó szervere lassan válaszol.') };
     return { kind: 'ok', text: '' };
   }
 }

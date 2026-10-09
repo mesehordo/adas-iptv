@@ -11,6 +11,7 @@ import { requireAdult } from './pin.js';
 import { kidsAllowed } from './kids.js';
 import { catalog } from './catalog.js';
 
+import { _t } from './i18n.js';
 const TICK = 15;
 const video = $('#video');
 const today = () => new Date().toDateString();
@@ -31,11 +32,11 @@ export function minutesLeft(p = store.profile) {
 export const usedToday = (p) => Math.round(usage(p).sec / 60);
 
 async function askMore(p) {
-  const ok = await requireAdult(`${p.name} mára elérte a napi nézési időt (${p.dailyLimit} perc). További 30 perchez`);
+  const ok = await requireAdult(`${_t('{name} mára elérte a napi nézési időt ({dailyLimit} perc). További 30 perchez', { name: p.name, dailyLimit: p.dailyLimit })}`);
   if (ok) {
     usage(p).extra = (usage(p).extra || 0) + 30;
     store.save();
-    toast('+30 perc nézési idő');
+    toast(_t('+30 perc nézési idő'));
   }
   return ok;
 }
@@ -48,7 +49,7 @@ function overAge(p, ch) {
 }
 
 async function askAge(p, ch, cur) {
-  const ok = await requireAdult(`A most futó műsor (${cur.title}, ${fmtTime(cur.start)}–${fmtTime(cur.stop)}) ${cur.age} éven felülieknek szól. Megnézéséhez`);
+  const ok = await requireAdult(`${_t('A most futó műsor ({title}, {fmtTime}–{fmtTime2}) {age} éven felülieknek szól. Megnézéséhez', { title: cur.title, fmtTime: fmtTime(cur.start), fmtTime2: fmtTime(cur.stop), age: cur.age })}`);
   if (ok) unlockedProgs.add(`${ch.id}|${cur.start}`);
   return ok;
 }
@@ -71,17 +72,17 @@ function contentAllowed(p, ch) {
  * Az alkalmazáson kívüli lejátszás (külső lejátszó, a felvételszerkesztő előnézete): ott a napi keret és a
  * korhatár nem követhető, ezért gyerekprofilból csak felnőtt jóváhagyásával indul.
  */
-export async function allowOutsidePlayback(what = 'Külső lejátszóban') {
+export async function allowOutsidePlayback(what = _t('Külső lejátszóban')) {
   const p = store.profile;
   if (!p?.kids) return true;
-  return requireAdult(`${what} a gyerekprofil nézési ideje és korhatára nem követhető. A megnyitásához`);
+  return requireAdult(`${_t('{what} a gyerekprofil nézési ideje és korhatára nem követhető. A megnyitásához', { what })}`);
 }
 
 // A lejátszás indítása előtt
 player.guard = async (ch) => {
   const p = store.profile;
   if (!contentAllowed(p, ch)) {
-    toast('Ez a tartalom ebben a profilban nem nézhető.');
+    toast(_t('Ez a tartalom ebben a profilban nem nézhető.'));
     return false;
   }
   if (!p?.kids) return true;
@@ -105,12 +106,12 @@ setInterval(async () => {
     const left = minutesLeft(p);
     if (left <= 5 && left > 0 && warned !== today() + Math.ceil(left)) {
       warned = today() + Math.ceil(left);
-      if (Math.ceil(left) === 5 || Math.ceil(left) === 1) toast(`Még ${Math.ceil(left)} perc nézési idő van mára.`, { timeout: 6000 });
+      if (Math.ceil(left) === 5 || Math.ceil(left) === 1) toast(`${_t('Még {ceil} perc nézési idő van mára.', { ceil: Math.ceil(left) })}`, { timeout: 6000 });
     }
     if (left <= 0) {
       const ch = player.channel;
       player.close();
-      toast(`${p.name}: mára elfogyott a nézési idő.`, { timeout: 8000 });
+      toast(`${_t('{name}: mára elfogyott a nézési idő.', { name: p.name })}`, { timeout: 8000 });
       if (await askMore(p)) player.play(ch);
       return;
     }
@@ -128,13 +129,13 @@ export function limitsHtml(profs) {
   return `<div class="kids-limits">${profs
     .map((p) => {
       const left = minutesLeft(p);
-      return `<div class="setting" data-kl-prof="${esc(p.id)}"><span><b>${esc(p.name)}</b><small>Ma eddig: ${usedToday(p)} perc${Number.isFinite(left) ? ` · még ${Math.round(left)} perc` : ''}</small></span>
+      return `<div class="setting" data-kl-prof="${esc(p.id)}"><span><b>${esc(p.name)}</b><small>${_t('Ma eddig: {usedToday} perc', { usedToday: usedToday(p) })}${Number.isFinite(left) ? ` ${_t('· még {round} perc', { round: Math.round(left) })}` : ''}</small></span>
         <div class="inline">
-          <label class="kl-lab">Napi idő <select data-kl="dailyLimit">${LIMITS.map((m) => `<option value="${m}" ${(p.dailyLimit || 0) === m ? 'selected' : ''}>${m ? m + ' perc' : 'korlátlan'}</option>`).join('')}</select></label>
-          <label class="kl-lab">Korhatár <select data-kl="maxAge">${AGES.map((a) => `<option value="${a}" ${(p.maxAge || 0) === a ? 'selected' : ''}>${a ? a + ' év' : 'nincs'}</option>`).join('')}</select></label>
+          <label class="kl-lab">${_t('Napi idő')} <select data-kl="dailyLimit">${LIMITS.map((m) => `<option value="${m}" ${(p.dailyLimit || 0) === m ? 'selected' : ''}>${m ? m + ` ${_t('perc')}` : _t('korlátlan')}</option>`).join('')}</select></label>
+          <label class="kl-lab">${_t('Korhatár')} <select data-kl="maxAge">${AGES.map((a) => `<option value="${a}" ${(p.maxAge || 0) === a ? 'selected' : ''}>${a ? a + ` ${_t('év')}` : _t('nincs')}</option>`).join('')}</select></label>
         </div></div>`;
     })
-    .join('')}<p class="muted small">A napi idő elfogyása után, és ha egy élő műsor korhatára magasabb a beállítottnál (ahol a műsorújság közli), csak felnőtt profil PIN-jével nézhető tovább. A PIN-t a Profilok kezelése alatt állíthatod be.</p></div>`;
+    .join('')}<p class="muted small">${_t('A napi idő elfogyása után, és ha egy élő műsor korhatára magasabb a beállítottnál (ahol a műsorújság közli), csak felnőtt profil PIN-jével nézhető tovább. A PIN-t a Profilok kezelése alatt állíthatod be.')}</p></div>`;
 }
 export function bindLimits(box) {
   box.addEventListener('change', (e) => {
@@ -145,6 +146,7 @@ export function bindLimits(box) {
     if (!p) return;
     p[sel.dataset.kl] = Number(sel.value);
     store.save();
-    toast(`${p.name}: ${sel.dataset.kl === 'dailyLimit' ? (p.dailyLimit ? `napi ${p.dailyLimit} perc` : 'korlátlan nézési idő') : p.maxAge ? `korhatár ${p.maxAge} év` : 'nincs korhatár'}`);
+    const v = { name: p.name, dailyLimit: p.dailyLimit, maxAge: p.maxAge };
+    toast(sel.dataset.kl === 'dailyLimit' ? (p.dailyLimit ? _t('{name}: napi {dailyLimit} perc', v) : _t('{name}: korlátlan nézési idő', v)) : p.maxAge ? _t('{name}: korhatár {maxAge} év', v) : _t('{name}: nincs korhatár', v));
   });
 }
