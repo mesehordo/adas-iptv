@@ -363,6 +363,8 @@ export function renderFavorites(view) {
   let touchDone = 0;
   // (a húzást indító ujj; ha egy második ujj is a képernyőre kerül, a húzás megszakad)
   const ownTouch = (list) => [...list].find((t) => t.identifier === touch?.id);
+  // (a második ujj a rácson kívül is érintheti a képernyőt: amíg tart a húzás, az egész lapon figyeljük)
+  const otherTouch = (e) => touch && [...e.changedTouches].some((t) => t.identifier !== touch.id) && cancelTouch();
   /** Húzás megszakítása áthelyezés nélkül. */
   const cancelTouch = () => {
     if (!touch) return;
@@ -371,13 +373,15 @@ export function renderFavorites(view) {
     touch.card.classList.remove('dragging');
     touch.over?.classList.remove('drop-target');
     touch = null;
+    document.removeEventListener('touchstart', otherTouch, true);
   };
   grid.addEventListener('touchstart', (e) => {
-    if (touch) return cancelTouch(); // második ujj
+    if (touch) return; // (a második ujjat az otherTouch kezeli)
     const card = e.target.closest('.card');
     if (!card || e.touches.length !== 1) return;
     const t = e.changedTouches[0];
     touch = { card, id: t.identifier, x: t.clientX, y: t.clientY, on: false, over: null };
+    document.addEventListener('touchstart', otherTouch, true);
     touch.timer = setTimeout(() => {
       if (!touch) return;
       touch.on = true;
@@ -392,7 +396,7 @@ export function renderFavorites(view) {
     if (!t) return;
     if (!touch.on) {
       // (a hosszú nyomás előtti elmozdulás görgetés)
-      if (Math.hypot(t.clientX - touch.x, t.clientY - touch.y) > 10) (clearTimeout(touch.timer), (touch = null));
+      if (Math.hypot(t.clientX - touch.x, t.clientY - touch.y) > 10) cancelTouch();
       return;
     }
     e.preventDefault();
@@ -416,6 +420,7 @@ export function renderFavorites(view) {
     clearTimeout(touch.timer);
     const { on, card, over } = touch;
     touch = null;
+    document.removeEventListener('touchstart', otherTouch, true);
     if (!on) return;
     if (e.cancelable) e.preventDefault(); // (ne legyen belőle kattintás = lejátszás)
     touchDone = Date.now();
