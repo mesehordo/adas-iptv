@@ -11,6 +11,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.SequenceInputStream;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -78,6 +79,7 @@ final class Covers {
     }
     int g = gen;
     HttpURLConnection c = null;
+    boolean streaming = false; // a válasz adatfolyamát továbbadtuk: a kapcsolatot a WebView olvassa végig
     try {
       c = opener.open(url, pageHeaders);
       if (c.getResponseCode() != 200) {
@@ -86,16 +88,33 @@ final class Covers {
         if (err != null) err.close();
         return null;
       }
-      byte[] b = readAll(c.getInputStream(), MAX_IMAGE + 1);
-      if (b.length > MAX_IMAGE) return null; // (túl nagy: a szokásos úton, tárolás nélkül)
+      String type = c.getContentType();
+      String typeMime = type != null ? type.split(";")[0].trim() : "application/octet-stream";
+      // ismerten túl nagy: a szokásos úton (még olvasás előtt – így nem töltődik le kétszer)
+      // (getContentLength: a getContentLengthLong csak Android 7-től van – a program Android 6-tól fut)
+      if (c.getContentLength() > MAX_IMAGE) return null;
+      InputStream in = c.getInputStream();
+      ByteArrayOutputStream out = new ByteArrayOutputStream();
+      byte[] buf = new byte[16384];
+      for (int n; (n = in.read(buf)) > 0; ) {
+        out.write(buf, 0, n);
+        if (out.size() > MAX_IMAGE) {
+          // ismeretlen hosszú, túl nagy kép: tárolás nélkül, a már megnyitott adatfolyamból adjuk tovább
+          streaming = true;
+          Map<String, String> h = new HashMap<>();
+          h.put("Access-Control-Allow-Origin", "*");
+          return new WebResourceResponse(typeMime, null, 200, "OK", h, new SequenceInputStream(new ByteArrayInputStream(out.toByteArray()), in));
+        }
+      }
+      in.close();
+      byte[] b = out.toByteArray();
       String mime = sniff(b);
       if (mime != null && g == gen) save(f, b);
-      String type = c.getContentType();
-      return respond(mime != null ? mime : type != null ? type.split(";")[0].trim() : "application/octet-stream", b);
+      return respond(mime != null ? mime : typeMime, b);
     } catch (Exception e) {
       return null;
     } finally {
-      if (c != null) c.disconnect();
+      if (c != null && !streaming) c.disconnect();
     }
   }
 
