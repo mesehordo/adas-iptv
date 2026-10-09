@@ -61,6 +61,13 @@ const dayFmt = new Intl.DateTimeFormat(LOCALE, { weekday: 'long', month: 'long',
 export const fmtTime = (t) => timeFmt.format(new Date(t));
 export const fmtDay = (t) => dayFmt.format(new Date(t));
 
+/** Szám a felület nyelvének tizedesjelével, pontosan `digits` tizedesjeggyel (pl. 697,3 / 697.3). */
+const numFmts = new Map();
+export function fmtNum(n, digits = 1) {
+  if (!numFmts.has(digits)) numFmts.set(digits, new Intl.NumberFormat(LOCALE, { minimumFractionDigits: digits, maximumFractionDigits: digits, useGrouping: false }));
+  return numFmts.get(digits).format(n);
+}
+
 export function dayStart(t = Date.now(), offsetDays = 0) {
   const d = new Date(t);
   d.setHours(0, 0, 0, 0);

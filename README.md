@@ -112,7 +112,17 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - **Új nyelv:** az `src/i18n/en.js` másolata `<kód>.js` néven (adatok + fordítások, bármennyi elhagyható), egy sor az `src/i18n/index.js`-be; súgó nem kötelező (`src/js/help/<kód>.js` + egy sor a `help.js` LOADERS-ébe). Az Android-keret szövegei is ezekből a fájlokból készülnek. `npm run i18n:check` – az angol hiányait hibának jelzi, a többi nyelvnél kiírja, mennyi jelenik meg angolul (`npm run i18n:check -- de` – a hiányzó kulcsok listája)
 
 **Böngészés elérhetőség szerint (1.26)**
-- A böngészés (és a keresés találatai) ajánlott sorrendje az elérhetőség: elöl a működő, utána a még nem ellenőrzött, a végén az offline, épp nem sugárzó vagy innen nem nézhető csatornák; azon belül a hazai és a népszerű csatornák elöl
+- A böngészés ajánlott sorrendje az elérhetőség: elöl a működő, utána a még nem ellenőrzött, a végén az offline, épp nem sugárzó vagy innen nem nézhető csatornák; azon belül a hazai és a népszerű csatornák elöl. A kereső találatai a találati sorrendben maradnak, de a nem elérhetők ott is a végére kerülnek
+- Indításkor a profilválasztó (és az első indítási varázsló) mindig csak az indítóanimáció után jelenik meg
+
+**Felületi javítások (1.26)**
+- Kedvencek: újra látszik a csatornaszám, és újra működik a húzásos átrendezés
+- Csatorna-adatlap: megnyitáskor a csatorna neve a helyén marad (csak a műsorlista görgetődik a mostani műsorhoz); a kedvenc gomb felirattal (☆ Kedvenc), mint a filmeknél
+- Műsorújság: a műsor nélküli csatornák sorában „Nincs műsoradat”; „Ugrás a mostani időre” gomb
+- Felvételek: a gombok felirattal (Vágás, Megnyitás, Törlés) – tévén nincs súgóbuborék
+- Profilok kezelése: látszik a szerkesztés ceruzája a képes profilképeken is
+- Témaválasztó: a világos témák neve is olvasható
+- Egységes szóhasználat (pl. „Most a tévében”, „Összes”, „Újrapróbálás”); a tizedes számok, a napok és a dátumok a felület nyelvének formájában; „Szép napot!” név nélkül, ha a profil neve az alapértelmezett „Én”
 
 **Kiadás a GitHubról, egérkurzor a távirányítón, új feliratforrás, egységes műfajok (1.25)**
 - **Kiadások:** a `v*` címke pusholásakor a GitHub Actions minden platformra lefordít, és GitHub Release-be tölti a fájlokat (Windows: telepítő, hordozható, MSI · Linux: AppImage, deb · macOS: dmg, zip · Android: APK), SHA256SUMS.txt-vel; az asztali változat innen frissül (induláskor keres, kikapcsolható)

@@ -5,6 +5,7 @@ import { store } from './store.js';
 import { MediaBridge } from './bridge.js';
 import { ExoEngine } from './exo.js';
 import { NetWatch } from './netwatch.js';
+import { fmtNum } from './util.js';
 
 import { _t } from './i18n.js';
 const START_TIMEOUT = 20000;
@@ -357,7 +358,7 @@ export class Engine {
     if (this.hls) {
       return this.hls.levels.map((l, i) => ({
         index: i,
-        label: l.height ? `${l.height}p` + (l.bitrate ? ` ${_t('· {toFixed} Mbps', { toFixed: (l.bitrate / 1e6).toFixed(1) })}` : '') : `${_t('{round} kbps', { round: Math.round((l.bitrate || 0) / 1000) })}`,
+        label: l.height ? `${l.height}p` + (l.bitrate ? ` ${_t('· {toFixed} Mbps', { toFixed: fmtNum(l.bitrate / 1e6, 1) })}` : '') : `${_t('{round} kbps', { round: Math.round((l.bitrate || 0) / 1000) })}`,
       }));
     }
     if (this.dash) {

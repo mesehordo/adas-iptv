@@ -533,7 +533,7 @@ ${go('#/settings?section=dashboard', 'A főoldal beállításai')}`,
 <h2>Fülek</h2>
 <p>A <b>TV</b> oldal (a menüben a Főoldal után) a csatornáké. A tetején négy fül van: <b>Csatornák</b>, <b>Műsorújság</b>, <b>Böngészés</b> (csak élő tévéadások, szűrőkkel) és – az asztali változatban – <b>Felvételek</b> (a saját tévéfelvételeid). ${t('recording', 'A felvételekről')}</p>
 <h2>Sorok</h2>
-<p>A Csatornák fülön vízszintesen görgethető sorok: Legutóbb nézett, Kedvenceid, Most a TV-ben, a hazai ország csatornái, saját listáid, a kategóriák (Hírek, Sport, Filmek…) és az országok csempéi. A sorok <b>sorrendje és láthatósága profilonként beállítható</b>. ${t('home-rows', 'Hogyan?')}</p>
+<p>A Csatornák fülön vízszintesen görgethető sorok: Legutóbb nézett, Kedvenceid, Most a tévében, a hazai ország csatornái, saját listáid, a kategóriák (Hírek, Sport, Filmek…) és az országok csempéi. A sorok <b>sorrendje és láthatósága profilonként beállítható</b>. ${t('home-rows', 'Hogyan?')}</p>
 <h2>A sor összes eleme egy oldalon</h2>
 <p>Minden sor címe mellett egy <b>kerek nyíl ›</b> látható: rákattintva (érintve) a sor <b>összes</b> eleme egy oldalon nyílik meg. Távirányítóval vagy billentyűzettel a sor végére lépve ugyanezt egy <b>„Összes”</b> csempe teszi meg (OK / Enter). A VOD sorainál, a <i>Folytatás</i> sornál és az országok csempéinél is így működik.</p>
 <h2>Magyar elöl</h2>
@@ -627,7 +627,7 @@ ${go('#/settings?section=dashboard', 'A főoldal beállításai')}`,
 <li><b>[Hazai ország]</b> – a hazai csatornák,</li>
 <li><b>Minden csatorna</b> – minden csatorna, amelyhez van műsoradat.</li>
 </ul>
-<p>Napválasztó: tegnaptól 3 napra előre. Az <b>Ugrás most-ra</b> gomb visszavisz a jelenhez.</p>
+<p>Napválasztó: tegnaptól 3 napra előre. Az <b>Ugrás a mostani időre</b> gomb visszavisz a jelenhez.</p>
 <p><b>Kategória</b> (Film, Sorozat, Sport, Hírek, Gyerek, Ismeretterjesztő, Szórakoztató, Zene): csak azok a csatornák maradnak, amelyeken aznap van ilyen műsor, a többi műsor halványan látszik. A felismerés a műsorújság kategóriáján és a műsor címén alapul.</p>
 <p><b>Idővonal / Most műsoron</b>: a <i>Most műsoron</i> nézetben csatornánként egy nagy kártya mutatja a most futó műsort (haladással) és a következőt – gyors áttekintéshez, távirányítóval is kényelmes.</p>
 <p>A műsor adatlapján a <b>Naptárba</b> gomb naptárfájlt (.ics) ment, amit a Google Naptár, az Outlook vagy a telefon naptára beolvas (5 perces emlékeztetővel); asztali gépen a <b>● Felvétel</b> gombbal a műsor ütemezetten rögzíthető (${t('recording', 'Felvétel')}).</p>
@@ -841,7 +841,7 @@ ${go('#/settings', 'Megjelenés beállítása')}`,
 <li><b>Elrejtés</b>: a sor melletti kapcsoló. Az elrejtett sor halványan látszik a listában, de a főoldalon nem jelenik meg.</li>
 <li><b>Alapértelmezett sorrend</b>: mindent visszaállít.</li>
 </ul>
-<p>Elérhető sorok: Legutóbb nézett, Kedvenceid, Most a TV-ben, hazai csatornák, Saját listák (minden saját lista és a saját csatornák külön sorban), az összes kategória, Fedezz fel országokat, valamint a – alapból rejtett – Kategóriák csempesor.</p>
+<p>Elérhető sorok: Legutóbb nézett, Kedvenceid, Most a tévében, hazai csatornák, Saját listák (minden saját lista és a saját csatornák külön sorban), az összes kategória, Fedezz fel országokat, valamint a – alapból rejtett – Kategóriák csempesor.</p>
 <div class="tip">Egy kategóriasor csak akkor jelenik meg, ha legalább 3 csatorna tartozik bele; gyerekprofilban csak a gyerekeknek való kategóriák látszanak.</div>`,
   },
   {

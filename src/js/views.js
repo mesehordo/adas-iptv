@@ -40,6 +40,15 @@ function popular(list) {
     .map((x) => x[0]);
 }
 
+/** Világos-e egy #rgb / #rrggbb szín (a saját témák előnézetén ehhez igazodik a felirat színe). */
+function isLightColor(c) {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(c || '').trim());
+  if (!m) return false;
+  const h = m[1].length === 3 ? m[1].replace(/./g, '$&$&') : m[1];
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+  return 0.299 * r + 0.587 * g + 0.114 * b > 160;
+}
+
 /**
  * Elérhetőség szerinti fokozat: 3 – működik; 2 – még nem ellenőrzött; 1 – nem ellenőrzött, de lehet,
  * hogy innen nem nézhető vagy épp nem sugároz (csak korlátozott / időszakos forrásai vannak);
@@ -52,14 +61,19 @@ function availability(c) {
   return geoState(c) || c.streams.every((s) => s.notAlways) ? 1 : 2;
 }
 
-/** A böngészés ajánlott sorrendje: elsőként az elérhetőség, azon belül a szokásos (hazai, népszerű) sorrend. */
-function popularAvailable(list) {
-  const rank = new Map(popular(list).map((c, i) => [c, i]));
+/**
+ * Stabil rendezés elérhetőség szerint (a nem elérhetők a végére); egy fokozaton belül a sorrend marad.
+ * top: a legmagasabb figyelembe vett fokozat (2: a működő és a nem ellenőrzött egyenrangú).
+ */
+function byAvailability(list, top = 3) {
   return list
-    .map((c) => [c, availability(c), rank.get(c)])
+    .map((c, i) => [c, Math.min(top, availability(c)), i])
     .sort((a, b) => b[1] - a[1] || a[2] - b[2])
     .map((x) => x[0]);
 }
+
+/** A böngészés ajánlott sorrendje: elsőként az elérhetőség, azon belül a szokásos (hazai, népszerű) sorrend. */
+const popularAvailable = (list) => byAvailability(popular(list));
 
 function lazyRows(container, factories, initial = 4) {
   let i = 0;
@@ -112,7 +126,7 @@ export function renderTv(view) {
         : html(`<section class="row tip"><p>${_t('Tipp:')} ${IS_TV
               ? `${_t('egy csatornán állva a távirányító <b>piros</b> gombjával')}`
               : `${_t('a csatornák kártyáján a <b>+</b> gombbal vagy az <b>F</b> billentyűvel')}`} ${_t('kedvencet jelölhetsz. A kedvencek sorrendje adja a csatornaszámokat is.')}</p></section>`),
-    onair: () => onAir.length && rowEl(_t('Most a TV-ben'), onAir, { href: '#/guide' }),
+    onair: () => onAir.length && rowEl(_t('Most a tévében'), onAir, { href: '#/guide' }),
     home: () => home.length && !p.kids && rowEl(rowLabel('home'), popular(home), { href: `#/browse?country=${s.homeCountry}` }),
     custom: () => {
       const group = html('<div class="row-group"></div>');
@@ -301,7 +315,7 @@ export function renderFavorites(view) {
     <div class="page-head"><h1>${_t('Kedvencek')}</h1><span class="muted">${IS_TV ? _t('{length} csatorna · a sorrend adja a csatornaszámokat; áthelyezés: húzással vagy a CH+ / CH− gombbal', { length: favs.length }) : /Mac/.test(navigator.platform) ? _t('{length} csatorna · a sorrend adja a csatornaszámokat; áthelyezés: húzással vagy a ⌘← / ⌘→ billentyűvel', { length: favs.length }) : _t('{length} csatorna · a sorrend adja a csatornaszámokat; áthelyezés: húzással vagy a Ctrl+← / Ctrl+→ billentyűvel', { length: favs.length })}</span></div>
     ${favs.length
         ? `<div class="grid fav-grid">${favs
-            .map((c, i) => cardHtml(c, { context: ctx }).replace('<div class="card"', `<div class="card" draggable="true" data-num="${i + 1}"`))
+            .map((c, i) => cardHtml(c, { context: ctx }).replace(/^\s*<div class="card\b/, `<div draggable="true" data-num="${i + 1}" class="card`))
             .join('')}</div>`
         : emptyState(_t('Még nincsenek kedvenc csatornáid'), _t('A csatornák kártyáján a + gombbal, vagy kijelölve az F billentyűvel jelölhetsz kedvencet.'), `<a class="btn primary" href="#/browse">${_t('Csatornák böngészése')}</a>`)}
     <div class="page-head sub"><h2>${_t('Filmek és sorozatok')}</h2>${vodFavs.length ? `<span class="muted">${_t('{length} cím', { length: vodFavs.length })}</span>` : ''}</div>
@@ -371,7 +385,8 @@ export function renderSearch(view, params) {
     view.innerHTML = `<div class="page">${emptyState(_t('Keresés'), _t('Írd be egy csatorna, ország, kategória vagy műsor nevét.'))}</div>`;
     return;
   }
-  const chans = search(q);
+  // (a találati sorrendben, de a nem elérhetők – offline, adásszünet, földrajzi korlát – a végén)
+  const chans = byAvailability(search(q), 2);
   const vis = new Set(visible().map((c) => c.id));
   const progs = homeFirst(
     epg.searchPrograms(tokens).filter((x) => vis.has(x.channelId)),
@@ -390,7 +405,7 @@ export function renderSearch(view, params) {
         ${progs.length ? `<h2 class="section-title">${_t('Műsorok')}</h2><div class="prog-results"></div>` : ''}
       </section>`
           : ''}
-      ${vodHits.length ? `<section class="sc-vod"><h2 class="section-title">${_t('VOD – filmek és sorozatok')} <a class="btn small" href="#/vod?type=all&amp;q=${encodeURIComponent(q)}">${_t('Mind ({length})', { length: vodHits.length })}</a></h2><div class="vgrid vod-search">${vodHits.slice(0, 18).map(vcardHtml).join('')}</div></section>` : ''}
+      ${vodHits.length ? `<section class="sc-vod"><h2 class="section-title">${_t('VOD – filmek és sorozatok')} <a class="btn small" href="#/vod?type=all&amp;q=${encodeURIComponent(q)}">${_t('Összes ({length})', { length: vodHits.length })}</a></h2><div class="vgrid vod-search">${vodHits.slice(0, 18).map(vcardHtml).join('')}</div></section>` : ''}
     </div>
   </div>`;
   const page = $('.page', view);
@@ -491,7 +506,7 @@ export function renderGuide(view) {
       <div class="tabs">${[-1, 0, 1, 2, 3]
         .map((d) => `<button class="tab ${d === guideState.day ? 'active' : ''}" data-d="${d}">${dayLabel(d)}</button>`)
         .join('')}</div>
-      <button class="btn small" data-now>${_t('Ugrás most-ra')}</button>
+      <button class="btn small" data-now>${_t('Ugrás a mostani időre')}</button>
       <select data-gcat aria-label="${_t('Műsorkategória')}"><option value="">${_t('Minden műsor')}</option>${PROG_CATS.map(([k, l]) => `<option value="${k}" ${guideState.cat === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <div class="tabs"><button class="tab ${guideState.mode === 'grid' ? 'active' : ''}" data-gmode="grid">${_t('Idővonal')}</button><button class="tab ${guideState.mode === 'now' ? 'active' : ''}" data-gmode="now">${_t('Most műsoron')}</button></div>
     </div>
@@ -560,7 +575,9 @@ export function renderGuide(view) {
         return `<button class="g-prog ${live ? 'live' : ''} ${past ? 'past' : ''} ${rem ? 'rem' : ''} ${guideState.cat && !progMatch(pr, guideState.cat) ? 'dim' : ''}" style="left:${l}px;width:${Math.max(w - 2, 2)}px" data-start="${pr.start}" title="${esc(pr.title)}">
           <b>${esc(pr.title)}</b><small>${fmtTime(pr.start)}–${fmtTime(pr.stop)}</small></button>`;
       })
-      .join('');
+      .join('') ||
+      // (a felirat a látható sávban marad görgetéskor is – a csatornaoszlop mellett)
+      `<span class="g-empty muted small" style="left:${(scroll.querySelector('.g-ch')?.offsetWidth || 220) + 12}px">${_t('Nincs műsoradat')}</span>`;
   };
   const io = new IntersectionObserver(
     (ents) => ents.forEach((e) => {
@@ -1000,7 +1017,7 @@ function settingsNav(view) {
     'beforeend',
     `<div class="seg set-view" role="group" aria-label="${_t('Elrendezés')}"><button class="tab ${mode === 'tiles' ? 'active' : ''}" data-sv="tiles" title="${_t('Csempés kezdőlap')}">${_t('▦ Csempék')}</button><button class="tab ${mode === 'tabs' ? 'active' : ''}" data-sv="tabs" title="${_t('Fülek')}">${_t('☰ Fülek')}</button></div>`
   );
-  nav.innerHTML = `<input class="input set-search" type="search" placeholder="${_t('Keresés a beállítások között (pl. felirat, téma, szinkron)…')}" aria-label="${_t('Keresés a beállítások között')}" />
+  nav.innerHTML = `<input class="input set-search" type="search" placeholder="${_t('Keresés a beállításokban…')}" title="${_t('pl. felirat, téma, szinkron')}" aria-label="${_t('Keresés a beállítások között')}" />
     ${hub
         ? `<div class="set-tiles">${groups
             .map(([id, ico, name, desc]) => `<a class="set-tile" href="#/settings?g=${id}"><span class="st-ico">${ico}</span><b>${esc(name)}</b><small>${esc(desc)}</small></a>`)
@@ -1088,7 +1105,7 @@ function renderAppearance(box) {
         .map(([id, t]) => `<option value="${id}" ${id === theme ? 'selected' : ''}>${esc(t.label)}</option>`)
         .join('')}</select></label>
     <div class="theme-swatches">${Object.keys(THEMES)
-      .map((id) => { const cp = THEMES[id].custom?.preview || []; return `<button class="theme-swatch ${id === theme ? 'sel' : ''}" data-theme-pick="${esc(id)}" data-preview="${esc(id)}" title="${esc(THEMES[id].label)}" ${cp[0] ? `style="background:${esc(cp[0])}"` : ''}><i ${cp[1] ? `style="background:${esc(cp[1])}"` : ''}></i><i ${cp[2] ? `style="background:${esc(cp[2])}"` : ''}></i><i></i><span>${esc(THEMES[id].label)}</span></button>`; })
+      .map((id) => { const cp = THEMES[id].custom?.preview || []; return `<button class="theme-swatch ${id === theme ? 'sel' : ''} ${isLightColor(cp[0]) ? 'light' : ''}" data-theme-pick="${esc(id)}" data-preview="${esc(id)}" title="${esc(THEMES[id].label)}" ${cp[0] ? `style="background:${esc(cp[0])}"` : ''}><i ${cp[1] ? `style="background:${esc(cp[1])}"` : ''}></i><i ${cp[2] ? `style="background:${esc(cp[2])}"` : ''}></i><i></i><span>${esc(THEMES[id].label)}</span></button>`; })
       .join('')}</div>
     <div class="ct-box"></div>
     <h3>${_t('A TV oldal sorai')}</h3>

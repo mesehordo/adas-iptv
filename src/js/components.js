@@ -544,7 +544,7 @@ export function openInfo(ch) {
             ${now.cur.desc ? `<p class="desc">${esc(now.cur.desc)}</p>` : ''}</div>` : ''}
           <div class="info-btns">
             <button class="btn primary big" data-a="play" autofocus>${_t('{play} Lejátszás', { play: ICON.play })}</button>
-            <button class="round" data-a="fav" title="${fav ? _t('Eltávolítás a kedvencekből') : _t('Kedvencekhez')}">${fav ? ICON.check : ICON.plus}</button>
+            <button class="btn ${fav ? 'on' : ''}" data-a="fav" title="${fav ? _t('Eltávolítás a kedvencekből') : _t('Kedvencekhez')}">${fav ? '★' : '☆'} ${_t('Kedvenc')}</button>
             ${store.profile.kids ? '' : `<button class="btn ${isKidsChannel(ch) ? 'on' : ''}" data-a="kids" title="${_t('Minden profilban: a gyerekprofilok alapból a gyerektartalmat nézhetik')}">${isKidsChannel(ch) ? ICON.check + ' ' : ''}${_t('Gyerektartalom')}</button>`}
           </div>
         </div>
@@ -654,8 +654,13 @@ export function openInfo(ch) {
       player.play(ch, { stream: s });
     }
   });
-  // Görgetés az éppen futó műsorhoz.
-  requestAnimationFrame(() => el.querySelector('.sched .live')?.scrollIntoView({ block: 'center' }));
+  // Görgetés az éppen futó műsorhoz – csak a műsorlistán belül (a scrollIntoView az egész ablakot is
+  // elgörgetné, és a csatorna neve kikerülne a képből).
+  requestAnimationFrame(() => {
+    const live = el.querySelector('.sched .live');
+    const list = live?.closest('.sched');
+    if (live && list && list.scrollHeight > list.clientHeight) list.scrollTop += live.getBoundingClientRect().top - list.getBoundingClientRect().top - (list.clientHeight - live.offsetHeight) / 2;
+  });
   return close;
 }
 
