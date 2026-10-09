@@ -1557,6 +1557,7 @@ body.rc-nav .tile:focus, body.rc-nav .see-all:focus { transform: scale(1.06); z-
 .trim-ed .tr-pos::-moz-range-track { background: transparent; border: 0; }
 .trim-ed .tr-pos::-moz-range-thumb { width: 6px; height: 28px; border: 0; border-radius: 3px; background: #fff; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6); }
 .trim-ed .tr-pos:focus-visible { outline: none; }
+.trim-ed .tr-pos:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px var(--focus, var(--accent)), 0 2px 6px rgba(0, 0, 0, 0.5); }
 .trim-ed .tr-pos:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--focus, var(--accent)), 0 2px 6px rgba(0, 0, 0, 0.5); }
 .trim-ed .tr-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
 .trim-ed .tr-now { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 4.5em; text-align: right; }

@@ -23,7 +23,8 @@ export function renderSport(view, params) {
   st.sport = params.get('s') || '';
   const ev = sportEventsCached();
   draw(view, ev);
-  if (!ev || sportStale()) loadSportEvents().then(() => here() && draw(view, sportEventsCached()), () => {});
+  // (a betöltés után újraütemezünk: ha élő esemény jött, percenként frissüljön)
+  if (!ev || sportStale()) loadSportEvents().then(() => here() && (draw(view, sportEventsCached()), schedule(view)), () => {});
   schedule(view);
 }
 
@@ -143,9 +144,8 @@ function tvNow() {
     rx = kw ? new RegExp(norm(kw), 'i') : null;
   } catch {}
   const now = Date.now();
-  const rows = sportOnTvNow(rx ? 40 : 12)
-    .filter((x) => !rx || rx.test(norm(`${x.p.title} ${x.p.category || ''}`)))
-    .slice(0, 12);
+  // (a sportág szerinti szűrés a levágás előtt – különben a többi sportág kiszoríthatná a találatokat)
+  const rows = sportOnTvNow(12, rx ? (x) => rx.test(norm(`${x.p.title} ${x.p.category || ''}`)) : null);
   if (!rows.length) return `<p class="muted">${epg.byChannel?.size ? _t('Most nincs sportműsor a műsorújságban.') : _t('A műsorújság betöltése…')}</p>`;
   return `<ul class="sp-tvlist">${rows
     .map(({ ch, p }) => {

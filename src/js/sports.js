@@ -148,6 +148,8 @@ function loadCatalog() {
 // ---------------------------------------------------------------------------
 // Források → egységes esemény: { id, sport, league, title, home, away, hs, as, state, start, detail, logoH, logoA, kw, src, channel }
 // ---------------------------------------------------------------------------
+/** Az esemény lehetséges állapotai (pre: közelgő, in: élő, post: véget ért). */
+const STATES = ['pre', 'in', 'post'];
 const json = async (url, hours) => JSON.parse((await api.fetchText(url, { maxAgeHours: hours })).text);
 const ym = (t) => new Date(t).toISOString().slice(0, 7).replace('-', '');
 const cfg = () => ({ back: store.settings.sportBack ?? 2, ahead: store.settings.sportAhead ?? 7 });
@@ -187,7 +189,7 @@ async function loadEspn(w) {
       as: two ? A.score : undefined,
       logoH: two ? H.team?.logo || '' : '',
       logoA: two ? A.team?.logo || '' : '',
-      state: st.state || 'pre',
+      state: STATES.includes(st.state) ? st.state : 'pre', // (külső adat: csak ismert érték)
       start: Date.parse(ev.date),
       detail: st.shortDetail || st.detail || '',
       kw: [nm(H || {}), nm(A || {}), H?.team?.displayName, A?.team?.displayName, lg?.name].filter(Boolean),
@@ -344,13 +346,13 @@ export function channelFor(ev) {
 
 /**
  * Most futó sportműsorok a tévében (sportcsatorna vagy sport kategóriájú műsor), csatornánként egy,
- * a kedvenc / hazai csatornák elöl, a nem elérhetők a végén. → [{ ch, p }]
+ * a kedvenc / hazai csatornák elöl, a nem elérhetők a végén. match: további szűrő (pl. sportág). → [{ ch, p }]
  */
-export function sportOnTvNow(limit = 12) {
+export function sportOnTvNow(limit = 12, match = null) {
   const now = Date.now();
   const seen = new Set();
   return epgIndex()
-    .filter((x) => x.sporty && x.p.start <= now && x.p.stop > now && norm(x.p.title) !== norm(x.ch.name))
+    .filter((x) => x.sporty && x.p.start <= now && x.p.stop > now && norm(x.p.title) !== norm(x.ch.name) && (!match || match(x)))
     .sort((a, b) => (channelStatus(a.ch) === 'bad') - (channelStatus(b.ch) === 'bad') || b.bonus - a.bonus || rankScore(b.ch) - rankScore(a.ch))
     .filter((x) => !seen.has(x.ch.id) && seen.add(x.ch.id))
     .slice(0, limit);
@@ -375,7 +377,11 @@ export function followedLeagues() {
 export async function loadStandings(ref) {
   const j = await json(`https://site.api.espn.com/apis/v2/sports/${ref}/standings`, 1);
   const groups = j.children || (j.standings ? [j] : []);
-  const num = (e, k) => Number(e.stats?.find((s) => s.name === k)?.value);
+  // (a hiányzó érték ne legyen 0 – a Number(null) 0 lenne, és a csapat a tabella elejére kerülne)
+  const num = (e, k) => {
+    const v = e.stats?.find((s) => s.name === k)?.value;
+    return v === null || v === undefined || v === '' ? NaN : Number(v);
+  };
   return groups
     .map((g) => {
       const entries = (g.standings?.entries || []).slice();
@@ -479,7 +485,7 @@ export function eventRowHtml(e, { logos = true, channels = true, remind = false,
        <b class="sp-score">${e.state === 'pre' ? '–' : `${esc(e.hs ?? '')} : ${esc(e.as ?? '')}`}</b>
        <span class="sp-team">${logos && e.logoA ? `<img src="${esc(e.logoA)}" alt="" loading="lazy" onerror="this.remove()" />` : ''}${esc(e.away)}</span>`
     : `<span class="sp-title">${esc(e.title)}</span>`;
-  return `<li class="${e.state} ${e.home ? 'vs' : 'ev'}"><span class="sp-lg" title="${esc(sp.name)} · ${esc(e.leagueName || '')}">${sp.ico}<small>${esc(shortLg(e.league))}</small></span>
+  return `<li class="${STATES.includes(e.state) ? e.state : 'pre'} ${e.home ? 'vs' : 'ev'}"><span class="sp-lg" title="${esc(sp.name)} · ${esc(e.leagueName || '')}">${sp.ico}<small>${esc(shortLg(e.league))}</small></span>
     ${head}
     <small class="sp-when muted">${when}${ch ? ` <button class="sp-ch ${ch.sure ? '' : 'maybe'}" data-play="${esc(ch.id)}" title="${esc(ch.title)} – ${fmtTime(ch.start)}${ch.sure ? '' : ` ${_t('(valószínű)')}`}">📺 ${esc(ch.name)}</button>` : ''}${rem !== null ? ` <button class="sp-rem ${rem ? 'on' : ''}" data-rem-ch="${esc(ch.id)}" data-rem-start="${ch.start}" title="${rem ? _t('Emlékeztető törlése') : _t('Emlékeztető')}" aria-label="${rem ? _t('Emlékeztető törlése') : _t('Emlékeztető')}">${ICON.bell}</button>` : ''}</small></li>`;
 }
