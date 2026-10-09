@@ -1967,5 +1967,6 @@ export default {
  "pl. felirat, téma, szinkron": "e.g. subtitles, theme, sync",
  "Vágás": "Trim",
  "Vágva": "Trimmed",
- "Megnyitás": "Open"
+ "Megnyitás": "Open",
+ "{length} csatorna · a sorrend adja a csatornaszámokat; áthelyezés: hosszan nyomva húzd a kártyát a helyére": "{length} channels · the order gives the channel numbers; move them by pressing and holding a card and dragging it into place"
 };

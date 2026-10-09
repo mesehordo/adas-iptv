@@ -184,7 +184,7 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
 <h2>Fel / le váltás</h2>
 <p>A <kbd>↑</kbd>/<kbd>↓</kbd> (vagy CH+/CH−) azon a listán lép tovább, ahonnan a csatornát indítottad. Ha például a „Sport” sorból indítottál, a sport csatornák között váltasz; ha a kedvencek közül, akkor a kedvenceid között. Ha keresésből vagy adatlapról indítottad, a kedvencek (vagy azok hiányában a hazai csatornák) a sorrend.</p>
 <h2>Csatornaszámok</h2>
-<p>A számok ugyanúgy működnek, mint a tévén: <b>a kedvenceid sorrendje adja az első számokat</b> (1, 2, 3…), utánuk jönnek a hazai ország csatornái. A sorrendet a Kedvencek oldalon húzással módosíthatod. ${go('#/favorites', 'Kedvencek')}</p>
+<p>A számok ugyanúgy működnek, mint a tévén: <b>a kedvenceid sorrendje adja az első számokat</b> (1, 2, 3…), utánuk jönnek a hazai ország csatornái. A sorrendet a Kedvencek oldalon húzással módosíthatod (telefonon hosszan nyomva húzd a kártyát, billentyűzettel Ctrl+← / Ctrl+→, tévén CH+ / CH−). ${go('#/favorites', 'Kedvencek')}</p>
 <p>Lejátszás közben írd be a számot (<kbd>0</kbd>–<kbd>9</kbd>, legfeljebb 4 számjegy) – a jobb felső sarokban látszik, és 1,3 másodperc múlva átvált.</p>
 <h2>Csatornalista-panel</h2>
 <p>Lejátszás közben <kbd>Enter</kbd> vagy <kbd>L</kbd> (tévén a kék gomb) a jobb oldalon megnyitja a lista csatornáit a most futó műsorral együtt. Felül szűrhetsz név szerint.</p>`,

@@ -273,6 +273,8 @@ select { cursor: pointer; }
 .card:focus-visible { outline: none; }
 .card:focus-visible .thumb { outline: 2px solid #fff; outline-offset: -2px; }
 .card.dragging { opacity: 0.4; }
+.fav-grid .card { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; } /* érintéses húzásnál ne jelöljön ki / ne nyisson menüt */
+.fav-grid .card.drop-target { outline: 3px dashed var(--accent); outline-offset: 3px; }
 .fav-grid .card::before { content: attr(data-num); position: absolute; top: -9px; left: -9px; z-index: 2; background: var(--accent); color: #fff; font-size: 12px; font-weight: 800; min-width: 24px; height: 24px; padding: 0 5px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6); text-shadow: 0 0 2px #000, 0 1px 2px #000; /* világos kiemelőszínen is olvasható */ }
 
 /* csempék (országok, kategóriák) */
@@ -295,6 +297,7 @@ select { cursor: pointer; }
 .section-title { font-size: 1.2rem; margin: 26px 0 12px; }
 .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px; align-items: center; }
 .filters select { max-width: 240px; }
+@media (max-width: 600px) { .filters input[name='q'] { flex: 1 1 100%; } } /* telefonon a kereső a teljes sor – a helyőrző ne vágódjon le */
 .browse-extra { margin-bottom: 10px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(var(--card-w), 46vw), 1fr)); gap: 34px 8px; }
 .grid .card { width: auto; }

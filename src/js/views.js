@@ -309,13 +309,15 @@ export function renderFavorites(view) {
   const recent = getChannels(p.recent).filter((c) => vis.has(c));
   const ctx = registerContext(_t('Kedvencek'), favs);
   const vodFavs = vodFavItems();
+  // érintőképernyő: saját, hosszan nyomásos húzás (lent) – a böngésző beépített húzása ott ne induljon el
+  const coarse = !IS_TV && !!window.matchMedia?.('(pointer: coarse)').matches;
   // (a kedvenc filmekhez a filmlisták kellenek: ha még nem töltődtek be, most – a „vod” esemény újrarajzol)
   if ((p.vodFavs || []).length && !vod.ready) loadVod();
   view.innerHTML = `<div class="page">
-    <div class="page-head"><h1>${_t('Kedvencek')}</h1><span class="muted">${IS_TV ? _t('{length} csatorna · a sorrend adja a csatornaszámokat; áthelyezés: húzással vagy a CH+ / CH− gombbal', { length: favs.length }) : /Mac/.test(navigator.platform) ? _t('{length} csatorna · a sorrend adja a csatornaszámokat; áthelyezés: húzással vagy a ⌘← / ⌘→ billentyűvel', { length: favs.length }) : _t('{length} csatorna · a sorrend adja a csatornaszámokat; áthelyezés: húzással vagy a Ctrl+← / Ctrl+→ billentyűvel', { length: favs.length })}</span></div>
+    <div class="page-head"><h1>${_t('Kedvencek')}</h1><span class="muted">${IS_TV ? _t('{length} csatorna · a sorrend adja a csatornaszámokat; áthelyezés: húzással vagy a CH+ / CH− gombbal', { length: favs.length }) : coarse ? _t('{length} csatorna · a sorrend adja a csatornaszámokat; áthelyezés: hosszan nyomva húzd a kártyát a helyére', { length: favs.length }) : /Mac/.test(navigator.platform) ? _t('{length} csatorna · a sorrend adja a csatornaszámokat; áthelyezés: húzással vagy a ⌘← / ⌘→ billentyűvel', { length: favs.length }) : _t('{length} csatorna · a sorrend adja a csatornaszámokat; áthelyezés: húzással vagy a Ctrl+← / Ctrl+→ billentyűvel', { length: favs.length })}</span></div>
     ${favs.length
         ? `<div class="grid fav-grid">${favs
-            .map((c, i) => cardHtml(c, { context: ctx }).replace(/^\s*<div class="card\b/, `<div draggable="true" data-num="${i + 1}" class="card`))
+            .map((c, i) => cardHtml(c, { context: ctx }).replace(/^\s*<div class="card\b/, `<div ${coarse ? '' : 'draggable="true"'} data-num="${i + 1}" class="card`))
             .join('')}</div>`
         : emptyState(_t('Még nincsenek kedvenc csatornáid'), _t('A csatornák kártyáján a + gombbal, vagy kijelölve az F billentyűvel jelölhetsz kedvencet.'), `<a class="btn primary" href="#/browse">${_t('Csatornák böngészése')}</a>`)}
     <div class="page-head sub"><h2>${_t('Filmek és sorozatok')}</h2>${vodFavs.length ? `<span class="muted">${_t('{length} cím', { length: vodFavs.length })}</span>` : ''}</div>
@@ -337,6 +339,8 @@ export function renderFavorites(view) {
   if (!grid) return;
   let dragId = null;
   grid.addEventListener('dragstart', (e) => {
+    // (érintéses húzás közben – pl. érintőképernyős laptopon – a beépített húzás nem indul el)
+    if (touch) return void e.preventDefault();
     const card = e.target.closest('.card');
     dragId = card?.dataset.id;
     card?.classList.add('dragging');
@@ -353,6 +357,61 @@ export function renderFavorites(view) {
     store.moveFavorite(dragId, p.favorites.indexOf(target.dataset.id));
     renderFavorites(view);
   });
+  // Érintőképernyő (a HTML-es húzás ott nem indul el): hosszan nyomva a kártya megfogható és áthúzható.
+  // A hosszú nyomás itt nem nyitja meg az adatlapot (az ⓘ gombbal érhető el).
+  let touch = null;
+  let touchDone = 0;
+  grid.addEventListener('touchstart', (e) => {
+    const card = e.target.closest('.card');
+    if (!card || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    touch = { card, x: t.clientX, y: t.clientY, on: false, over: null };
+    touch.timer = setTimeout(() => {
+      if (!touch) return;
+      touch.on = true;
+      card.classList.add('dragging');
+      navigator.vibrate?.(15);
+    }, 350);
+  }, { passive: true });
+  grid.addEventListener('touchmove', (e) => {
+    if (!touch) return;
+    const t = e.touches[0];
+    if (!touch.on) {
+      // (a hosszú nyomás előtti elmozdulás görgetés)
+      if (Math.hypot(t.clientX - touch.x, t.clientY - touch.y) > 10) (clearTimeout(touch.timer), (touch = null));
+      return;
+    }
+    e.preventDefault();
+    const hit = document.elementFromPoint(t.clientX, t.clientY)?.closest('.fav-grid .card');
+    const over = hit && hit !== touch.card ? hit : null;
+    if (over !== touch.over) {
+      touch.over?.classList.remove('drop-target');
+      over?.classList.add('drop-target');
+      touch.over = over;
+    }
+  }, { passive: false });
+  const endTouch = (e) => {
+    if (!touch) return;
+    clearTimeout(touch.timer);
+    const { on, card, over } = touch;
+    touch = null;
+    if (!on) return;
+    if (e.cancelable) e.preventDefault(); // (ne legyen belőle kattintás = lejátszás)
+    touchDone = Date.now();
+    card.classList.remove('dragging');
+    over?.classList.remove('drop-target');
+    if (!over) return;
+    const id = card.dataset.id;
+    const j = p.favorites.indexOf(over.dataset.id);
+    store.moveFavorite(id, j);
+    renderFavorites(view);
+    toast(`${_t('{x}: {x2}. hely', { x: catalog.byId.get(id)?.name || '', x2: j + 1 })}`);
+  };
+  grid.addEventListener('touchend', endTouch);
+  grid.addEventListener('touchcancel', endTouch);
+  grid.addEventListener('contextmenu', (e) => {
+    if (touch?.on || Date.now() - touchDone < 800) (e.preventDefault(), e.stopPropagation());
+  }, true);
   // Áthelyezés billentyűzettel / távirányítóval: Ctrl+← / Ctrl+→, illetve CH+ / CH−.
   grid.addEventListener('keydown', (e) => {
     const card = e.target.closest?.('.card');

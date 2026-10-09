@@ -79,7 +79,9 @@ export function dayLabel(offset) {
   if (offset === 0) return _t('Ma');
   if (offset === 1) return _t('Holnap');
   if (offset === -1) return _t('Tegnap');
-  return new Intl.DateTimeFormat(LOCALE, { weekday: 'long' }).format(new Date(dayStart(Date.now(), offset)));
+  // (nagy kezdőbetűvel, mint a „Ma”, „Holnap” – magyarul a napnév kisbetűs)
+  const s = new Intl.DateTimeFormat(LOCALE, { weekday: 'long' }).format(new Date(dayStart(Date.now(), offset)));
+  return s.charAt(0).toLocaleUpperCase(LOCALE) + s.slice(1);
 }
 
 export function fmtDuration(ms) {

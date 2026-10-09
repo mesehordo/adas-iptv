@@ -116,7 +116,9 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - Indításkor a profilválasztó (és az első indítási varázsló) mindig csak az indítóanimáció után jelenik meg
 
 **Felületi javítások (1.26)**
-- Kedvencek: újra látszik a csatornaszám, és újra működik a húzásos átrendezés
+- Kedvencek: újra látszik a csatornaszám, és újra működik a húzásos átrendezés; telefonon / tableten is (hosszan nyomva húzd a kártyát a helyére)
+- Profilszerkesztő: a profilképek rácsa nem lóg ki az ablakból, a Gyerekprofil kapcsoló a sor jobb szélén
+- Telefonon: a böngészés keresőmezője a teljes sor; a műsorújság napjai nagy kezdőbetűvel
 - Csatorna-adatlap: megnyitáskor a csatorna neve a helyén marad (csak a műsorlista görgetődik a mostani műsorhoz); a kedvenc gomb felirattal (☆ Kedvenc), mint a filmeknél
 - Műsorújság: a műsor nélküli csatornák sorában „Nincs műsoradat”; „Ugrás a mostani időre” gomb
 - Felvételek: a gombok felirattal (Vágás, Megnyitás, Törlés) – tévén nincs súgóbuborék
