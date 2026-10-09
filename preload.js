@@ -33,6 +33,10 @@ contextBridge.exposeInMainWorld('api', {
   storeLoad: () => ipcRenderer.invoke('store-load'),
   storeSave: (data) => ipcRenderer.invoke('store-save', data),
   clearCache: () => ipcRenderer.invoke('clear-cache'),
+  // tartós borítótár (covers.js): a borítókép címe a tárban (adasimg://), méret, ürítés
+  coverUrl: (url) => (/^https?:\/\//i.test(String(url || '')) ? 'adasimg://cover/' + Buffer.from(String(url), 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') : url),
+  coverStats: () => ipcRenderer.invoke('covers-stats'),
+  coverClear: () => ipcRenderer.invoke('covers-clear'),
   saveFile: (name, text) => ipcRenderer.invoke('save-file', name, text),
   openFile: (filters) => ipcRenderer.invoke('open-file', filters),
   openFiles: (filters) => ipcRenderer.invoke('open-files', filters),

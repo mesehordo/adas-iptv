@@ -21,6 +21,10 @@ export default {
    {
     "name": "444",
     "url": "https://444.hu/feed"
+   },
+   {
+    "name": "Kávéház Magazin",
+    "url": "https://kavehazmagazin.hu/rss"
    }
   ],
   "wiki": {

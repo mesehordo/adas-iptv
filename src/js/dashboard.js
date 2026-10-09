@@ -1,7 +1,7 @@
 // Főoldal (irányítópult): időjárás, a kedvenc csatornák műsora, RSS-hírek, „Ma este a tévében”,
 // TV- és VOD-folytatás. Két oszlop × négy sor (telefonon, álló helyzetben egymás alatt).
 import { esc, html, hashHue, fmtTime, fmtDay, toast, debounce, fmtNum } from './util.js';
-import { api, IS_TV } from './api.js';
+import { api, IS_TV, coverSrc } from './api.js';
 import { store } from './store.js';
 import { epg } from './epg.js';
 import { catalog, visible, getChannels, homeRank, rankScore } from './catalog.js';
@@ -224,7 +224,23 @@ function stylePreview(k) {
 // RSS / Atom hírek
 // ---------------------------------------------------------------------------
 export const DEFAULT_FEEDS = LOCAL.feeds;
-const feeds = () => (store.settings.rssFeeds ?? DEFAULT_FEEDS).filter((f) => f.enabled !== false);
+// Később felvett alapforrások: a már testreszabott hírlistákba is bekerülnek – egyszer (ha a felhasználó
+// utána törli, nem tesszük vissza). Csak a felület nyelvének alapforrásai közül.
+const LATER_DEFAULTS = ['https://kavehazmagazin.hu/rss'];
+function addLaterDefaults() {
+  const s = store.settings;
+  if (!Array.isArray(s.rssFeeds)) return; // (alapértékeken van: azokban már benne van)
+  const seen = Array.isArray(s.rssDefaultsSeen) ? s.rssDefaultsSeen : [];
+  const fresh = LATER_DEFAULTS.filter((u) => !seen.includes(u));
+  if (!fresh.length) return;
+  for (const u of fresh) {
+    const d = DEFAULT_FEEDS.find((f) => f.url === u);
+    if (d && !s.rssFeeds.some((f) => f.url === u)) s.rssFeeds.push({ ...d });
+  }
+  s.rssDefaultsSeen = [...seen, ...fresh];
+  store.save();
+}
+const feeds = () => (addLaterDefaults(), (store.settings.rssFeeds ?? DEFAULT_FEEDS).filter((f) => f.enabled !== false));
 // Inert elemzés (DOMParser): a hírcsatorna HTML-je nem az élő dokumentumban értelmeződik, így a benne
 // lévő eseménykezelők (pl. <img onerror>) a szöveg kinyerése közben sem futhatnak le.
 const stripHtml = (s) => {
@@ -376,7 +392,7 @@ const dayTime = (t) => {
   const diff = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(today.getFullYear(), today.getMonth(), today.getDate())) / 864e5);
   return (diff === 0 ? '' : diff === 1 ? `${_t('holnap')} ` : `${DAYS[d.getDay()]} `) + fmtTime(t);
 };
-const posterHtml = (x) => (x.poster ? `<img src="${esc(x.poster)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()" />` : `<span>${esc(x.title)}</span>`);
+const posterHtml = (x) => (x.poster ? `<img src="${esc(coverSrc(x.poster))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()" />` : `<span>${esc(x.title)}</span>`);
 /**
  * VOD-plakátok rácsa a kártya méretéhez igazítva: a legtöbb, legalább 60 px széles plakát, ami kifér
  * (több sorban is); ha egy sem, lista. items: [{ x, ratio?, sub? }]
@@ -1279,7 +1295,7 @@ function editAction(view, a, id, addId, targetId) {
 // ---------------------------------------------------------------------------
 export function renderDashSettings(box) {
   const s = store.settings;
-  const list = () => s.rssFeeds ?? DEFAULT_FEEDS.map((f) => ({ ...f }));
+  const list = () => (addLaterDefaults(), s.rssFeeds ?? DEFAULT_FEEDS.map((f) => ({ ...f })));
   const draw = () => {
     box.innerHTML = `<h2>${_t('Főoldal')} <button class="help-link" data-help="dashboard" title="${_t('Súgó')}">?</button></h2>
       <div class="setting stack"><span>${_t('<b>Elrendezés</b>')}<small>${_t('Az egységek (időjárás, műsor, hírek, folytatás…) sorrendje, mérete, ki-be kapcsolása és a rács oszlopai, sorai – profilonként.')}</small></span>

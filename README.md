@@ -104,7 +104,12 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - Mentés és visszaállítás fájlba (beállítások, profilok, kedvencek, emlékeztetők)
 - Teljes billentyűzetes / távirányítós vezérlés (nyilak, Enter, Esc / Backspace)
 
-**Listák frissítése listánként, frissülő kiegészítő csomagok**
+**Tartós borítótár, elérhetők elöl mindenhol (1.27)**
+- **Borítóképek tára**: asztali gépen a VOD-borítók a felhasználói adatmappa `covers` mappájába kerülnek (`adasimg://` – `covers.js`), Androidon minden kép (borító, csatornalogó) a `files/covers` mappába (`Covers.java`; eddig a WebView a proxyn átadott képeket nem tárolta, mindent újra letöltött). Legközelebb onnan jönnek, hálózat nélkül is; korlát: asztalon 1 GB, Androidon 512 MB (fölötte a legrégebben látottak törlődnek). Méret és ürítés: Beállítások → VOD és médiatár.
+- **Az elérhető csatornák elöl mindenhol**, ahol a program dönti el a sorrendet: keresés (és a telefonos távirányító keresése), a TV oldal sorai, műsorújság, böngészés (név / ország szerinti rendezésben is), több adás egyszerre. A saját sorrend marad (Kedvencek, Legutóbb nézett, csatornaszámok).
+- Új magyar alap-hírforrás: **Kávéház Magazin** (a már testreszabott hírlistákba is egyszer bekerül).
+
+**Listák frissítése listánként, frissülő kiegészítő csomagok (1.27)**
 - Minden webcímről töltött csatorna- és VOD-listánál (beépített, saját, kiegészítő csomag) a lista sorában beállítható, **hány óránként** töltse le újra: óránként … 48 óránként (alapból 6). A program futás közben is figyeli, lejátszás közben nem frissít.
 - **Forráscímes kiegészítő csomag**: a `.adaspack` nem kötelező `url` mezőjéből a lista a beállított gyakorisággal frissül (lejáró címeket tartalmazó, rendszeresen újragenerált listákhoz); ha a forrás nem érhető el, a csomagban mentett lista látszik. Új mezők még: `epg` (műsorújság), `refresh` (javasolt gyakoriság). A `tools/make-pack.mjs` webcímről is készít ilyet (`--url`, `--epg`, `--refresh`).
 

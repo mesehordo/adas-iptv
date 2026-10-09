@@ -2027,5 +2027,10 @@ export default {
  "a \"refresh\" értéke {list} óra lehet": "\"refresh\" must be one of {list} hours",
  "hálózati hiba": "network error",
  "a forrás most nem érhető el – a legutóbb letöltött példány látszik": "the source is unreachable right now – showing the last downloaded copy",
- "a tárhely egyik listája sem tölthető le": "none of the repository’s lists could be downloaded"
+ "a tárhely egyik listája sem tölthető le": "none of the repository’s lists could be downloaded",
+ "{files} kép, {size} ezen az eszközön (legfeljebb {max}; fölötte a legrégebben látottak törlődnek). A borítóképek (Androidon a csatornalogók is) így nem töltődnek le újra.": "{files} images, {size} on this device (at most {max}; beyond that the least recently seen are removed). This way covers (and on Android channel logos too) aren’t downloaded again.",
+ "<b>Borítóképek tára</b>": "<b>Cover image store</b>",
+ "Ürítés": "Empty",
+ "Üríted a borítóképek tárát? A képek a következő megjelenítéskor újra letöltődnek.": "Empty the cover image store? The images will be downloaded again the next time they’re shown.",
+ "A borítóképek tára kiürült.": "The cover image store is empty."
 };

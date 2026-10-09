@@ -1,7 +1,7 @@
 // Filmek és sorozatok (VOD): M3U / M3U8 listákból (akár egész GitHub-tárhelyből) betöltött
 // filmek és sorozatok felismerése, böngészése, adatlapja, lejátszása folytatással.
-import { $, $$, esc, html, norm, hashHue, toast, bus, debounce, seededShuffle, errText } from './util.js';
-import { api } from './api.js';
+import { $, $$, esc, html, norm, hashHue, toast, bus, debounce, seededShuffle, errText, fmtNum } from './util.js';
+import { api, coverSrc } from './api.js';
 import { store, VOD_BUILTIN, refreshHoursOf, DEFAULT_REFRESH_HOURS, setRefreshHours } from './store.js';
 import { parseM3U, catalog, isLiveEntry, setVodLive } from './catalog.js';
 import { ICON, openModal, confirmDialog, promptDialog, emptyState, rowTitleHtml, seeAllHtml, rowOrderEditor, progressiveTrack, refreshSelectHtml } from './components.js';
@@ -1064,7 +1064,7 @@ export async function openInExternalPlayer(item, ep = null) {
 // ---------------------------------------------------------------------------
 function posterHtml(x) {
   return `<div class="poster" style="--h:${hashHue(x.title)}">
-    ${x.poster ? `<img src="${esc(x.poster)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()" />` : ''}
+    ${x.poster ? `<img src="${esc(coverSrc(x.poster))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()" />` : ''}
     <span class="ptitle">${esc(displayTitle(x))}</span>
   </div>`;
 }
@@ -1987,6 +1987,17 @@ setInterval(() => {
 // ---------------------------------------------------------------------------
 // Beállítások: film/sorozat listák
 // ---------------------------------------------------------------------------
+const fmtBytes = (b) => (b >= 1024 ** 3 ? `${fmtNum(b / 1024 ** 3, 1)} GB` : `${fmtNum(b / 1024 ** 2, 0)} MB`);
+/** A tartós borítótár mérete a beállításokban (asztali változat, Android). */
+function fillCoverStats(box) {
+  api.coverStats?.()
+    .then((st) => {
+      const el = box.querySelector('.cover-stats');
+      if (el && st) el.textContent = _t('{files} kép, {size} ezen az eszközön (legfeljebb {max}; fölötte a legrégebben látottak törlődnek). A borítóképek (Androidon a csatornalogók is) így nem töltődnek le újra.', { files: st.files, size: fmtBytes(st.bytes), max: fmtBytes(st.max) });
+    })
+    .catch(() => {});
+}
+
 export function renderVodLists(box) {
   const s = store.settings;
   const busy = !!vod.loading;
@@ -1997,6 +2008,8 @@ export function renderVodLists(box) {
       <span class="muted">${vod.ready ? `${_t('{length} film · {length2} sorozat', { length: vod.movies.length, length2: vod.series.length })}` : _t('még nincs betöltve')}</span>
     </div>
     ${toggleRow('vodAutoNext', _t('A következő rész automatikus indítása'), _t('Sorozatnál a rész végén néhány másodperc múlva indul a következő.'))}
+    ${api.coverStats ? `<div class="setting"><span>${_t('<b>Borítóképek tára</b>')}<small class="cover-stats">${_t('Betöltés…')}</small></span>
+      <button class="btn small" data-vl="covers-clear">${_t('Ürítés')}</button></div>` : ''}
     <h3>${_t('Beépített listák')}</h3>
     <ul class="src-list">${[...VOD_BUILTIN, ...vodPacks()].map((b) => {
       const on = builtinOn(b);
@@ -2036,6 +2049,7 @@ export function renderVodLists(box) {
     <h3>${_t('A VOD oldal sorai')} <span class="muted small">${_t('· {esc} profil', { esc: esc(store.profile.name) })}</span></h3>
     <p class="muted">${_t('Húzással vagy a nyilakkal rendezheted, a kapcsolóval elrejtheted a sorokat (a műfajok a bekapcsolt listákból jönnek).')}</p>
     <div class="vod-rows">${vod.ready ? '' : `<p class="muted small">${_t('A listák betöltése után itt rendezheted a sorokat.')}</p>`}</div>`;
+  fillCoverStats(box);
   if (vod.ready) {
     rowOrderEditor(box.querySelector('.vod-rows'), {
       rows: vodRows(),
@@ -2098,6 +2112,12 @@ export function renderVodLists(box) {
       }
       case 'pack-dir':
         api.packsDir();
+        break;
+      case 'covers-clear':
+        if (!(await confirmDialog(_t('Üríted a borítóképek tárát? A képek a következő megjelenítéskor újra letöltődnek.'), { ok: _t('Ürítés') }))) return;
+        await api.coverClear?.();
+        toast(_t('A borítóképek tára kiürült.'));
+        fillCoverStats(box);
         break;
       case 'refresh':
         renderVodLists(box);
