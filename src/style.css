@@ -497,6 +497,9 @@ select { cursor: pointer; }
 .src-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; background: var(--bg-2); padding: 10px 12px; border-radius: 6px; }
 .src-list li > span { flex: 1 1 160px; min-width: 0; display: flex; flex-direction: column; } /* keskeny képernyőn a gombok a szöveg alá kerülnek */
 .src-list small { color: var(--muted); font-size: 0.8rem; word-break: break-all; }
+/* a lista frissítési gyakorisága (a lista sorában) */
+.src-list .refresh-sel { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.src-list .refresh-sel select { padding: 4px 8px; font-size: 0.85rem; }
 .scan { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .progress { flex: 1; min-width: 200px; max-width: 420px; height: 8px; background: #333; border-radius: 4px; overflow: hidden; }
 .progress i { display: block; height: 100%; background: var(--accent); transition: width 0.3s; }

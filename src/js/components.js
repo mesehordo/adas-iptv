@@ -1,7 +1,7 @@
 // Felületi építőelemek: csatornakártya, sor, rács, modális ablakok, csatorna-adatlap, műsor-adatlap.
 import { esc, html, hashHue, initials, fmtTime, fmtDay, dayStart, dayLabel, fmtDuration, toast, bus, $ } from './util.js';
 import { isKidsChannel, setKidsMark } from './kids.js';
-import { store, avatarUrl } from './store.js';
+import { store, avatarUrl, REFRESH_CHOICES, refreshHoursOf } from './store.js';
 import { epg } from './epg.js';
 import { health } from './health.js';
 import { api } from './api.js';
@@ -730,6 +730,16 @@ export function openProgram(ch, p) {
 export function tvTabs(cur) {
   const tab = (id, href, label) => `<a class="tab ${cur === id ? 'active' : ''}" href="${href}">${label}</a>`;
   return `<div class="tabs vod-tabs tv-tabs">${tab('tv', '#/tv', _t('Csatornák'))}${tab('guide', '#/guide', _t('Műsorújság'))}${tab('browse', '#/browse', _t('Böngészés'))}${api.recStart ? tab('rec', '#/recordings', _t('Felvételek')) : ''}</div>`;
+}
+
+/**
+ * Egy webcímről töltött lista frissítési gyakoriságának választója (a listák beállításaiban, a lista
+ * sorában). scope: 'tv' | 'vod'. A változást a beállítás-rész kezeli: [data-refresh="tv:<lista>"].
+ */
+export function refreshSelectHtml(scope, pl) {
+  const cur = refreshHoursOf(scope, pl);
+  return `<label class="refresh-sel" title="${_t('Ilyen gyakran tölti le újra a listát (lejátszás közben nem)')}"><span class="muted small">${_t('Frissítés:')}</span>
+    <select data-refresh="${esc(scope + ':' + pl.id)}" aria-label="${_t('{name} frissítése', { name: esc(pl.name) })}">${REFRESH_CHOICES.map((h) => `<option value="${h}" ${h === cur ? 'selected' : ''}>${h === 1 ? _t('óránként') : _t('{h} óránként', { h })}</option>`).join('')}</select></label>`;
 }
 
 export function emptyState(title, text, action) {

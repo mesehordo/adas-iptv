@@ -1,10 +1,10 @@
 // Filmek és sorozatok (VOD): M3U / M3U8 listákból (akár egész GitHub-tárhelyből) betöltött
 // filmek és sorozatok felismerése, böngészése, adatlapja, lejátszása folytatással.
-import { $, $$, esc, html, norm, hashHue, toast, bus, debounce, seededShuffle } from './util.js';
+import { $, $$, esc, html, norm, hashHue, toast, bus, debounce, seededShuffle, errText } from './util.js';
 import { api } from './api.js';
-import { store, VOD_BUILTIN } from './store.js';
+import { store, VOD_BUILTIN, refreshHoursOf, DEFAULT_REFRESH_HOURS, setRefreshHours } from './store.js';
 import { parseM3U, catalog, isLiveEntry, setVodLive } from './catalog.js';
-import { ICON, openModal, confirmDialog, promptDialog, emptyState, rowTitleHtml, seeAllHtml, rowOrderEditor, progressiveTrack } from './components.js';
+import { ICON, openModal, confirmDialog, promptDialog, emptyState, rowTitleHtml, seeAllHtml, rowOrderEditor, progressiveTrack, refreshSelectHtml } from './components.js';
 import { player } from './player.js';
 import { filmInfo, infoBoxHtml, metaPaused, posters, titleInfo, posterCandidates } from './meta.js';
 import { isZip, unzip, bytesToText } from './unzip.js';
@@ -196,12 +196,13 @@ export function vodLists() {
   for (const b of [...VOD_BUILTIN, ...vodPacks()]) if (builtinOn(b)) out.push({ ...b, builtin: true });
   for (const p of s.vodCustom || []) if (p.enabled) out.push({ ...p, builtin: false });
   // A csatornalistákban talált filmek / sorozatrészek (a csatornák közül ide kerültek)
-  for (const t of catalog.tvVod || []) out.push({ id: t.id, name: t.name, entries: t.entries, fromTv: true, builtin: false });
+  for (const t of catalog.tvVod || []) out.push({ id: t.id, name: t.name, entries: t.entries, at: t.at, fromTv: true, builtin: false });
   return out;
 }
 
 /** GitHub-tárhely (github.com/szerző/tár) → a benne lévő .m3u / .m3u8 fájlok nyers címei. */
-async function expandGitHub(url) {
+/** hours: a fájlfa gyorsítótárának kora (a lista frissítési gyakorisága – hogy az új fájlok is látsszanak) */
+async function expandGitHub(url, hours = 6) {
   const m = /^https?:\/\/github\.com\/([^/]+)\/([^/#?]+)(?:\/(?:tree|blob)\/([^/]+)(\/[^?#]*)?)?/i.exec(url);
   if (!m) return null;
   const [, owner, repoRaw, branchIn, pathIn] = m;
@@ -213,7 +214,7 @@ async function expandGitHub(url) {
   const info = JSON.parse((await api.fetchText(`https://api.github.com/repos/${owner}/${repo}`, { maxAgeHours: 24 })).text);
   const branch = branchIn || info.default_branch || 'main';
   const tree = JSON.parse(
-    (await api.fetchText(`https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`, { maxAgeHours: 6 })).text
+    (await api.fetchText(`https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`, { maxAgeHours: hours })).text
   );
   const prefix = pathIn ? pathIn.replace(/^\//, '') : '';
   return (tree.tree || [])
@@ -344,7 +345,8 @@ export async function addCustomVodText(name, text, extra = {}) {
 
 /** Egy lista bejegyzései: [{ ...m3u bejegyzés, fileHint }] */
 async function loadList(pl, force) {
-  const opts = { maxAgeHours: 6, force };
+  // (a lista saját frissítési gyakoriságával – Beállítások → VOD és médiatár, a lista sorában)
+  const opts = { maxAgeHours: refreshHoursOf('vod', pl), force };
   const parseText = (text, fileName, url) => {
     const parsed = parseM3U(text);
     // Ha maga a cím egy videó (HLS adás), egyetlen filmként kezeljük.
@@ -355,27 +357,53 @@ async function loadList(pl, force) {
   if (pl.entries) return pl.entries.map((e) => ({ ...e, fileHint: '' })); // csatornalistából átvett tételek
   if (pl.asset) return parseText(await assetText(pl.asset), '', '');
   if (!pl.url) return parseText(await listText(pl), '', '');
-  const files = await expandGitHub(pl.url);
-  if (!files) {
-    const { text } = await api.fetchText(pl.url, opts);
-    return parseText(text, '', pl.url);
-  }
-  // Tárhely: a fájlokat kis párhuzamossággal töltjük le.
-  const out = [];
-  let i = 0;
-  const worker = async () => {
-    while (i < files.length) {
-      const f = files[i++];
-      try {
-        const { text } = await api.fetchText(f.url, opts);
-        out.push(...parseText(text, f.name, f.url));
-      } catch (err) {
-        console.warn('VOD fájl hiba', f.url, err);
-      }
-    }
+  // Hálózati hibánál az asztali letöltő a legutóbbi példányt adja (stale): ezt jelezzük, és ha a csomag
+  // mentett listája frissebb, az látszik (a külső catch-ben)
+  const staleNote = (r) => {
+    if (!r.stale) return;
+    if (pl.textKey && (pl.at || 0) > (r.cachedAt || 0)) throw new Error(_t('hálózati hiba'));
+    vod.errors[pl.id] = _t('a forrás most nem érhető el – a legutóbb letöltött példány látszik');
   };
-  await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
-  return out;
+  const fromUrl = async () => {
+    const files = await expandGitHub(pl.url, opts.maxAgeHours);
+    if (!files) {
+      const r = await api.fetchText(pl.url, opts);
+      staleNote(r);
+      return parseText(r.text, '', pl.url);
+    }
+    // Tárhely: a fájlokat kis párhuzamossággal töltjük le (egy-egy fájl hibája nem állítja meg a többit).
+    const out = [];
+    let i = 0;
+    let ok = 0;
+    let stale = 0;
+    const worker = async () => {
+      while (i < files.length) {
+        const f = files[i++];
+        try {
+          const r = await api.fetchText(f.url, opts);
+          if (r.stale) stale++;
+          out.push(...parseText(r.text, f.name, f.url));
+          ok++;
+        } catch (err) {
+          console.warn('VOD fájl hiba', f.url, err);
+        }
+      }
+    };
+    await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
+    // (ha egyetlen fájl sem jött le, az forráshiba – a csomag mentett listája léphet életbe)
+    if (files.length && !ok) throw new Error(_t('a tárhely egyik listája sem tölthető le'));
+    if (stale) staleNote({ stale: true, cachedAt: Infinity });
+    return out;
+  };
+  try {
+    return await fromUrl();
+  } catch (err) {
+    // forráscímes csomag: ha a forrás (vagy a GitHub-tárhely listázása) nem érhető el, a csomagban
+    // mentett lista látszik – a listák között jelezve
+    if (!pl.textKey) throw err;
+    vod.errors[pl.id] = _t('a forrás nem érhető el ({err}) – a csomagban mentett lista látszik', { err: errText(err) });
+    return parseText(await listText(pl), '', '');
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -766,6 +794,19 @@ function cacheKey(lib) {
   return `${lib.id}:${VOD_CACHE_VERSION}:${lang}:` + libLists(lib).map((p) => p.id + (p.url || p.loc || p.asset || (p.entries ? 'e' + p.entries.length : '') || (p.text || '').length) + (p.mtime || '') + (p.at || '')).join(',');
 }
 
+/**
+ * A feldolgozott VOD legfeljebb ennyi órás lehet: az online VOD-nál a webcímről töltött listák közül a
+ * leggyakrabban frissítendő gyakorisága (listánként beállítható), a Saját médiatárnál a rögzített érték.
+ */
+function libMaxAge(lib) {
+  if (lib !== vod) return lib.maxAgeHours;
+  const hs = vodLists().filter((p) => p.url).map((p) => refreshHoursOf('vod', p));
+  return hs.length ? Math.min(...hs) : DEFAULT_REFRESH_HOURS;
+}
+
+/** Esedékes-e az online VOD-listák frissítése (az ütemező hívja – app.js)? */
+export const vodRefreshDue = () => vod.ready && !vod.loading && Date.now() - (vod.loadedAt || 0) > libMaxAge(vod) * 3600e3;
+
 /** Betöltés (gyorsítótárból, ha friss). Többszöri hívásnál ugyanazt az ígéretet adja vissza. */
 function loadLib(lib, { force = false } = {}) {
   // Kényszerített frissítés futó betöltés közben: megvárjuk, majd újratöltünk.
@@ -782,10 +823,10 @@ function loadLib(lib, { force = false } = {}) {
           setTimeout(r, 30000);
         });
       }
-      lib.tvSig = (catalog.tvVod || []).map((t) => t.id + t.entries.length).join(',');
+      lib.tvSig = (catalog.tvVod || []).map((t) => t.id + t.entries.length + ':' + (t.at || 0)).join(',');
       if (!force && api.kvGet) {
         const snap = await api.kvGet(cacheKey(lib)).catch(() => null);
-        if (snap && Date.now() - snap.at < lib.maxAgeHours * 3600e3) {
+        if (snap && Date.now() - snap.at < libMaxAge(lib) * 3600e3) {
           Object.assign(lib, { movies: snap.movies, series: snap.series, counts: snap.counts, errors: snap.errors, loadedAt: snap.at });
           index(lib);
           lib.ready = true;
@@ -820,7 +861,7 @@ function loadLib(lib, { force = false } = {}) {
 export const loadVod = (opts) => loadLib(vod, opts);
 // Ha a csatornalista frissülése után más filmek kerültek át a VOD-ba, újratöltjük.
 bus.on('tv-vod', () => {
-  const sig = (catalog.tvVod || []).map((t) => t.id + t.entries.length).join(',');
+  const sig = (catalog.tvVod || []).map((t) => t.id + t.entries.length + ':' + (t.at || 0)).join(',');
   if (vod.ready && sig !== vod.tvSig) loadVod();
 });
 export const loadOwn = (opts) => loadLib(own, opts);
@@ -1962,6 +2003,7 @@ export function renderVodLists(box) {
       const info = !on ? _t('kikapcsolva') : vod.errors[b.id] ? `<span class="warn">${_t('hiba: {esc}', { esc: esc(vod.errors[b.id]) })}</span>` : vod.ready ? `${_t('{x} bejegyzés', { x: vod.counts[b.id] || 0 })}` : '';
       return `<li data-vb="${esc(b.id)}"><input type="checkbox" class="switch" data-vl-builtin ${on ? 'checked' : ''} aria-label="${esc(b.name)}" />
         <span><b>${esc(b.name)}</b>${b.pack ? ` <span class="pill">${_t('kiegészítő csomag')}</span>` : ''}<small>${esc(b.desc || '')}${info ? ' · ' + info : ''}</small></span>
+        ${b.url ? refreshSelectHtml('vod', b) : ''}
         ${b.pack ? `<button class="btn small danger" data-vl="pack-del">${_t('Eltávolítás')}</button>` : ''}</li>`;
     }).join('')}</ul>
     <div class="inline">
@@ -1977,6 +2019,7 @@ export function renderVodLists(box) {
         const info = !p.enabled ? _t('kikapcsolva') : vod.errors[p.id] ? `<span class="warn">${_t('hiba: {esc}', { esc: esc(vod.errors[p.id]) })}</span>` : vod.ready ? `${_t('{x} bejegyzés', { x: vod.counts[p.id] || 0 })}` : '';
         return `<li data-vc="${esc(p.id)}"><input type="checkbox" class="switch" data-vl-toggle ${p.enabled ? 'checked' : ''} aria-label="${_t('Bekapcsolva')}" />
           <span><b>${esc(p.name)}</b><small>${esc(p.url || (p.source ? `${_t('fájlból:')} ` + p.source : _t('beillesztett / fájlból')))}${info ? ' · ' + info : ''}</small></span>
+          ${p.url ? refreshSelectHtml('vod', p) : ''}
           <button class="btn small" data-vl="rename">${_t('Átnevezés')}</button>
           <button class="btn small danger" data-vl="del">${_t('Törlés')}</button></li>`;
       })
@@ -2013,7 +2056,12 @@ export function renderVodLists(box) {
   box.addEventListener('change', (e) => {
     e.stopPropagation();
     const t = e.target;
-    if (t.matches('[data-vl-builtin]')) {
+    if (t.matches('[data-refresh]')) {
+      const key = t.dataset.refresh;
+      const i = key.indexOf(':');
+      setRefreshHours(key.slice(0, i), key.slice(i + 1), Number(t.value));
+      toast(_t('Mentve: a lista {h} óránként frissül.', { h: t.value }));
+    } else if (t.matches('[data-vl-builtin]')) {
       s.vodBuiltin = { ...s.vodBuiltin, [t.closest('[data-vb]').dataset.vb]: t.checked };
       store.save();
       reload();

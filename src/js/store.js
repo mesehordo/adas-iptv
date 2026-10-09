@@ -409,3 +409,25 @@ export const store = {
     return { ok: !!h[0], t: h[1], geo: h[3] === 'g' };
   },
 };
+
+// ---------------------------------------------------------------------------
+// Listák frissítési gyakorisága (a webcímről töltött csatorna- és VOD-listáknál, a forráscímes
+// kiegészítő csomagoknál is): listánként választható; a választás hiányában a lista (csomag) javaslata,
+// ennek híján 6 óra. Kulcs: 'tv:<lista>' vagy 'vod:<lista>'.
+// ---------------------------------------------------------------------------
+export const REFRESH_CHOICES = [1, 2, 3, 6, 12, 24, 48];
+export const DEFAULT_REFRESH_HOURS = 6;
+const validHours = (h) => REFRESH_CHOICES.includes(Number(h));
+
+/** A lista frissítési gyakorisága órában. scope: 'tv' | 'vod' */
+export function refreshHoursOf(scope, pl) {
+  const own = store.settings.listRefresh?.[`${scope}:${pl.id}`];
+  return validHours(own) ? Number(own) : validHours(pl.refresh) ? Number(pl.refresh) : DEFAULT_REFRESH_HOURS;
+}
+
+export function setRefreshHours(scope, id, hours) {
+  if (!validHours(hours)) return;
+  store.settings.listRefresh = { ...(store.settings.listRefresh || {}), [`${scope}:${id}`]: Number(hours) };
+  store.save();
+  bus.emit('list-refresh', scope);
+}

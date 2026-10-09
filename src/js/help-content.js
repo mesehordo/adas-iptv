@@ -924,7 +924,7 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
 <p>Az összevonás menete: először a csatorna azonosítója (<code>tvg-id</code>) alapján, majd név és ország, végül – ha egyértelmű – csak név alapján. A Pluto TV, Samsung TV Plus és Plex országonkénti változatai (pl. „48 Hours” USA / Kanada / Egyesült Királyság) egy csatornává olvadnak. Az eltérő országú, azonos nevű, de valójában különböző csatornák (pl. „ABC News” Ausztrália és USA) külön maradnak.</p>
 <h2>Frissítés</h2>
 <ul>
-<li><b>Automatikusan</b>: a fő lista 6 óránként, a csatornaadatok naponta frissülnek; induláskor a program az elmentett listával azonnal elindul, és ha az régi, a háttérben frissíti.</li>
+<li><b>Automatikusan</b>: a webcímről töltött listák <b>listánként beállítható gyakorisággal</b> frissülnek – a lista sorában a <i>Frissítés</i> választó: óránként … 48 óránként (alapból 6 óránként). A program futás közben is figyeli, de lejátszás közben nem tölti újra a listát (utána igen). A csatornaadatok naponta frissülnek; induláskor a program az elmentett listával azonnal elindul, és ha az régi, a háttérben frissíti. Ugyanez a VOD-listáknál: Beállítások → VOD és médiatár.</li>
 <li><b>Azonnal</b>: profilmenü (a fejléc profilképe) → <b>Csatornalista frissítése</b> – alatta látszik, mikor volt az utolsó letöltés. Vagy: Beállítások → Csatornalisták → <b>Minden lista frissítése most</b>. Mindkettő a gyorsítótár megkerülésével mindent újratölt, a műsorújsággal együtt, és a végén kiírja, hány csatorna lett (és hány új).</li>
 </ul>
 <h2>Az iptv-org lista címe</h2>
@@ -1438,9 +1438,9 @@ ${go('#/recordings', 'Felvételek')}`,
 <li>Azonos azonosítójú csomag újratöltése frissíti a régit; az <b>Eltávolítás</b> csak erről az eszközről törli.</li>
 </ul>
 <h2>Felépítés</h2>
-<p>UTF-8 JSON: <code>{ "adasPack": 1, "kind": "tv" | "vod", "id": "pelda", "name": "Példa", "desc": "…", "off": false, "text": "#EXTM3U\\n…" }</code> – a <code>text</code> a teljes M3U-lista. Tévénél ajánlott a <code>tvg-id</code> (iptv-org azonosító: logó, ország, műsorújság), VOD-nál a <code>Cím (Év)</code> filmcím, a <code>Sorozat S01E02</code> részcím és az <code>adas-tags</code> műfajlista (a program műfajnevei, pl. <i>Akció;Dráma</i>).</p>
+<p>UTF-8 JSON: <code>{ "adasPack": 1, "kind": "tv" | "vod", "id": "pelda", "name": "Példa", "desc": "…", "off": false, "text": "#EXTM3U\\n…" }</code> – a <code>text</code> a teljes M3U-lista. Nem kötelező: <code>"url"</code> – <b>forráscím</b>, ahonnan a program a listát a beállított gyakorisággal frissíti (lejáró címeket tartalmazó, rendszeresen újragenerált listákhoz; a <code>text</code> ekkor csak tartalék), <code>"epg"</code> – a műsorújság címe, <code>"refresh"</code> – javasolt gyakoriság órában. Tévénél ajánlott a <code>tvg-id</code> (iptv-org azonosító: logó, ország, műsorújság), VOD-nál a <code>Cím (Év)</code> filmcím, a <code>Sorozat S01E02</code> részcím és az <code>adas-tags</code> műfajlista (a program műfajnevei, pl. <i>Akció;Dráma</i>).</p>
 <h2>Készítés</h2>
-<p>Kész M3U-listából: <code>node tools/make-pack.mjs lista.m3u8 --kind tv|vod --id pelda --name "Példa"</code>. Egy AI-asszisztens is elkészíti egy weboldal, táblázat vagy fájllista alapján: a pontos formátumleírás és egy beilleszthető AI-utasítás a forráskódban van (<code>docs/ADASPACK.md</code>).</p>
+<p>Kész M3U-listából: <code>node tools/make-pack.mjs lista.m3u8 --kind tv|vod --id pelda --name "Példa"</code>; webcímről frissülő csomag: <code>node tools/make-pack.mjs https://…/lista.m3u --kind tv --id pelda --name "Példa" --refresh 6 --epg https://…/epg.xml.gz</code>. Egy AI-asszisztens is elkészíti egy weboldal, táblázat vagy fájllista alapján: a pontos formátumleírás és egy beilleszthető AI-utasítás a forráskódban van (<code>docs/ADASPACK.md</code>).</p>
 <button class="btn" data-ext="https://github.com/mesehordo/adas-iptv/blob/main/docs/ADASPACK.md">A teljes leírás és az AI-utasítás megnyitása</button>
 <div class="note">Csak olyan tartalmat vegyél fel, amelyet jogszerűen nézhetsz.</div>`,
   },

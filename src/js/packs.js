@@ -5,10 +5,12 @@
 //
 // Formátum (UTF-8 JSON), a teljes leírás: docs/ADASPACK.md
 //   { "adasPack": 1, "kind": "tv" | "vod", "id": "pelda", "name": "Példa", "desc": "…", "off": false,
-//     "text": "#EXTM3U\n…" }
+//     "text": "#EXTM3U\n…",
+//     "url": "https://…/lista.m3u", "epg": "https://…/epg.xml.gz", "refresh": 6 }   ← nem kötelezők
+// Forráscímes csomag ("url"): a lista a beállított gyakorisággal innen frissül, a "text" a tartalék.
 // Fájlnév: <azonosító>_tv.adaspack vagy <azonosító>_vod.adaspack (a „kind” hiányában a fájlnév vége dönt).
 import { api } from './api.js';
-import { store, VOD_BUILTIN, BUILTIN_PLAYLISTS } from './store.js';
+import { store, VOD_BUILTIN, BUILTIN_PLAYLISTS, REFRESH_CHOICES } from './store.js';
 import { parseM3U } from './catalog.js';
 import { bus, toast } from './util.js';
 
@@ -51,7 +53,16 @@ export function parsePack(text, fileName = '') {
   // minden #EXTINF-hez kell cím (a feldolgozó a cím nélküli bejegyzést csendben elhagyná)
   const extinf = (j.text.match(/^\s*#EXTINF/gim) || []).length;
   if (parsed < extinf) return { error: `${_t('{x} bejegyzésnél hiányzik a cím az #EXTINF sor után', { x: extinf - parsed })}` };
-  return { kind, id: j.id, name: String(j.name || j.id).slice(0, 80), desc: String(j.desc || '').slice(0, 600), off: !!j.off, text: j.text };
+  // Nem kötelező: forráscím (a csomag innen frissül, a "text" a tartalék), műsorújság-cím, javasolt gyakoriság
+  const webUrl = (v) => typeof v === 'string' && v.length <= 2000 && /^https?:\/\/\S+$/i.test(v);
+  if (j.url !== undefined && !webUrl(j.url)) return { error: _t('az "url" (forráscím) csak http(s):// cím lehet') };
+  if (j.epg !== undefined && !webUrl(j.epg)) return { error: _t('az "epg" (műsorújság) csak http(s):// cím lehet') };
+  // (csak szám: a "6" szöveg vagy a [6] tömb is hibás)
+  if (j.refresh !== undefined && (typeof j.refresh !== 'number' || !REFRESH_CHOICES.includes(j.refresh))) return { error: _t('a "refresh" értéke {list} óra lehet', { list: REFRESH_CHOICES.join(', ') }) };
+  return {
+    kind, id: j.id, name: String(j.name || j.id).slice(0, 80), desc: String(j.desc || '').slice(0, 600), off: !!j.off, text: j.text,
+    ...(j.url ? { url: j.url } : {}), ...(j.epg ? { epg: j.epg } : {}), ...(j.refresh ? { refresh: Number(j.refresh) } : {}),
+  };
 }
 
 /** A tartalom lenyomata (FNV-1a, 32 bit) – a mappaszinkron ebből látja, ha a lista megváltozott. */
@@ -70,6 +81,8 @@ export async function installPack(pk) {
   // frissítéskor a kapcsoló addigi alapállása megmarad (a felhasználó által állított érték külön tárolódik)
   const off = cur ? cur.off : pk.off;
   const meta = { id: pk.id, name: pk.name, desc: pk.desc, off, size: pk.text.length, hash: packHash(pk.text), at: Date.now() };
+  // forráscímes csomag: a lista innen frissül (a "text" csak tartalék), a saját műsorújságával
+  for (const k of ['url', 'epg', 'refresh']) if (pk[k]) meta[k] = pk[k];
   s[k.setting] = [...(s[k.setting] || []).filter((p) => p.id !== pk.id), meta];
   store.save();
   bus.emit('packs', pk.kind);
@@ -169,8 +182,8 @@ export async function syncPackFolder() {
       continue;
     }
     const cur = (store.settings[PACK_KINDS[pk.kind].setting] || []).find((p) => p.id === pk.id);
-    // változatlan tartalom (lenyomat), név és leírás: nincs teendő
-    if (cur && cur.hash === packHash(pk.text) && cur.name === pk.name && cur.desc === pk.desc) continue;
+    // változatlan tartalom (lenyomat), név, leírás és forrás: nincs teendő
+    if (cur && cur.hash === packHash(pk.text) && cur.name === pk.name && cur.desc === pk.desc && ['url', 'epg', 'refresh'].every((k) => (cur[k] || '') === (pk[k] || ''))) continue;
     try {
       await installPack(pk);
       n[pk.kind]++;

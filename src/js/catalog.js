@@ -1,8 +1,8 @@
 // Csatornakatalógus: M3U feldolgozás, iptv-org adatok összefésülése, magyar nevek, keresés.
 import { api } from './api.js';
-import { store, BUILTIN_PLAYLISTS } from './store.js';
+import { store, BUILTIN_PLAYLISTS, refreshHoursOf, DEFAULT_REFRESH_HOURS } from './store.js';
 import { packsOf } from './packs.js';
-import { norm, key, bus } from './util.js';
+import { norm, key, bus, errText } from './util.js';
 import { kidsAllowed } from './kids.js';
 
 import { _t, lang as uiLang, LOCALE } from './i18n.js';
@@ -377,17 +377,34 @@ async function fetchAndBuild({ force = false, onProgress } = {}) {
   const lists = activeLists();
   catalog.playlistErrors = {};
 
+  // kiegészítő csomag: a szövege a tartós tárban
+  const packText = async (pl) => ({ text: (await api.docGet?.(pl.textKey))?.text || '', cachedAt: pl.at || Date.now() });
   const loadList = async (pl) => {
     if (pl.stream) return { pl, entries: [streamEntry(pl)], tvgUrls: [], at: Date.now() };
     try {
-      const r = pl.url
-        ? await api.fetchText(pl.url, { maxAgeHours: 6, force })
-        : pl.textKey // kiegészítő csomag: a szövege a tartós tárban
-          ? { text: (await api.docGet?.(pl.textKey))?.text || '', cachedAt: pl.at || Date.now() }
-          : { text: pl.text || '', cachedAt: Date.now() };
+      let r;
+      if (pl.url) {
+        try {
+          // (a lista saját frissítési gyakoriságával – Beállítások → Csatornalisták, a lista sorában)
+          r = await api.fetchText(pl.url, { maxAgeHours: refreshHoursOf('tv', pl), force });
+          // Hálózati hibánál az asztali letöltő a legutóbbi példányt adja (stale): ezt jelezzük, és ha a
+          // csomag mentett listája frissebb, az látszik
+          if (r.stale) {
+            if (pl.textKey && (pl.at || 0) > (r.cachedAt || 0)) throw new Error(_t('hálózati hiba'));
+            catalog.playlistErrors[pl.id] = _t('a forrás most nem érhető el – a legutóbb letöltött példány látszik');
+          }
+        } catch (err) {
+          // forráscímes csomag: ha a forrás nem érhető el, a csomagban mentett lista látszik
+          if (!pl.textKey) throw err;
+          r = await packText(pl);
+          catalog.playlistErrors[pl.id] = _t('a forrás nem érhető el ({err}) – a csomagban mentett lista látszik', { err: errText(err) });
+        }
+      } else r = pl.textKey ? await packText(pl) : { text: pl.text || '', cachedAt: Date.now() };
       const parsed = parseM3U(r.text);
       if (parsed.isStream) return { pl, entries: [streamEntry(pl)], tvgUrls: [], at: r.cachedAt };
-      return { pl, entries: parsed.entries, tvgUrls: parsed.tvgUrls, at: r.cachedAt };
+      // (a csomag saját műsorújság-címe – "epg" – a listáé mellé)
+      const tvgUrls = pl.epg && !parsed.tvgUrls.includes(pl.epg) ? [...parsed.tvgUrls, pl.epg] : parsed.tvgUrls;
+      return { pl, entries: parsed.entries, tvgUrls, at: r.cachedAt };
     } catch (err) {
       console.warn('Lista hiba', pl.name, err);
       catalog.playlistErrors[pl.id] = String(err.message || err);
@@ -412,7 +429,8 @@ async function fetchAndBuild({ force = false, onProgress } = {}) {
     const vodEntries = l.entries.filter(isVodEntry);
     if (!vodEntries.length) continue;
     l.entries = l.entries.filter((e) => !vodEntries.includes(e));
-    catalog.tvVod.push({ id: 'tv:' + l.pl.id, name: l.pl.name, entries: vodEntries });
+    // (at: a lista letöltésének ideje – ha a lista frissül, a VOD is újratölt, akkor is, ha a darabszám nem változott)
+    catalog.tvVod.push({ id: 'tv:' + l.pl.id, name: l.pl.name, entries: vodEntries, at: l.at || 0 });
   }
   for (const v of vodLive.lists || []) loaded.push({ pl: { id: v.id, name: v.name }, entries: v.entries, tvgUrls: [], at: 0 });
 
@@ -428,11 +446,28 @@ async function fetchAndBuild({ force = false, onProgress } = {}) {
   // A listák saját műsorújságai (a több tucat forrást felsoroló listákét kihagyjuk).
   catalog.tvgUrls = [...new Set(loaded.filter((l) => l.tvgUrls.length <= 3).flatMap((l) => l.tvgUrls))];
   catalog.loadedAt = Math.max(0, ...loaded.map((l) => l.at || 0)) || Date.now();
+  catalog.builtAt = Date.now();
   catalog.ready = true;
   bus.emit('catalog');
   bus.emit('tv-vod');
   saveSnapshot();
 }
+
+/** A webcímről töltött listák közül a leggyakrabban frissítendő gyakorisága (óra). */
+function minRefreshHours() {
+  const hs = activeLists().filter((p) => p.url && !p.stream).map((p) => refreshHoursOf('tv', p));
+  return hs.length ? Math.min(...hs) : DEFAULT_REFRESH_HOURS;
+}
+
+/** Esedékes-e a csatornalisták frissítése (valamelyik lista beállított gyakorisága szerint)? */
+// (legalább naponta: a csatornaadatok – logó, ország, kategória – 24 óránként frissülnek)
+export const catalogRefreshDue = () => catalog.ready && Date.now() - (catalog.builtAt || 0) > Math.min(24, minRefreshHours()) * 3600e3;
+
+/**
+ * A listák újratöltése a háttérben: csak az elavult listák töltődnek le újra (a többi a gyorsítótárból),
+ * utána az összefésülés. (Az ütemező hívja – app.js.)
+ */
+export const reloadLists = () => fetchAndBuild({});
 
 // ---------------------------------------------------------------------------
 // A feldolgozott katalógus gyorsítótára: induláskor azonnal betölthető (a TV-n ez
@@ -487,6 +522,7 @@ function hydrate(snap) {
   catalog.tvgUrls = snap.tvgUrls || [];
   catalog.playlistErrors = snap.playlistErrors || {};
   catalog.loadedAt = snap.loadedAt;
+  catalog.builtAt = snap.at;
   catalog.tvVod = snap.tvVod || [];
   catalog.ready = true;
   countPlaylists();
@@ -503,7 +539,8 @@ export async function loadCatalog({ force = false, onProgress } = {}) {
       hydrate(snap);
       bus.emit('catalog');
       bus.emit('tv-vod');
-      if (Date.now() - snap.at > SNAPSHOT_MAX_AGE) {
+      // (elavult: a pillanatkép régebbi a legkorábban esedékes lista frissítési gyakoriságánál)
+      if (Date.now() - snap.at > Math.min(SNAPSHOT_MAX_AGE, minRefreshHours() * 3600e3)) {
         fetchAndBuild({}).catch((err) => console.warn('Háttérfrissítés sikertelen', err));
       }
       return;
