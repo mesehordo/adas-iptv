@@ -1,22 +1,16 @@
 // Többnyelvűség. A forrásnyelv a magyar: a t() kulcsa maga a magyar szöveg (gettext-stílus), a többi
-// nyelv szótára ezt fordítja (src/i18n/<nyelv>.js). Hiányzó fordításnál a magyar szöveg marad.
+// nyelv szótára ezt fordítja (src/i18n/<nyelv>.js, nyilvántartás: src/i18n/index.js). Hiányzó
+// fordításnál az angol szöveg jelenik meg, ha az sincs, a magyar.
 //  - Paraméter: _t('Még {n} perc', { n: 5 }) – a {név} helyére kerül az érték (a fordításban is így).
 //  - A nyelv az egész lap élettartamára rögzített (váltáskor újratöltés), ezért a modulok betöltésekor
 //    számolt szövegek (állandók) is a jó nyelven készülnek: a nyelvet szinkron olvassuk (localStorage).
-import en from '../i18n/en.js';
-import de from '../i18n/de.js';
-import es from '../i18n/es.js';
-import fr from '../i18n/fr.js';
+import DICTS from '../i18n/index.js';
 
-/** A választható nyelvek (saját nyelvükön megnevezve) és a hozzájuk tartozó formázási területi kód. */
-export const LANGS = [
-  { id: 'hu', name: 'Magyar', locale: 'hu-HU', country: 'HU' },
-  { id: 'en', name: 'English', locale: 'en-GB', country: 'GB' },
-  { id: 'de', name: 'Deutsch', locale: 'de-DE', country: 'DE' },
-  { id: 'es', name: 'Español', locale: 'es-ES', country: 'ES' },
-  { id: 'fr', name: 'Français', locale: 'fr-FR', country: 'FR' },
-];
-const DICTS = { en, de, es, fr };
+/**
+ * A választható nyelvek: { id, name (saját nyelvén), locale (formázás), country, epg, city, fx, nameday,
+ * news, wiki } – a nyelvfájl "@lang" adatai; a hiányzó mezők az angolból jönnek.
+ */
+export const LANGS = Object.keys(DICTS).map((id) => ({ ...DICTS.en['@lang'], ...DICTS[id]['@lang'], id }));
 const KEY = 'adas-lang';
 
 function readLang() {
@@ -34,7 +28,8 @@ export const lang = savedLang || 'hu';
 export const LANG = LANGS.find((x) => x.id === lang);
 /** Dátum- és számformázáshoz (toLocaleDateString, Intl…) */
 export const LOCALE = LANG.locale;
-const dict = DICTS[lang] || null;
+const own = lang === 'hu' ? null : DICTS[lang];
+const fallback = lang === 'hu' ? null : DICTS.en;
 
 /** A rendszer nyelvéből javasolt nyelv (az első indításkor ez van kijelölve). */
 export function suggestedLang() {
@@ -45,7 +40,7 @@ export function suggestedLang() {
 /** Fordítás. vars: { név: érték } a {név} helyőrzőkhöz. */
 // Azonos magyar szöveg más-más jelentésben: „szöveg@@környezet” kulcs (a magyar felület a @@ előtti részt mutatja).
 export function _t(s, vars) {
-  let r = (dict && dict[s]) || (s.includes('@@') ? s.slice(0, s.indexOf('@@')) : s);
+  let r = (own && own[s]) || (fallback && fallback[s]) || (s.includes('@@') ? s.slice(0, s.indexOf('@@')) : s);
   if (vars) r = r.replace(/\{(\w+)\}/g, (m, k) => (Object.prototype.hasOwnProperty.call(vars, k) ? String(vars[k]) : m));
   return r;
 }

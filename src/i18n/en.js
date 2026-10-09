@@ -1,5 +1,30 @@
-// Adás – en fordítás (a kulcs a magyar szöveg; generált, lásd i18n.js)
+// Adás – English (en). A kulcs a magyar szöveg, az érték a fordítás; ami hiányzik, angolul jelenik meg.
+// "@lang": a nyelv adatai (név, formázás, ország és a hozzá illő alapértékek) – lásd src/i18n/index.js.
 export default {
+ "@lang": {
+  "name": "English",
+  "locale": "en-GB",
+  "country": "GB",
+  "epg": "gb",
+  "city": "London",
+  "fx": "GBP",
+  "nameday": "us",
+  "news": [
+   {
+    "name": "BBC News",
+    "url": "https://feeds.bbci.co.uk/news/rss.xml"
+   },
+   {
+    "name": "The Guardian",
+    "url": "https://www.theguardian.com/world/rss"
+   }
+  ],
+  "wiki": {
+   "film": "film",
+   "series": "series",
+   "tv": "TV channel"
+  }
+ },
  "A letöltött fájl túl nagy": "The downloaded file is too large",
  "A tömörített fájl itt nem bontható ki": "The compressed file can’t be unpacked here",
  "böngésző tárhely": "browser storage",
@@ -1929,5 +1954,16 @@ export default {
  "Téma-mappa: {dir}": "Theme folder: {dir}",
  "Kész: {length} csatorna ({diff} új)": "Done: {length} channels ({diff} new)",
  "Kész: {length} csatorna ({x} eltűnt)": "Done: {length} channels ({x} gone)",
- "Utána: {time} {title}": "Next: {time} {title}"
+ "Utána: {time} {title}": "Next: {time} {title}",
+ "Nincs böngésző ehhez a címhez.": "No browser for this address.",
+ "Megnyitás ezzel": "Open with",
+ "Nincs videólejátszó telepítve (pl. VLC).": "No video player installed (e.g. VLC).",
+ "Fájl kiválasztása": "Choose a file",
+ "Ezen az eszközön nincs fájlkezelő.": "There is no file manager on this device.",
+ "A mentés itt nem érhető el.": "Saving is not available here.",
+ "Lejátszás a háttérben": "Background playback",
+ "Amíg az Adás a háttérben szól": "While Adás plays in the background",
+ "{n} perc múlva kezdődik": "Starts in {n} min",
+ "Műsor-emlékeztetők": "Programme reminders",
+ "Értesítés a megjelölt műsorok kezdetéről": "Notification when marked programmes start"
 };

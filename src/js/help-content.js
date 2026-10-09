@@ -593,7 +593,7 @@ ${go('#/settings?section=dashboard', 'A főoldal beállításai')}`,
 <tr><td><b>Nyelv</b></td><td>Az adás nyelve (ahol ismert).</td></tr>
 <tr><td><b>Minőség</b></td><td>HD (720p) vagy Full HD (1080p) és jobb.</td></tr>
 <tr><td><b>Állapot</b></td><td>Működő / nem ellenőrzött / nem elérhető. ${t('health', 'Ellenőrzés')}</td></tr>
-<tr><td><b>Rendezés</b></td><td>Ajánlott sorrend, név vagy ország szerint.</td></tr>
+<tr><td><b>Rendezés</b></td><td>Ajánlott sorrend (elöl a működő, utána a még nem ellenőrzött csatornák, a végén az offline, épp nem sugárzó vagy innen nem nézhető csatornák; azon belül a hazaiak és a népszerűek elöl), név vagy ország szerint.</td></tr>
 </table>
 <p>A szűrők kombinálhatók (pl. Sport + Németország + HD). A <b>Szűrők törlése</b> gomb mindet visszaállítja. A lista görgetéskor fokozatosan töltődik.</p>`,
   },

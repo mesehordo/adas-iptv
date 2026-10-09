@@ -593,7 +593,7 @@ ${go('#/settings?section=dashboard', 'Home page settings')}`,
 <tr><td><b>Language</b></td><td>The stream’s language (where known).</td></tr>
 <tr><td><b>Quality</b></td><td>HD (720p) or Full HD (1080p) and better.</td></tr>
 <tr><td><b>Status</b></td><td>Working / not checked / unavailable. ${t('health', 'Checking')}</td></tr>
-<tr><td><b>Sort</b></td><td>Recommended order, by name or by country.</td></tr>
+<tr><td><b>Sort</b></td><td>Recommended order (working channels first, then those not yet checked, and at the end channels that are offline, off air or not watchable from here; within each group, home and popular channels first), by name or by country.</td></tr>
 </table>
 <p>The filters can be combined (e.g. Sport + Germany + HD). The <b>Clear filters</b> button resets them all. The list loads gradually as you scroll.</p>`,
   },

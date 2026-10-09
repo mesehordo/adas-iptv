@@ -168,7 +168,7 @@ export function runOnboarding(root) {
       if (l !== 'hu' && s.homeCountry === 'HU') {
         s.homeCountry = homeCountryFor(l);
         // műsorújság: a magyar források helyett a hazai ország (ennek híján a nyelv) forrása
-        const cc = EPG_CC[s.homeCountry] || { en: 'gb', de: 'de', es: 'es', fr: 'fr' }[l];
+        const cc = EPG_CC[s.homeCountry] || LANGS.find((x) => x.id === l)?.epg;
         s.epgSources = (s.epgSources || []).map((src) => ({
           ...src,
           enabled: /epg-hu\.|_HU1\./.test(src.url) ? false : cc && src.url.endsWith(`/epg-${cc}.xml.gz`) ? true : src.enabled,

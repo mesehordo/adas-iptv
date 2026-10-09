@@ -1,5 +1,30 @@
-// Adás – de fordítás (a kulcs a magyar szöveg; generált, lásd i18n.js)
+// Adás – Deutsch (de). A kulcs a magyar szöveg, az érték a fordítás; ami hiányzik, angolul jelenik meg.
+// "@lang": a nyelv adatai (név, formázás, ország és a hozzá illő alapértékek) – lásd src/i18n/index.js.
 export default {
+ "@lang": {
+  "name": "Deutsch",
+  "locale": "de-DE",
+  "country": "DE",
+  "epg": "de",
+  "city": "Berlin",
+  "fx": "EUR",
+  "nameday": "de",
+  "news": [
+   {
+    "name": "tagesschau",
+    "url": "https://www.tagesschau.de/xml/rss2/"
+   },
+   {
+    "name": "SPIEGEL",
+    "url": "https://www.spiegel.de/schlagzeilen/index.rss"
+   }
+  ],
+  "wiki": {
+   "film": "Film",
+   "series": "Fernsehserie",
+   "tv": "Fernsehsender"
+  }
+ },
  "A letöltött fájl túl nagy": "Die heruntergeladene Datei ist zu groß",
  "A tömörített fájl itt nem bontható ki": "Die komprimierte Datei kann hier nicht entpackt werden",
  "böngésző tárhely": "Browserspeicher",
@@ -1929,5 +1954,16 @@ export default {
  "Téma-mappa: {dir}": "Designordner: {dir}",
  "Kész: {length} csatorna ({diff} új)": "Fertig: {length} Sender ({diff} neu)",
  "Kész: {length} csatorna ({x} eltűnt)": "Fertig: {length} Sender ({x} entfallen)",
- "Utána: {time} {title}": "Danach: {time} {title}"
+ "Utána: {time} {title}": "Danach: {time} {title}",
+ "Nincs böngésző ehhez a címhez.": "Kein Browser für diese Adresse.",
+ "Megnyitás ezzel": "Öffnen mit",
+ "Nincs videólejátszó telepítve (pl. VLC).": "Kein Videoplayer installiert (z. B. VLC).",
+ "Fájl kiválasztása": "Datei auswählen",
+ "Ezen az eszközön nincs fájlkezelő.": "Auf diesem Gerät gibt es keinen Dateimanager.",
+ "A mentés itt nem érhető el.": "Speichern ist hier nicht verfügbar.",
+ "Lejátszás a háttérben": "Wiedergabe im Hintergrund",
+ "Amíg az Adás a háttérben szól": "Während Adás im Hintergrund läuft",
+ "{n} perc múlva kezdődik": "Beginnt in {n} Min.",
+ "Műsor-emlékeztetők": "Sendungserinnerungen",
+ "Értesítés a megjelölt műsorok kezdetéről": "Benachrichtigung beim Start markierter Sendungen"
 };

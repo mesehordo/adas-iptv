@@ -1,5 +1,30 @@
-// Adás – es fordítás (a kulcs a magyar szöveg; generált, lásd i18n.js)
+// Adás – Español (es). A kulcs a magyar szöveg, az érték a fordítás; ami hiányzik, angolul jelenik meg.
+// "@lang": a nyelv adatai (név, formázás, ország és a hozzá illő alapértékek) – lásd src/i18n/index.js.
 export default {
+ "@lang": {
+  "name": "Español",
+  "locale": "es-ES",
+  "country": "ES",
+  "epg": "es",
+  "city": "Madrid",
+  "fx": "EUR",
+  "nameday": "es",
+  "news": [
+   {
+    "name": "RTVE",
+    "url": "https://www.rtve.es/api/noticias.rss"
+   },
+   {
+    "name": "El País",
+    "url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada"
+   }
+  ],
+  "wiki": {
+   "film": "película",
+   "series": "serie de televisión",
+   "tv": "canal de televisión"
+  }
+ },
  "A letöltött fájl túl nagy": "El archivo descargado es demasiado grande",
  "A tömörített fájl itt nem bontható ki": "El archivo comprimido no se puede descomprimir aquí",
  "böngésző tárhely": "almacenamiento del navegador",
@@ -1929,5 +1954,16 @@ export default {
  "Téma-mappa: {dir}": "Carpeta de temas: {dir}",
  "Kész: {length} csatorna ({diff} új)": "Listo: {length} canales ({diff} nuevos)",
  "Kész: {length} csatorna ({x} eltűnt)": "Listo: {length} canales ({x} desaparecidos)",
- "Utána: {time} {title}": "Después: {time} {title}"
+ "Utána: {time} {title}": "Después: {time} {title}",
+ "Nincs böngésző ehhez a címhez.": "No hay navegador para esta dirección.",
+ "Megnyitás ezzel": "Abrir con",
+ "Nincs videólejátszó telepítve (pl. VLC).": "No hay ningún reproductor de vídeo instalado (p. ej. VLC).",
+ "Fájl kiválasztása": "Elegir un archivo",
+ "Ezen az eszközön nincs fájlkezelő.": "Este dispositivo no tiene gestor de archivos.",
+ "A mentés itt nem érhető el.": "Guardar no está disponible aquí.",
+ "Lejátszás a háttérben": "Reproducción en segundo plano",
+ "Amíg az Adás a háttérben szól": "Mientras Adás suena en segundo plano",
+ "{n} perc múlva kezdődik": "Empieza en {n} min",
+ "Műsor-emlékeztetők": "Recordatorios de programas",
+ "Értesítés a megjelölt műsorok kezdetéről": "Aviso cuando empiezan los programas marcados"
 };

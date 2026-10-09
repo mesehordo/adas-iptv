@@ -40,6 +40,27 @@ function popular(list) {
     .map((x) => x[0]);
 }
 
+/**
+ * Elérhetőség szerinti fokozat: 3 – működik; 2 – még nem ellenőrzött; 1 – nem ellenőrzött, de lehet,
+ * hogy innen nem nézhető vagy épp nem sugároz (csak korlátozott / időszakos forrásai vannak);
+ * 0 – nem elérhető (offline, adásszünet, földrajzi korlát).
+ */
+function availability(c) {
+  const st = channelStatus(c);
+  if (st === 'ok') return 3;
+  if (st === 'bad') return 0;
+  return geoState(c) || c.streams.every((s) => s.notAlways) ? 1 : 2;
+}
+
+/** A böngészés ajánlott sorrendje: elsőként az elérhetőség, azon belül a szokásos (hazai, népszerű) sorrend. */
+function popularAvailable(list) {
+  const rank = new Map(popular(list).map((c, i) => [c, i]));
+  return list
+    .map((c) => [c, availability(c), rank.get(c)])
+    .sort((a, b) => b[1] - a[1] || a[2] - b[2])
+    .map((x) => x[0]);
+}
+
 function lazyRows(container, factories, initial = 4) {
   let i = 0;
   const sentinel = html('<div class="rows-sentinel"></div>');
@@ -206,7 +227,7 @@ export function renderBrowse(view, params) {
       // a kereső szövege minden szűrővel együtt érvényes (név, más név, ország, kategória)
       (!qTokens.length || qTokens.every((t) => c.search.includes(t)))
   );
-  if (f.sort === 'popular') list = popular(list);
+  if (f.sort === 'popular') list = popularAvailable(list);
   else if (f.sort === 'country')
     list = homeFirst(list.slice().sort((a, b) => countryName(a.country).localeCompare(countryName(b.country), LOCALE) || a.name.localeCompare(b.name, LOCALE)));
   // 'name': a látható lista már így rendezett: hazaiak elöl, azon belül név szerint

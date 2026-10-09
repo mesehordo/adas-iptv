@@ -1,5 +1,30 @@
-// Adás – fr fordítás (a kulcs a magyar szöveg; generált, lásd i18n.js)
+// Adás – Français (fr). A kulcs a magyar szöveg, az érték a fordítás; ami hiányzik, angolul jelenik meg.
+// "@lang": a nyelv adatai (név, formázás, ország és a hozzá illő alapértékek) – lásd src/i18n/index.js.
 export default {
+ "@lang": {
+  "name": "Français",
+  "locale": "fr-FR",
+  "country": "FR",
+  "epg": "fr",
+  "city": "Paris",
+  "fx": "EUR",
+  "nameday": "fr",
+  "news": [
+   {
+    "name": "Le Monde",
+    "url": "https://www.lemonde.fr/rss/une.xml"
+   },
+   {
+    "name": "France 24",
+    "url": "https://www.france24.com/fr/rss"
+   }
+  ],
+  "wiki": {
+   "film": "film",
+   "series": "série télévisée",
+   "tv": "chaîne de télévision"
+  }
+ },
  "A letöltött fájl túl nagy": "Le fichier téléchargé est trop volumineux",
  "A tömörített fájl itt nem bontható ki": "Le fichier compressé ne peut pas être décompressé ici",
  "böngésző tárhely": "stockage du navigateur",
@@ -1929,5 +1954,16 @@ export default {
  "Téma-mappa: {dir}": "Dossier des thèmes : {dir}",
  "Kész: {length} csatorna ({diff} új)": "Terminé : {length} chaînes ({diff} nouvelles)",
  "Kész: {length} csatorna ({x} eltűnt)": "Terminé : {length} chaînes ({x} disparues)",
- "Utána: {time} {title}": "Ensuite : {time} {title}"
+ "Utána: {time} {title}": "Ensuite : {time} {title}",
+ "Nincs böngésző ehhez a címhez.": "Aucun navigateur pour cette adresse.",
+ "Megnyitás ezzel": "Ouvrir avec",
+ "Nincs videólejátszó telepítve (pl. VLC).": "Aucun lecteur vidéo installé (p. ex. VLC).",
+ "Fájl kiválasztása": "Choisir un fichier",
+ "Ezen az eszközön nincs fájlkezelő.": "Cet appareil n’a pas de gestionnaire de fichiers.",
+ "A mentés itt nem érhető el.": "L’enregistrement n’est pas disponible ici.",
+ "Lejátszás a háttérben": "Lecture en arrière-plan",
+ "Amíg az Adás a háttérben szól": "Pendant qu’Adás joue en arrière-plan",
+ "{n} perc múlva kezdődik": "Commence dans {n} min",
+ "Műsor-emlékeztetők": "Rappels de programmes",
+ "Értesítés a megjelölt műsorok kezdetéről": "Notification au début des programmes marqués"
 };

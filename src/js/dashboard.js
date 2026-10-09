@@ -13,7 +13,7 @@ import { watchList, loadSportEvents, sportEventsCached, sportStale, eventRowHtml
 import { vod, own, continueItems, playVod, loadVod, vodLists, findItem, displayTitle } from './vod.js';
 
 // ---------------------------------------------------------------------------
-import { _t, LOCALE, weekdayNames, lang as uiLang } from './i18n.js';
+import { _t, LOCALE, LANG, weekdayNames, lang as uiLang } from './i18n.js';
 // Időjárás (Open-Meteo – ingyenes, kulcs nélkül)
 // ---------------------------------------------------------------------------
 const WMO = {
@@ -28,16 +28,9 @@ const WMO = {
 const wmo = (c) => WMO[c] || ['', '🌡️'];
 const DAYS = weekdayNames('long');
 
-// A felület nyelvéhez illő alapértékek (a felhasználó beállításai ezeket felülírják): időjárás-település,
-// hírforrások, árfolyam-alap, névnaptár (nameday.abalin.net országkódja; null = nincs).
-const LOCALES = {
-  hu: { city: 'Budapest', fx: 'HUF', nd: 'hu', feeds: [{ name: 'Telex', url: 'https://telex.hu/rss' }, { name: 'HVG', url: 'https://hvg.hu/rss' }, { name: '444', url: 'https://444.hu/feed' }] },
-  en: { city: 'London', fx: 'GBP', nd: 'us', feeds: [{ name: 'BBC News', url: 'https://feeds.bbci.co.uk/news/rss.xml' }, { name: 'The Guardian', url: 'https://www.theguardian.com/world/rss' }] },
-  de: { city: 'Berlin', fx: 'EUR', nd: 'de', feeds: [{ name: 'tagesschau', url: 'https://www.tagesschau.de/xml/rss2/' }, { name: 'SPIEGEL', url: 'https://www.spiegel.de/schlagzeilen/index.rss' }] },
-  es: { city: 'Madrid', fx: 'EUR', nd: 'es', feeds: [{ name: 'RTVE', url: 'https://www.rtve.es/api/noticias.rss' }, { name: 'El País', url: 'https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada' }] },
-  fr: { city: 'Paris', fx: 'EUR', nd: 'fr', feeds: [{ name: 'Le Monde', url: 'https://www.lemonde.fr/rss/une.xml' }, { name: 'France 24', url: 'https://www.france24.com/fr/rss' }] },
-};
-const LOCAL = LOCALES[uiLang] || LOCALES.en;
+// A felület nyelvéhez illő alapértékek (a nyelvfájl "@lang" adataiból; a felhasználó beállításai ezeket
+// felülírják): időjárás-település, hírforrások, árfolyam-alap, névnaptár (nameday.abalin.net országkódja).
+const LOCAL = { city: LANG.city, fx: LANG.fx, nd: LANG.nameday, feeds: LANG.news || [] };
 const DAYS_SHORT = weekdayNames('short');
 
 /** Város → koordináták (Open-Meteo geokódolás, magyar nevekkel). → [{ name, admin, country, lat, lon }] */

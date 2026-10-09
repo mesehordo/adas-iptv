@@ -48,6 +48,23 @@ fs.mkdirSync(out, { recursive: true });
 console.log('» Webes csomag…');
 await buildWebBundle(path.join(build, 'assets', 'web'), { flagScript: 'window.ADAS_ANDROID = true;' });
 
+// A keret szövegei (L.t(…, "magyar szöveg")) a felület nyelvi fájljaiból → assets/i18n/<nyelv>.json
+const javaDir = r('android', 'src', 'hu', 'adas', 'tv');
+const javaKeys = new Set();
+for (const f of fs.readdirSync(javaDir)) {
+  for (const m of fs.readFileSync(path.join(javaDir, f), 'utf8').matchAll(/\bL\.t\(\s*\w+\s*,\s*"((?:[^"\\]|\\.)*)"/g)) javaKeys.add(JSON.parse(`"${m[1]}"`));
+}
+fs.mkdirSync(path.join(build, 'assets', 'i18n'), { recursive: true });
+for (const f of fs.readdirSync(r('src', 'i18n'))) {
+  const l = f.replace(/\.js$/, '');
+  if (!/^[a-z]{2}$/.test(l) || l === 'hu') continue;
+  const txt = fs.readFileSync(r('src', 'i18n', f), 'utf8');
+  const dict = JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
+  const used = {};
+  for (const k of javaKeys) if (dict[k]) used[k] = dict[k];
+  fs.writeFileSync(path.join(build, 'assets', 'i18n', `${l}.json`), JSON.stringify(used));
+}
+
 // ---------------------------------------------------------------- erőforrások
 console.log('» Erőforrások (aapt2)…');
 run(exe(BT, 'aapt2'), ['compile', '--dir', r('android', 'res'), '-o', path.join(build, 'res.zip')]);
