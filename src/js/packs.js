@@ -57,7 +57,8 @@ export function parsePack(text, fileName = '') {
   const webUrl = (v) => typeof v === 'string' && v.length <= 2000 && /^https?:\/\/\S+$/i.test(v);
   if (j.url !== undefined && !webUrl(j.url)) return { error: _t('az "url" (forráscím) csak http(s):// cím lehet') };
   if (j.epg !== undefined && !webUrl(j.epg)) return { error: _t('az "epg" (műsorújság) csak http(s):// cím lehet') };
-  if (j.refresh !== undefined && !REFRESH_CHOICES.includes(Number(j.refresh))) return { error: _t('a "refresh" értéke {list} óra lehet', { list: REFRESH_CHOICES.join(', ') }) };
+  // (csak szám: a "6" szöveg vagy a [6] tömb is hibás)
+  if (j.refresh !== undefined && (typeof j.refresh !== 'number' || !REFRESH_CHOICES.includes(j.refresh))) return { error: _t('a "refresh" értéke {list} óra lehet', { list: REFRESH_CHOICES.join(', ') }) };
   return {
     kind, id: j.id, name: String(j.name || j.id).slice(0, 80), desc: String(j.desc || '').slice(0, 600), off: !!j.off, text: j.text,
     ...(j.url ? { url: j.url } : {}), ...(j.epg ? { epg: j.epg } : {}), ...(j.refresh ? { refresh: Number(j.refresh) } : {}),

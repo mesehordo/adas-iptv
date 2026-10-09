@@ -10,9 +10,16 @@ import path from 'node:path';
 
 // (a szkript utáni argumentumok – akkor is, ha egy indító burkoló hívja)
 const args = process.argv.slice(process.argv.findIndex((a) => /make-pack\.mjs$/i.test(a)) + 1);
+// (a megadott, de érték nélküli kapcsoló hiba – pl. utolsó argumentumként a --epg)
 const opt = (k) => {
   const i = args.indexOf('--' + k);
-  return i >= 0 ? args[i + 1] : undefined;
+  if (i < 0) return undefined;
+  const v = args[i + 1];
+  if (v === undefined || v.startsWith('--')) {
+    console.error(`A --${k} kapcsolónak értéket kell adni.`);
+    process.exit(1);
+  }
+  return v;
 };
 const usage = 'Használat: node tools/make-pack.mjs <lista.m3u8 | https://…> --kind tv|vod --id azonosito --name "Név" [--desc "Leírás"] [--off] [--url https://…] [--epg https://…] [--refresh 1|2|3|6|12|24|48] [--out mappa-vagy-fájl]';
 const fail = (msg) => {

@@ -1,6 +1,6 @@
 // Filmek és sorozatok (VOD): M3U / M3U8 listákból (akár egész GitHub-tárhelyből) betöltött
 // filmek és sorozatok felismerése, böngészése, adatlapja, lejátszása folytatással.
-import { $, $$, esc, html, norm, hashHue, toast, bus, debounce, seededShuffle } from './util.js';
+import { $, $$, esc, html, norm, hashHue, toast, bus, debounce, seededShuffle, errText } from './util.js';
 import { api } from './api.js';
 import { store, VOD_BUILTIN, refreshHoursOf, DEFAULT_REFRESH_HOURS, setRefreshHours } from './store.js';
 import { parseM3U, catalog, isLiveEntry, setVodLive } from './catalog.js';
@@ -196,12 +196,13 @@ export function vodLists() {
   for (const b of [...VOD_BUILTIN, ...vodPacks()]) if (builtinOn(b)) out.push({ ...b, builtin: true });
   for (const p of s.vodCustom || []) if (p.enabled) out.push({ ...p, builtin: false });
   // A csatornalistákban talált filmek / sorozatrészek (a csatornák közül ide kerültek)
-  for (const t of catalog.tvVod || []) out.push({ id: t.id, name: t.name, entries: t.entries, fromTv: true, builtin: false });
+  for (const t of catalog.tvVod || []) out.push({ id: t.id, name: t.name, entries: t.entries, at: t.at, fromTv: true, builtin: false });
   return out;
 }
 
 /** GitHub-tárhely (github.com/szerző/tár) → a benne lévő .m3u / .m3u8 fájlok nyers címei. */
-async function expandGitHub(url) {
+/** hours: a fájlfa gyorsítótárának kora (a lista frissítési gyakorisága – hogy az új fájlok is látsszanak) */
+async function expandGitHub(url, hours = 6) {
   const m = /^https?:\/\/github\.com\/([^/]+)\/([^/#?]+)(?:\/(?:tree|blob)\/([^/]+)(\/[^?#]*)?)?/i.exec(url);
   if (!m) return null;
   const [, owner, repoRaw, branchIn, pathIn] = m;
@@ -213,7 +214,7 @@ async function expandGitHub(url) {
   const info = JSON.parse((await api.fetchText(`https://api.github.com/repos/${owner}/${repo}`, { maxAgeHours: 24 })).text);
   const branch = branchIn || info.default_branch || 'main';
   const tree = JSON.parse(
-    (await api.fetchText(`https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`, { maxAgeHours: 6 })).text
+    (await api.fetchText(`https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`, { maxAgeHours: hours })).text
   );
   const prefix = pathIn ? pathIn.replace(/^\//, '') : '';
   return (tree.tree || [])
@@ -356,35 +357,35 @@ async function loadList(pl, force) {
   if (pl.entries) return pl.entries.map((e) => ({ ...e, fileHint: '' })); // csatornalistából átvett tételek
   if (pl.asset) return parseText(await assetText(pl.asset), '', '');
   if (!pl.url) return parseText(await listText(pl), '', '');
-  const files = await expandGitHub(pl.url);
-  if (!files) {
-    let text;
-    try {
-      ({ text } = await api.fetchText(pl.url, opts));
-    } catch (err) {
-      // forráscímes csomag: ha a forrás nem érhető el, a csomagban mentett lista látszik
-      if (!pl.textKey) throw err;
-      console.warn('VOD-csomag forrása nem érhető el – a mentett lista látszik', pl.name, err);
-      text = await listText(pl);
-    }
-    return parseText(text, '', pl.url);
-  }
-  // Tárhely: a fájlokat kis párhuzamossággal töltjük le.
-  const out = [];
-  let i = 0;
-  const worker = async () => {
-    while (i < files.length) {
-      const f = files[i++];
-      try {
-        const { text } = await api.fetchText(f.url, opts);
-        out.push(...parseText(text, f.name, f.url));
-      } catch (err) {
-        console.warn('VOD fájl hiba', f.url, err);
+  const fromUrl = async () => {
+    const files = await expandGitHub(pl.url, opts.maxAgeHours);
+    if (!files) return parseText((await api.fetchText(pl.url, opts)).text, '', pl.url);
+    // Tárhely: a fájlokat kis párhuzamossággal töltjük le.
+    const out = [];
+    let i = 0;
+    const worker = async () => {
+      while (i < files.length) {
+        const f = files[i++];
+        try {
+          const { text } = await api.fetchText(f.url, opts);
+          out.push(...parseText(text, f.name, f.url));
+        } catch (err) {
+          console.warn('VOD fájl hiba', f.url, err);
+        }
       }
-    }
+    };
+    await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
+    return out;
   };
-  await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
-  return out;
+  try {
+    return await fromUrl();
+  } catch (err) {
+    // forráscímes csomag: ha a forrás (vagy a GitHub-tárhely listázása) nem érhető el, a csomagban
+    // mentett lista látszik – a listák között jelezve
+    if (!pl.textKey) throw err;
+    vod.errors[pl.id] = _t('a forrás nem érhető el ({err}) – a csomagban mentett lista látszik', { err: errText(err) });
+    return parseText(await listText(pl), '', '');
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -804,7 +805,7 @@ function loadLib(lib, { force = false } = {}) {
           setTimeout(r, 30000);
         });
       }
-      lib.tvSig = (catalog.tvVod || []).map((t) => t.id + t.entries.length).join(',');
+      lib.tvSig = (catalog.tvVod || []).map((t) => t.id + t.entries.length + ':' + (t.at || 0)).join(',');
       if (!force && api.kvGet) {
         const snap = await api.kvGet(cacheKey(lib)).catch(() => null);
         if (snap && Date.now() - snap.at < libMaxAge(lib) * 3600e3) {
@@ -842,7 +843,7 @@ function loadLib(lib, { force = false } = {}) {
 export const loadVod = (opts) => loadLib(vod, opts);
 // Ha a csatornalista frissülése után más filmek kerültek át a VOD-ba, újratöltjük.
 bus.on('tv-vod', () => {
-  const sig = (catalog.tvVod || []).map((t) => t.id + t.entries.length).join(',');
+  const sig = (catalog.tvVod || []).map((t) => t.id + t.entries.length + ':' + (t.at || 0)).join(',');
   if (vod.ready && sig !== vod.tvSig) loadVod();
 });
 export const loadOwn = (opts) => loadLib(own, opts);

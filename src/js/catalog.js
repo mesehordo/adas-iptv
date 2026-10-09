@@ -2,7 +2,7 @@
 import { api } from './api.js';
 import { store, BUILTIN_PLAYLISTS, refreshHoursOf, DEFAULT_REFRESH_HOURS } from './store.js';
 import { packsOf } from './packs.js';
-import { norm, key, bus } from './util.js';
+import { norm, key, bus, errText } from './util.js';
 import { kidsAllowed } from './kids.js';
 
 import { _t, lang as uiLang, LOCALE } from './i18n.js';
@@ -423,7 +423,8 @@ async function fetchAndBuild({ force = false, onProgress } = {}) {
     const vodEntries = l.entries.filter(isVodEntry);
     if (!vodEntries.length) continue;
     l.entries = l.entries.filter((e) => !vodEntries.includes(e));
-    catalog.tvVod.push({ id: 'tv:' + l.pl.id, name: l.pl.name, entries: vodEntries });
+    // (at: a lista letöltésének ideje – ha a lista frissül, a VOD is újratölt, akkor is, ha a darabszám nem változott)
+    catalog.tvVod.push({ id: 'tv:' + l.pl.id, name: l.pl.name, entries: vodEntries, at: l.at || 0 });
   }
   for (const v of vodLive.lists || []) loaded.push({ pl: { id: v.id, name: v.name }, entries: v.entries, tvgUrls: [], at: 0 });
 
@@ -453,7 +454,8 @@ function minRefreshHours() {
 }
 
 /** Esedékes-e a csatornalisták frissítése (valamelyik lista beállított gyakorisága szerint)? */
-export const catalogRefreshDue = () => catalog.ready && Date.now() - (catalog.builtAt || 0) > minRefreshHours() * 3600e3;
+// (legalább naponta: a csatornaadatok – logó, ország, kategória – 24 óránként frissülnek)
+export const catalogRefreshDue = () => catalog.ready && Date.now() - (catalog.builtAt || 0) > Math.min(24, minRefreshHours()) * 3600e3;
 
 /**
  * A listák újratöltése a háttérben: csak az elavult listák töltődnek le újra (a többi a gyorsítótárból),
