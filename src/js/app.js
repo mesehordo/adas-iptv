@@ -465,6 +465,7 @@ window.__adasPip = (on) => {
   document.body.classList.toggle('pip', !!on);
   if (on) document.activeElement?.blur?.();
 };
+window.__adasPipFailed = () => toast(_t('A kép a képben mód ezen az eszközön nem érhető el.'));
 bus.on('player-opened', () => api.setVideoActive?.(true));
 bus.on('player-closed', () => api.setVideoActive?.(false));
 // Háttér-beállítások átadása a keretnek: kilépéskor kis ablak (videó) / háttérlejátszás (csak hang) – külön

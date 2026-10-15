@@ -35,6 +35,7 @@ public class PlaybackService extends Service {
   static volatile String title = "";
   static volatile boolean paused = false;
   MediaSession session;
+  boolean foreground; // ez a példány sikeresen előtérbe került-e
 
   static void start(Context ctx, String t) {
     if (t != null) title = t;
@@ -117,6 +118,11 @@ public class PlaybackService extends Service {
       return START_NOT_STICKY;
     }
     if (TOGGLE.equals(action)) {
+      // (egy már kiváltott, késve érkező gomb a leállított szolgáltatást nem indíthatja újra előtér nélkül)
+      if (!foreground) {
+        stopSelf();
+        return START_NOT_STICKY;
+      }
       command(paused ? "play" : "pause");
       return START_NOT_STICKY;
     }
@@ -124,6 +130,7 @@ public class PlaybackService extends Service {
     try {
       if (Build.VERSION.SDK_INT >= 29) startForeground(ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
       else startForeground(ID, n);
+      foreground = true;
     } catch (Exception e) {
       stopSelf();
     }

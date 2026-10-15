@@ -192,9 +192,10 @@ public class MainActivity extends Activity {
   // Háttérlejátszás (a kép a képben mód megszűnt)
   // -------------------------------------------------------------------------------------------
   static MainActivity instance;
-  boolean bgAudio = false; // kilépve a háttérben szól tovább
-  boolean autoPip = false; // (B38) videó közben kilépve kis ablakban (más alkalmazások fölött) látszik tovább
-  boolean videoActive = false; // a videólejátszó nyitva (a rádióhoz nincs kis ablak)
+  // (a JavaScript-híd más szálon írja, a UI-szál olvassa – volatile)
+  volatile boolean bgAudio = false; // kilépve a háttérben szól tovább
+  volatile boolean autoPip = false; // (B38) videó közben kilépve kis ablakban (más alkalmazások fölött) látszik tovább
+  volatile boolean videoActive = false; // a videólejátszó nyitva (a rádióhoz nincs kis ablak)
   String nowPlaying = "";
 
   // -------------------------------------------------------------------------------------------
@@ -229,6 +230,8 @@ public class MainActivity extends Activity {
   @Override
   public void onPictureInPictureModeChanged(boolean pip, Configuration cfg) {
     super.onPictureInPictureModeChanged(pip, cfg);
+    // (a Home útvonalon az onPause a kis ablak előtt fut, és elindíthatta a háttér-értesítést – kis ablakban nem kell)
+    if (pip) PlaybackService.stop(this);
     web.evaluateJavascript("window.__adasPip&&window.__adasPip(" + pip + ")", null);
   }
 
@@ -316,7 +319,7 @@ public class MainActivity extends Activity {
     if (hasFocus && (tv || playing)) immersive(true);
   }
 
-  boolean playing;
+  volatile boolean playing;
 
   // -------------------------------------------------------------------------------------------
   // JavaScript-híd
@@ -495,7 +498,10 @@ public class MainActivity extends Activity {
     @JavascriptInterface
     public boolean enterPip() {
       if (!canPip()) return false;
-      runOnUiThread(() -> MainActivity.this.enterPip());
+      // (a tényleges belépés a UI-szálon dől el: ha nem sikerül, a felület visszajelzést kap)
+      runOnUiThread(() -> {
+        if (!MainActivity.this.enterPip()) web.evaluateJavascript("window.__adasPipFailed&&window.__adasPipFailed()", null);
+      });
       return true;
     }
 
