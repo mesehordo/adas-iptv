@@ -1076,6 +1076,10 @@ body.rc-nav .vcard:focus-within .meta { visibility: hidden; }
 #player.subs-large video::cue { font-size: 1.35em; }
 #player.subs-huge video::cue { font-size: 1.75em; }
 /* Android: natív lejátszó (ExoPlayer) – a kép a lap alatt, a lap itt átlátszó; a felirat saját rétegben */
+/* (B38) Android kis ablak (kép a képben): csak a videó (és a felirat) látszik */
+body.pip #nav, body.pip #view, body.pip #toasts, body.pip #modal-root, body.pip #radio-bar { display: none !important; }
+body.pip #player .p-top, body.pip #player .p-bottom, body.pip #player .p-side, body.pip #player .p-menu, body.pip #player .p-osd, body.pip #player .p-backdrop, body.pip #player .p-nextup, body.pip #player .p-stats { display: none !important; }
+body.pip #player .exo-subs { font-size: 12px; bottom: 4%; }
 html.native-video, html.native-video body, html.native-video #player, html.native-video #player video { background: transparent !important; }
 html.native-video #player video { visibility: hidden; }
 html.native-video #view, html.native-video #nav { visibility: hidden; } /* a lejátszó alatt ne látsszon át a felület */

@@ -460,9 +460,16 @@ const reportMedia = () => api.setMediaState?.(radioPlayer.active && !player.acti
 mediaVideo.addEventListener('play', reportMedia);
 mediaVideo.addEventListener('pause', reportMedia);
 bus.on('radio-player', reportMedia);
-// Háttér-beállítás átadása a keretnek (háttérlejátszás; a kép a képben mód megszűnt)
-const sendBgPrefs = () => api.setBackgroundPrefs?.(false, !!store.settings.bgAudio);
-bus.on('settings', (k) => k === 'bgAudio' && sendBgPrefs());
+// (B38) Android kis ablak (kép a képben): csak a videó látszik; a vezérlők, a fejléc és a lap rejtve
+window.__adasPip = (on) => {
+  document.body.classList.toggle('pip', !!on);
+  if (on) document.activeElement?.blur?.();
+};
+bus.on('player-opened', () => api.setVideoActive?.(true));
+bus.on('player-closed', () => api.setVideoActive?.(false));
+// Háttér-beállítások átadása a keretnek: kilépéskor kis ablak (videó) / háttérlejátszás (csak hang) – külön
+const sendBgPrefs = () => api.setBackgroundPrefs?.(store.settings.autoPip === true, !!store.settings.bgAudio);
+bus.on('settings', (k) => (k === 'bgAudio' || k === 'autoPip') && sendBgPrefs());
 setTimeout(sendBgPrefs, 1000);
 
 // Szövegbevitel közben (telefonon a képernyő-billentyűzet nyitva) az alsó menüsáv elrejthető.

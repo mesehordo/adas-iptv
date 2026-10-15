@@ -191,7 +191,44 @@ public class MainActivity extends Activity {
   // -------------------------------------------------------------------------------------------
   static MainActivity instance;
   boolean bgAudio = false; // kilépve a háttérben szól tovább
+  boolean autoPip = false; // (B38) videó közben kilépve kis ablakban (más alkalmazások fölött) látszik tovább
+  boolean videoActive = false; // a videólejátszó nyitva (a rádióhoz nincs kis ablak)
   String nowPlaying = "";
+
+  // -------------------------------------------------------------------------------------------
+  // (B38 / F06) Mini lejátszó más alkalmazások fölött: a rendszer kép a képben módja (Android 8+, ha az eszköz
+  // támogatja – több Android TV-n is). A kis ablakban csak a videó látszik (body.pip), a lap tovább fut; a
+  // bezárásakor (X) a lejátszás megáll, kivéve, ha a háttérlejátszás be van kapcsolva.
+  // -------------------------------------------------------------------------------------------
+  boolean canPip() {
+    return Build.VERSION.SDK_INT >= 26 && getPackageManager().hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE);
+  }
+
+  boolean enterPip() {
+    if (!canPip()) return false;
+    try {
+      return enterPictureInPictureMode(new android.app.PictureInPictureParams.Builder().setAspectRatio(new android.util.Rational(16, 9)).build());
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  boolean inPip() {
+    return Build.VERSION.SDK_INT >= 24 && isInPictureInPictureMode();
+  }
+
+  /** Home gomb / másik alkalmazás videó közben: kis ablakba vált (ha a Beállításokban be van kapcsolva). */
+  @Override
+  protected void onUserLeaveHint() {
+    super.onUserLeaveHint();
+    if (videoActive && playing && autoPip && !tv) enterPip();
+  }
+
+  @Override
+  public void onPictureInPictureModeChanged(boolean pip, Configuration cfg) {
+    super.onPictureInPictureModeChanged(pip, cfg);
+    web.evaluateJavascript("window.__adasPip&&window.__adasPip(" + pip + ")", null);
+  }
 
   /** A háttérlejátszás értesítésének „Leállítás” gombja (videó és rádió). */
   void stopFromNotification() {
@@ -228,6 +265,7 @@ public class MainActivity extends Activity {
       startBackgroundPlayback(); // (ha valamiért nem indult el – régebbi Androidon ez még megengedett)
       return;
     }
+    // (a kis ablak bezárása is ide fut: a lejátszás megáll – nincs kettős vagy láthatatlan hang)
     web.evaluateJavascript("document.querySelectorAll('video').forEach(function(v){try{v.pause()}catch(e){}});window.__adasRadioPause&&window.__adasRadioPause()", null);
     if (nativePlayer != null) nativePlayer.pause();
   }
@@ -238,6 +276,7 @@ public class MainActivity extends Activity {
     foreground = false;
     // háttérlejátszásnál a lap tovább fut, és a szolgáltatás (értesítés, médiavezérlők) most indul – az
     // alkalmazás ekkor még előtérben van; visszatéréskor (onResume) leáll
+    if (inPip()) return; // kis ablakban a lap tovább fut (látható), értesítés sem kell
     if (bgAudio && playing) startBackgroundPlayback();
     else web.onPause();
   }
@@ -432,7 +471,27 @@ public class MainActivity extends Activity {
     /** Beállítás: háttérlejátszás (az első paraméter a megszűnt kép a képben módé, nem használjuk). */
     @JavascriptInterface
     public void setBackgroundPrefs(boolean pip, boolean audio) {
+      autoPip = pip;
       bgAudio = audio;
+    }
+
+    /** (B38) Mini lejátszó most (rendszer kép a képben). → elindulhat-e ezen az eszközön */
+    @JavascriptInterface
+    public boolean enterPip() {
+      if (!canPip()) return false;
+      runOnUiThread(() -> MainActivity.this.enterPip());
+      return true;
+    }
+
+    @JavascriptInterface
+    public boolean pipAvailable() {
+      return canPip();
+    }
+
+    /** A videólejátszó nyitva van-e (a kilépéskori kis ablakhoz). */
+    @JavascriptInterface
+    public void setVideoActive(boolean on) {
+      videoActive = on;
     }
 
     @JavascriptInterface

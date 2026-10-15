@@ -857,6 +857,12 @@ export const player = {
   },
 
   async setMini(on) {
+    // (B38) Androidon a rendszer kép a képben módja: az egész alkalmazás kis ablakba kerül, más alkalmazások
+    // fölött; a kilépést (teljes nézet / bezárás) a rendszer ablaka kezeli
+    if (api.enterPip) {
+      if (on && !api.enterPip()) toast(_t('A kép a képben mód ezen az eszközön nem érhető el.'));
+      return;
+    }
     this.mini = on;
     document.body.classList.toggle('mini', on);
     await api.setMini(on);

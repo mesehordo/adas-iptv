@@ -156,6 +156,7 @@ const DEFAULT_SETTINGS = {
   subsSize: 'normal', // 'small' | 'normal' | 'large' | 'huge'
   playerButtons: {}, // a vezérlősáv kiegészítő gombjai: { kulcs: false } = elrejtve (player.js PLAYER_BUTTONS)
   bgAudio: false, // Android: háttérlejátszás (csak hang)
+  autoPip: false, // Android: videó közben kilépve kis ablakban (kép a képben) látszik tovább
   epgSources: BUILTIN_EPG,
   useEmbeddedEpg: true, // a lejátszólista x-tvg-url forrása
   epgRefreshHours: 12,

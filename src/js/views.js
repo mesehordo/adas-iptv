@@ -755,6 +755,7 @@ export function renderSettings(view) {
       ${toggle('resumeLast', _t('Utolsó csatorna folytatása indításkor'))}
       ${toggle('perChannelVolume', _t('Hangerő csatornánként'), _t('Minden csatorna megjegyzi a saját hangerejét (a halkabb és hangosabb adók miatt).'))}
       ${api.setBackgroundPrefs ? toggle('bgAudio', _t('Háttérlejátszás (csak hang)'), _t('Másik alkalmazásra váltva az adás hangja tovább szól (értesítéssel, onnan leállítható).')) : ''}
+      ${api.enterPip && api.caps.mini && !IS_TV ? toggle('autoPip', _t('Kis ablak kilépéskor'), _t('Videó közben a Home gombra vagy másik alkalmazásra váltva a videó kis ablakban, más alkalmazások fölött látszik tovább (a lejátszó mini gombjával bármikor is indítható).')) : ''}
       <label class="setting"><span>${_t('<b>Legnagyobb minőség</b>')}<small>${_t('A több minőségben elérhető adásoknál: lassú vagy mobil kapcsolaton kisebb felbontással kevesebbet akad, és kevesebb adatot használ. Automatikusan az ablak méretéhez igazodik. (Az egyetlen minőségű adásokon nem változtat.)')}</small></span>
         <select data-set="maxQuality">${[['', _t('Automatikus (az ablakmérethez)')], ['1080', _t('Legfeljebb 1080p (Full HD)')], ['720', _t('Legfeljebb 720p (HD)')], ['480', _t('Legfeljebb 480p (SD)')], ['360', _t('Legfeljebb 360p (adatkímélő)')]]
           .map(([v, l]) => `<option value="${v}" ${String(s.maxQuality || '') === v ? 'selected' : ''}>${l}</option>`)

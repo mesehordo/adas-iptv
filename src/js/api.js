@@ -379,8 +379,29 @@ const androidApi = {
   ...webApi,
   platform: ANDROID_TV ? 'androidtv' : 'android',
   caps: {
-    mini: false, fullscreen: !ANDROID_TV, files: true, external: !ANDROID_TV, health: true,
+    // (B38) mini lejátszó: a rendszer kép a képben módja, ha az eszköz támogatja (egyébként a gomb sem látszik)
+    mini: (() => {
+      try {
+        return !!window.AdasAndroid?.pipAvailable?.();
+      } catch {
+        return false;
+      }
+    })(),
+    fullscreen: !ANDROID_TV, files: true, external: !ANDROID_TV, health: true,
     preview: true, exit: true, folders: false,
+  },
+  /** Mini lejátszó (kép a képben). → sikerült-e elindítani */
+  enterPip() {
+    try {
+      return !!window.AdasAndroid.enterPip();
+    } catch {
+      return false;
+    }
+  },
+  setVideoActive(on) {
+    try {
+      window.AdasAndroid.setVideoActive?.(!!on);
+    } catch {}
   },
   fetchText: (url, opts) => cachedFetchText(url, opts, directDownload),
   request: (opts) => native('request', { method: opts.method || 'GET', url: opts.url, headers: opts.headers || {}, body: opts.body || '' }),
