@@ -264,6 +264,7 @@ class RadioPlayer {
       store.setHealth(raw, ok, 'play', geo);
       if (ok) {
         this.url = url;
+        this.rawUrl = raw; // (a lista szerinti cím – Adás adatai: hányadik forrás, lejátszólistából feloldva)
         this.state = 'playing';
         pushRadioRecent(st);
         reportClick(st);

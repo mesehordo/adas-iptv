@@ -2160,5 +2160,21 @@ export default {
  "Válogatott, szabadon fogható magyar adások: közszolgálati, országos, városi és helyi tévék, Országgyűlés (kb. 80 adás).": "A curated list of free-to-air Hungarian channels: public, national, city and local TV, the Parliament (about 80 streams).",
  "Innen nem hallgatható – földrajzi korlát": "Not available from here – geo-restricted",
  "🌐 Földrajzi korlát – innen nem hallgatható": "🌐 Geo-restricted – not available from here",
- "A lista szerint csak bizonyos országokból hallgatható": "According to the list, only available from certain countries"
+ "A lista szerint csak bizonyos országokból hallgatható": "According to the list, only available from certain countries",
+ "Beépített hanglejátszó": "Built-in audio player",
+ "lejátszólistából feloldva": "resolved from a playlist",
+ "Bitráta (megadott)": "Bitrate (declared)",
+ "Bitráta (mért)": "Bitrate (measured)",
+ "mérés…": "measuring…",
+ "Kimenet": "Output",
+ "Hangkimenet késése": "Audio output latency",
+ "Hangfeldolgozás": "Audio processing",
+ "bekapcsolva": "on",
+ "nincs elindítva": "not started",
+ "ezen az eszközön nem érhető el": "not available on this device",
+ "Mi szól (metaadat)": "Now playing (metadata)",
+ "az adó küldi": "sent by the station",
+ "az adó nem küldi": "not sent by the station",
+ "Gyakori akadás: a szerver vagy a kapcsolat lassú.": "Frequent stalls: the server or the connection is slow.",
+ "A mért bitráta jóval kisebb a megadottnál – az adó kisebb minőségben sugároz, vagy a kapcsolat lassú.": "The measured bitrate is well below the declared one – the station broadcasts in lower quality, or the connection is slow."
 };
