@@ -2157,5 +2157,7 @@ export default {
  "A mentési pont nem készült el: {x}": "The restore point was not created: {x}",
  "A visszaállítás nem sikerült: {x}": "Restore failed: {x}",
  "hibás formátum: nincs benne profil": "invalid format: it contains no profiles",
- "hibás formátum: sérült profiladat": "invalid format: damaged profile data"
+ "hibás formátum: sérült profiladat": "invalid format: damaged profile data",
+ "Magyar TV adók": "Hungarian TV channels",
+ "Válogatott, szabadon fogható magyar adások: közszolgálati, országos, városi és helyi tévék, Országgyűlés (kb. 80 adás).": "A curated list of free-to-air Hungarian channels: public, national, city and local TV, the Parliament (about 80 streams)."
 };
