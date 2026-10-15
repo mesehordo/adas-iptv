@@ -444,7 +444,9 @@ function renderGuide(view) {
   const list = guideState.filter === 'fav' ? favs : guideState.filter === 'home' ? all.filter((st) => st.country === cc) : all;
   const from = dayStart(Date.now(), guideState.day);
   const to = dayStart(Date.now(), guideState.day + 1); // (a következő helyi éjfél – nyári időszámításnál is)
-  const width = 24 * 60 * PX_PER_MIN;
+  // (a nap hossza a valós helyi nap: óraátállításkor 23 vagy 25 óra – a szélesség és a jelölők ehhez igazodnak)
+  const width = ((to - from) / 60000) * PX_PER_MIN;
+  const marks = Math.round((to - from) / 1800e3);
   const t = Date.now();
   const nowGrid = () => `<div class="now-grid">${list
     .map((st) => {
@@ -462,7 +464,7 @@ function renderGuide(view) {
     })
     .join('')}</div>`;
   const grid = () => `<div class="guide-scroll"><div class="guide-inner" style="width:${width + 220}px">
-      <div class="g-head"><div class="g-corner"></div><div class="g-times" style="width:${width}px">${Array.from({ length: 48 }, (_, i) => `<span style="left:${i * 30 * PX_PER_MIN}px">${fmtTime(from + i * 1800e3)}</span>`).join('')}</div></div>
+      <div class="g-head"><div class="g-corner"></div><div class="g-times" style="width:${width}px">${Array.from({ length: marks }, (_, i) => `<span style="left:${i * 30 * PX_PER_MIN}px">${fmtTime(from + i * 1800e3)}</span>`).join('')}</div></div>
       <div class="g-rows">${list
         .map((st) => {
           const progs = epg.range(st.id, from, to);
