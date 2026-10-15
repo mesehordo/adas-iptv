@@ -772,7 +772,7 @@ export function renderSettings(view) {
 
     <section class="set-section" id="playerbuttons" data-g="play"><h2>${_t('A lejátszó gombjai')} <button class="help-link" data-help="pip-mini" title="${_t('Súgó')}">?</button></h2>
       <p class="muted small">${_t('Melyik kiegészítő gomb látsszon a vezérlősávon. A billentyűk (pl. C, I, L) kikapcsolt gombnál is működnek; a szünet, a hangerő és a ⚙ menü mindig látszik.')}</p>
-      <div class="pb-grid">${PLAYER_BUTTONS.filter(([k]) => (k !== 'mini' || api.caps.mini) && (k !== 'full' || api.caps.fullscreen) && (k !== 'multi' || api.caps.multiview) && (k !== 'cast' || api.caps.cast) && (k !== 'rec' || api.recStart))
+      <div class="pb-grid">${PLAYER_BUTTONS.filter(([k]) => (k !== 'mini' || api.caps.mini) && (k !== 'full' || api.caps.fullscreen) && (k !== 'cast' || api.caps.cast) && (k !== 'rec' || api.recStart))
         .map(([k, l]) => `<label class="pb-item"><input type="checkbox" data-pb="${k}" ${s.playerButtons?.[k] !== false ? 'checked' : ''} /> ${esc(l)}</label>`)
         .join('')}</div>
     </section>
@@ -907,7 +907,7 @@ export function renderSettings(view) {
         <tr><td>${_t('Enter / L')}</td><td>${_t('Csatornalista')}</td></tr>
         <tr><td>${_t('M / F / N / S')}</td><td>${_t('Némítás / teljes képernyő / mini lejátszó / kedvenc')}</td></tr>
         <tr><td>${_t('Shift+← / Shift+→, End')}</td><td>${_t('Élő adás: 30 mp vissza / előre, ugrás élőbe')}</td></tr>
-        <tr><td>${_t('C / V')}</td><td>${_t('Hang és felirat / több adás egyszerre')}</td></tr>
+        <tr><td>C</td><td>${_t('Hang és felirat')}</td></tr>
         <tr><td>D</td><td>${_t('Adás adatai (minőség, sebesség, puffer)')}</td></tr>
         <tr><td>R</td><td>${_t('Vissza az előző csatornára')}</td></tr>
       </table>

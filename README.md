@@ -477,7 +477,6 @@ src/js/meta.js        Magyar információk (Wikidata / Wikipédia / TMDB)
 src/js/subtitles.js   Feliratok (OpenSubtitles, helyi fájl)
 src/js/help.js        Súgó (megjelenítés, keresés); tartalma: help-content.js
 src/js/pin.js         Szülői felügyelet, profilzár
-src/js/multiview.js   Több adás egyszerre
 src/js/cast.js        Kivetítés (felület)
 src/js/audiofx.js     Éjszakai hang (WebAudio)
 src/js/radio.js       Rádió: források (Radio Browser, Verified, IPRD, saját listák), összefésülés, kedvencek

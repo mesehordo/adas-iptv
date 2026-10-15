@@ -307,6 +307,8 @@ async function probeStream({ url, ua, referrer, trace, root }, depth = 0) {
     return await probeSegment(abs(segs[segs.length - 1]), headers, T, root);
   } catch (e) {
     T('HIBA ' + e.message);
+    // (a régi SHOUTcast „ICY 200 OK” fejléce a HTTP-elemzőnek érvénytelen – a szerver viszont válaszolt és sugároz)
+    if (/HPE_INVALID_CONSTANT|Expected HTTP/i.test(`${e.code || ''} ${e.message || ''} ${e.cause?.code || ''} ${e.cause?.message || ''}`)) return true;
     return false;
   } finally {
     clearTimeout(t);

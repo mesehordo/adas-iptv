@@ -15,7 +15,6 @@ import { syncPackFolder } from './packs.js';
 import './subtitles.js'; // a lejátszó felirat-kezelője
 import { unlockProfile, requireAdult, adultGuardNeeded, markUnlocked, hasPin } from './pin.js';
 import './cast.js'; // kivetítés (Chromecast / DLNA)
-import { openMultiview, multiKey, multiOpen } from './multiview.js';
 import { renderStats } from './stats.js';
 import { renderSport, sportMenuOn } from './sportpage.js';
 import { renderRadio, radioMenuOn } from './radiopage.js';
@@ -271,7 +270,6 @@ function updateProfileButton() {
     <button class="menu-item" data-menu="refresh">${ICON.refresh}<span>${_t('Csatornalista frissítése')}<small>${catalog.loadedAt ? `${_t('utoljára:')} ` + dayLabel(Math.round((dayStart(catalog.loadedAt) - dayStart()) / 86400e3)).toLowerCase() + ' ' + fmtTime(catalog.loadedAt) : ''}</small></span></button>
     <button class="menu-item" data-menu="add-channel">${ICON.plus}<span>${_t('Csatorna hozzáadása')}</span></button>
     <a class="menu-item" href="#/settings?section=lists">${ICON.tv}<span>${_t('Listák kezelése')}</span></a>
-    ${api.caps.multiview ? `<button class="menu-item" data-menu="multi"><span class="mi-ico">▦</span><span>${_t('Több adás egyszerre')}</span></button>` : ''}
     <a class="menu-item" href="#/stats"><span class="mi-ico">▮▯</span><span>${_t('Nézési statisztika')}</span></a>
     <div class="menu-sep"></div>
     <a class="menu-item" href="#/help">${ICON.help}<span>${_t('Súgó')}</span></a>
@@ -286,7 +284,6 @@ $('#profile-panel').addEventListener('click', (e) => {
   closeDropdowns();
   if (m === 'refresh') refreshAll({ force: true });
   else if (m === 'add-channel') channelDialog(null, () => refreshAll({ force: false }));
-  else if (m === 'multi') openMultiview([]);
   if (b) {
     const target = store.profiles.find((p) => p.id === b.dataset.switch);
     unlockProfile(target).then((ok) => {
@@ -622,10 +619,6 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
-  if (multiOpen() && !modalOpen()) {
-    if (multiKey(e)) e.preventDefault();
-    return;
-  }
   if (player.handleKey(e)) {
     e.preventDefault();
     return;
