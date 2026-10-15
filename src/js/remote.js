@@ -10,6 +10,11 @@ import { player } from './player.js';
 import { openInfo, openModal } from './components.js';
 import { toggleStreamInfo } from './streaminfo.js';
 import { qrSvg } from './qr.js';
+import { radio, radioFavs, radioRecent, isRadioFav, toggleRadioFav, radioSearch, searchRadioOnline, stationFrom } from './radio.js';
+import { radioPlayer, fx, setFx, VIS_MODES, audioFxAvailable } from './radioplayer.js';
+import { radioFullOpen, closeRadioFull } from './radioui.js';
+import { radioMenuOn } from './radiopage.js';
+import { canRecord, recordingOf, toggleRadioRecording } from './recorder.js';
 
 import { _t, lang as uiLang } from './i18n.js';
 export const canRemote = !!api.rcStart;
@@ -73,6 +78,7 @@ input.q{width:100%;font:inherit;font-size:17px;padding:12px 14px;border-radius:1
  <div class="row r4"><button data-c="chup">CH ▲</button><button data-c="chdown">CH ▼</button><button data-c="recall" class="sm">${_t('↺ Előző')}</button><button data-c="mute" id="muteBtn">🔇</button></div>
  <div class="vol"><span>🔈</span><input type="range" id="vol" min="0" max="1" step="0.02" aria-label="${_t('Hangerő')}"><span>🔊</span></div>
  <div class="row r4"><button data-c="menu" data-a="subs" class="sm">${_t('CC Felirat')}</button><button data-c="menu" data-a="settings" class="sm">${_t('⚙ Minőség')}</button><button data-c="menu" data-a="list" class="sm">${_t('☰ Lista')}</button><button data-c="menu" data-a="full" class="sm">${_t('⛶ Teljes')}</button></div>
+ <div class="row r4"><button data-c="pfav" id="pfavBtn" class="sm">${_t('★ Kedvenc')}</button><button data-c="prec" id="precBtn" class="sm">${_t('● Felvétel')}</button><button data-c="menu" data-a="mini" id="miniBtn" class="sm">${_t('▣ Mini')}</button><button data-c="menu" data-a="cast" id="castBtn" class="sm">${_t('⇪ Kivetítés')}</button></div>
  <h2>${_t('Nyilak')}</h2>
  <div class="dpad"><span class="e"></span><button data-c="key" data-a="ArrowUp">▲</button><span class="e"></span><button data-c="key" data-a="ArrowLeft">◀</button><button class="ok" data-c="key" data-a="Enter">OK</button><button data-c="key" data-a="ArrowRight">▶</button><span class="e"></span><button data-c="key" data-a="ArrowDown">▼</button><span class="e"></span></div>
  <h2>${_t('Csatornaszám')}</h2>
@@ -84,11 +90,22 @@ input.q{width:100%;font:inherit;font-size:17px;padding:12px 14px;border-radius:1
  <h2>${_t('Kedvencek')}</h2><div class="list" id="favs"></div>
  <h2>${_t('Legutóbb nézett')}</h2><div class="list" id="recent"></div>
 </div>
+<div class="pane" id="p-radio">
+ <div class="now" id="rnow"><div class="tx"><small>${_t('Most nem szól rádió.')}</small></div></div>
+ <div class="row r5"><button data-c="rprev">⏮</button><button data-c="rtoggle" class="ok">⏯</button><button data-c="rnext">⏭</button><button data-c="rfav" id="rfavBtn">★</button><button data-c="rrec" id="rrecBtn">●</button></div>
+ <div class="vol"><span>🔈</span><input type="range" id="rvol" min="0" max="1" step="0.02" aria-label="${_t('Hangerő')}"><span>🔊</span></div>
+ <div class="row r4"><button data-c="rfull" id="rfullBtn" class="sm">${_t('♪ Most szól')}</button><button data-c="rvis" id="rvisBtn" class="sm">${_t('〰 Hangkép')}</button><button data-c="rsleep" id="rsleepBtn" class="sm">${_t('☾ Elalvás')}</button><button data-c="rstop" class="sm">${_t('✕ Kikapcsolás')}</button></div>
+ <input class="q" id="rq" type="search" placeholder="${_t('Rádióadó keresése…')}" autocomplete="off">
+ <div class="list" id="rresults"></div>
+ <h2>${_t('Kedvenc rádiók')}</h2><div class="list" id="rfavs"></div>
+ <h2>${_t('Legutóbb hallgatott')}</h2><div class="list" id="rrecent"></div>
+</div>
 <div class="pane" id="p-go">
  <h2>${_t('Ugrás')}</h2>
  <div class="row r3"><button data-c="nav" data-a="home" class="sm">${_t('⌂ Főoldal')}</button><button data-c="nav" data-a="tv" class="sm">${_t('📺 TV')}</button><button data-c="nav" data-a="guide" class="sm">${_t('☰ Műsorújság')}</button>
  <button data-c="nav" data-a="favorites" class="sm">${_t('★ Kedvencek')}</button><button data-c="nav" data-a="vod" class="sm">${_t('🎬 VOD')}</button><button data-c="nav" data-a="recordings" class="sm">${_t('● Felvételek')}</button>
- <button data-c="nav" data-a="browse" class="sm">${_t('⌕ Böngészés')}</button><button data-c="nav" data-a="help" class="sm">${_t('? Súgó')}</button><button data-c="menu" data-a="close" class="sm">${_t('✕ Lejátszó bezárása')}</button></div>
+ <button data-c="nav" data-a="browse" class="sm">${_t('⌕ Böngészés')}</button><button data-c="nav" data-a="radio" class="sm rnav">${_t('📻 Rádió')}</button><button data-c="nav" data-a="radio-guide" class="sm rnav">${_t('📻 Rádió-műsor')}</button>
+ <button data-c="nav" data-a="sport" class="sm">${_t('⚽ Sport')}</button><button data-c="nav" data-a="help" class="sm">${_t('? Súgó')}</button><button data-c="menu" data-a="close" class="sm">${_t('✕ Lejátszó bezárása')}</button></div>
  <h2>${_t('Szöveg küldése')}</h2>
  <input class="q" id="txt" type="text" placeholder="${_t('Keresés az Adásban / gépelés a kijelölt mezőbe')}" autocomplete="off">
  <div class="row r3"><button id="sendTxt" class="ok sm">${_t('Küldés')}</button><button id="searchTxt" class="sm">${_t('⌕ Keresés')}</button><button data-c="key" data-a="Backspace" class="sm">${_t('⌫ Törlés')}</button></div>
@@ -97,7 +114,7 @@ input.q{width:100%;font:inherit;font-size:17px;padding:12px 14px;border-radius:1
  <p class="muted">${_t('Tipp: a böngésző menüjében „Hozzáadás a kezdőképernyőhöz” – így alkalmazásként indul.')}</p>
 </div>
 </div>
-<nav class="tabs" id="tabs" hidden><button data-t="ctl" class="sel"><span>🎮</span>${_t('Vezérlő')}</button><button data-t="ch"><span>📺</span>${_t('Csatornák')}</button><button data-t="go"><span>☰</span>${_t('Továbbiak')}</button></nav>
+<nav class="tabs" id="tabs" hidden><button data-t="ctl" class="sel"><span>🎮</span>${_t('Vezérlő')}</button><button data-t="ch"><span>📺</span>${_t('Csatornák')}</button><button data-t="radio" id="radioTab"><span>📻</span>${_t('Rádió')}</button><button data-t="go"><span>☰</span>${_t('Továbbiak')}</button></nav>
 <div class="toast" id="toast"></div>
 <script>
 // Hitelesítés: a QR-kódból kapott kulcs (vagy a beírt PIN) soha nem megy át a hálózaton – minden kérést
@@ -128,9 +145,15 @@ function ask(msg){$('ui').hidden=true;$('tabs').hidden=true;$('pin').hidden=fals
 function esc(s){return String(s||'').replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function toast(t){var e=$('toast');e.textContent=t;e.className='toast show';clearTimeout(e._t);e._t=setTimeout(function(){e.className='toast'},1400)}
 function chBtns(list,empty){return (list||[]).map(function(f){return '<button data-c="play" data-a="'+esc(f.id)+'">'+(f.logo?'<img src="'+esc(f.logo)+'" alt="" onerror="this.remove()">':'')+'<span>'+esc(f.name)+(f.sub?'<small>'+esc(f.sub)+'</small>':'')+'</span></button>'}).join('')||'<small class="muted">'+empty+'</small>'}
-function render(s){last=s;$('pin').hidden=true;$('ui').hidden=false;$('tabs').hidden=false;var n=s.now;
+function stBtns(list,empty){return (list||[]).map(function(f){return '<button data-c="rplay" data-a="'+esc(f.id)+'">'+(f.logo?'<img src="'+esc(f.logo)+'" alt="" onerror="this.remove()">':'')+'<span>'+esc(f.name)+(f.sub?'<small>'+esc(f.sub)+'</small>':'')+'</span></button>'}).join('')||'<small class="muted">'+empty+'</small>'}
+function renderRadio(s){var r=s.radio,on=!!s.radioOn;$('radioTab').hidden=!on;[].forEach.call(document.querySelectorAll('.rnav'),function(b){b.hidden=!on});if(!on)return;
+$('rnow').innerHTML=r?((r.logo?'<img src="'+esc(r.logo)+'" alt="" onerror="this.remove()">':'')+'<div class="tx"><b>'+esc(r.name)+'</b><small>'+esc(r.title||'')+'</small>'+(r.sleep?'<small>☾ '+r.sleep+' '+${JSON.stringify(_t('perc'))}+'</small>':'')+'</div>'):'<div class="tx"><small>'+${JSON.stringify(_t('Most nem szól rádió.'))}+'</small></div>';
+$('rfavBtn').className=r&&r.fav?'on':'';$('rrecBtn').className=r&&r.rec?'on':'';$('rrecBtn').hidden=!s.canRecord;$('rfullBtn').className=r&&r.full?'on':'';$('rvisBtn').hidden=!s.radioVis;$('rsleepBtn').className=r&&r.sleep?'on':'';
+if(document.activeElement!==$('rvol'))$('rvol').value=r?r.volume:1;
+$('rfavs').innerHTML=stBtns(s.rfavs,${JSON.stringify(_t('Nincs kedvenc rádió.'))});$('rrecent').innerHTML=stBtns(s.rrecent,${JSON.stringify(_t('Még nincs.'))});var rr=s.rresults,rq=$('rq').value.trim();$('rresults').innerHTML=rr&&rr.q===rq&&rq?stBtns(rr.items,${JSON.stringify(_t('Nincs találat.'))}):''}
+function render(s){last=s;renderRadio(s);$('pfavBtn').className=s.fav?'on':'';$('precBtn').className=s.rec?'on':'';$('precBtn').hidden=!s.canRecord;$('miniBtn').hidden=!s.caps||!s.caps.mini;$('castBtn').hidden=!s.caps||!s.caps.cast;$('pin').hidden=true;$('ui').hidden=false;$('tabs').hidden=false;var n=s.now||(s.radio?{name:'📻 '+s.radio.name,title:s.radio.title,logo:s.radio.logo}:null);
 $('now').innerHTML=n?((n.logo?'<img src="'+esc(n.logo)+'" alt="" onerror="this.remove()">':'')+'<div class="tx"><b>'+esc(n.name)+'</b><small>'+esc(n.title||'')+'</small>'+(n.next?'<small>'+${JSON.stringify(_t('Utána:'))}+' '+esc(n.next)+'</small>':'')+(n.progress!=null?'<div class="bar"><i style="width:'+Math.round(n.progress*100)+'%"></i></div>':'')+'</div>'):'<div class="tx"><b>'+esc(s.profile||'Adás')+'</b><small>'+${JSON.stringify(_t('Most nem megy semmi – válassz csatornát a Csatornák fülön, vagy nyomd meg a CH gombot.'))}+'</small></div>';
-if(document.activeElement!==$('vol'))$('vol').value=s.volume==null?1:s.volume;$('muteBtn').className=s.muted?'on':'';
+if(document.activeElement!==$('vol'))$('vol').value=!s.now&&s.radio?s.radio.volume:s.volume==null?1:s.volume;$('muteBtn').className=s.muted?'on':'';
 $('favs').innerHTML=chBtns(s.favs,${JSON.stringify(_t('Nincs kedvenc csatorna.'))});$('recent').innerHTML=chBtns(s.recent,${JSON.stringify(_t('Még nincs.'))});var r=s.results,cq=$('q').value.trim();$('results').innerHTML=r&&r.q===cq&&cq?chBtns(r.items,${JSON.stringify(_t('Nincs találat.'))}):''}
 function state(){if(!pin&&!key)return ask();api('state').then(render).catch(function(e){if(e.message==='wait')return ask(${JSON.stringify(_t('Túl sok hibás próbálkozás – várj néhány percet.'))});if(e.message==='pin'){try{localStorage.removeItem('adasPin');localStorage.removeItem('adasKey')}catch(x){}pin='';key='';ask(${JSON.stringify(_t('Hibás PIN, vagy a tévén / gépen új PIN készült. Olvasd be újra a QR-kódot, vagy írd be a PIN-t.'))})}})}
 // A parancsok sorban mennek ki (egymás után, nem párhuzamosan) – így gyors mozdulatnál sem keverednek össze
@@ -140,6 +163,8 @@ function cmd(c,a){if(navigator.vibrate)navigator.vibrate(12);return send(c,a)}
 document.addEventListener('click',function(e){var t=e.target.closest('[data-t]');if(t){[].forEach.call(document.querySelectorAll('.tabs button'),function(b){b.className=b===t?'sel':''});[].forEach.call(document.querySelectorAll('.pane'),function(p){p.className='pane'+(p.id==='p-'+t.dataset.t?' sel':'')});return}
 var b=e.target.closest('button[data-c]');if(!b)return;cmd(b.dataset.c,b.dataset.a)});
 $('vol').addEventListener('input',function(){clearTimeout(this._t);var v=this.value;this._t=setTimeout(function(){cmd('vol',v)},120)});
+$('rvol').addEventListener('input',function(){clearTimeout(this._t);var v=this.value;this._t=setTimeout(function(){cmd('rvol',v)},120)});
+var rqt;$('rq').addEventListener('input',function(){clearTimeout(rqt);var v=this.value.trim();rqt=setTimeout(function(){if(!v)$('rresults').innerHTML='';cmd('rfind',v)},350)});
 var qt;$('q').addEventListener('input',function(){clearTimeout(qt);var v=this.value.trim();qt=setTimeout(function(){if(!v)$('results').innerHTML='';cmd('find',v)},300)});
 $('sendTxt').onclick=function(){var v=$('txt').value;if(v){cmd('text',v);$('txt').value='';toast(${JSON.stringify(_t('Elküldve'))})}};
 $('searchTxt').onclick=function(){var v=$('txt').value.trim();if(v){cmd('search',v);toast(${JSON.stringify(_t('Keresés:'))}+' '+v)}};
@@ -177,6 +202,26 @@ state();setInterval(function(){if(document.visibilityState!=='hidden')state()},2
 // a telefonról indított csatornakeresés találatai a keresőkifejezéssel (a következő állapottal mennek ki; a
 // telefon csak a saját, aktuális kifejezéséhez tartozót rajzolja ki – egy elavult válasz nem hozza vissza)
 let results = null; // { q, items } vagy null
+let rresults = null; // rádió: { q, items } vagy null
+let rfindSeq = 0;
+async function findRadio(q) {
+  const my = ++rfindSeq;
+  if (!q) {
+    rresults = null;
+    return;
+  }
+  const item = (x) => ({ id: x.id, name: x.name, logo: /^https?:/.test(x.logo || '') ? x.logo : '', sub: [x.country, x.genres?.[0]].filter(Boolean).join(' · ') });
+  rresults = { q, items: radioSearch(q).slice(0, 20).map(item) };
+  pushState();
+  // a helyi találatok mellé az online adatbázis (Radio Browser) találatai
+  try {
+    const online = await searchRadioOnline(q);
+    if (my !== rfindSeq) return;
+    const seen = new Set(rresults.items.map((x) => x.id));
+    rresults = { q, items: [...rresults.items, ...online.filter((x) => !seen.has(x.id)).map(item)].slice(0, 30) };
+    pushState();
+  } catch {}
+}
 const httpLogo = (c) => (/^https?:/.test(c?.logo || '') ? c.logo : '');
 const chItem = (c) => ({ id: c.id, name: c.name, logo: httpLogo(c), sub: epg.now(c.id, Date.now())?.cur?.title || '' });
 
@@ -192,8 +237,37 @@ function stateJson() {
     now = { name: ch.name, title: n?.cur?.title || '', next: n?.next ? `${new Date(n.next.start).toTimeString().slice(0, 5)} ${n.next.title}` : '', logo: httpLogo(ch), progress: n?.cur ? n.progress : null };
   }
   const favs = getChannels(store.profile?.favorites || []).slice(0, 40).map(chItem);
+  // rádió (a gyerekprofilban rejtett)
+  const radioOn = radioMenuOn();
+  const r = radioPlayer;
+  const st = radioOn && r.active ? r.station : null;
+  const radioNow = st
+    ? {
+        name: st.name,
+        title: r.state === 'playing' ? r.now?.text || '' : r.state === 'paused' ? _t('Szünetel') : r.state === 'loading' ? _t('Csatlakozás…') : r.error || '',
+        logo: /^https?:/.test(st.logo || '') ? st.logo : '',
+        playing: r.state === 'playing',
+        fav: isRadioFav(st.id),
+        rec: !!recordingOf(st.id),
+        full: radioFullOpen(),
+        volume: fx().volume,
+        sleep: r.sleepAt ? Math.max(1, Math.round((r.sleepAt - Date.now()) / 60e3)) : 0,
+      }
+    : null;
+  const stItem = (x) => ({ id: x.id, name: x.name, logo: /^https?:/.test(x.logo || '') ? x.logo : '', sub: [x.country, x.genres?.[0]].filter(Boolean).join(' · ') });
+  const ch0 = player.active ? player.channel : null;
   const recent = getChannels(store.profile?.recent || []).slice(0, 12).map(chItem);
-  return JSON.stringify({ now, favs, recent, results, volume: video.muted ? 0 : video.volume, muted: video.muted, paused: video.paused, profile: store.profile?.name || '' });
+  return JSON.stringify({
+    now, favs, recent, results, volume: video.muted ? 0 : video.volume, muted: video.muted, paused: video.paused, profile: store.profile?.name || '',
+    fav: !!(ch0 && !ch0.vod && store.profile?.favorites?.includes(ch0.id)),
+    rec: !!(ch0 && player.recHooks?.isRec?.(ch0.id)),
+    canRecord,
+    caps: { mini: !!api.caps?.mini, cast: !!player.castHooks?.available },
+    radioOn, radioVis: audioFxAvailable, radio: radioNow,
+    rfavs: radioOn ? radioFavs().slice(0, 40).map(stItem) : [],
+    rrecent: radioOn ? radioRecent().slice(0, 12).map(stItem) : [],
+    rresults: radioOn ? rresults : null,
+  });
 }
 const pushState = () => info && api.rcState(stateJson());
 
@@ -250,7 +324,8 @@ function findChannels(q) {
   };
 }
 
-const NAV = /^(home|tv|guide|vod|favorites|browse|recordings|help|search)$/;
+const NAV = /^(home|tv|guide|vod|favorites|browse|recordings|help|search|radio|radio-guide|sport)$/;
+const NAV_HASH = { 'radio-guide': 'radio?tab=guide' };
 
 // ---------------------------------------------------------------------------
 // Egérkurzor a telefon érintőpadjáról: húzás = mozgatás, koppintás = kattintás, két ujjal = görgetés.
@@ -317,9 +392,37 @@ function scrollCursor(dx, dy) {
   (el && el !== document.body ? el : document.scrollingElement || document.documentElement).scrollBy({ left: dx, top: dy });
 }
 
+/** A rádió szól-e (és nincs nyitva videó) – ilyenkor a hangerő, a szünet és a csatornaváltás a rádióé. */
+const radioLive = () => radioPlayer.active && !player.active;
+const SLEEP_STEPS = [0, 15, 30, 60, 90];
+
 async function command({ c, a }) {
   const live = player.active;
+  // a vezérlő fül közös gombjai rádiózás közben a rádióra hatnak
+  if (radioLive() && (c === 'toggle' || c === 'chup' || c === 'chdown' || c === 'vol' || c === 'volup' || c === 'voldown' || c === 'mute')) {
+    if (c === 'toggle') radioPlayer.toggle();
+    else if (c === 'chup' || c === 'chdown') radioPlayer.step(c === 'chup' ? -1 : 1);
+    else if (c === 'vol' && Number.isFinite(Number(a))) radioPlayer.setVolume(Math.min(1, Math.max(0, Number(a))));
+    else if (c === 'volup' || c === 'voldown') radioPlayer.setVolume(Math.min(1, Math.max(0, fx().volume + (c === 'volup' ? 0.08 : -0.08))));
+    else if (c === 'mute') radioPlayer.setVolume(fx().volume > 0 ? 0 : 0.8);
+    setTimeout(pushState, 250);
+    return;
+  }
+  if (c.startsWith('r') && /^r(play|toggle|prev|next|stop|fav|rec|vol|full|vis|sleep|find)$/.test(c)) {
+    await radioCommand(c, a);
+    setTimeout(pushState, 250);
+    return;
+  }
   switch (c) {
+    case 'pfav':
+      if (live && !player.channel.vod) {
+        const on = store.toggleFavorite(player.channel.id);
+        toast(on ? _t('{name} hozzáadva a kedvencekhez', { name: player.channel.name }) : _t('{name} eltávolítva a kedvencek közül', { name: player.channel.name }));
+      }
+      break;
+    case 'prec':
+      if (live) player.recHooks?.toggle();
+      break;
     case 'key':
       if (/^(Arrow(Up|Down|Left|Right)|Enter|Escape|Backspace)$/.test(a)) {
         document.body.classList.add('rc-nav'); // a kijelölés kerete látsszon (programból küldött billentyűnél a böngésző nem rajzolná)
@@ -389,8 +492,9 @@ async function command({ c, a }) {
     }
     case 'nav':
       if (!NAV.test(a)) break;
+      if ((a === 'radio' || a === 'radio-guide') && !radioMenuOn()) break; // (gyerekprofilban nincs rádió)
       if (live) player.close();
-      location.hash = '#/' + a;
+      location.hash = '#/' + (NAV_HASH[a] || a);
       break;
     case 'menu':
       if (a === 'close') {
@@ -404,6 +508,8 @@ async function command({ c, a }) {
       else if (a === 'list') player.toggleSide();
       else if (a === 'full') api.setFullscreen?.(!player.fullscreen);
       else if (a === 'stats') toggleStreamInfo(player, $('#player'), video);
+      else if (a === 'mini' && api.caps?.mini) player.setMini(!player.mini);
+      else if (a === 'cast' && player.castHooks?.available) player.castHooks.menu();
      
       player.poke?.();
       break;
@@ -418,6 +524,75 @@ async function command({ c, a }) {
       break;
   }
   setTimeout(pushState, 250);
+}
+
+/** A rádió parancsai a telefonról (a gyerekprofilban nincs rádió). */
+async function radioCommand(c, a) {
+  if (!radioMenuOn()) return;
+  const r = radioPlayer;
+  const st = r.station;
+  switch (c) {
+    case 'rplay': {
+      const x = radio.byId.get(a) || [...radioFavs(), ...radioRecent()].find((y) => y.id === a) || rresults?.items?.find((y) => y.id === a);
+      if (!x) break;
+      const s0 = radio.byId.get(a) || stationFrom(x.urls ? x : (radioFavs().find((y) => y.id === a) || radioRecent().find((y) => y.id === a) || x));
+      if (s0?.urls?.length) r.play(s0, radioFavs().some((y) => y.id === s0.id) ? radioFavs() : null);
+      break;
+    }
+    case 'rtoggle':
+      if (r.active) r.toggle();
+      else {
+        const last = radioRecent()[0] || radioFavs()[0];
+        if (last) r.play(last);
+      }
+      break;
+    case 'rprev':
+    case 'rnext':
+      if (r.active) r.step(c === 'rnext' ? 1 : -1);
+      break;
+    case 'rstop':
+      closeRadioFull();
+      if (r.active) r.stop();
+      break;
+    case 'rfav':
+      if (st) {
+        const on = toggleRadioFav(st);
+        toast(on ? _t('{name} hozzáadva a kedvencekhez', { name: st.name }) : _t('{name} eltávolítva a kedvencek közül', { name: st.name }));
+      }
+      break;
+    case 'rrec':
+      if (st && canRecord) await toggleRadioRecording(st).catch(() => {});
+      break;
+    case 'rvol': {
+      const v = Number(a);
+      if (Number.isFinite(v)) r.setVolume(Math.min(1, Math.max(0, v)));
+      break;
+    }
+    case 'rfull':
+      if (!r.active) break;
+      if (radioFullOpen()) closeRadioFull();
+      else document.dispatchEvent(new Event('adas-radio-expand'));
+      break;
+    case 'rvis': {
+      if (!audioFxAvailable) break;
+      const ids = VIS_MODES.map(([id]) => id);
+      const next = ids[(ids.indexOf(fx().vis) + 1) % ids.length];
+      setFx({ vis: next });
+      toast(`${_t('Hangkép')}: ${VIS_MODES.find(([id]) => id === next)?.[1] || next}`);
+      break;
+    }
+    case 'rsleep': {
+      if (!r.active) break;
+      const left = r.sleepAt ? Math.round((r.sleepAt - Date.now()) / 60e3) : 0;
+      const next = SLEEP_STEPS.find((m) => m > left) || 0;
+      r.setSleep(next);
+      toast(next ? _t('A rádió {m} perc múlva elhalkul és kikapcsol.', { m: next }) : _t('Elalvás-időzítő kikapcsolva'));
+      break;
+    }
+    case 'rfind':
+      findRadio(String(a || '').slice(0, 100));
+      break;
+  }
 }
 
 export async function startRemote() {
