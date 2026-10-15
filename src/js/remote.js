@@ -131,7 +131,7 @@ function chBtns(list,empty){return (list||[]).map(function(f){return '<button da
 function render(s){last=s;$('pin').hidden=true;$('ui').hidden=false;$('tabs').hidden=false;var n=s.now;
 $('now').innerHTML=n?((n.logo?'<img src="'+esc(n.logo)+'" alt="" onerror="this.remove()">':'')+'<div class="tx"><b>'+esc(n.name)+'</b><small>'+esc(n.title||'')+'</small>'+(n.next?'<small>'+${JSON.stringify(_t('Utána:'))}+' '+esc(n.next)+'</small>':'')+(n.progress!=null?'<div class="bar"><i style="width:'+Math.round(n.progress*100)+'%"></i></div>':'')+'</div>'):'<div class="tx"><b>'+esc(s.profile||'Adás')+'</b><small>'+${JSON.stringify(_t('Most nem megy semmi – válassz csatornát a Csatornák fülön, vagy nyomd meg a CH gombot.'))}+'</small></div>';
 if(document.activeElement!==$('vol'))$('vol').value=s.volume==null?1:s.volume;$('muteBtn').className=s.muted?'on':'';
-$('favs').innerHTML=chBtns(s.favs,${JSON.stringify(_t('Nincs kedvenc csatorna.'))});$('recent').innerHTML=chBtns(s.recent,${JSON.stringify(_t('Még nincs.'))});if(s.results)$('results').innerHTML=chBtns(s.results,${JSON.stringify(_t('Nincs találat.'))})}
+$('favs').innerHTML=chBtns(s.favs,${JSON.stringify(_t('Nincs kedvenc csatorna.'))});$('recent').innerHTML=chBtns(s.recent,${JSON.stringify(_t('Még nincs.'))});var r=s.results,cq=$('q').value.trim();$('results').innerHTML=r&&r.q===cq&&cq?chBtns(r.items,${JSON.stringify(_t('Nincs találat.'))}):''}
 function state(){if(!pin&&!key)return ask();api('state').then(render).catch(function(e){if(e.message==='wait')return ask(${JSON.stringify(_t('Túl sok hibás próbálkozás – várj néhány percet.'))});if(e.message==='pin'){try{localStorage.removeItem('adasPin');localStorage.removeItem('adasKey')}catch(x){}pin='';key='';ask(${JSON.stringify(_t('Hibás PIN, vagy a tévén / gépen új PIN készült. Olvasd be újra a QR-kódot, vagy írd be a PIN-t.'))})}})}
 // A parancsok sorban mennek ki (egymás után, nem párhuzamosan) – így gyors mozdulatnál sem keverednek össze
 var q0=Promise.resolve(),stT=0;
@@ -140,7 +140,7 @@ function cmd(c,a){if(navigator.vibrate)navigator.vibrate(12);return send(c,a)}
 document.addEventListener('click',function(e){var t=e.target.closest('[data-t]');if(t){[].forEach.call(document.querySelectorAll('.tabs button'),function(b){b.className=b===t?'sel':''});[].forEach.call(document.querySelectorAll('.pane'),function(p){p.className='pane'+(p.id==='p-'+t.dataset.t?' sel':'')});return}
 var b=e.target.closest('button[data-c]');if(!b)return;cmd(b.dataset.c,b.dataset.a)});
 $('vol').addEventListener('input',function(){clearTimeout(this._t);var v=this.value;this._t=setTimeout(function(){cmd('vol',v)},120)});
-var qt;$('q').addEventListener('input',function(){clearTimeout(qt);var v=this.value.trim();qt=setTimeout(function(){if(v)cmd('find',v);else{$('results').innerHTML=''}},300)});
+var qt;$('q').addEventListener('input',function(){clearTimeout(qt);var v=this.value.trim();qt=setTimeout(function(){if(!v)$('results').innerHTML='';cmd('find',v)},300)});
 $('sendTxt').onclick=function(){var v=$('txt').value;if(v){cmd('text',v);$('txt').value='';toast(${JSON.stringify(_t('Elküldve'))})}};
 $('searchTxt').onclick=function(){var v=$('txt').value.trim();if(v){cmd('search',v);toast(${JSON.stringify(_t('Keresés:'))}+' '+v)}};
 // Érintőpad – két mód:
@@ -174,7 +174,9 @@ state();setInterval(function(){if(document.visibilityState!=='hidden')state()},2
 </script></body></html>`;
 }
 
-let results = null; // a telefonról indított csatornakeresés találatai (a következő állapottal mennek ki)
+// a telefonról indított csatornakeresés találatai a keresőkifejezéssel (a következő állapottal mennek ki; a
+// telefon csak a saját, aktuális kifejezéséhez tartozót rajzolja ki – egy elavult válasz nem hozza vissza)
+let results = null; // { q, items } vagy null
 const httpLogo = (c) => (/^https?:/.test(c?.logo || '') ? c.logo : '');
 const chItem = (c) => ({ id: c.id, name: c.name, logo: httpLogo(c), sub: epg.now(c.id, Date.now())?.cur?.title || '' });
 
@@ -203,14 +205,32 @@ function key(k) {
   if (k === 'Enter' && !ev.defaultPrevented && t !== document.body && t.click) t.click();
 }
 
-/** Szöveg a kijelölt beviteli mezőbe; ha nincs ilyen, keresés az Adásban. */
+/**
+ * Szöveg a kijelölt beviteli mezőbe (B20): a kijelölt rész helyére, illetve a kurzorhoz – mint a gépelés; a
+ * hosszkorlát (maxlength) érvényes, csak olvasható / tiltott mezőbe nem ír. Ahol a mező nem támogat
+ * kijelölést (pl. e-mail, szám), a végéhez fűz. Ha nincs kijelölt mező: keresés az Adásban.
+ */
 function typeText(text) {
   const el = document.activeElement;
-  if (el?.matches?.('input:not([type=checkbox]):not([type=range]):not([type=radio]), textarea')) {
-    el.value = (el.value || '') + text;
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-  } else search(text);
+  if (!el?.matches?.('input:not([type=checkbox]):not([type=range]):not([type=radio]), textarea')) return search(text);
+  if (el.readOnly || el.disabled) return;
+  const v = el.value || '';
+  let a = null;
+  let b = null;
+  try {
+    a = el.selectionStart;
+    b = el.selectionEnd;
+  } catch {}
+  if (a == null || b == null) a = b = v.length;
+  const max = el.maxLength > 0 ? el.maxLength : Infinity;
+  const ins = String(text).slice(0, Math.max(0, max - (v.length - (b - a))));
+  try {
+    el.setRangeText(ins, a, b, 'end');
+  } catch {
+    el.value = v.slice(0, a) + ins + v.slice(b);
+  }
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
 }
 function search(q) {
   if (player.active) player.close();
@@ -222,9 +242,12 @@ function findChannels(q) {
   const t = norm(q).split(/\s+/).filter(Boolean);
   if (!t.length) return (results = null);
   // (az elérhetők elöl)
-  results = byAvailability(visible().filter((c) => t.every((w) => c.search.includes(w))))
-    .slice(0, 30)
-    .map(chItem);
+  results = {
+    q: String(q).trim(),
+    items: byAvailability(visible().filter((c) => t.every((w) => c.search.includes(w))))
+      .slice(0, 30)
+      .map(chItem),
+  };
 }
 
 const NAV = /^(home|tv|guide|vod|favorites|browse|recordings|help|search)$/;
