@@ -13,6 +13,7 @@ import { radioPlayer, fx, setFx, EQ_PRESETS, VIS_MODES, audioFxAvailable, drawVi
 import { epg } from './epg.js';
 import { canRecord, recordingOf, toggleRadioRecording } from './recorder.js';
 import { openRadioProgram } from './radiopage.js';
+import { radioStatsHtml, startRadioStats, stopRadioStats } from './radiostats.js';
 
 const P = {
   pause: '<svg viewBox="0 0 24 24"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg>',
@@ -25,6 +26,7 @@ const P = {
   sound: '<svg viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>',
   eq: '<svg viewBox="0 0 24 24"><path d="M5 3h2v6h2v2H3V9h2zm0 10h2v8H5zm6-10h2v10h2v2H9v-2h2zm0 14h2v4h-2zm6-14h2v2h2v2h-6V5h2zm0 6h2v12h-2z"/></svg>',
   sleep: '<svg viewBox="0 0 24 24"><path d="M12.3 2a9.8 9.8 0 1 0 9.6 12.3A7.8 7.8 0 0 1 12.3 2z"/></svg>',
+  stats: '<svg viewBox="0 0 24 24"><path d="M4 20h16v2H2V2h2v18zm3-3h2v-6H7v6zm4 0h2V7h-2v10zm4 0h2v-9h-2v9zm4 0h2V4h-2v13z"/></svg>',
   hist: '<svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l4 4 4-4H6a7 7 0 1 1 2.05 4.95l-1.42 1.42A9 9 0 1 0 13 3zm-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/></svg>',
 };
 
@@ -201,6 +203,7 @@ function openFull() {
 function closeFull() {
   if (!full) return false;
   menuKind = '';
+  stopRadioStats();
   full.remove();
   full = null;
   document.body.classList.remove('radio-full');
@@ -230,6 +233,7 @@ function drawFxChips() {
     audioFxAvailable && mb('eq', P.eq, _t('Hangszín'), `${_t('Hangszínszabályzó')}: ${eqName}`, f.eq !== 'flat'),
     mb('sleep', P.sleep, left ? _t('{m} perc', { m: left }) : _t('Elalvás'), _t('Elalvás-időzítő'), !!left),
     mb('hist', P.hist, _t('Előtte szólt'), _t('Előtte szólt')),
+    mb('stats', P.stats, _t('Adás adatai'), _t('Adás adatai (D)')),
   ]
     .filter(Boolean)
     .join('');
@@ -253,6 +257,7 @@ function renderMenu() {
   else if (menuKind === 'eq') body = `<h4>${_t('Hangszínszabályzó')}</h4>${EQ_PRESETS.map(([id, n]) => mi('data-eq', id, n, f.eq === id)).join('')}`;
   else if (menuKind === 'sleep')
     body = `<h4>${_t('Elalvás-időzítő')}</h4>${left ? `<p class="muted small">${_t('Még {m} perc', { m: left })}</p>` : ''}${SLEEP.map((m) => mi('data-sleep', String(m), m ? _t('{m} perc', { m }) : _t('Ki'), m ? false : !left)).join('')}`;
+  else if (menuKind === 'stats') body = `<h4>${_t('Adás adatai')}</h4>${radioStatsHtml()}`;
   else if (menuKind === 'hist') {
     // (az éppen szóló szám nem „előtte szólt”)
     const hist = r.history.filter((h, i) => i > 0 || h.text !== r.now.text);
@@ -287,6 +292,8 @@ function renderMenu() {
 function openMenu(kind) {
   if (menuKind === kind) return void closeMenu(true);
   menuKind = kind;
+  if (kind === 'stats') startRadioStats();
+  else stopRadioStats();
   drawFxChips();
   const menu = full.querySelector('.rf-menu');
   (menu.querySelector('.menu-item.sel') || menu.querySelector('button, a'))?.focus({ preventScroll: true });
@@ -296,6 +303,7 @@ function closeMenu(focusBtn = false) {
   if (!full || !menuKind) return false;
   const k = menuKind;
   menuKind = '';
+  stopRadioStats();
   full.querySelector('.rf-menu').hidden = true;
   drawFxChips();
   if (focusBtn) full.querySelector(`[data-rfm="${k}"]`)?.focus({ preventScroll: true });
@@ -380,6 +388,8 @@ function updateFull() {
   if (menuKind === 'hist') renderMenu();
   full.classList.toggle('is-playing', r.state === 'playing');
 }
+// az Adás adatai másodpercenként frissül, amíg a menüje nyitva van
+setInterval(() => full && menuKind === 'stats' && renderMenu(), 1000);
 // az elalvás-időzítő hátralévő ideje percenként
 setInterval(() => full && radioPlayer.sleepAt && drawFxChips(), 30e3);
 
@@ -391,6 +401,8 @@ export function radioKey(e) {
   const k = e.key;
   const typing = e.target.matches?.('input:not([type=checkbox]):not([type=range]), textarea, select');
   if (full && (k === 'Escape' || ((k === 'Backspace' || k === 'BrowserBack') && !typing))) return closeMenu(true) || closeFull();
+  // D: Adás adatai (mint a tévés lejátszóban)
+  if (full && (k === 'd' || k === 'D') && !typing && !e.ctrlKey && !e.altKey && !e.metaKey) return (openMenu('stats'), true);
   if (['MediaPlayPause', 'MediaPlay', 'MediaPause'].includes(k)) {
     if (k === 'MediaPlay') radioPlayer.resume();
     else if (k === 'MediaPause') radioPlayer.pause();

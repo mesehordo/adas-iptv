@@ -2183,5 +2183,6 @@ export default {
  "Hangszín": "Tone",
  "Elalvás": "Sleep",
  "Átúsztatás adóváltáskor": "Crossfade when switching stations",
- "{s} mp": "{s} s"
+ "{s} mp": "{s} s",
+ "Adás adatai (D)": "Stream info (D)"
 };

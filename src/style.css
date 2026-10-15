@@ -1682,6 +1682,11 @@ body.radio-full > :not(#radio-full):not(#modal-root):not(#toasts) { visibility: 
 .rf-menu .menu-item:hover, .rf-menu .menu-item:focus-visible { background: rgba(127, 127, 127, 0.18); color: var(--text-strong); }
 .rf-menu .menu-item.sel { color: var(--text-strong); }
 .rf-menu .rf-h { padding: 6px 16px; }
+.rf-stats { display: grid; grid-template-columns: auto auto; gap: 4px 16px; margin: 0; padding: 4px 16px 10px; font-size: 0.84rem; }
+.rf-stats dt { color: var(--muted); }
+.rf-stats dd { margin: 0; color: var(--text-strong); text-align: right; font-variant-numeric: tabular-nums; }
+.rf-stats dd.warn { color: var(--warn, #f5a524); }
+.rf-menu .ps-hint { padding: 0 16px 10px; margin: 0; max-width: 360px; font-size: 0.8rem; color: var(--warn, #f5a524); }
 .rf-h { display: flex; align-items: center; gap: 10px; }
 .rf-h img, .rf-h-ph { width: 40px; height: 40px; border-radius: var(--radius); flex: none; object-fit: cover; background: var(--bg-3); display: flex; align-items: center; justify-content: center; }
 .rf-h > span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
