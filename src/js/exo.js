@@ -40,6 +40,10 @@ export class ExoEngine {
     const v = this.video;
     const st = this.st;
     const self = this;
+    // (B26) az alkalmazás hangereje és némítása átjön a natív lejátszóba (a videóelem eddigi állapota) – az
+    // első hallható pillanattól; a felülírás előtt kell kiolvasni
+    st.vol = Number.isFinite(v.volume) ? Math.max(0, Math.min(1, v.volume)) : 1;
+    st.muted = !!v.muted;
     const def = (k, get, set) => Object.defineProperty(v, k, { configurable: true, get, set });
     def('currentTime', () => (st.seekingTo != null ? st.seekingTo : st.pos), (t) => self.seek(t));
     def('duration', () => (st.dur > 0 ? st.dur : NaN));
@@ -70,6 +74,7 @@ export class ExoEngine {
         ua: this.stream.ua || '',
         referrer: this.stream.referrer || '',
         start: this.opts.startAt || 0,
+        volume: st.muted ? 0 : st.vol,
         prefAudio: /^[a-z]{2}$/.test(p.prefAudio || '') ? p.prefAudio : '',
         prefText: p.prefSubs || 'auto',
         uiLang, // 'auto' feliratnál: a felület nyelvű felirat az előnyben részesített
@@ -235,6 +240,9 @@ export class ExoEngine {
       A().exoStop();
     } catch {}
     for (const k of PROPS) delete this.video[k];
+    // a natív lejátszó közben beállított hangerő / némítás a következő (webes) motorra is átmegy
+    this.video.volume = this.st.vol;
+    this.video.muted = this.st.muted;
     this.subsEl?.remove();
     document.documentElement.classList.remove('native-video');
   }

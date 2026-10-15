@@ -91,6 +91,8 @@ class NativePlayer implements Player.Listener {
     player = new ExoPlayer.Builder(act, renderers).setMediaSourceFactory(new DefaultMediaSourceFactory(data, extractors)).build();
     player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true);
     player.addListener(this);
+    // (B26) az alkalmazás hangereje / némítása már az első hallható pillanattól
+    player.setVolume((float) Math.max(0, Math.min(1, o.optDouble("volume", 1))));
 
     // Kedvenc hang- és feliratnyelv (a profil beállítása)
     TrackSelectionParameters.Builder p = player.getTrackSelectionParameters().buildUpon();
