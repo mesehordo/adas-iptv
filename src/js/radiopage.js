@@ -63,7 +63,12 @@ export function stationCardHtml(st, ctx = '') {
 document.addEventListener('error', (e) => e.target.classList?.contains('rlogo') && e.target.remove(), true);
 document.addEventListener('load', (e) => {
   const i = e.target;
-  if (i.classList?.contains('rlogo') && i.naturalWidth === 161 && i.naturalHeight === 81 && /imgur\.com/i.test(i.currentSrc || i.src)) i.remove();
+  if (!i.classList?.contains('rlogo') || i.naturalWidth !== 161 || i.naturalHeight !== 81) return;
+  let host = '';
+  try {
+    host = new URL(i.currentSrc || i.src).hostname.toLowerCase();
+  } catch {}
+  if (host === 'imgur.com' || host.endsWith('.imgur.com')) i.remove();
 }, true);
 
 function rowWrap(title, href, count, inner, cls = '') {

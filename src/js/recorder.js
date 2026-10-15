@@ -27,6 +27,12 @@ export const recPost = () => Math.max(0, Number(store.settings.recPost ?? 10));
 
 export const recordingOf = (chId) => [...active.entries()].find(([, r]) => r.chId === chId)?.[0];
 
+/** A felvételek adatai legfeljebb 500 fájlra (a legrégebbiek kerülnek ki). */
+function trimRecMeta(meta) {
+  const keys = Object.keys(meta);
+  if (keys.length > 500) for (const k of keys.slice(0, keys.length - 500)) delete meta[k];
+}
+
 async function startRec(ch, { title, until = 0, sched = null, progStart = 0, progStop = 0 } = {}) {
   const stream = player.channel?.id === ch.id && player.stream ? player.stream : orderedStreams(ch)[0];
   if (!stream) throw new Error(_t('A csatornának nincs forrása.'));
@@ -39,8 +45,7 @@ async function startRec(ch, { title, until = 0, sched = null, progStart = 0, pro
   if (r.file) {
     const meta = (store.settings.recMeta ||= {});
     meta[r.file] = { chId: ch.id, title: title || ch.name, at: Date.now(), progStart: progStart || 0, progStop: progStop || 0 };
-    const keys = Object.keys(meta);
-    if (keys.length > 500) for (const k of keys.slice(0, keys.length - 500)) delete meta[k];
+    trimRecMeta(meta);
     store.save();
   }
   bus.emit('rec');
@@ -62,6 +67,7 @@ async function startRadioRec(st, { title, until = 0, sched = null, progStart = 0
   if (r.file) {
     const meta = (store.settings.recMeta ||= {});
     meta[r.file] = { chId: st.id, title: title || st.name, at: Date.now(), progStart: progStart || 0, progStop: progStop || 0, radio: { name: st.name, logo: st.logo || '' } };
+    trimRecMeta(meta);
     store.save();
   }
   bus.emit('rec');

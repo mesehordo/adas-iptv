@@ -67,7 +67,13 @@ const keyOf = (name, cc) => {
 };
 const httpUrl = (u) => (/^https?:\/\/\S+$/i.test(String(u || '').trim()) ? String(u).trim() : '');
 
-function add(raw) {
+// Betöltési kör: a kényszerített újratöltés (forrás ki / be, saját lista) újat kezd – a korábbi kör késve
+// érkező eredménye már nem írhat az állapotba (adók, betöltött / folyamatban lévő tételek, hibák, esemény)
+let gen = 0;
+const live = (g) => g === gen;
+
+function add(raw, g = gen) {
+  if (!live(g)) return null;
   const url = httpUrl(raw.url);
   if (!url || !raw.name) return null;
   const k = keyOf(raw.name, raw.country);
@@ -116,29 +122,29 @@ async function rb(path, hours = 24) {
   }
   throw err;
 }
-const fromRb = (s) =>
+const fromRb = (s, g = gen) =>
   add({
     src: 'rb', name: s.name, url: s.url_resolved || s.url, logo: s.favicon, homepage: s.homepage, country: s.countrycode,
     tags: String(s.tags || '').split(',').filter(Boolean), codec: s.codec, bitrate: s.bitrate, rbId: s.stationuuid, votes: (s.clickcount || 0) + (s.votes || 0), rbOk: s.lastcheckok === 1,
-  });
+  }, g);
 
-async function loadRbCountry(cc) {
+async function loadRbCountry(cc, g) {
   const list = await rb(`/json/stations/bycountrycodeexact/${encodeURIComponent(cc)}?hidebroken=true&order=clickcount&reverse=true&limit=1500`);
-  return list.map(fromRb).filter(Boolean).length;
+  return list.map((s) => fromRb(s, g)).filter(Boolean).length;
 }
-async function loadRbTop() {
+async function loadRbTop(g) {
   const list = await rb('/json/stations/topclick/400?hidebroken=true', 12);
-  return list.map(fromRb).filter(Boolean).length;
+  return list.map((s) => fromRb(s, g)).filter(Boolean).length;
 }
-async function loadVerified(cc) {
+async function loadVerified(cc, g) {
   const { text } = await api.fetchText(`https://raw.githubusercontent.com/eyalev/verified-radio-streams/main/stations/${encodeURIComponent(cc.toUpperCase())}.json`, { maxAgeHours: 24 });
   const j = JSON.parse(text);
   return (j.stations || [])
-    .map((s) => add({ src: 'verified', name: s.name, url: s.stream, homepage: s.url, country: cc, tags: [...(s.genre || []), s.format === 'talk' ? 'talk' : ''].filter(Boolean), codec: s.codec, bitrate: s.bitrate, votes: s.votes || 0, verified: s.verified }))
+    .map((s) => add({ src: 'verified', name: s.name, url: s.stream, homepage: s.url, country: cc, tags: [...(s.genre || []), s.format === 'talk' ? 'talk' : ''].filter(Boolean), codec: s.codec, bitrate: s.bitrate, votes: s.votes || 0, verified: s.verified }, g))
     .filter(Boolean).length;
 }
 /** IPRD: az ország mappájának M3U-listái (a GitHub tartalomjegyzékéből – naponta legfeljebb egyszer). */
-async function loadIprd(cc) {
+async function loadIprd(cc, g) {
   const c = cc.toLowerCase();
   const { text } = await api.fetchText(`https://api.github.com/repos/iprd-org/iprd/contents/streams/${encodeURIComponent(c)}`, { maxAgeHours: 24 });
   const files = JSON.parse(text).filter((f) => f.type === 'file' && /\.m3u8?$/i.test(f.name) && httpUrl(f.download_url)).slice(0, 12);
@@ -146,23 +152,24 @@ async function loadIprd(cc) {
   for (const f of files) {
     try {
       const { text: m3u } = await api.fetchText(f.download_url, { maxAgeHours: 24 });
-      for (const e of parseM3U(m3u).entries) if (add({ src: 'iprd', name: e.name || e.title, url: e.url, logo: e.logo, country: cc, tags: String(e.group || '').split(/[;,]/) })) n++;
+      for (const e of parseM3U(m3u).entries) if (add({ src: 'iprd', name: e.name || e.title, url: e.url, logo: e.logo, country: cc, tags: String(e.group || '').split(/[;,]/) }, g)) n++;
     } catch {}
   }
   return n;
 }
 /** Saját rádiólisták (M3U) és rádiócsomagok: [{ id, name, url?, textKey?, text? }] */
 export const radioLists = () => [...(store.settings.radioLists || []).filter((l) => l.enabled !== false), ...packsOf('radio').filter((p) => (store.settings.builtinLists?.[p.id] ?? !p.off) !== false)];
-async function loadCustom() {
+async function loadCustom(g) {
   let n = 0;
   for (const l of radioLists()) {
+    if (!live(g)) return n;
     try {
       const text = l.url ? (await api.fetchText(l.url, { maxAgeHours: refreshHoursOf('radio', l) })).text : l.textKey ? (await api.docGet?.(l.textKey))?.text || '' : l.text || '';
       for (const e of parseM3U(text).entries)
-        if (add({ src: 'list:' + l.id, name: e.name || e.title, url: e.url, logo: e.logo, country: (e.country || '').slice(0, 2), tags: String(e.group || '').split(/[;,]/) })) n++;
-      delete radio.errors['list:' + l.id];
+        if (add({ src: 'list:' + l.id, name: e.name || e.title, url: e.url, logo: e.logo, country: (e.country || '').slice(0, 2), tags: String(e.group || '').split(/[;,]/) }, g)) n++;
+      if (live(g)) delete radio.errors['list:' + l.id];
     } catch (err) {
-      radio.errors['list:' + l.id] = String(err.message || err);
+      if (live(g)) radio.errors['list:' + l.id] = String(err.message || err);
     }
   }
   return n;
@@ -173,12 +180,14 @@ export function loadRadioCountry(cc) {
   cc = String(cc || '').toUpperCase();
   if (!/^[A-Z]{2}$/.test(cc) || radio.loaded.has(cc)) return Promise.resolve();
   if (radio.loading.has(cc)) return radio.loading.get(cc);
+  const g = gen;
   const p = (async () => {
     const jobs = [];
-    if (sourceOn('rb')) jobs.push(loadRbCountry(cc).catch((e) => (radio.errors.rb = String(e.message || e))));
-    if (sourceOn('verified')) jobs.push(loadVerified(cc).catch(() => 0)); // (nem minden országhoz van fájl)
-    if (sourceOn('iprd')) jobs.push(loadIprd(cc).catch(() => 0));
+    if (sourceOn('rb')) jobs.push(loadRbCountry(cc, g).catch((e) => live(g) && (radio.errors.rb = String(e.message || e))));
+    if (sourceOn('verified')) jobs.push(loadVerified(cc, g).catch(() => 0)); // (nem minden országhoz van fájl)
+    if (sourceOn('iprd')) jobs.push(loadIprd(cc, g).catch(() => 0));
     await Promise.all(jobs);
+    if (!live(g)) return;
     radio.loaded.add(cc);
     radio.loading.delete(cc);
     bus.emit('radio');
@@ -190,18 +199,22 @@ export function loadRadioCountry(cc) {
 /** Induláskor: a hazai ország, a világ legnépszerűbbjei, a saját listák. */
 export function loadRadio({ force = false } = {}) {
   if (force) {
+    gen++; // (a folyamatban lévő betöltések eredménye elévül)
     radio.byId.clear();
     radio.loaded.clear();
+    radio.loading.clear();
     radio.errors = {};
   }
   if (radio.loading.has('init')) return radio.loading.get('init');
+  const g = gen;
   const p = (async () => {
     const home = (store.settings.homeCountry === 'UK' ? 'GB' : store.settings.homeCountry) || 'HU';
     await Promise.all([
       loadRadioCountry(home),
-      !radio.loaded.has('top') && sourceOn('rb') ? loadRbTop().then(() => radio.loaded.add('top')).catch((e) => (radio.errors.rb = String(e.message || e))) : null,
-      !radio.loaded.has('custom') ? loadCustom().then(() => radio.loaded.add('custom')) : null,
+      !radio.loaded.has('top') && sourceOn('rb') ? loadRbTop(g).then(() => live(g) && radio.loaded.add('top')).catch((e) => live(g) && (radio.errors.rb = String(e.message || e))) : null,
+      !radio.loaded.has('custom') ? loadCustom(g).then(() => live(g) && radio.loaded.add('custom')) : null,
     ]);
+    if (!live(g)) return;
     radio.ready = true;
     radio.loading.delete('init');
     bus.emit('radio');
@@ -214,14 +227,14 @@ export function loadRadio({ force = false } = {}) {
 export async function searchRadioOnline(q) {
   if (!sourceOn('rb') || String(q).trim().length < 2) return [];
   const list = await rb(`/json/stations/search?name=${encodeURIComponent(q)}&hidebroken=true&order=clickcount&reverse=true&limit=80`, 6);
-  return list.map(fromRb).filter(Boolean);
+  return list.map((s) => fromRb(s)).filter(Boolean);
 }
 /** Műfaj a Radio Browserben (címke szerint, a világ legnépszerűbbjei). */
 export async function genreOnline(g) {
   const tag = { pop: 'pop', rock: 'rock', news: 'news', classical: 'classical', jazz: 'jazz', dance: 'dance', retro: 'oldies', folk: 'folk', hiphop: 'hiphop', chill: 'chillout', kids: 'kids', christian: 'christian' }[g];
   if (!tag || !sourceOn('rb')) return [];
   const list = await rb(`/json/stations/bytagexact/${encodeURIComponent(tag)}?hidebroken=true&order=clickcount&reverse=true&limit=120`, 24);
-  return list.map(fromRb).filter(Boolean);
+  return list.map((s) => fromRb(s)).filter(Boolean);
 }
 /** Az országok listája (Radio Browser): [{ code, count }] */
 export async function radioCountries() {
@@ -299,7 +312,13 @@ export function radioEpgEntries() {
   return [...list.values()].map((st) => ({ id: st.id, cc: (st.country || '').toLowerCase(), names: [st.name, ...(EPG_ALIASES[st.id] || [])] }));
 }
 /** Változott-e a párosítandó adók köre (a műsorújság-index újraépítéséhez). */
-export const radioEpgSig = () => `${radio.ready ? 1 : 0}:${radio.byId.size}:${(store.profile?.radioFavs || []).length}:${(store.profile?.radioRecent || [])[0]?.id || ''}`;
+// (a párosítandó adók azonosítói alapján: egy kedvenc cseréje másikra is új indexet kér)
+export function radioEpgSig() {
+  const ids = radioEpgEntries().map((e) => e.id).sort();
+  let h = 0;
+  for (const id of ids) for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return `${radio.ready ? 1 : 0}:${ids.length}:${h}`;
+}
 
 export const radioFavs = () => (store.profile.radioFavs || []).map(stationFrom);
 export const radioRecent = () => (store.profile.radioRecent || []).map(stationFrom);
