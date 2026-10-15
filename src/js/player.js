@@ -5,9 +5,9 @@ import { api, IS_WEBOS } from './api.js';
 import { store } from './store.js';
 import { epg } from './epg.js';
 import { catalog, orderedStreams, visible, getChannels, countryName, countryFlag, offlineLabel, geoLimited } from './catalog.js';
-import { Engine, applyQualityCap } from './engine.js';
+import { Engine } from './engine.js';
 // a minőségkorlát változása lejátszás közben is azonnal érvényes
-bus.on('settings', (k) => k === 'maxQuality' && applyQualityCap(player.engine?.hls));
+bus.on('settings', (k) => k === 'maxQuality' && player.engine?.capQuality?.());
 // a gombok be- / kikapcsolása lejátszás közben is azonnal látszik
 bus.on('settings', (k) => k === 'playerButtons' && player.active && player.renderControls());
 import { probeMedia, bridgeReason } from './bridge.js';

@@ -75,6 +75,7 @@ export class ExoEngine {
         referrer: this.stream.referrer || '',
         start: this.opts.startAt || 0,
         volume: st.muted ? 0 : st.vol,
+        maxHeight: Number(store.settings.maxQuality) || 0, // (B12) legnagyobb minőség (0: automatikus)
         prefAudio: /^[a-z]{2}$/.test(p.prefAudio || '') ? p.prefAudio : '',
         prefText: p.prefSubs || 'auto',
         uiLang, // 'auto' feliratnál: a felület nyelvű felirat az előnyben részesített
@@ -160,6 +161,12 @@ export class ExoEngine {
   }
   applyVolume() {
     A().exoVolume(this.st.muted ? 0 : this.st.vol);
+  }
+  /** (B12) a legnagyobb minőség változása lejátszás közben (régebbi natív oldalon nincs ilyen hívás) */
+  applyQualityCap() {
+    try {
+      A().exoMaxHeight?.(Number(store.settings.maxQuality) || 0);
+    } catch {}
   }
 
   // --- feliratok --------------------------------------------------------------------

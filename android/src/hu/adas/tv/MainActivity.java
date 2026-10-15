@@ -343,6 +343,11 @@ public class MainActivity extends Activity {
     }
 
     @JavascriptInterface
+    public void exoMaxHeight(final int h) {
+      runOnUiThread(() -> nativePlayer.maxHeight(h));
+    }
+
+    @JavascriptInterface
     public void exoSelect(final String kind, final int group, final int index) {
       runOnUiThread(() -> nativePlayer.select(kind, group, index));
     }
