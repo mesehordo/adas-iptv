@@ -169,7 +169,6 @@ ${go('#/settings', 'Einstellungen öffnen')}`,
 <li>⚙ <b>Qualität und Quelle</b>. ${t('quality', 'Details')} Hier ist auch das Panel <b>📊 Stream-Infos</b> (<kbd>D</kbd>): Auflösung, Bitrate, Download-Geschwindigkeit, Puffer. ${t('stream-info', 'Details')}</li>
 <li>☰ <b>Senderliste</b> rechts, mit Filter.</li>
 <li>↺30 / ↻30 <b>Zurück- und Vorspulen</b> im Livestream, <b>Zu live springen</b>. ${t('timeshift', 'Details')}</li>
-<li>▦ <b>Mehrere Streams gleichzeitig</b>. ${t('multiview', 'Details')}</li>
 <li><b>Übertragen</b> auf Chromecast oder einen DLNA-Fernseher (Desktop-Version). ${t('cast', 'Details')}</li>
 <li><b>Mini-Player</b>, <b>Vollbild</b>; die Zusatztasten lassen sich einzeln ausblenden. ${t('pip-mini', 'Details')}</li>
 </ul>
@@ -234,7 +233,7 @@ ${go('#/settings?section=huinfo', 'Lieblingssprachen festlegen')}`,
 <h2>Mini-Player (<kbd>N</kbd>, nur Desktop-Version)</h2>
 <p>Das ganze Adás-Fenster schrumpft auf 480×270 Pixel, wandert in die untere rechte Bildschirmecke und bleibt <b>immer im Vordergrund</b>. Dann sind nur das Bild und einige Grundtasten zu sehen. Doppelklick oder <kbd>Esc</kbd>: zurück zur normalen Größe. Auf dem Fernseher nicht verfügbar.</p>
 <h2>Die Player-Tasten</h2>
-<p>Die Zusatztasten der Steuerleiste (Aufnahme, 30 s zurück / vor, vorheriger Sender, Favorit, Details, Ton und Untertitel (CC), Sleep-Timer, Senderliste, Mehrfachansicht, Übertragen, Mini-Player, Vollbild) lassen sich einzeln ausblenden: Einstellungen → Wiedergabe → <b>Player-Tasten</b>. Die Tastenkürzel funktionieren auch bei ausgeblendeter Taste; Pause, Lautstärke und das ⚙-Menü sind immer sichtbar.</p>`,
+<p>Die Zusatztasten der Steuerleiste (Aufnahme, 30 s zurück / vor, vorheriger Sender, Favorit, Details, Ton und Untertitel (CC), Sleep-Timer, Senderliste, Übertragen, Mini-Player, Vollbild) lassen sich einzeln ausblenden: Einstellungen → Wiedergabe → <b>Player-Tasten</b>. Die Tastenkürzel funktionieren auch bei ausgeblendeter Taste; Pause, Lautstärke und das ⚙-Menü sind immer sichtbar.</p>`,
   },
   {
     id: 'sleep',
@@ -1258,21 +1257,6 @@ ${go('#/browse?geo=hide', 'Sender ohne Geosperre')}`,
 <div class="note">Die Ergebnisse werden etwa alle 5 Minuten aktualisiert. Lässt sich eine Liga nicht laden, zeigt das Element Sport es unten an.</div>`,
   },
   {
-    id: 'multiview',
-    cat: 'watch',
-    title: 'Mehrere Streams gleichzeitig',
-    keywords: 'mehrere streams mehrfachansicht geteilter bildschirm 2 4 fenster sport nachrichten gleichzeitig',
-    body: `
-<p>Du kannst zwei oder vier Sender gleichzeitig sehen – z. B. mehrere Sportübertragungen oder Nachrichtensendungen. Öffnen: die Taste <b>▦</b> des Players (oder <kbd>V</kbd>) bzw. <i>Mehrere Streams gleichzeitig</i> im Profilmenü.</p>
-<ul>
-<li>Das <b>ausgewählte</b> Fenster (mit farbigem Rahmen) hat Ton, die übrigen laufen stumm. Wechseln: Pfeile, <kbd>1</kbd>–<kbd>4</kbd> oder Klick.</li>
-<li><kbd>OK</kbd> / ⇄: anderer Sender ins Fenster (mit Suche), ✕: Fenster leeren.</li>
-<li><kbd>F</kbd>, Doppelklick oder ⤢: der ausgewählte Sender im Vollbild; von dort wechselst du mit auf/ab zwischen den Sendern der Mehrfachansicht.</li>
-<li>Die Startsender: der, aus dem du gestartet hast, dann deine Favoriten.</li>
-</ul>
-<div class="note">Vier Streams gleichzeitig brauchen viel Bandbreite und Rechenleistung. Auf dem Fernseher sind höchstens zwei Fenster verfügbar.</div>`,
-  },
-  {
     id: 'cast',
     cat: 'watch',
     title: 'Auf den Fernseher übertragen (Chromecast, DLNA)',
@@ -1377,7 +1361,7 @@ ${go('#/settings?section=transfer', 'Synchronisierung zwischen Geräten')}`,
 <table class="help-table">
 <tr><td><b>🎮 Steuerung</b></td><td>Ein <b>Touchpad</b> in zwei Modi (darüber umschaltbar, das Handy merkt es sich): <b>🖱 Maus</b> – Ziehen bewegt einen Mauszeiger auf dem Bildschirm von Computer / Fernseher (langsame Bewegung = genau, schnelle = große Sprünge), Tippen = Klick, <b>mit zwei Fingern ziehen zum Scrollen</b> (in der Zeile unter dem Zeiger auch waagerecht), und das Element unter dem Zeiger wird ausgewählt; <b>✥ Pfeile</b> – Ziehen bewegt die Auswahl (wie die Pfeiltasten), Tippen = OK. In beiden: lange drücken = Zurück. Bei Fernbedienungsnutzung ist der Auswahlrahmen immer zu sehen. Darunter: Zurück, Start, Details; Spulen (±10 / ±30 s – bei Livestreams zeitversetzt); Pause; CH ▲ / ▼, vorheriger Sender, Stumm, <b>Lautstärkeregler</b>; Untertitel, Qualität, Senderliste, Vollbild; Pfeile und Sendernummer.</td></tr>
 <tr><td><b>📺 Sender</b></td><td>Eine <b>Suche</b> über alle Sender (filtert beim Tippen, zeigt auch die laufende Sendung), deine Favoriten und zuletzt gesehenen Sender – sie starten mit einem Tippen.</td></tr>
-<tr><td><b>☰ Mehr</b></td><td>Zu jeder Seite springen (TV, TV-Programm, Favoriten, VOD, Aufnahmen, Durchsuchen, Hilfe); <b>Text senden</b> (tippt mit der Handytastatur ins ausgewählte Feld oder startet eine Suche); Stream-Infos, Mehrere Streams gleichzeitig, Sleep-Timer.</td></tr>
+<tr><td><b>☰ Mehr</b></td><td>Zu jeder Seite springen (TV, TV-Programm, Favoriten, VOD, Aufnahmen, Durchsuchen, Hilfe); <b>Text senden</b> (tippt mit der Handytastatur ins ausgewählte Feld oder startet eine Suche); Stream-Infos, Sleep-Timer.</td></tr>
 </table>
 <div class="note">PIN und Schlüssel des QR-Codes lassen sich jederzeit neu erzeugen (Neue PIN) – ein altes Handy muss den QR-Code dann neu scannen (oder die neue PIN eingeben). Mit falscher PIN funktioniert die Steuerung nicht; nach vielen Fehlversuchen von einem Gerät wird dieses Gerät für 10 Minuten gesperrt (andere Handys funktionieren weiter).</div>
 ${go('#/settings?section=remote', 'Fernbedienung per Handy')}`,

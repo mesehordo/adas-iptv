@@ -12,6 +12,7 @@ import { bus, norm } from './util.js';
 import { parseM3U } from './catalog.js';
 import { packsOf } from './packs.js';
 import { _t } from './i18n.js';
+import { health } from './health.js';
 
 export const RADIO_SOURCES = [
   { id: 'rb', name: 'Radio Browser', desc: _t('Közösségi rádióadatbázis (radio-browser.info): több tízezer adó, keresés, műfajok, országok, népszerűség.') },
@@ -80,10 +81,12 @@ function add(raw, g = gen) {
   const id = 'r:' + k;
   let st = radio.byId.get(id);
   if (!st) {
-    st = { id, name: String(raw.name).trim().slice(0, 120), logo: '', url, urls: [], country: String(raw.country || '').toUpperCase().slice(0, 2), tags: [], genres: [], codec: '', bitrate: 0, homepage: '', rbId: '', votes: 0, verified: '', rbOk: null, sources: [], search: '' };
+    st = { id, name: String(raw.name).trim().slice(0, 120), logo: '', url, urls: [], country: String(raw.country || '').toUpperCase().slice(0, 2), tags: [], genres: [], codec: '', bitrate: 0, homepage: '', rbId: '', votes: 0, verified: '', rbOk: null, sources: [], search: '', geoUrls: [] };
     radio.byId.set(id, st);
   }
   if (!st.urls.includes(url)) st.urls.push(url);
+  // (a lista „[Geo-blocked]” / Ⓖ jelölése: csak „korlátozott lehet” – innen még kipróbálható)
+  if (raw.geo && !(st.geoUrls ||= []).includes(url)) st.geoUrls.push(url);
   if (!st.logo && httpUrl(raw.logo)) st.logo = httpUrl(raw.logo);
   if (!st.homepage && httpUrl(raw.homepage)) st.homepage = httpUrl(raw.homepage);
   for (const t of raw.tags || []) {
@@ -152,7 +155,7 @@ async function loadIprd(cc, g) {
   for (const f of files) {
     try {
       const { text: m3u } = await api.fetchText(f.download_url, { maxAgeHours: 24 });
-      for (const e of parseM3U(m3u).entries) if (add({ src: 'iprd', name: e.name || e.title, url: e.url, logo: e.logo, country: cc, tags: String(e.group || '').split(/[;,]/) }, g)) n++;
+      for (const e of parseM3U(m3u).entries) if (add({ src: 'iprd', name: e.name || e.title, url: e.url, logo: e.logo, country: cc, tags: String(e.group || '').split(/[;,]/), geo: e.labels?.includes('Geo-blocked') }, g)) n++;
     } catch {}
   }
   return n;
@@ -166,7 +169,7 @@ async function loadCustom(g) {
     try {
       const text = l.url ? (await api.fetchText(l.url, { maxAgeHours: refreshHoursOf('radio', l) })).text : l.textKey ? (await api.docGet?.(l.textKey))?.text || '' : l.text || '';
       for (const e of parseM3U(text).entries)
-        if (add({ src: 'list:' + l.id, name: e.name || e.title, url: e.url, logo: e.logo, country: (e.country || '').slice(0, 2), tags: String(e.group || '').split(/[;,]/) }, g)) n++;
+        if (add({ src: 'list:' + l.id, name: e.name || e.title, url: e.url, logo: e.logo, country: (e.country || '').slice(0, 2), tags: String(e.group || '').split(/[;,]/), geo: e.labels?.includes('Geo-blocked') }, g)) n++;
       if (live(g)) delete radio.errors['list:' + l.id];
     } catch (err) {
       if (live(g)) radio.errors['list:' + l.id] = String(err.message || err);
@@ -253,6 +256,34 @@ export function reportClick(st) {
 // Elérhetőség és sorrend
 // ---------------------------------------------------------------------------
 /** 3 – nálunk szólt; 2 – a forrás szerint él (Radio Browser ellenőrzés / friss Verified-próba); 1 – nem tudjuk; 0 – nálunk nem szólt. */
+/**
+ * Földrajzi korlát, a tévés csatornákéval azonos jelentéssel: 'sure' – innen biztosan nem hallgatható (a szerver
+ * 403 / 451-gyel utasította el, és egyik címe sem működik, nincs ki nem próbált); 'maybe' – a lista szerint
+ * minden címe korlátozott, és innen még nem szólt; '' – nem korlátozott.
+ */
+export function radioGeo(st) {
+  const h = st.urls.map((u) => store.healthOf(u));
+  if (h.length && h.every((x) => x && !x.ok) && h.some((x) => x.geo)) return 'sure';
+  if (st.geoUrls?.length && st.urls.every((u) => st.geoUrls.includes(u)) && !h.some((x) => x?.ok)) return 'maybe';
+  return '';
+}
+/** A kártya jelölése: null (nincs), 'Földrajzi korlát' vagy 'Offline' (mint a tévénél). */
+export function radioOffLabel(st) {
+  if (radioAvailability(st) !== 0) return null;
+  return radioGeo(st) === 'sure' ? _t('Földrajzi korlát') : _t('Offline');
+}
+// A lejátszólista-fájl (PLS / M3U / ASX / XSPF) a háttérpróbával nem ellenőrizhető (előbb fel kell oldani) –
+// ezek a lejátszáskor kapnak állapotot.
+const PLAYLIST_FILE = /\.(pls|m3u|asx|xspf)(\?|$)/i;
+/** A látható adók címeinek háttérellenőrzése (a tévés kártyákéval azonos sorban, lejátszás közben szünetel). */
+export function queueRadioChecks(list) {
+  const items = [];
+  for (const st of list) {
+    const streams = st.urls.filter((u) => !PLAYLIST_FILE.test(u)).map((url) => ({ url }));
+    if (streams.length) items.push({ id: st.id, streams });
+  }
+  if (items.length) health.queueChannels(items);
+}
 export function radioAvailability(st) {
   const h = st.urls.map((u) => store.healthOf(u)).filter(Boolean);
   if (h.some((x) => x.ok)) return 3;

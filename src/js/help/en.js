@@ -169,7 +169,6 @@ ${go('#/settings', 'Open Settings')}`,
 <li>⚙ <b>Quality and source</b>. ${t('quality', 'Details')} The <b>📊 Stream info</b> panel is here too (<kbd>D</kbd>): resolution, bitrate, download speed, buffer. ${t('stream-info', 'Details')}</li>
 <li>☰ <b>Channel list panel</b> on the right, with a filter.</li>
 <li>↺30 / ↻30 <b>Rewind and fast-forward</b> in a live stream, <b>Jump to live</b>. ${t('timeshift', 'Details')}</li>
-<li>▦ <b>Several streams at once</b>. ${t('multiview', 'Details')}</li>
 <li><b>Cast</b> to Chromecast or a DLNA TV (desktop version). ${t('cast', 'Details')}</li>
 <li><b>Mini player</b>, <b>Full screen</b>; the extra buttons can be hidden one by one. ${t('pip-mini', 'Details')}</li>
 </ul>
@@ -234,7 +233,7 @@ ${go('#/settings?section=huinfo', 'Set favourite languages')}`,
 <h2>Mini player (<kbd>N</kbd>, desktop version only)</h2>
 <p>The whole Adás window shrinks to 480×270 pixels, moves to the bottom-right corner of the screen and stays <b>always on top</b>. Only the picture and a few basic buttons show then. Double-click or <kbd>Esc</kbd>: back to normal size. Not available on TV.</p>
 <h2>The player buttons</h2>
-<p>The extra buttons on the control bar (record, 30 s back / forward, previous channel, favourite, details, audio and subtitles (CC), sleep timer, channel list, multi-view, cast, mini player, full screen) can be hidden one by one: Settings → Playback → <b>Player buttons</b>. The keys work even when the button is hidden; pause, volume and the ⚙ menu are always shown.</p>`,
+<p>The extra buttons on the control bar (record, 30 s back / forward, previous channel, favourite, details, audio and subtitles (CC), sleep timer, channel list, cast, mini player, full screen) can be hidden one by one: Settings → Playback → <b>Player buttons</b>. The keys work even when the button is hidden; pause, volume and the ⚙ menu are always shown.</p>`,
   },
   {
     id: 'sleep',
@@ -1248,7 +1247,7 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 <table class="help-table">
 <tr><td><b>Playing</b></td><td>Click or press OK on a station card. The <b>mini player</b> appears at the bottom: station, current song, a small spectrum, previous / pause / next station, favourite, volume. The ⌃ button (or the left side of the mini player) opens the <b>Now playing</b> view.</td></tr>
 <tr><td><b>Station details</b></td><td>As with TV channels: the ⓘ button on the card, right-click, <kbd>I</kbd> or a long OK press. It shows the current programme, the daily schedule (where a guide exists) with recording scheduling, the station’s details (country, genre, format, source directory, popularity) and its stream addresses – each can be started on its own.</td></tr>
-<tr><td><b>Now playing</b></td><td>The song title and artist (if the station sends them), its cover, the visuals, and search on YouTube or Spotify. Many stations only send their name or slogan – then that is shown instead. A bar at the bottom holds the controls and short buttons for the settings: <i>Visuals</i>, <i>Sound</i>, <i>Tone</i>, <i>Sleep</i> and <i>Played before</i> – each opens a small menu (<kbd>Esc</kbd> closes it). On a landscape screen everything fits on one screen; the background is the chosen theme's background.</td></tr>
+<tr><td><b>Now playing</b></td><td>The song title and artist (if the station sends them), its cover, the visuals, and search on YouTube or Spotify. Many stations only send their name or slogan – then that is shown instead. A bar at the bottom holds the controls and short buttons for the settings: <i>Visuals</i>, <i>Sound</i>, <i>Tone</i>, <i>Sleep</i>, <i>Played before</i> and <i>Stream info</i> (<kbd>D</kbd>: format, declared and measured bitrate, buffer, stalls, server) – each opens a small menu (<kbd>Esc</kbd> closes it). On a landscape screen everything fits on one screen; the background is the chosen theme's background.</td></tr>
 <tr><td><b>Visualisation</b></td><td>Spectrum, Wave, Mirror (bars mirrored up and down from the centre) and Waves (a soft, filled spectrum curve).</td></tr>
 <tr><td><b>Sound</b></td><td><i>Volume levelling</i> (for stations with different loudness), <i>Stereo widening</i>, <i>Retro radio</i> (the sound of an old medium-wave set), <i>Crossfade</i> when switching stations, and equaliser presets (Pop, Rock, Speech, Classical, Bass boost, Night). Your choice is kept.</td></tr>
 <tr><td><b>Sleep timer</b></td><td>After 15–90 minutes the radio fades out and turns off.</td></tr>
@@ -1256,9 +1255,9 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 <tr><td><b>Schedule</b></td><td>The Radio page’s <b>Schedule</b> tab works like the TV guide: favourites / home / all stations, days, <i>Timeline</i> and <i>On now</i>. Programmes come from the TV guide sources (the Hungarian epgshare01 source includes Kossuth, Petőfi and Bartók); the current and next programme also show on the card and in the Now playing view. Click a programme for its description, to listen, or to schedule a recording.</td></tr>
 <tr><td><b>Recording</b></td><td>In the desktop app, record right away with the <b>●</b> button on the mini player or in the Now playing view, or schedule from the schedule (with the same margins as TV recordings). The audio is saved unchanged as MP3 / AAC (streams in other formats are converted to AAC); on the <b>Recordings</b> tab you can play, trim or open them.</td></tr>
 </table>
-<p><b>Keys:</b> <kbd>Space</kbd> or the media key: pause / resume; <kbd>CH+</kbd> / <kbd>CH−</kbd>: next / previous station from the row you started from; <kbd>Esc</kbd>: close the Now playing view.</p>
+<p><b>Keys:</b> <kbd>Space</kbd> or the media key: pause / resume; <kbd>CH+</kbd> / <kbd>CH−</kbd>: next / previous station from the row you started from; <kbd>D</kbd>: stream info; <kbd>Esc</kbd>: close the Now playing view.</p>
 <p><b>Sources</b> (Settings → <i>Radio</i>, each can be turned off): <i>Radio Browser</i> (a community database with tens of thousands of stations), <i>Verified Radio Streams</i> (tested streams) and <i>IPRD</i> (a selection per country). The same station from several sources shows up as one card, and its addresses are tried one after another as fallbacks. You can also add your own M3U radio list from a web address, with a refresh interval, or load an .adaspack pack of kind “radio”.</p>
-<div class="note">Starting a video (live channel, film, multiview) stops the radio, and starting the radio closes the video. On LG webOS TVs, sound effects and visualisation aren’t available (the TV’s browser engine can’t access the stream’s audio); the radio still plays there. The menu item can be turned off under Settings → <i>Radio</i>; it is hidden in kids’ profiles.</div>`,
+<div class="note">Starting a video (live channel, film) stops the radio, and starting the radio closes the video. On LG webOS TVs, sound effects and visualisation aren’t available (the TV’s browser engine can’t access the stream’s audio); the radio still plays there. The menu item can be turned off under Settings → <i>Radio</i>; it is hidden in kids’ profiles.</div>`,
   },
   {
     id: 'sport-page',
@@ -1295,21 +1294,6 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 <h2>Channel suggestion</h2>
 <p>For every event the program looks in the TV guide for the channel it’s on (based on team names, league and sport, matched to the time), and a <b>📺 channel</b> button appears in the row – clicking it starts the stream. Uncertain matches are fainter. Only non-hidden channels with a TV guide are considered; favourites and sports channels are preferred.</p>
 <div class="note">Results refresh about every 5 minutes. If a league can’t be loaded, the bottom of the Sport unit says so.</div>`,
-  },
-  {
-    id: 'multiview',
-    cat: 'watch',
-    title: 'Several streams at once',
-    keywords: 'several streams multiview split screen 2 4 windows sport news at once',
-    body: `
-<p>You can watch two or four channels at once – for example several sports broadcasts or news programmes. To open it: the player’s <b>▦</b> button (or <kbd>V</kbd>), or <i>Several streams at once</i> in the profile menu.</p>
-<ul>
-<li>The <b>selected</b> window (with a coloured frame) has sound, the others play muted. Switch: arrows, <kbd>1</kbd>–<kbd>4</kbd>, or click.</li>
-<li><kbd>OK</kbd> / ⇄: another channel in the window (with search), ✕: clear the window.</li>
-<li><kbd>F</kbd>, double-click or ⤢: the selected channel full screen; from there up/down switches between the multi-view’s channels.</li>
-<li>The starting channels: the one you started it from, then your favourites.</li>
-</ul>
-<div class="note">Four streams at once need significant bandwidth and processor power. On TV at most two windows are available.</div>`,
   },
   {
     id: 'cast',
@@ -1416,7 +1400,7 @@ ${go('#/settings?section=transfer', 'Sync between devices')}`,
 <table class="help-table">
 <tr><td><b>🎮 Controller</b></td><td>A <b>touchpad</b> in two modes (switchable above it, the phone remembers): <b>🖱 Mouse</b> – dragging moves a mouse cursor on the computer / TV screen (slow movement = precise, fast = big jumps), tap = click, <b>drag with two fingers to scroll</b> (horizontally too, in the row under the cursor), and the item under the cursor gets selected; <b>✥ Arrows</b> – dragging moves the selection (like the arrow keys), tap = OK. In both: long press = Back. While using a remote the selection frame always shows. Below it: Back, Home, Details; seeking (±10 / ±30 s – timeshift on live streams); pause; CH ▲ / ▼, Previous channel, mute, <b>volume slider</b>; Subtitles, Quality, Channel list, Full screen; arrows and channel number.</td></tr>
 <tr><td><b>📺 Channels</b></td><td>A <b>search</b> across all channels (filters as you type, shows what’s on now too), your favourites and recently watched channels – they start with a single tap.</td></tr>
-<tr><td><b>☰ More</b></td><td>Jump to any page (TV, TV guide, Favourites, VOD, Recordings, Browse, Help); <b>send text</b> (types into the selected field with the phone’s keyboard, or starts a search); Stream info, Several streams at once, sleep timer.</td></tr>
+<tr><td><b>☰ More</b></td><td>Jump to any page (TV, TV guide, Favourites, VOD, Recordings, Browse, Help); <b>send text</b> (types into the selected field with the phone’s keyboard, or starts a search); Stream info, sleep timer.</td></tr>
 </table>
 <div class="note">The PIN and the QR code’s key can be regenerated at any time (New PIN) – an old phone then has to scan the QR code again (or type the new PIN). With a wrong PIN the controller doesn’t work; after many wrong attempts from one device, that device is locked out for 10 minutes (other phones keep working meanwhile).</div>
 ${go('#/settings?section=remote', 'Remote from phone')}`,

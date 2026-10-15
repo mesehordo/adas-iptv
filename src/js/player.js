@@ -26,7 +26,6 @@ export const PLAYER_BUTTONS = [
   ['subs', _t('Hang és felirat (CC)')],
   ['sleep', _t('Elalvási időzítő')],
   ['list', _t('Csatornalista')],
-  ['multi', _t('Több adás egyszerre')],
   ['cast', _t('Kivetítés')],
   ['mini', _t('Mini lejátszó')],
   ['full', _t('Teljes képernyő')],
@@ -57,7 +56,6 @@ P.nextEp ='<svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12Zm10-12v12h2V6h-2
 P.back30 = P.back10.replace('>10<', '>30<');
 P.fwd30 = P.fwd10.replace('>10<', '>30<');
 P.cast = '<svg viewBox="0 0 24 24"><path d="M21 3H3a2 2 0 0 0-2 2v3h2V5h18v14h-7v2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2ZM1 18v3h3a3 3 0 0 0-3-3Zm0-4v2a5 5 0 0 1 5 5h2a7 7 0 0 0-7-7Zm0-4v2a9 9 0 0 1 9 9h2A11 11 0 0 0 1 10Z"/></svg>';
-P.multi = '<svg viewBox="0 0 24 24"><path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm8-2h8v8h-8v-8Zm2 2v4h4v-4h-4Z"/></svg>';
 
 /** Idő mm:ss vagy ó:mm:ss alakban. */
 function fmtClock(sec) {
@@ -697,7 +695,6 @@ export const player = {
       ${pb('sleep') || this.sleepAt ? `<button class="icon-btn ${this.sleepAt ? 'on' : ''}" data-c="sleep" title="${_t('Elalvási időzítő')}">${P.moon}${this.sleepAt ? `<span class="badge">${sleepLeft}′</span>` : ''}</button>` : ''}
       <button class="icon-btn" data-c="settings" title="${_t('Minőség és forrás')}">${P.gear}</button>
       ${pb('list') ? `<button class="icon-btn" data-c="list" title="${_t('Csatornalista (L)')}">${P.list}</button>` : ''}
-      ${api.caps.multiview && !casting && pb('multi') ? `<button class="icon-btn" data-c="multi" title="${_t('Több adás egyszerre (V)')}">${P.multi}</button>` : ''}
       ${castBtn}
       ${api.caps.mini && pb('mini') ? `<button class="icon-btn" data-c="mini" title="${_t('Mini lejátszó (N)')}">${P.mini}</button>` : ''}
       ${api.caps.fullscreen && pb('full') ? `<button class="icon-btn" data-c="full" title="${_t('Teljes képernyő (F)')}">${this.fullscreen ? P.exitFull : P.full}</button>` : ''}`;
@@ -1029,10 +1026,6 @@ export const player = {
         this.engine.goLive();
         this.updateTimeshift();
         break;
-      case 'v':
-      case 'V':
-        if (api.caps.multiview) this.multiHooks?.open([this.channel]);
-        break;
       case 'd':
       case 'D':
         toggleStreamInfo(this, root, video);
@@ -1198,9 +1191,6 @@ root.addEventListener('click', (e) => {
       break;
     case 'cast':
       player.castHooks?.menu();
-      break;
-    case 'multi':
-      player.multiHooks?.open([player.channel]);
       break;
     case 'prev':
       player.step(-1);

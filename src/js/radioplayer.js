@@ -255,8 +255,24 @@ class RadioPlayer {
       const ok = await this.start(url, seq);
       if (seq !== this.seq) return;
       store.setHealth(raw, ok, 'play');
+      if (!ok && api.checkStreams && api.caps?.health) {
+        // (a lejátszó nem adja meg a HTTP-választ: a háttérben futó próba dönti el, hogy a szerver elutasította-e
+        // – 403 / 451; a következő cím kipróbálását nem tartja fel, és egy közben sikerült indítást nem ír felül)
+        const t = Date.now();
+        api
+          .checkStreams([{ url }])
+          .then((r) => {
+            const h = store.healthOf(raw);
+            if (r?.results?.[url] === 'geo' && h && !h.ok && h.t <= t + 1000) {
+              store.setHealth(raw, false, 'play', true);
+              bus.emit('health');
+            }
+          })
+          .catch(() => {});
+      }
       if (ok) {
         this.url = url;
+        this.rawUrl = raw; // (a lista szerinti cím – Adás adatai: hányadik forrás, lejátszólistából feloldva)
         this.state = 'playing';
         pushRadioRecent(st);
         reportClick(st);
@@ -454,7 +470,7 @@ class RadioPlayer {
 
 export const radioPlayer = new RadioPlayer();
 
-// a videó (élő adás, film, több adás egyszerre) indulásakor a rádió elhallgat
+// a videó (élő adás, film) indulásakor a rádió elhallgat
 bus.on('video-open', () => radioPlayer.playing && radioPlayer.pause());
 // Android: az alkalmazásból kilépve (ha a háttérlejátszás ki van kapcsolva) a rádió is elhallgat
 window.__adasRadioPause = () => radioPlayer.playing && radioPlayer.pause();
