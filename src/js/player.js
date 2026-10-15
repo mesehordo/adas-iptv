@@ -192,6 +192,10 @@ export const player = {
 
   async tryStream(stream, { forceHlsJs = false, forceBridge = null, noExo = false } = {}) {
     const ch = this.channel;
+    // (B27) műveletazonosító: bezárás és minden újabb indítás érvényteleníti ezt – minden várakozás után, még a
+    // mellékhatások és a motorindítás előtt ellenőrizzük (ugyanazon csatorna egymás utáni indításánál is)
+    const op = (this.op = (this.op || 0) + 1);
+    const stale = () => op !== this.op || this.channel !== ch;
     if (!stream) return this.showError();
     this.stream = stream;
     this.streamAt = Date.now();
@@ -208,13 +212,13 @@ export const player = {
       this.engine.stop();
       try {
         await this.castHooks.load(ch, stream, at);
-        if (this.channel !== ch) return;
+        if (stale()) return;
         this.resumeAt = 0;
         if (ch.vod) this.vodHooks?.start(ch);
         this.setLoading(false);
         this.renderControls();
       } catch (err) {
-        if (this.channel !== ch) return;
+        if (stale()) return;
         console.warn('Kivetítési hiba', stream.url, err);
         this.fallback(err);
       }
@@ -238,7 +242,7 @@ export const player = {
         this.setLoading(true, _t('A fájl sávjainak felismerése…'));
         await api.setStreamHeaders(stream.url, { ua: stream.ua, referrer: stream.referrer });
         const info = await Promise.race([probeMedia(stream.url), new Promise((r) => setTimeout(() => r(null), 10000))]);
-        if (this.channel !== ch) return;
+        if (stale()) return;
         const why = bridgeReason(info, stream.url);
         if (why) {
           bridge = info;
@@ -251,9 +255,10 @@ export const player = {
         this.setLoading(true, _t('Csatlakozás…'));
       }
       if (exo) await api.setStreamHeaders(stream.url, { ua: stream.ua, referrer: stream.referrer });
+      if (stale()) return; // (a fejlécbeállítás alatt bezárták / másikat indítottak: nincs motorindítás)
       this.bridged = !!bridge || exo;
       await this.engine.load(stream, { preferNative, timeshift: !ch.vod, vod: !!ch.vod, quick, bridge, exo, startAt: bridge || exo ? this.resumeAt || 0 : 0 });
-      if (this.channel !== ch) return;
+      if (stale()) return;
       if (ch.vod) {
         if (this.resumeAt > 0) {
           try {
@@ -283,7 +288,7 @@ export const player = {
       this.audioHooks?.onStart?.(video);
       bus.emit('health');
     } catch (err) {
-      if (this.channel !== ch || err.message === 'megszakítva') return;
+      if (stale() || err.message === 'megszakítva') return;
       console.warn('Lejátszási hiba', stream.url, err);
       // A natív lejátszó (Android) után ugyanez a fájl a WebView lejátszójával.
       if (this.engine.type === 'exo' && !noExo) {
@@ -445,6 +450,7 @@ export const player = {
 
   close() {
     if (!this.active) return;
+    this.op = (this.op || 0) + 1; // (B27: a függő indítás érvénytelen)
     stopStreamInfo(video);
     if (this.mini) this.setMini(false);
     if (this.fullscreen) api.setFullscreen(false);
