@@ -121,6 +121,30 @@ export function applyTheme() {
     document.head.append(style);
   }
   style.textContent = def ? def.compiled : '';
+  fitThumbInk();
+}
+
+/**
+ * A logó nélküli kártyák (tévécsatorna, rádióadó) monogramja: egyes stílusok világosra festik a kártyát, ott a
+ * fehér betű eltűnne. A stílus alkalmazása után megmérjük a kártyaháttér világosságát, és ahhoz igazítjuk.
+ */
+function fitThumbInk() {
+  const root = document.documentElement;
+  root.style.removeProperty('--thumb-ink');
+  const probe = document.createElement('div');
+  probe.className = 'card';
+  probe.style.cssText = 'position:absolute;left:-9999px;top:0;width:120px;visibility:hidden';
+  probe.innerHTML = '<div class="thumb" style="--h:210"><span class="initials">AB</span></div>';
+  document.body.append(probe);
+  const th = getComputedStyle(probe.firstChild);
+  const col = (/rgba?\([^)]+\)/.exec(th.backgroundImage) || [])[0] || th.backgroundColor;
+  probe.remove();
+  const [r, g, b, a = 1] = (col.match(/[\d.]+/g) || []).map(Number);
+  if (!(a > 0.4)) return; // (átlátszó háttér: a lap hátteréhez nem igazítunk)
+  const lin = (v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const lum = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  // (a fehér és a sötét betű kontrasztja kb. 0,22-es világosságnál egyezik: fölötte a sötét olvashatóbb)
+  if (lum > 0.22) root.style.setProperty('--thumb-ink', 'rgba(20, 20, 20, 0.72)');
 }
 
 // ---------------------------------------------------------------------------

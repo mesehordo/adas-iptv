@@ -63,7 +63,8 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
   automatikus következő rész.
 
 **Csatornalisták (1.3)**
-- Beépített, ki-be kapcsolható listák: iptv-org, Free-TV, Pluto TV, Samsung TV Plus, Plex, FreeCast Hub,
+- Beépített, ki-be kapcsolható listák: iptv-org, Free-TV, **Magyar TV adók** (válogatott, szabadon fogható magyar
+  adások – `lists/hu.m3u`, kiadás nélkül is frissíthető), Pluto TV, Samsung TV Plus, Plex, FreeCast Hub,
   DragonHall TV. Több bekapcsolt lista esetén az azonos csatornák egy csatornává olvadnak (tvg-id, majd
   név + ország, majd egyértelmű név alapján); a listák adásai egymás tartalék forrásai lesznek. A listák
   saját műsorújsága is betöltődik.

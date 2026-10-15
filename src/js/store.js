@@ -52,6 +52,12 @@ export const BUILTIN_PLAYLISTS = [
     desc: _t('Kézzel válogatott, ingyenesen fogható csatornák országonként (kb. 2000 adás).'),
   },
   {
+    id: 'hutv',
+    name: _t('Magyar TV adók'),
+    url: 'https://raw.githubusercontent.com/mesehordo/adas-iptv/main/lists/hu.m3u',
+    desc: _t('Válogatott, szabadon fogható magyar adások: közszolgálati, országos, városi és helyi tévék, Országgyűlés (kb. 80 adás).'),
+  },
+  {
     id: 'plutotv',
     regional: true, // ugyanaz a csatorna több ország változatával
     name: 'Pluto TV',
