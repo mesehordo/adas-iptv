@@ -18,6 +18,9 @@ let indexFor = null; // melyik csatornalistához készült a háttérszálnak el
 let indexRadio = ''; // … és melyik rádióadó-körhöz (radioEpgSig)
 let reloadAfter = false; // betöltés közben újabb kérés érkezett
 let reloadForce = false;
+// (B24) csatorna → a forrás címe, amelyből a mostani műsora jött: egy forrás sikertelen frissítésekor a
+// korábbi, még használható műsorai ebből maradnak meg (a már meglévő adatra hivatkozva, másolás nélkül)
+let sourceOf = new Map();
 const pending = new Map();
 const onWorkerMessage = (e) => {
   const p = pending.get(e.data.id);
@@ -34,16 +37,34 @@ const onWorkerMessage = (e) => {
 };
 // Androidon a háttérszál szkriptjét a memóriából indítjuk: a WebView a worker betöltését nem
 // mindig a keret saját kiszolgálóján át kéri.
-const workerReady = (IS_ANDROID
-  ? fetch(workerUrl).then((r) => r.text()).then((t) => new Worker(URL.createObjectURL(new Blob([t], { type: 'application/javascript' }))))
-  : Promise.resolve(new Worker(workerUrl))
-).then((w) => {
-  w.onmessage = onWorkerMessage;
-  return w;
-});
+// (B23) A háttérszál szükség szerint indul; sikertelen indítás vagy futási hiba után újra létrejön (a függő
+// kérések hibát kapnak, az index újraküldésre kerül) – nem marad egyetlen, végleg elutasított ígéret.
+let workerP = null;
+function getWorker() {
+  if (!workerP) {
+    workerP = (IS_ANDROID
+      ? fetch(workerUrl).then((r) => r.text()).then((t) => new Worker(URL.createObjectURL(new Blob([t], { type: 'application/javascript' }))))
+      : Promise.resolve().then(() => new Worker(workerUrl))
+    ).then((w) => {
+      w.onmessage = onWorkerMessage;
+      w.onerror = (e) => failWorker(new Error(e?.message || 'a műsorújság-feldolgozó leállt'));
+      return w;
+    });
+    workerP.catch(() => (workerP = null));
+  }
+  return workerP;
+}
+function failWorker(err) {
+  for (const p of pending.values()) p.reject(err);
+  pending.clear();
+  workerP?.then((w) => w.terminate()).catch(() => {});
+  workerP = null;
+  indexFor = null; // (az új háttérszál még nem kapta meg az indexet)
+  indexRadio = '';
+}
 /** Feldolgozás a háttérszálon. `data`: szöveg, vagy UTF-8 bájtok (asztali változat – ezt másolás nélkül adjuk át). */
 async function parse(data) {
-  const worker = await workerReady;
+  const worker = await getWorker();
   const id = ++reqId;
   const from = Date.now() - 24 * 3600e3;
   const to = Date.now() + 7 * 24 * 3600e3;
@@ -153,11 +174,39 @@ export const epg = {
     }
     this.loading = true;
     bus.emit('epg-loading', true);
-    // A párosításhoz szükséges index a háttérszálba megy – csak ha a csatornalista azóta változott
+    let failed = false;
+    try {
+      await this.loadOnce(force);
+      this.lastError = '';
+    } catch (err) {
+      // (B23) bármilyen hiba után is véget ér a betöltés – a következő kérés valóban újrapróbál
+      failed = true;
+      this.lastError = String(err?.message || err);
+      console.warn('Műsorújság:', err);
+    } finally {
+      this.loading = false;
+      bus.emit('epg-loading', false);
+    }
+    bus.emit('epg');
+    // ha közben kérték, vagy a csatornalista cserélődött (régi indexszel párosítottunk): még egy kör. Hiba után
+    // csak kifejezett újabb kérésre – az érvénytelen index magában ne indítson azonnali, végtelen újrapróbálást.
+    if (reloadAfter || (!failed && (indexFor !== catalog.channels || indexRadio !== radioEpgSig()))) {
+      const f = reloadForce;
+      reloadAfter = false;
+      reloadForce = false;
+      return this.load({ force: f });
+    }
+  },
+
+  async loadOnce(force) {
+    // A párosításhoz szükséges index a háttérszálba megy – csak ha a csatornalista azóta változott; érvényesnek
+    // csak a sikeres átadás után számít
     if (indexFor !== catalog.channels || indexRadio !== radioEpgSig()) {
-      indexFor = catalog.channels;
-      indexRadio = radioEpgSig();
-      (await workerReady).postMessage({ type: 'index', index: buildIndex() });
+      const forList = catalog.channels;
+      const forRadio = radioEpgSig();
+      (await getWorker()).postMessage({ type: 'index', index: buildIndex() });
+      indexFor = forList;
+      indexRadio = forRadio;
     }
     const sources = this.sources();
     const parsed = new Array(sources.length);
@@ -175,38 +224,45 @@ export const epg = {
             channels: parsed[n].nChannels,
             programs: parsed[n].count,
             at: cachedAt,
+            okAt: Date.now(),
           };
         } catch (err) {
-          this.status[src.url] = { ok: false, error: String(err.message || err), at: Date.now() };
+          // (az utolsó próbálkozás és az utolsó sikeres betöltés ideje külön)
+          this.status[src.url] = { ok: false, error: String(err.message || err), at: Date.now(), okAt: this.status[src.url]?.okAt || 0 };
         }
         bus.emit('epg-progress', this.status);
       }
     };
     await Promise.all([run(), run(), run()]);
-    // Párosítás a lista sorrendjében: a korábbi forrás élvez elsőbbséget.
+    // Párosítás a lista sorrendjében: a korábbi forrás élvez elsőbbséget. A sikertelen forrás korábbi, még
+    // használható műsorai megmaradnak (elavultként jelölve); a kikapcsolt / törölt forrásé nem (nincs a listában).
     const result = new Map();
+    const nextSource = new Map();
     sources.forEach((src, n) => {
-      if (!parsed[n]) return;
       let matched = 0;
-      for (const [chId, rows] of parsed[n].matched) {
-        if (result.has(chId)) continue; // az elsőként betöltött (magasabb prioritású) forrás nyer
-        result.set(chId, rows);
+      if (parsed[n]) {
+        for (const [chId, rows] of parsed[n].matched) {
+          if (result.has(chId)) continue; // az elsőként betöltött (magasabb prioritású) forrás nyer
+          result.set(chId, rows);
+          nextSource.set(chId, src.url);
+          matched++;
+        }
+        this.status[src.url].matched = matched;
+        return;
+      }
+      for (const [chId, url] of sourceOf) {
+        if (url !== src.url || result.has(chId) || !this.byChannel.has(chId)) continue;
+        result.set(chId, this.byChannel.get(chId));
+        nextSource.set(chId, url);
         matched++;
       }
-      this.status[src.url].matched = matched;
+      if (matched) Object.assign(this.status[src.url], { stale: true, matched });
     });
     this.byChannel = result;
-    this.loading = false;
-    this.loadedAt = Date.now();
-    bus.emit('epg-loading', false);
-    bus.emit('epg');
-    // ha közben kérték, vagy a csatornalista cserélődött (régi indexszel párosítottunk): még egy kör
-    if (reloadAfter || indexFor !== catalog.channels || indexRadio !== radioEpgSig()) {
-      const f = reloadForce;
-      reloadAfter = false;
-      reloadForce = false;
-      return this.load({ force: f });
-    }
+    sourceOf = nextSource;
+    this.lastAttempt = Date.now();
+    // (teljes kudarcnál a „frissítve” időpont nem lesz friss)
+    if (parsed.some(Boolean)) this.loadedAt = Date.now();
   },
 };
 
