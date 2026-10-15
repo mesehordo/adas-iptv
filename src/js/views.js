@@ -565,8 +565,10 @@ export function renderGuide(view) {
   else list = [...getChannels(p.favorites).filter((c) => visList.includes(c)), ...popular(visList.filter((c) => !favSet.has(c.id)))];
 
   const from = dayStart(Date.now(), guideState.day);
-  const to = from + 24 * 3600e3;
-  const width = 24 * 60 * PX_PER_MIN;
+  // (a valós helyi nap: óraátállításkor 23 vagy 25 óra – a tartomány, a szélesség és a jelölők ehhez igazodnak)
+  const to = dayStart(Date.now(), guideState.day + 1);
+  const width = ((to - from) / 60000) * PX_PER_MIN;
+  const marks = Math.round((to - from) / 1800e3);
   // kategória: csak azok a csatornák, amelyeken aznap van ilyen műsor (Most nézetben: épp most)
   const nowT = Date.now();
   if (guideState.cat) list = list.filter((c) => (guideState.mode === 'now' ? [epg.now(c.id, nowT)?.cur].filter(Boolean) : epg.range(c.id, from, to)).some((pr) => progMatch(pr, guideState.cat)));
@@ -593,7 +595,7 @@ export function renderGuide(view) {
           : guideState.mode === 'now'
             ? nowGridHtml(list.slice(0, 120))
             : `<div class="guide-scroll"><div class="guide-inner" style="width:${width + 220}px">
-          <div class="g-head"><div class="g-corner"></div><div class="g-times" style="width:${width}px">${Array.from({ length: 48 }, (_, i) => `<span style="left:${i * 30 * PX_PER_MIN}px">${fmtTime(from + i * 1800e3)}</span>`).join('')}</div></div>
+          <div class="g-head"><div class="g-corner"></div><div class="g-times" style="width:${width}px">${Array.from({ length: marks }, (_, i) => `<span style="left:${i * 30 * PX_PER_MIN}px">${fmtTime(from + i * 1800e3)}</span>`).join('')}</div></div>
           <div class="g-rows"></div>
           <div class="g-more" style="height:1px"></div>
           <div class="g-nowline" hidden></div>
