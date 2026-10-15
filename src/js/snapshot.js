@@ -27,10 +27,13 @@ export async function attachDocs(data) {
  * (dropDocs törli a már megírt új példányokat). → { written: [új kulcsok] }
  */
 const DOC_KEY = /^(vodtext|vodpack|tvpack|radiopack):[\w-]+$/;
+let stageSerial = 0;
 export async function stageDocs(data) {
   const docs = data.docs || {};
   delete data.docs;
-  const stamp = Date.now().toString(36);
+  // (műveletenként egyedi: két gyors, akár egyidejű hívás sem kaphatja ugyanazt a kulcsot – különben az egyik
+  // sikertelen cseréje utáni takarítás a másik még hivatkozott dokumentumát törölné)
+  const stamp = `${Date.now().toString(36)}${(stageSerial++).toString(36)}${Math.random().toString(36).slice(2, 8)}`;
   const map = {};
   const written = [];
   try {
