@@ -41,23 +41,45 @@ bus.on('player-closed', () => {
   timer = setTimeout(pump, 5000);
 });
 
+// (B33) hibás kör után korlátozott, késleltetett újrapróbálás: 30 s, 60 s, 120 s – utána a következő
+// sorbaállítás (pl. új oldal, lejátszó bezárása) indítja újra; sikeres körnél a számláló nullázódik
+let retryTimer = null;
+let retries = 0;
+const MAX_RETRIES = 3;
+
 /** A sorban álló források ellenőrzése 60-as adagokban (lejátszás közben szünetel). */
 async function pump() {
-  if (running || !queue.size || playing) return;
+  // (függő újrapróbálásnál nem: a késleltetés megmarad, a sorbaállítás nem meríti ki idő előtt a keretet)
+  if (running || retryTimer !== null || !queue.size || playing) return;
   running = true;
+  let batch = [];
   try {
     while (queue.size && !playing) {
-      const batch = [...queue.values()].slice(0, 60);
+      batch = [...queue.values()].slice(0, 60);
       batch.forEach((s) => queue.delete(s.url));
       const { results, cancelled } = await api.checkStreams(batch.map((s) => ({ url: s.url, ua: s.ua, referrer: s.referrer })));
-      // a megszakított kör ellenőrizetlen tételei visszakerülnek a sorba
-      if (cancelled) for (const s of batch) if (!(s.url in results)) queue.set(s.url, s);
+      // a kör ellenőrizetlen tételei visszakerülnek a sorba (megszakításnál, és ha a natív próba csak
+      // részben sikerült – az Android / webOS ilyenkor is cancelled: false-szal tér vissza)
+      const unchecked = batch.filter((s) => !(s.url in results));
+      for (const s of unchecked) queue.set(s.url, s);
       for (const [url, ok] of Object.entries(results)) applyProbe(url, ok);
+      batch = [];
       store.save();
       bus.emit('health');
+      if (unchecked.length && !cancelled) throw new Error(`részleges ellenőrzés (${unchecked.length} ellenőrizetlen)`);
+      retries = 0;
     }
   } catch (err) {
-    console.warn('Elérhetőség-ellenőrzés hiba', err); // a következő körben újra próbálkozik
+    // az ellenőrizetlen adag visszakerül a sorba (nem veszik el), és később újrapróbáljuk
+    for (const s of batch) if (!queue.has(s.url)) queue.set(s.url, s);
+    console.warn('Elérhetőség-ellenőrzés hiba', err);
+    if (retries < MAX_RETRIES) {
+      clearTimeout(retryTimer);
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        pump();
+      }, 30e3 * 2 ** retries++);
+    }
   } finally {
     running = false;
   }

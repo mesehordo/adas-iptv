@@ -565,8 +565,10 @@ export function renderGuide(view) {
   else list = [...getChannels(p.favorites).filter((c) => visList.includes(c)), ...popular(visList.filter((c) => !favSet.has(c.id)))];
 
   const from = dayStart(Date.now(), guideState.day);
-  const to = from + 24 * 3600e3;
-  const width = 24 * 60 * PX_PER_MIN;
+  // (a valós helyi nap: óraátállításkor 23 vagy 25 óra – a tartomány, a szélesség és a jelölők ehhez igazodnak)
+  const to = dayStart(Date.now(), guideState.day + 1);
+  const width = ((to - from) / 60000) * PX_PER_MIN;
+  const marks = Math.round((to - from) / 1800e3);
   // kategória: csak azok a csatornák, amelyeken aznap van ilyen műsor (Most nézetben: épp most)
   const nowT = Date.now();
   if (guideState.cat) list = list.filter((c) => (guideState.mode === 'now' ? [epg.now(c.id, nowT)?.cur].filter(Boolean) : epg.range(c.id, from, to)).some((pr) => progMatch(pr, guideState.cat)));
@@ -593,7 +595,7 @@ export function renderGuide(view) {
           : guideState.mode === 'now'
             ? nowGridHtml(list.slice(0, 120))
             : `<div class="guide-scroll"><div class="guide-inner" style="width:${width + 220}px">
-          <div class="g-head"><div class="g-corner"></div><div class="g-times" style="width:${width}px">${Array.from({ length: 48 }, (_, i) => `<span style="left:${i * 30 * PX_PER_MIN}px">${fmtTime(from + i * 1800e3)}</span>`).join('')}</div></div>
+          <div class="g-head"><div class="g-corner"></div><div class="g-times" style="width:${width}px">${Array.from({ length: marks }, (_, i) => `<span style="left:${i * 30 * PX_PER_MIN}px">${fmtTime(from + i * 1800e3)}</span>`).join('')}</div></div>
           <div class="g-rows"></div>
           <div class="g-more" style="height:1px"></div>
           <div class="g-nowline" hidden></div>
@@ -839,7 +841,7 @@ export function renderSettings(view) {
       <ul class="src-list">${[...s.epgSources.map((src, i) => ({ ...src, name: epgSourceName(src), i })), ...(s.useEmbeddedEpg ? (catalog.tvgUrls || []).map((url) => ({ url, name: `${_t('Lejátszólista műsorújsága:')} ` + url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 50), embedded: true, enabled: true })) : [])]
         .map((src) => {
           const st = epg.status[src.url];
-          const info = !src.enabled ? _t('kikapcsolva') : !st ? _t('nincs betöltve') : st.ok ? `${_t('{x} csatorna párosítva / {channels} · {programs} műsor', { x: st.matched ?? 0, channels: st.channels, programs: st.programs })}` : `${_t('hiba: {error}', { error: st.error })}`;
+          const info = !src.enabled ? _t('kikapcsolva') : !st ? _t('nincs betöltve') : st.ok ? `${_t('{x} csatorna párosítva / {channels} · {programs} műsor', { x: st.matched ?? 0, channels: st.channels, programs: st.programs })}` : `${_t('hiba: {error}', { error: st.error })}${st.stale ? ' · ' + _t('a korábbi műsor látszik ({x} csatorna)', { x: st.matched }) : ''}`;
           return `<li><input type="checkbox" class="switch" ${src.embedded ? 'data-set="useEmbeddedEpg" checked' : `data-epg-toggle="${src.i}" ${src.enabled ? 'checked' : ''}`} />
             <span><b>${esc(src.name)}</b><small>${esc(info)}</small></span>
             ${!src.embedded && !BUILTIN_EPG.some((b) => b.url === src.url) ? `<button class="btn small" data-epg-del="${src.i}">${_t('Törlés')}</button>` : ''}</li>`;

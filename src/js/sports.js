@@ -232,17 +232,73 @@ async function loadTsdb(w) {
 }
 
 /** ICS (iCalendar) – a VEVENT-ek kezdete és címe. */
+// (B35) Az iCalendar-időpontok: UTC („Z”), TZID-es (a megnevezett zóna faliórája, nyári időszámítással),
+// lebegő helyi (TZID és Z nélkül: a készülék helyi ideje – így szól a szabvány) és egész napos (VALUE=DATE).
+// Ismeretlen TZID-nél nem írjuk csendben a készülék zónájára: a gyakori Windows-neveket (Outlook-naptárak)
+// leképezzük, a többinél az esemény kimarad (figyelmeztetéssel).
+const WIN_TZ = {
+  'central europe standard time': 'Europe/Budapest', 'central european standard time': 'Europe/Warsaw', 'w. europe standard time': 'Europe/Berlin',
+  'romance standard time': 'Europe/Paris', 'gmt standard time': 'Europe/London', 'greenwich standard time': 'Atlantic/Reykjavik', 'utc': 'UTC',
+  'e. europe standard time': 'Europe/Chisinau', 'fle standard time': 'Europe/Helsinki', 'gtb standard time': 'Europe/Bucharest', 'russian standard time': 'Europe/Moscow',
+  'eastern standard time': 'America/New_York', 'central standard time': 'America/Chicago', 'mountain standard time': 'America/Denver', 'pacific standard time': 'America/Los_Angeles',
+  'tokyo standard time': 'Asia/Tokyo', 'china standard time': 'Asia/Shanghai', 'aus eastern standard time': 'Australia/Sydney',
+};
+function tzName(tzid) {
+  const t = String(tzid || '').replace(/^"|"$/g, '').trim();
+  // („/mozilla.org/20070129_1/Europe/Budapest”, „/citadel.org/…” alak is: a perjeles név minden végződése jelölt)
+  const parts = t.split('/').filter(Boolean);
+  const cands = [t, WIN_TZ[t.toLowerCase()], ...parts.map((_, i) => parts.slice(i).join('/'))].filter(Boolean);
+  for (const c of cands) {
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone: c });
+      return c;
+    } catch {}
+  }
+  return null;
+}
+/** A zóna eltolása (ms) az adott pillanatban. */
+function tzOffset(t, tz) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+  return Date.UTC(+p.year, p.month - 1, +p.day, +p.hour % 24, +p.minute, +p.second) - Math.floor(t / 1000) * 1000;
+}
+/** A zóna faliórájának időpontja → abszolút idő (két lépésben, hogy a nyári időszámítás váltásánál is pontos). */
+function zonedTime(y, mo, d, h, mi, sec, tz) {
+  const wall = Date.UTC(y, mo, d, h, mi, sec);
+  let t = wall - tzOffset(wall, tz);
+  t = wall - tzOffset(t, tz);
+  return t;
+}
+/** DTSTART (paraméterekkel) → { start, allDay } vagy null (nem értelmezhető / ismeretlen zóna). */
+function icsTime(block) {
+  const line = /^DTSTART((?:;[^:\n]*)?):(.*)$/mi.exec(block);
+  if (!line) return null;
+  const params = line[1] || '';
+  const m = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?/.exec(line[2].trim());
+  if (!m) return null;
+  const [y, mo, d] = [+m[1], m[2] - 1, +m[3]];
+  if (!m[4] || /VALUE=DATE(?!-)/i.test(params)) return { start: new Date(y, mo, d, 9).getTime(), allDay: true };
+  const [h, mi, sec] = [+m[4], +m[5], +(m[6] || 0)];
+  if (m[7]) return { start: Date.UTC(y, mo, d, h, mi, sec), allDay: false };
+  const tzid = /TZID=("[^"]*"|[^;:]*)/i.exec(params)?.[1];
+  if (!tzid) return { start: new Date(y, mo, d, h, mi, sec).getTime(), allDay: false }; // lebegő helyi idő
+  const tz = tzName(tzid);
+  if (!tz) {
+    console.warn('Sportnaptár: ismeretlen időzóna, az esemény kimarad:', tzid);
+    return null;
+  }
+  return { start: zonedTime(y, mo, d, h, mi, sec, tz), allDay: false };
+}
+
 function parseIcs(text, w) {
   const unfold = text.replace(/\r?\n[ \t]/g, '');
   const out = [];
   for (const block of unfold.split('BEGIN:VEVENT').slice(1)) {
     const get = (k) => (new RegExp(`^${k}(?:;[^:\\n]*)?:(.*)$`, 'mi').exec(block) || [])[1]?.trim() || '';
-    const raw = get('DTSTART');
-    const m = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?/.exec(raw);
-    if (!m) continue;
-    const start = m[4] ? (m[7] ? Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)) : new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5]).getTime()) : new Date(+m[1], m[2] - 1, +m[3], 9).getTime();
+    const tm = icsTime(block);
+    if (!tm) continue;
+    const { start } = tm;
     const title = get('SUMMARY').replace(/\\,/g, ',').replace(/\\n/g, ' ');
-    out.push({ id: 'ics:' + w.id + ':' + start + ':' + title.slice(0, 30), sport: w.sport, league: w.name, leagueName: w.name, title, home: '', away: '', state: start > Date.now() ? 'pre' : 'post', start, allDay: !m[4], detail: get('LOCATION').replace(/\\,/g, ','), kw: [title, w.name], src: _t('Naptár'), kind: 'ics' });
+    out.push({ id: 'ics:' + w.id + ':' + start + ':' + title.slice(0, 30), sport: w.sport, league: w.name, leagueName: w.name, title, home: '', away: '', state: start > Date.now() ? 'pre' : 'post', start, allDay: tm.allDay, detail: get('LOCATION').replace(/\\,/g, ','), kw: [title, w.name], src: _t('Naptár'), kind: 'ics' });
   }
   return out;
 }

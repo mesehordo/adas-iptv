@@ -853,10 +853,11 @@ async function boot() {
   // Előtte az asztali „packs” mappa kiegészítő csomagjai (ha közben a VOD már betöltött, újratölt).
   syncPackFolder();
   // betöltött / eltávolított csomag: a csatornalista, illetve a VOD újraépül
-  // (ha a csatornalista vagy a VOD épp töltődik, a futó művelet még a régi listákkal dolgozik: utána még egyszer)
+  // (ha a VOD épp töltődik, a futó művelet még a régi listákkal dolgozik: utána még egyszer; a csatornalistánál
+  // ezt a refreshAll maga intézi – a futás közbeni kérés egy további körben teljesül)
   const tvReload = () => refreshAll({ force: false, epgToo: true, quiet: true });
   bus.on('packs', (kind) => {
-    if (kind === 'tv') refreshing() ? refreshAll({ quiet: true }).then(tvReload) : tvReload();
+    if (kind === 'tv') tvReload();
     else vod.loading ? vod.loading.then(() => loadVod()) : vod.ready && loadVod();
   });
   setTimeout(() => vodLists().length && loadVod(), 8000);
