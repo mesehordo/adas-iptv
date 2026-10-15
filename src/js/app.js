@@ -476,6 +476,19 @@ setTimeout(sendBgPrefs, 1000);
 // Szövegbevitel közben (telefonon a képernyő-billentyűzet nyitva) az alsó menüsáv elrejthető.
 const isTypingField = (el) => el?.matches?.('input:not([type=checkbox]):not([type=range]):not([type=radio]), textarea');
 document.addEventListener('focusin', (e) => document.body.classList.toggle('typing', isTypingField(e.target)));
+// (ha az ablak fókusz nélkül indult – pl. a telepítő indította –, a fókuszáltnak látszó mező a rendszerfókusz
+// visszatérésekor újra megkapja a fókuszt, így a leütések ténylegesen beleíródnak)
+window.addEventListener('focus', () => {
+  const a = document.activeElement;
+  if (!isTypingField(a)) return;
+  const s = a.selectionStart;
+  const e = a.selectionEnd;
+  a.blur();
+  a.focus({ preventScroll: true });
+  try {
+    a.setSelectionRange(s, e);
+  } catch {}
+});
 document.addEventListener('focusout', () => setTimeout(() => document.body.classList.toggle('typing', isTypingField(document.activeElement)), 0));
 
 let lastContentFocus = null;

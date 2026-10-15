@@ -113,13 +113,15 @@
       }
     },
     "nsis": {
-      "artifactName": "Adas-Setup-${version}.${ext}"
+      "artifactName": "Adas-Setup-${version}.${ext}",
+      "include": "build/installer.nsh"
     },
     "portable": {
       "artifactName": "Adas-${version}-portable.${ext}"
     },
     "msi": {
-      "artifactName": "Adas-${version}.${ext}"
+      "artifactName": "Adas-${version}.${ext}",
+      "runAfterFinish": false
     },
     "dmg": {
       "artifactName": "Adas-${version}-mac-${arch}.${ext}"

@@ -388,6 +388,20 @@ function createWindow() {
     },
   });
   win.loadFile(path.join(__dirname, 'src', 'index.html'));
+  // A telepítő (MSI / Setup) által indított első ablak a Windows előtérzára miatt gyakran nem kapja meg a
+  // billentyűzetfókuszt: a mező fókuszáltnak látszik, de a leütések máshová mennek (pl. az első profil névmezője
+  // nem írható). Az ablakot ténylegesen előtérbe hozzuk, és a rendszerfókusz visszatérésekor a lap is megkapja.
+  win.once('ready-to-show', () => {
+    if (startHidden || !win) return;
+    win.show();
+    if (process.platform === 'win32') {
+      win.setAlwaysOnTop(true);
+      win.focus();
+      win.setAlwaysOnTop(false);
+    } else win.focus();
+    win.webContents.focus();
+  });
+  win.on('focus', () => win?.webContents.focus());
 
   // Külső hivatkozások a rendszer böngészőjében nyíljanak meg.
   win.webContents.setWindowOpenHandler(({ url }) => {
