@@ -41,6 +41,22 @@ function homeCountryFor(l) {
 // Ország → a beépített iptv-epg.org műsorújság országkódja (a közeli, azonos nyelvű országok is)
 const EPG_CC = { UK: 'gb', GB: 'gb', IE: 'gb', AU: 'gb', NZ: 'gb', US: 'us', CA: 'us', DE: 'de', AT: 'de', CH: 'de', FR: 'fr', BE: 'fr', LU: 'fr', ES: 'es', MX: 'es', AR: 'es', IT: 'it' };
 
+/**
+ * (B01) Enter / OK a névmezőben: a bevitel lezárása (a rendszerbillentyűzet bezárul), és a fókusz a kijelölt
+ * profilképre kerül – lépést csak a Tovább / Létrehozom gomb vált. (Az IME-kompozíció közbeni Enter a
+ * betűválasztásé, azt nem vesszük el.)
+ */
+function enterToAvatars(input, picker) {
+  input.onkeydown = (e) => {
+    if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const av = picker.el.querySelector('.avatar-opt.sel:not([hidden])') || picker.el.querySelector('.avatar-opt:not([hidden])');
+    input.blur();
+    av?.focus({ preventScroll: false });
+  };
+}
+
 const dots = (i) => `<div class="ob-dots" aria-hidden="true">${[0, 1, 2].map((k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>`;
 
 /**
@@ -92,7 +108,7 @@ export function runOnboarding(root) {
 
     // 2. lépés: saját profil
     const stepProfile = () => {
-      const picker = avatarPicker({ avatar: state.me?.avatar ?? Math.floor(Math.random() * AVATAR_COUNT), avatarData: state.me?.avatarData, color: PROFILE_COLORS[0], name: state.name });
+      const picker = avatarPicker({ avatar: state.me ? state.me.avatar : Math.floor(Math.random() * AVATAR_COUNT), avatarData: state.me?.avatarData, color: PROFILE_COLORS[0], name: state.name });
       root.innerHTML = `<div class="ob">
         <div class="brand big">ADÁS</div>
         <h1>${esc(_t('Üdv az Adásban!'))}</h1>
@@ -117,9 +133,14 @@ export function runOnboarding(root) {
         setStep('kids');
         stepKids();
       };
-      input.onkeydown = (e) => e.key === 'Enter' && (e.preventDefault(), next());
+      enterToAvatars(input, picker);
       root.onclick = (e) => {
-        if (e.target.closest('[data-back]')) return stepLang();
+        if (e.target.closest('[data-back]')) {
+          // (visszalépéskor a név és a profilkép megmarad)
+          state.name = input.value.trim();
+          state.me = picker.value();
+          return stepLang();
+        }
         if (e.target.closest('[data-next]')) next();
       };
       input.focus();
@@ -127,7 +148,7 @@ export function runOnboarding(root) {
 
     // 3. lépés: gyerekprofil (átugorható)
     const stepKids = () => {
-      const picker = avatarPicker({ avatar: state.kids?.avatar ?? 6, avatarData: state.kids?.avatarData, color: PROFILE_COLORS[3], name: state.kidsName });
+      const picker = avatarPicker({ avatar: state.kids ? state.kids.avatar : 6, avatarData: state.kids?.avatarData, color: PROFILE_COLORS[3], name: state.kidsName });
       root.innerHTML = `<div class="ob">
         <div class="brand big">ADÁS</div>
         <h1>${esc(_t('Gyerekprofil'))}</h1>
@@ -140,6 +161,7 @@ export function runOnboarding(root) {
       root.querySelector('.ob-av').replaceWith(picker.el);
       const input = root.querySelector('input[name="kname"]');
       input.oninput = () => picker.setName(input.value);
+      enterToAvatars(input, picker);
       root.onclick = (e) => {
         if (e.target.closest('[data-back]')) {
           state.kidsName = input.value;
