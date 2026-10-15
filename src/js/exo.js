@@ -177,9 +177,10 @@ export class ExoEngine {
   }
   /** (F05) éjszakai hang be / ki – a natív lejátszó hangmunkamenetén (Android 9+). → sikerült-e */
   setNight(on) {
-    this.opts.night = !!on;
     try {
-      return !!A().exoNight?.(!!on);
+      const ok = !!A().exoNight?.(!!on);
+      if (ok) this.opts.night = !!on;
+      return ok;
     } catch {
       return false;
     }

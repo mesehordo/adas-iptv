@@ -1039,7 +1039,7 @@ https://…/sport/playlist.m3u8</pre>
 <li><b>Háttérlejátszás (csak hang)</b>: Beállítások → Lejátszás → <i>Háttérlejátszás</i>. Bekapcsolva másik alkalmazásra váltva az adás hangja tovább szól; egy értesítés jelzi, onnan szüneteltetheted, folytathatod, visszatérhetsz vagy leállíthatod (a fülhallgató és a Bluetooth-eszköz gombjai is működnek). Kikapcsolva (alapból) kilépéskor a lejátszás megáll.</li>
 <li><b>Mini lejátszó más alkalmazások fölött</b>: a lejátszó mini gombja a videót kis ablakba teszi (a rendszer kép a képben módja – Android 8-tól, ha az eszköz támogatja; ha nem, a gomb nem látszik). Beállítások → Lejátszás → <i>Kis ablak kilépéskor</i>: videó közben a Home gombra vagy másik alkalmazásra váltva magától is kis ablakba kerül. A kis ablak bezárásakor a lejátszás megáll.</li>
 </ul>
-<div class="note">Androidon nincs kivetítés, éjszakai hang és frissítés-ellenőrzés. A beállítások kóddal szinkronizálhatók a számítógéppel és a többi Android-eszközzel, mindkét irányba (${t('transfer', 'Szinkronizálás eszközök között')}), és a telefon távirányítóként is használható (${t('remote', 'Távirányító telefonról')}). Új verziót az új APK telepítésével kapsz – a beállítások megmaradnak.</div>`,
+<div class="note">Androidon is van kivetítés (telefonról / tabletről), éjszakai hang (a natív lejátszóval, Android 9-től) és beépített frissítés (${t('update', 'Frissítések')}). A beállítások kóddal szinkronizálhatók a számítógéppel és a többi Android-eszközzel, mindkét irányba (${t('transfer', 'Szinkronizálás eszközök között')}), és a telefon távirányítóként is használható (${t('remote', 'Távirányító telefonról')}). Az új verzió az alkalmazásban is letölthető és telepíthető – a beállítások megmaradnak.</div>`,
   },
   {
     id: 'tv-install',

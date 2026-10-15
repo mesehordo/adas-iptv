@@ -424,8 +424,14 @@ public class MainActivity extends Activity {
     @JavascriptInterface
     public boolean exoNight(final boolean on) {
       if (!NightAudio.available()) return false;
-      runOnUiThread(() -> nativePlayer.setNight(on));
-      return true;
+      // (a hangeffekt a UI-szálon jön létre: az eredményét megvárjuk – sikertelenségnél ne mutasson „bekapcsolva”)
+      java.util.concurrent.FutureTask<Boolean> t = new java.util.concurrent.FutureTask<>(() -> nativePlayer.setNight(on));
+      runOnUiThread(t);
+      try {
+        return t.get(3, java.util.concurrent.TimeUnit.SECONDS);
+      } catch (Exception e) {
+        return false;
+      }
     }
 
     @JavascriptInterface

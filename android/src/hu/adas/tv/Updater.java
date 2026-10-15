@@ -37,7 +37,16 @@ final class Updater {
   private Updater() {}
 
   static final String ACTION = "hu.adas.tv.INSTALL_STATUS";
-  private static volatile boolean busy;
+  private static final java.util.concurrent.atomic.AtomicBoolean busy = new java.util.concurrent.atomic.AtomicBoolean(false);
+  // a telepítő visszajelzésének titkos azonosítója: Android 13 alatt a dinamikus fogadó exportált – egy másik
+  // alkalmazás küldte hamis „jóváhagyás kell” üzenet (tetszőleges Intenttel) így nem fogadható el
+  private static final String NONCE = newNonce();
+
+  private static String newNonce() {
+    byte[] b = new byte[16];
+    new java.security.SecureRandom().nextBytes(b);
+    return hex(b);
+  }
   /** A sikeresen letöltött és ellenőrzött fájlok: csak ezek telepíthetők (a felülettől kapott útvonal nem). */
   private static final Set<String> verified = new HashSet<>();
   private static BroadcastReceiver receiver;
@@ -55,8 +64,7 @@ final class Updater {
     String sha = a.optString("sha256").toLowerCase(Locale.ROOT);
     if (!url.toLowerCase(Locale.ROOT).startsWith("https://")) throw new Exception(L.t(act, "A frissítés csak https:// címről tölthető le."));
     if (!sha.matches("^[0-9a-f]{64}$")) throw new Exception(L.t(act, "Ehhez a kiadáshoz nincs ellenőrző összeg (SHA256SUMS.txt), ezért nem telepíthető automatikusan – töltsd le a kiadás oldaláról."));
-    if (busy) throw new Exception(L.t(act, "Már folyamatban van egy letöltés."));
-    busy = true;
+    if (!busy.compareAndSet(false, true)) throw new Exception(L.t(act, "Már folyamatban van egy letöltés."));
     // a korábbi letöltések törlése (helyet szabadít fel)
     File[] old = dir(act).listFiles();
     if (old != null) for (File f : old) //noinspection ResultOfMethodCallIgnored
@@ -101,7 +109,7 @@ final class Updater {
       file.delete();
       throw e;
     } finally {
-      busy = false;
+      busy.set(false);
     }
   }
 
@@ -187,7 +195,7 @@ final class Updater {
         for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
         s.fsync(out);
       }
-      Intent cb = new Intent(ACTION).setPackage(act.getPackageName());
+      Intent cb = new Intent(ACTION).setPackage(act.getPackageName()).putExtra("nonce", NONCE);
       int mutable = Build.VERSION.SDK_INT >= 31 ? 0x02000000 /* FLAG_MUTABLE */ : 0;
       PendingIntent sender = PendingIntent.getBroadcast(act, id, cb, PendingIntent.FLAG_UPDATE_CURRENT | mutable);
       s.commit(sender.getIntentSender());
@@ -208,6 +216,9 @@ final class Updater {
         new BroadcastReceiver() {
           @Override
           public void onReceive(Context ctx, Intent intent) {
+            // csak a saját telepítési munkamenet visszajelzése (a titkos azonosítóval) – másét figyelmen kívül hagyjuk
+            String n = intent.getStringExtra("nonce");
+            if (n == null || !java.security.MessageDigest.isEqual(n.getBytes(java.nio.charset.StandardCharsets.UTF_8), NONCE.getBytes(java.nio.charset.StandardCharsets.UTF_8))) return;
             int status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE);
             if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
               Intent confirm = intent.getParcelableExtra(Intent.EXTRA_INTENT);
