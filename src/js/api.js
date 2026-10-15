@@ -384,6 +384,8 @@ const androidApi = {
   // tartós képtár (Covers.java): a képek kérése magától azon megy át; itt a mérete és az ürítése
   coverStats: () => native('coverStats'),
   coverClear: () => native('coverClear'),
+  // rádió: a most szóló szám címe (ICY-metaadat)
+  icyTitle: (url, country) => native('icyTitle', { url, country: country || '' }),
   async setStreamHeaders(url, h) {
     try {
       window.AdasAndroid.setStreamHeaders(url, h?.ua || '', h?.referrer || '');

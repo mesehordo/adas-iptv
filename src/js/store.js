@@ -159,6 +159,11 @@ const DEFAULT_SETTINGS = {
   hideOffline: false,
   autoCheck: true,
   sportMenu: true, // Sport menüpont (a TV, VOD mellett) – Beállítások → Sport
+  radioMenu: true, // Rádió menüpont – Beállítások → Rádió
+  radioSources: { rb: true, verified: true, iprd: true }, // rádióforrások be/ki
+  radioLists: [], // saját rádiólisták: { id, name, url, enabled }
+  // rádió-hangzás: hangszínszabályzó, hangerő-kiegyenlítés, térhatás, retro szűrő, átúsztatás (mp), vizualizáció
+  radioFx: { eq: 'flat', level: true, widen: false, retro: false, xfade: 2, vis: 'spectrum', volume: 0.9 },
   heroPreview: true,  resumeLast: false,
   showAdult: false,
   mediaBridge: true, // asztali: FFmpeg-híd az AC3/DTS hanghoz, beágyazott feliratokhoz, régi formátumokhoz
@@ -217,6 +222,16 @@ export function cleanProfile(p) {
   if (p.avatarData != null && !/^data:image\/(png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/]+=*$/.test(String(p.avatarData))) p.avatarData = '';
   if (p.avatar === 'custom' && !p.avatarData) p.avatar = null;
   for (const k of ['favorites', 'recent']) p[k] = Array.isArray(p[k]) ? p[k].filter((x) => typeof x === 'string') : [];
+  // kedvenc / legutóbb hallgatott rádiók: az adó adataival (csak szöveg, a címek csak http(s))
+  const web = (u) => (typeof u === 'string' && /^https?:\/\/\S+$/i.test(u) ? u.slice(0, 2000) : '');
+  for (const k of ['radioFavs', 'radioRecent'])
+    p[k] = (Array.isArray(p[k]) ? p[k] : [])
+      .filter((x) => x && typeof x === 'object' && typeof x.id === 'string' && web(x.url))
+      .slice(0, 300)
+      .map((x) => ({
+        id: str(x.id, 200), name: str(x.name, 120), logo: web(x.logo), url: web(x.url), urls: (Array.isArray(x.urls) ? x.urls : []).map(web).filter(Boolean).slice(0, 6),
+        country: str(x.country, 2), tags: (Array.isArray(x.tags) ? x.tags : []).map((t) => str(t, 40)).slice(0, 8), codec: str(x.codec, 10), bitrate: num(x.bitrate), homepage: web(x.homepage), rbId: str(x.rbId, 60),
+      }));
   p.reminders = (Array.isArray(p.reminders) ? p.reminders : [])
     .filter((r) => r && typeof r === 'object' && Number.isFinite(Number(r.start)))
     .map((r) => ({ ...r, channelId: str(r.channelId), title: str(r.title, 300), start: num(r.start), stop: num(r.stop, num(r.start)), notified: !!r.notified }));

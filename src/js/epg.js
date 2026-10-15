@@ -2,6 +2,7 @@
 import { api, IS_ANDROID } from './api.js';
 import { store, epgSourceName } from './store.js';
 import { catalog } from './catalog.js';
+import { radio, radioEpgEntries, radioEpgSig } from './radio.js';
 import { bus, key } from './util.js';
 
 // A TV-s (egy fájlba csomagolt) változatban az import.meta nem használható; ott a js/ mappából töltjük.
@@ -14,6 +15,7 @@ try {
 }
 let reqId = 0;
 let indexFor = null; // melyik csatornalistához készült a háttérszálnak elküldött index
+let indexRadio = ''; // … és melyik rádióadó-körhöz (radioEpgSig)
 let reloadAfter = false; // betöltés közben újabb kérés érkezett
 let reloadForce = false;
 const pending = new Map();
@@ -152,8 +154,9 @@ export const epg = {
     this.loading = true;
     bus.emit('epg-loading', true);
     // A párosításhoz szükséges index a háttérszálba megy – csak ha a csatornalista azóta változott
-    if (indexFor !== catalog.channels) {
+    if (indexFor !== catalog.channels || indexRadio !== radioEpgSig()) {
       indexFor = catalog.channels;
+      indexRadio = radioEpgSig();
       (await workerReady).postMessage({ type: 'index', index: buildIndex() });
     }
     const sources = this.sources();
@@ -198,7 +201,7 @@ export const epg = {
     bus.emit('epg-loading', false);
     bus.emit('epg');
     // ha közben kérték, vagy a csatornalista cserélődött (régi indexszel párosítottunk): még egy kör
-    if (reloadAfter || indexFor !== catalog.channels) {
+    if (reloadAfter || indexFor !== catalog.channels || indexRadio !== radioEpgSig()) {
       const f = reloadForce;
       reloadAfter = false;
       reloadForce = false;
@@ -249,5 +252,25 @@ function buildIndex() {
       put(nameOnly, k, ch.id);
     }
   }
+  // rádióadók: csak név szerint, és csak ahol egyetlen tévécsatorna neve sem ugyanaz (a tévé elsőbbséget élvez)
+  const tvNames = new Set(nameOnly.keys());
+  for (const r of radioEpgEntries()) {
+    for (const n of r.names) {
+      const k = stripSuffix(key(n));
+      if (!k || tvNames.has(k)) continue;
+      put(nameCc, k + '.' + r.cc, r.id);
+      put(nameOnly, k, r.id);
+    }
+  }
   return { exact, withCc, nameCc, nameOnly };
 }
+
+// betöltött rádióadók (hazai ország, új kedvenc): a műsorújság újrapárosítása – a forrásfájlok a gyorsítótárból jönnek
+let radioEpgTimer = 0;
+bus.on('radio', () => {
+  clearTimeout(radioEpgTimer);
+  radioEpgTimer = setTimeout(() => {
+    if (radio.ready && epg.loadedAt && !epg.loading && indexRadio !== radioEpgSig()) epg.load();
+  }, 4000);
+});
+bus.on('radio-favs', () => bus.emit('radio'));

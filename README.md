@@ -104,6 +104,15 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - Mentés és visszaállítás fájlba (beállítások, profilok, kedvencek, emlékeztetők)
 - Teljes billentyűzetes / távirányítós vezérlés (nyilak, Enter, Esc / Backspace)
 
+**Rádió**
+- Új menüpont a TV után: **élő rádióadók a világból**, a TV oldal mintájára sorokban (Legutóbb hallgatott, Kedvenc rádiók, a hazai ország adói, Műfajok, Népszerű a világban, Országok), böngészés kereséssel és szűrőkkel (ország, műfaj, minőség, működés). Mindenhol a működő adók elöl.
+- Források (mind kikapcsolható): **Radio Browser** (közösségi adatbázis, a lejátszást jelzi is nekik), **Verified Radio Streams** (kipróbált adások), **IPRD** (országonkénti válogatás). Az ugyanazon adó több forrásból egy kártya, a címei tartalékként egymás után próbálódnak. Saját M3U rádiólista webcímről (listánként beállítható frissítéssel) és `radio` fajtájú `.adaspack` csomag.
+- **Mini-lejátszó** alul (adó, most szól, kis spektrum, előző / szünet / következő, kedvenc, hangerő) és **Most szól** nézet: a szám címe és előadója az adás ICY-metaadatából (`icy.js`, Androidon `MainActivity.icyTitle`), borító az iTunes-keresőből, *Előtte szólt* lista, keresés a YouTube-on / Spotify-on, az adó honlapja.
+- **Hangzás** (Web Audio, asztalon és Androidon): hangszínszabályzó előbeállítások, hangerő-kiegyenlítés, térhatás, retro rádió (középhullámú készülék), átúsztatás adóváltáskor; **vizualizáció**: spektrum, hullám, tükör, hullámhegyek; **elalvás-időzítő** elhalkulással. LG webOS-en effektek nélkül szól.
+- **Műsorújság** a tévés felületével (Kedvencek / hazai / minden adó, napok, idővonal, most műsoron): a rádióadók is részt vesznek a műsorújság párosításában (a magyar közszolgálati adók az epgshare01-forrás „MR1-Kossuth” stb. nevével is); a most futó műsor a kártyán és a Most szól nézetben is.
+- **Felvétel** (asztali): azonnal a ● gombbal vagy a műsorújságból ütemezve; a hang változatlanul MP3 / AAC fájlba (más kódolásnál AAC-be alakítva), vágható; a Rádió oldal **Felvételek** fülén. **Kedvencek** fül sorba rendezéssel.
+- Kedvenc adók a Kedvencek oldalon is; billentyűk: szóköz / médiagomb, CH+ / CH−. Videó indításakor a rádió elhallgat. Beállítások → **Rádió**: a menüpont kikapcsolható (gyerekprofilban nem látszik).
+
 **Tartós borítótár, elérhetők elöl mindenhol (1.27)**
 - **Borítóképek tára**: asztali gépen a VOD-borítók a felhasználói adatmappa `covers` mappájába kerülnek (`adasimg://` – `covers.js`), Androidon minden kép (borító, csatornalogó) a `files/covers` mappába (`Covers.java`; eddig a WebView a proxyn átadott képeket nem tárolta, mindent újra letöltött). Legközelebb onnan jönnek, hálózat nélkül is; korlát: asztalon 1 GB, Androidon 512 MB (fölötte a legrégebben látottak törlődnek). Méret és ürítés: Beállítások → VOD és médiatár.
 - **Az elérhető csatornák elöl mindenhol**, ahol a program dönti el a sorrendet: keresés (és a telefonos távirányító keresése), a TV oldal sorai, műsorújság, böngészés (név / ország szerinti rendezésben is), több adás egyszerre. A saját sorrend marad (Kedvencek, Legutóbb nézett, csatornaszámok).
@@ -470,6 +479,12 @@ src/js/pin.js         Szülői felügyelet, profilzár
 src/js/multiview.js   Több adás egyszerre
 src/js/cast.js        Kivetítés (felület)
 src/js/audiofx.js     Éjszakai hang (WebAudio)
+src/js/radio.js       Rádió: források (Radio Browser, Verified, IPRD, saját listák), összefésülés, kedvencek
+src/js/radioplayer.js Rádió lejátszómotor: átúsztatás, hangeffektek, most szól, borító, elalvás-időzítő, vizualizáció
+src/js/radiopage.js   Rádió oldal (sorok, böngészés, műfajok, országok)
+src/js/radioui.js     Rádió mini-lejátszó és Most szól nézet
+src/js/radiosettings.js Beállítások → Rádió
+icy.js                Rádió: a most szóló szám címe (ICY-metaadat) a főfolyamatban
 src/js/stats.js       Nézési statisztika
 src/js/transfer.js    Beállítások átvitele másik eszközre
 src/js/update.js      Frissítések (felület)

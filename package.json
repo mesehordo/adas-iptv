@@ -44,6 +44,7 @@
       "media.js",
       "i18n-main.js",
       "covers.js",
+      "icy.js",
       "src/**/*",
       "assets/**/*"
     ],

@@ -1239,6 +1239,27 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 <div class="note">A TV’s built-in player (webOS) decides itself how much to keep; there, rewinding may be shorter or missing, depending on the broadcaster.</div>`,
   },
   {
+    id: 'radio',
+    cat: 'watch',
+    title: 'Radio',
+    keywords: 'radio station music now playing song track cover artist equaliser equalizer eq volume levelling stereo widening retro crossfade visualisation visualization spectrum vu meter sleep timer radio browser verified iprd m3u radio list pack',
+    body: `
+<p>The <b>Radio</b> item on the menu bar (after TV) brings live radio stations from around the world. Like the TV page, it is made of rows: <i>Recently played</i>, <i>Favourite stations</i>, the stations of your home country, <i>Genres</i> tiles, home stations in the biggest genres, <i>Popular worldwide</i> and <i>Countries</i>. On the <b>Browse</b> tab you can search (name, genre, country) and filter by country, genre, quality (kbps) and whether a station works. Working stations always come first.</p>
+<table class="help-table">
+<tr><td><b>Playing</b></td><td>Click or press OK on a station card. The <b>mini player</b> appears at the bottom: station, current song, a small spectrum, previous / pause / next station, favourite, volume. The ⌃ button (or the left side of the mini player) opens the <b>Now playing</b> view.</td></tr>
+<tr><td><b>Now playing</b></td><td>The song title and artist (if the station sends them), its cover, the list of songs <i>Played before</i>, and search on YouTube or Spotify. Many stations only send their name or slogan – then that is shown instead.</td></tr>
+<tr><td><b>Visualisation</b></td><td>Spectrum, Wave, Mirror (bars mirrored up and down from the centre) and Waves (a soft, filled spectrum curve).</td></tr>
+<tr><td><b>Sound</b></td><td><i>Volume levelling</i> (for stations with different loudness), <i>Stereo widening</i>, <i>Retro radio</i> (the sound of an old medium-wave set), <i>Crossfade</i> when switching stations, and equaliser presets (Pop, Rock, Speech, Classical, Bass boost, Night). Your choice is kept.</td></tr>
+<tr><td><b>Sleep timer</b></td><td>After 15–90 minutes the radio fades out and turns off.</td></tr>
+<tr><td><b>Favourites</b></td><td>The + button on a card, or select it and press <kbd>F</kbd> (the red button on a remote). On the Radio page’s <b>Favourites</b> tab you can reorder them (drag, or <kbd>Ctrl</kbd>+<kbd>←</kbd> / <kbd>→</kbd>; <kbd>CH+</kbd> / <kbd>CH−</kbd> on a TV); they also appear on the main Favourites page, under <i>Radio</i>.</td></tr>
+<tr><td><b>Schedule</b></td><td>The Radio page’s <b>Schedule</b> tab works like the TV guide: favourites / home / all stations, days, <i>Timeline</i> and <i>On now</i>. Programmes come from the TV guide sources (the Hungarian epgshare01 source includes Kossuth, Petőfi and Bartók); the current and next programme also show on the card and in the Now playing view. Click a programme for its description, to listen, or to schedule a recording.</td></tr>
+<tr><td><b>Recording</b></td><td>In the desktop app, record right away with the <b>●</b> button on the mini player or in the Now playing view, or schedule from the schedule (with the same margins as TV recordings). The audio is saved unchanged as MP3 / AAC (streams in other formats are converted to AAC); on the <b>Recordings</b> tab you can play, trim or open them.</td></tr>
+</table>
+<p><b>Keys:</b> <kbd>Space</kbd> or the media key: pause / resume; <kbd>CH+</kbd> / <kbd>CH−</kbd>: next / previous station from the row you started from; <kbd>Esc</kbd>: close the Now playing view.</p>
+<p><b>Sources</b> (Settings → <i>Radio</i>, each can be turned off): <i>Radio Browser</i> (a community database with tens of thousands of stations), <i>Verified Radio Streams</i> (tested streams) and <i>IPRD</i> (a selection per country). The same station from several sources shows up as one card, and its addresses are tried one after another as fallbacks. You can also add your own M3U radio list from a web address, with a refresh interval, or load an .adaspack pack of kind “radio”.</p>
+<div class="note">Starting a video (live channel, film, multiview) stops the radio, and starting the radio closes the video. On LG webOS TVs, sound effects and visualisation aren’t available (the TV’s browser engine can’t access the stream’s audio); the radio still plays there. The menu item can be turned off under Settings → <i>Radio</i>; it is hidden in kids’ profiles.</div>`,
+  },
+  {
     id: 'sport-page',
     cat: 'watch',
     title: 'Sport page',

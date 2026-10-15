@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('api', {
   packsScan: () => ipcRenderer.invoke('packs-scan'),
   packsDir: () => ipcRenderer.invoke('packs-dir'),
   fetchText: (url, opts) => ipcRenderer.invoke('fetch-text', url, opts),
+  icyTitle: (url, country) => ipcRenderer.invoke('icy-title', url, country),
   fetchBytes: (url, opts) => ipcRenderer.invoke('fetch-bytes', url, opts),
   setStreamHeaders: (url, headers) => ipcRenderer.invoke('set-stream-headers', url, headers),
   checkStreams: (list) => ipcRenderer.invoke('check-streams', list),

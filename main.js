@@ -5,6 +5,7 @@ const { _t, setLang, getLang } = require('./i18n-main');
 
 const { app, BrowserWindow, ipcMain, dialog, shell, session, net, protocol, powerSaveBlocker, Menu, Notification, Tray, nativeImage } = require('electron');
 const covers = require('./covers');
+const icy = require('./icy');
 const path = require('path');
 const fs = require('fs');
 const zlib = require('zlib');
@@ -527,6 +528,8 @@ ipcMain.handle('notify', (_e, { title, body, channelId }) => {
 // IPC
 // ---------------------------------------------------------------------------
 ipcMain.handle('fetch-text', (_e, url, opts) => fetchText(url, opts));
+// rádió: a most szóló szám címe (ICY-metaadat)
+ipcMain.handle('icy-title', (_e, url, country) => icy.icyTitle(url, country));
 // csak http(s): a felület által adott cím ne olvashasson helyi fájlt (file:) a net.fetch-csel
 ipcMain.handle('fetch-bytes', (_e, url, opts) => {
   let scheme = '';
@@ -977,7 +980,7 @@ ipcMain.handle('rec-folder', () => {
 // csak a felvételek mappájában lévő fájl (útvonal-normalizálással: „..” nem vezethet ki belőle)
 const inRecDir = (p) => {
   const full = path.resolve(String(p || ''));
-  return full.startsWith(path.resolve(recDir()) + path.sep) && /\.(ts|mkv|mp4)$/i.test(full);
+  return full.startsWith(path.resolve(recDir()) + path.sep) && /\.(ts|mkv|mp4|mp3|aac)$/i.test(full);
 };
 ipcMain.handle('rec-trash', async (_e, p) => {
   if (!inRecDir(p) || media.isRecording(p)) return false; // futó felvétel nem mehet a Lomtárba

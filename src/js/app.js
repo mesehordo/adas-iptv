@@ -18,6 +18,9 @@ import './cast.js'; // kivetítés (Chromecast / DLNA)
 import { openMultiview, multiKey, multiOpen } from './multiview.js';
 import { renderStats } from './stats.js';
 import { renderSport, sportMenuOn } from './sportpage.js';
+import { renderRadio, radioMenuOn } from './radiopage.js';
+import { radioKey } from './radioui.js'; // a rádió mini-lejátszója és „Most szól” nézete
+import { radio } from './radio.js';
 import { autoCheckUpdate } from './update.js';
 import { checkReminders, toggleSeries, syncSeries, scheduleNative } from './reminders.js';
 import {
@@ -70,6 +73,7 @@ function routeFn(name) {
     case 'recordings': return renderRecordingsPage;
     case 'stats': return renderStats;
     case 'sport': return renderSport;
+    case 'radio': return renderRadio;
     default: return renderDashboard;
   }
 }
@@ -128,6 +132,7 @@ function route({ keepScroll = false } = {}) {
   }
   // kikapcsolt (vagy gyerekprofilban rejtett) Sport menüpontnál a főoldal
   if (name === 'sport' && !sportMenuOn()) return void location.replace('#/home');
+  if (name === 'radio' && !radioMenuOn()) return void location.replace('#/home');
   const fn = routeFn(name);
   if (name !== 'tv') leaveHome();
   const full = location.hash;
@@ -135,7 +140,7 @@ function route({ keepScroll = false } = {}) {
   const y = window.scrollY;
   currentRoute = full;
   // A „Saját” médiatár a VOD része; az országok oldala a Böngészésé
-  const navRoute = { own: 'vod', recordings: 'tv', guide: 'tv', browse: 'tv', countries: 'tv' }[name] || name;
+  const navRoute = (name === 'recordings' && params.get('kind') === 'radio' ? 'radio' : { own: 'vod', recordings: 'tv', guide: 'tv', browse: 'tv', countries: 'tv' }[name]) || name;
   $$('.links a', nav).forEach((a) => a.classList.toggle('active', a.dataset.route === navRoute));
   document.body.dataset.route = name;
   if (name !== 'search' && document.activeElement !== searchInput) {
@@ -174,6 +179,19 @@ const applySportMenu = () => {
 };
 bus.on('settings', (k) => k === 'sportMenu' && applySportMenu());
 bus.on('profile', applySportMenu);
+// Rádió menüpont: Beállítások → Rádió (gyerekprofilban nem látszik)
+const applyRadioMenu = () => {
+  const a = $('.links a[data-route="radio"]', nav);
+  if (a) a.hidden = !radioMenuOn();
+};
+bus.on('settings', (k) => k === 'radioMenu' && applyRadioMenu());
+bus.on('profile', applyRadioMenu);
+// betöltött adók: a rádió főoldala újrarajzolódik (a böngészés és a keresés mezői nem)
+bus.on('radio', debounce(() => {
+  const { name, params } = parseHash();
+  if (name === 'radio' && params.get('tab') !== 'browse' && !player.active && radio.ready) route({ keepScroll: true });
+}, 400));
+bus.on('radio-favs', () => parseHash().name === 'favorites' && !player.active && route({ keepScroll: true }));
 bus.on('profile-theme', () => leaveHome());
 bus.on('settings', (k) => ['hideOffline', 'showAdult', 'homeCountry'].includes(k) && parseHash().name !== 'settings' && rerender());
 bus.on('player-closed', () => {
@@ -569,6 +587,10 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     return;
   }
+  if (!modalOpen() && radioKey(e)) {
+    e.preventDefault();
+    return;
+  }
 
   if (e.key === 'Escape' || ((e.key === 'Backspace' || e.key === 'BrowserBack') && !typing)) {
     if (typing && e.key === 'Escape') return t.blur();
@@ -756,6 +778,7 @@ async function boot() {
   }
   updateProfileButton();
   applySportMenu();
+  applyRadioMenu();
   startSplashStatus();
   const loading = loadWithRetry();
   // (a csatornalista közben már töltődik; a profilválasztó az indítóanimáció után jelenik meg)

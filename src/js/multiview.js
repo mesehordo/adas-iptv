@@ -1,7 +1,7 @@
 // Több adás egyszerre: 2 vagy 4 csatorna egy képernyőn (pl. sporthoz, hírekhez).
 // A kijelölt ablak szól, a többi némítva fut. Távirányítóval: nyilak = kijelölés,
 // OK = csatornacsere / üres ablakba csatorna, Lejátszás gomb vagy F = teljes nézet, Vissza = kilépés.
-import { $, html, esc, hashHue, toast } from './util.js';
+import { $, html, esc, hashHue, toast, bus } from './util.js';
 import { api } from './api.js';
 import { store } from './store.js';
 import { epg } from './epg.js';
@@ -32,6 +32,7 @@ function tileHtml(i) {
 
 export function openMultiview(initial = []) {
   if (!maxTiles()) return toast(_t('Ezen az eszközön a többképes nézet nem érhető el.'));
+  bus.emit('video-open'); // (a rádió elhallgat – radioplayer.js)
   if (player.active) player.close();
   if (state.el) closeMultiview();
   state.layout = Math.min(store.profile.multiLayout || maxTiles(), maxTiles());
