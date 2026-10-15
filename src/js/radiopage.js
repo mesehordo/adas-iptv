@@ -11,7 +11,7 @@ import { ICON, emptyState, rowTitleHtml, seeAllHtml, progressiveTrack, radioTabs
 import { canRecord, scheduleRadioRec, isRecScheduled, recordingOf, toggleRadioRecording } from './recorder.js';
 import { _t } from './i18n.js';
 import {
-  radio, GENRES, genreName, loadRadio, loadRadioCountry, searchRadioOnline, genreOnline, radioCountries, radioAvailability,
+  radio, GENRES, genreName, loadRadio, loadRadioCountry, searchRadioOnline, genreOnline, radioCountries, radioAvailability, radioGeo, radioOffLabel, queueRadioChecks,
   radioPopular, radioSearch, radioOfCountry, radioOfGenre, radioFavs, radioRecent, isRadioFav, toggleRadioFav, moveRadioFav,
 } from './radio.js';
 import { radioPlayer } from './radioplayer.js';
@@ -52,16 +52,17 @@ export function stationCardHtml(st, ctx = '') {
   const fav = isRadioFav(st.id);
   const now = epg.now(st.id);
   const off = av === 0;
+  const geo = off && radioGeo(st) === 'sure';
   const genre = st.genres[0] ? genreName(st.genres[0]) : st.tags[0] || '';
   const sub = off
-    ? `<span class="off-text">${_t('Most nem szól – a címei nem indultak el')}</span>`
+    ? `<span class="off-text">${geo ? _t('Innen nem hallgatható – földrajzi korlát') : _t('Most nem szól – a címei nem indultak el')}</span>`
     : now?.cur
       ? esc(now.cur.title)
       : esc([countryName(st.country), genre].filter(Boolean).join(' · '));
   return `<div class="card rcard ${off ? 'is-off' : ''} ${on ? 'on-air' : ''}" tabindex="0" data-rid="${esc(st.id)}" data-rl="${esc(ctx)}">
     <div class="thumb" style="--h:${hashHue(st.name)}">
       ${st.logo ? `<img class="rlogo" src="${esc(st.logo)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : ''}<span class="initials">${esc(initials(st.name))}</span>
-      ${off ? '<span class="off-badge">OFFLINE</span>' : ''}
+      ${off ? `<span class="off-badge ${geo ? 'geo' : ''}">${geo ? _t('🌐 GEO-KORLÁT') : 'OFFLINE'}</span>` : ''}
       ${st.bitrate ? `<span class="q">${esc(String(st.bitrate))}k</span>` : ''}
       <span class="st st-${av >= 2 ? 'ok' : off ? 'bad' : 'unknown'}" title="${av >= 2 ? _t('Működik') : off ? _t('Nem elérhető') : _t('Nem ellenőrzött')}"></span>
       ${fav ? '<span class="fav-mark">★</span>' : ''}
@@ -119,6 +120,7 @@ function arrows(el) {
 /** Adók sora (fokozatos feltöltéssel, mint a TV oldal sorai). */
 export function stationRowEl(title, list, { href = '', limit = 60 } = {}) {
   const ctx = registerList(list);
+  queueRadioChecks(list.slice(0, 14));
   const el = rowWrap(title, href, list.length, list.slice(0, 14).map((s) => stationCardHtml(s, ctx)).join('') + seeAllHtml(href, list.length));
   progressiveTrack(el.querySelector('.row-track'), list, (s) => stationCardHtml(s, ctx), limit);
   return arrows(el);
@@ -135,8 +137,26 @@ const countryTile = (cc, count) =>
 function gridHtml(list, { limit = 120 } = {}) {
   if (!list.length) return `<p class="muted">${_t('Nincs találat.')}</p>`;
   const ctx = registerList(list);
+  queueRadioChecks(list.slice(0, limit));
   return `<div class="grid rgrid">${list.slice(0, limit).map((s) => stationCardHtml(s, ctx)).join('')}</div>${list.length > limit ? `<div class="rmore"><button class="btn" data-rmore="${limit}">${_t('Továbbiak ({n})', { n: list.length - limit })}</button></div>` : ''}`;
 }
+// Az elérhetőség-ellenőrzés után a látható kártyák jelölése frissül (OFFLINE / földrajzi korlát)
+let healthTimer = 0;
+bus.on('health', () => {
+  clearTimeout(healthTimer);
+  healthTimer = setTimeout(() => {
+    document.querySelectorAll('.rcard[data-rid]').forEach((card) => {
+      const st = radio.byId.get(card.dataset.rid);
+      if (!st || card.matches(':hover, :focus, :focus-within')) return;
+      const off = radioAvailability(st) === 0;
+      const geo = off && radioGeo(st) === 'sure';
+      if (off === card.classList.contains('is-off') && geo === !!card.querySelector('.off-badge.geo')) return;
+      const tmp = document.createElement('div');
+      tmp.innerHTML = stationCardHtml(st, card.dataset.rl || '');
+      card.replaceWith(tmp.firstElementChild);
+    });
+  }, 800);
+});
 /** A „Továbbiak” gomb; getList: a rács aktuális listája. */
 function bindMore(box, getList) {
   box.addEventListener('click', (e) => {
@@ -268,7 +288,8 @@ export function openStationInfo(st, list = [st]) {
         <div class="info-head">
           <h1>${esc(st.name)}</h1>
           <div class="info-tags">
-            <span class="st-label st-${av >= 2 ? 'ok' : av === 0 ? 'bad' : 'unknown'}">${av >= 2 ? _t('Működik') : av === 0 ? _t('Most nem szól') : _t('Nem ellenőrzött')}</span>
+            <span class="st-label st-${av >= 2 ? 'ok' : av === 0 ? 'bad' : 'unknown'}">${av >= 2 ? _t('Működik') : av === 0 ? `${radioOffLabel(st)} ${_t('– jelenleg nem elérhető')}` : _t('Nem ellenőrzött')}</span>
+            ${{ sure: `<span class="pill warn" title="${_t('Az adó innen elutasította a kérést (403 / 451)')}">${_t('🌐 Földrajzi korlát – innen nem hallgatható')}</span>`, maybe: `<span class="pill warn" title="${_t('A lista szerint csak bizonyos országokból hallgatható')}">${_t('🌐 Földrajzilag korlátozott lehet')}</span>` }[radioGeo(st)] || ''}
             ${st.bitrate ? `<span class="pill">${esc(fmtKbps(st.bitrate))}</span>` : ''}
             ${st.codec ? `<span class="pill">${esc(st.codec)}</span>` : ''}
             ${st.urls.length > 1 ? `<span class="pill">${_t('{length} forrás', { length: st.urls.length })}</span>` : ''}

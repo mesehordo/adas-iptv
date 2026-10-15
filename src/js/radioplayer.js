@@ -254,7 +254,14 @@ class RadioPlayer {
       if (seq !== this.seq) return;
       const ok = await this.start(url, seq);
       if (seq !== this.seq) return;
-      store.setHealth(raw, ok, 'play');
+      let geo = false;
+      if (!ok && api.checkStreams && api.caps?.health) {
+        // (a lejátszó nem adja meg a HTTP-választ: a próba dönti el, hogy a szerver elutasította-e – 403 / 451)
+        const r = await api.checkStreams([{ url }]).catch(() => null);
+        geo = r?.results?.[url] === 'geo';
+        if (seq !== this.seq) return;
+      }
+      store.setHealth(raw, ok, 'play', geo);
       if (ok) {
         this.url = url;
         this.state = 'playing';

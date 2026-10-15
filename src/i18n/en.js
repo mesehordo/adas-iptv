@@ -2157,5 +2157,8 @@ export default {
  "hibás formátum: sérült profiladat": "invalid format: damaged profile data",
  "a korábbi műsor látszik ({x} csatorna)": "showing the previous schedule ({x} channels)",
  "Magyar TV adók": "Hungarian TV channels",
- "Válogatott, szabadon fogható magyar adások: közszolgálati, országos, városi és helyi tévék, Országgyűlés (kb. 80 adás).": "A curated list of free-to-air Hungarian channels: public, national, city and local TV, the Parliament (about 80 streams)."
+ "Válogatott, szabadon fogható magyar adások: közszolgálati, országos, városi és helyi tévék, Országgyűlés (kb. 80 adás).": "A curated list of free-to-air Hungarian channels: public, national, city and local TV, the Parliament (about 80 streams).",
+ "Innen nem hallgatható – földrajzi korlát": "Not available from here – geo-restricted",
+ "🌐 Földrajzi korlát – innen nem hallgatható": "🌐 Geo-restricted – not available from here",
+ "A lista szerint csak bizonyos országokból hallgatható": "According to the list, only available from certain countries"
 };
