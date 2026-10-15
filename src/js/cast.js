@@ -1,7 +1,7 @@
 // Kivetítés tévére / hangszóróra: Chromecast és DLNA (UPnP) eszközök a helyi hálózaton.
 // Az asztali változat továbbítja az adást (a főfolyamat kis kiszolgálóján át), így a CORS-
 // és fejléc-korlátozások (User-Agent, Referer) a kivetítő eszközön sem okoznak gondot.
-import { $, html, esc, toast, errText } from './util.js';
+import { $, html, esc, toast, errText, bus } from './util.js';
 import { api } from './api.js';
 import { player } from './player.js';
 import { openModal, confirmDialog } from './components.js';
@@ -133,6 +133,7 @@ function stopCast(resume, reason = '') {
   const name = state.device.name;
   state.device = null;
   api.castControl('disconnect');
+  bus.emit('cast-state');
   drawOverlay();
   if (reason) toast(`${_t('Kivetítés vége ({name}): {reason}', { name, reason })}`);
   if (resume && player.active && player.channel) {
@@ -152,6 +153,10 @@ const hooks = {
   },
   get paused() {
     return state.paused;
+  },
+  /** A vevőn ténylegesen megy-e az adás (szünet és leállt / üresjárati vevő nem számít). */
+  get playing() {
+    return !!state.device && !state.paused && state.status !== 'IDLE';
   },
   get deviceName() {
     return state.device?.name || '';
@@ -195,6 +200,7 @@ const hooks = {
     if (!state.device) return;
     state.paused = !state.paused;
     api.castControl(state.paused ? 'pause' : 'play');
+    bus.emit('cast-state');
     drawOverlay();
     player.renderControls();
   },
@@ -218,6 +224,7 @@ if (api.onCastStatus) {
     state.status = s.state;
     if (s.state === 'PAUSED') state.paused = true;
     if (s.state === 'PLAYING') state.paused = false;
+    bus.emit('cast-state'); // (a gyerek nézési ideje a vevőn indított szünetnél / folytatásnál is pontos – B09)
     if (typeof s.time === 'number') state.time = s.time;
     if (typeof s.volume === 'number') state.volume = s.volume;
     if (s.state === 'IDLE' && s.idle === 'ERROR') toast(_t('A kivetítő eszköz nem tudta lejátszani ezt az adást.'));
