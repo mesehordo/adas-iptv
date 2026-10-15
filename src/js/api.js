@@ -144,7 +144,11 @@ const webApi = {
   onCheckProgress() {},
   kvGet: (k) => idbGet('kv:' + k),
   kvSet: (k, v) => idbSet('kv:' + k, v),
-  docGet: (k) => idb('readonly', (s) => s.get(k), 'docs').catch(() => undefined),
+  // (strict: az olvasási hiba nem „üres”, hanem hiba – B30)
+  docGet: (k, opts) => idb('readonly', (s) => s.get(k), 'docs').catch((err) => {
+    if (opts?.strict) throw err;
+    return undefined;
+  }),
   docSet: (k, v) => idb('readwrite', (s) => (v == null ? s.delete(k) : s.put(v, k)), 'docs'),
   async storeLoad() {
     try {
@@ -153,10 +157,9 @@ const webApi = {
       return null;
     }
   },
+  // (a hiba – pl. betelt tárhely – a hívóhoz jut: a felület jelzi, hogy a mentés nem sikerült)
   async storeSave(data) {
-    try {
-      localStorage.setItem('adas-store', JSON.stringify(data));
-    } catch {}
+    localStorage.setItem('adas-store', JSON.stringify(data));
   },
   clearCache: idbClear,
   async saveFile(name, text) {

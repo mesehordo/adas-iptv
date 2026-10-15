@@ -590,12 +590,65 @@ function writeJsonFile(file, value) {
   return queueFileOp(file, async () => {
     await fs.promises.mkdir(path.dirname(file), { recursive: true });
     const tmp = `${file}.${process.pid}.tmp`;
-    await fs.promises.writeFile(tmp, JSON.stringify(value), 'utf8');
-    await fs.promises.rename(tmp, file);
+    try {
+      await fs.promises.writeFile(tmp, JSON.stringify(value), 'utf8');
+      await fs.promises.rename(tmp, file);
+    } catch (err) {
+      await fs.promises.rm(tmp, { force: true }).catch(() => {}); // (sikertelen írás után ne maradjon ideiglenes fájl)
+      throw err;
+    }
   });
 }
 
 ipcMain.handle('store-save', (_e, data) => writeJsonFile(storeFile(), data));
+
+/** Egy kérés a Chromium hálózati útján, átirányítás követése nélkül → { status, body } vagy { status, location }. */
+function netOnce(url, { method = 'GET', headers = {}, body, signal } = {}) {
+  let onAbort = null;
+  return new Promise((resolve, reject) => {
+    const req = net.request({ url, method, redirect: 'manual' });
+    for (const [k, v] of Object.entries(headers)) req.setHeader(k, v);
+    onAbort = () => {
+      req.abort();
+      reject(new Error('megszakítva'));
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+    req.on('redirect', (status, _m, location) => {
+      req.abort();
+      resolve({ status, location });
+    });
+    req.on('response', (res) => {
+      const parts = [];
+      let size = 0;
+      res.on('data', (c) => {
+        size += c.length;
+        if (size > 25e6) {
+          req.abort();
+          return reject(new Error(_t('A fájl túl nagy.')));
+        }
+        parts.push(c);
+      });
+      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(parts) }));
+      res.on('error', reject);
+    });
+    req.on('error', reject);
+    if (body != null && body !== '') req.write(body);
+    req.end();
+  }).finally(() => signal?.removeEventListener('abort', onAbort));
+}
+
+/** Hitelesítő fejléces kérés kézi átirányítás-követéssel, a lan.redirectStep szabályaival (Chromium-úton). */
+async function fetchSecret(url, opts) {
+  const first = new URL(url);
+  let cur = url;
+  let o = { ...opts, headers: { ...(opts.headers || {}) } };
+  for (let i = 0; i <= 5; i++) {
+    const r = await netOnce(cur, o);
+    if (!r.location) return r;
+    ({ url: cur, opts: o } = lan.redirectStep(first, cur, r.status, r.location, o, true));
+  }
+  throw new Error('Túl sok átirányítás');
+}
 
 // Általános HTTP-kérés (pl. OpenSubtitles, TMDB): a főfolyamatból nincs CORS, és a
 // User-Agent fejléc is beállítható.
@@ -604,7 +657,19 @@ ipcMain.handle('http-request', async (_e, { method = 'GET', url, headers = {}, b
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 30000);
   try {
-    const res = await net.fetch(url, { method, headers: { 'User-Agent': CHROME_UA, ...headers }, body, signal: ctrl.signal });
+    const opts = { method, headers: { 'User-Agent': CHROME_UA, ...headers }, body, signal: ctrl.signal };
+    // Hitelesítő fejléccel (pl. OpenSubtitles API-kulcs, token) kézi átirányítás-követés: más szerverre a titok
+    // nem megy tovább (a fetch csak az Authorization fejlécet dobná el, az egyedi kulcsfejléceket nem). Ez is a
+    // Chromium hálózati útján megy (net.request), így a rendszer proxybeállítása ugyanúgy érvényes.
+    if (lan.hasSecretHeader(headers)) {
+      const r = await fetchSecret(url, opts);
+      if (binary) {
+        if (r.body.length > 20e6) throw new Error(_t('A fájl túl nagy.'));
+        return { status: r.status, bytes: r.body };
+      }
+      return { status: r.status, text: r.body.toString('utf8') };
+    }
+    const res = await net.fetch(url, opts);
     // bájtként (pl. ZIP-be csomagolt vagy nem UTF-8 kódolású felirat): a megjelenítő dekódolja
     if (binary) {
       const buf = Buffer.from(await res.arrayBuffer());
@@ -744,10 +809,13 @@ ipcMain.handle('kv-set', (_e, key, value) => writeJsonFile(kvFile(key), value));
 
 // Tartós dokumentumok (pl. fájlból felvett nagy listák) a felhasználói adatok mellett, „lists” mappában.
 const docFile = (key) => path.join(app.getPath('userData'), 'lists', String(key).replace(/[^\w.-]+/g, '_') + '.json');
-ipcMain.handle('doc-get', async (_e, key) => {
+// strict: csak a nem létező dokumentum ad üres választ; az olvashatatlan / sérült fájl hibát ad (B30 – a
+// mentéstár hibája ne látsszon üres tárnak, amire a következő mentés rá is írna)
+ipcMain.handle('doc-get', async (_e, key, opts) => {
   try {
     return JSON.parse(await fs.promises.readFile(docFile(key), 'utf8'));
-  } catch {
+  } catch (err) {
+    if (opts?.strict && err?.code !== 'ENOENT') throw new Error(`A dokumentum nem olvasható (${err?.code || err?.name || 'hiba'})`);
     return undefined;
   }
 });

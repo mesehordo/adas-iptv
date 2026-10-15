@@ -2161,5 +2161,15 @@ export default {
  "{play} Hallgatás": "{play} Listen",
  "Ehhez az adóhoz nem érhető el műsorújság. A „most szól” cím (ha az adó küldi) a lejátszóban látszik.": "No schedule is available for this station. The “now playing” title (if the station sends it) appears in the player.",
  "Adáscímek": "Stream addresses",
- "Hallgatás ezen a címen": "Listen on this address"
+ "Hallgatás ezen a címen": "Listen on this address",
+ "A beállítások mentése most sikerült.": "Your settings were saved successfully.",
+ "betelt a tárhely": "storage is full",
+ "Nem sikerült menteni a beállításokat ({x}). A legutóbbi módosítások újraindításkor elveszhetnek.": "Your settings could not be saved ({x}). Your latest changes may be lost on restart.",
+ "Újra": "Retry",
+ "a mentéstár sérült": "the backup store is damaged",
+ "A mentési pontok most nem olvashatók ({x}). Új mentés nem írja felül őket, amíg ez fennáll.": "The restore points cannot be read right now ({x}). New backups will not overwrite them while this lasts.",
+ "A mentési pont nem készült el: {x}": "The restore point was not created: {x}",
+ "A visszaállítás nem sikerült: {x}": "Restore failed: {x}",
+ "hibás formátum: nincs benne profil": "invalid format: it contains no profiles",
+ "hibás formátum: sérült profiladat": "invalid format: damaged profile data"
 };

@@ -189,11 +189,24 @@ function weatherHtml({ loc, data }, o = {}) {
   return `<div class="w-now ${big ? 'big' : ''}">
       <span class="w-ico">${c.is_day === 0 && c.weather_code <= 1 ? '🌙' : ico}</span>
       <div class="w-temp">${Math.round(c.temperature_2m)}°</div>
-      <div class="w-mid"><b class="w-city">${esc(loc.name)}</b><span class="w-desc">${esc(desc)}</span>${mm}</div>
+      <div class="w-mid"><b class="w-city" title="${esc(loc.name)}">${esc(loc.name)}</b><span class="w-desc">${esc(desc)}</span>${mm}</div>
       ${facts ? `<dl class="w-facts"><dt>${_t('Hőérzet')}</dt><dd>${Math.round(c.apparent_temperature)}°</dd><dt>${_t('Szél')}</dt><dd>${_t('{round} km/h', { round: Math.round(c.wind_speed_10m) })}</dd><dt>${_t('Pára')}</dt><dd>${c.relative_humidity_2m}%</dd></dl>` : ''}
     </div>
     ${chart && style !== 'none' ? `<div class="w-today ${style === 'tiles' ? 'tiles' : ''}"></div>` : ''}
     ${week ? `<ul class="w-days" style="grid-template-columns:repeat(${days.length}, minmax(0, 1fr))">${days.join('')}</ul>` : ''}`;
+}
+
+/**
+ * Ha a becslés ellenére sem fér ki minden (hosszú településnév, nagyobb betű, más téma), a kiegészítő
+ * részek tudatosan maradnak el, ebben a sorrendben: heti előrejelzés, órás bontás, részletek – a mostani
+ * időjárás mindig látszik (#22). Átméretezéskor a ResizeObserver újrarajzol.
+ */
+function fitWeather(b) {
+  const over = () => b.scrollHeight > b.clientHeight + 1;
+  for (const sel of ['.w-days', '.w-today', '.w-facts']) {
+    if (!over()) return;
+    b.querySelector(sel)?.remove();
+  }
 }
 
 /** A mai órás bontás kirajzolása – a kártya tényleges méretéhez igazítva. */
@@ -448,14 +461,19 @@ export const UNITS = {
     render(b, { w, h }) {
       if (!weatherCache) return weatherErr ? note(`${_t('Az időjárás nem érhető el: {esc}', { esc: esc(weatherErr) })}`) : '<div class="spinner small"></div>';
       const style = weatherStyle();
+      // (a CSS-sel egyező méretek: a grafikon legalább 100 px + 8 px margó, a heti sáv kb. 78 px + 10 px)
       const nowH = w < 300 ? 52 : 62;
-      const weekH = 78;
-      const chart = style !== 'none' && h >= nowH + 80;
-      const week = h >= nowH + (chart ? 80 : 0) + weekH;
+      const chartH = 110;
+      const weekH = 88;
+      const chart = style !== 'none' && h >= nowH + chartH;
+      const week = h >= nowH + (chart ? chartH : 0) + weekH;
       const days = w / 7 >= 44 ? 7 : w / 5 >= 44 ? 5 : 3;
       return weatherHtml(weatherCache, { facts: w >= 340, chart, week, days, big: !chart && h >= 170 });
     },
-    after: (b) => drawToday(b),
+    after: (b) => {
+      fitWeather(b);
+      drawToday(b);
+    },
   },
   epg: {
     title: _t('Most a tévében'),

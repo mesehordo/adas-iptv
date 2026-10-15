@@ -6,9 +6,9 @@
 //  - webcímről (pl. NAS-ra vagy GitHubra tett mentésből) is betölthető.
 import { esc, toast, errText, bus } from './util.js';
 import { api } from './api.js';
-import { store, cleanProfile } from './store.js';
+import { store, cleanProfile, validateImport } from './store.js';
 import { confirmDialog } from './components.js';
-import { packDocs } from './packs.js';
+import { packDocs, packDocKey, PACK_KINDS } from './packs.js';
 
 import { _t } from './i18n.js';
 const SECRET_KEYS = ['osApiKey', 'osUser', 'osPass', 'osToken', 'subdlKey', 'tmdbKey', 'omdbKey', 'tsdbKey', 'remoteKey'];
@@ -29,11 +29,40 @@ export async function attachDocs(data) {
   return data;
 }
 
-/** A mentésben érkezett listaszövegek visszaírása. */
-export async function restoreDocs(data) {
-  for (const [k, v] of Object.entries(data.docs || {})) if (/^(vodtext|vodpack|tvpack):[\w-]+$/.test(k) && v && typeof v.text === 'string') await api.docSet?.(k, v);
+/**
+ * A mentésben érkezett listaszövegek előkészítése (B31): mindegyik ÚJ kulcsra íródik, és a beállítások
+ * hivatkozásai (saját VOD-lista textKey, csomag doc) erre mutatnak át. A régi dokumentumok érintetlenek, így
+ * ha bármelyik írás – vagy utána a beállítások cseréje – nem sikerül, a régi állapot teljes egészében megmarad
+ * (dropDocs törli a már megírt új példányokat). → { written: [új kulcsok] }
+ */
+const DOC_KEY = /^(vodtext|vodpack|tvpack|radiopack):[\w-]+$/;
+export async function stageDocs(data) {
+  const docs = data.docs || {};
   delete data.docs;
+  const stamp = Date.now().toString(36);
+  const map = {};
+  const written = [];
+  try {
+    for (const [k, v] of Object.entries(docs)) {
+      if (!DOC_KEY.test(k) || !v || typeof v.text !== 'string') continue;
+      // (saját, egyedi jelölő: „--v<időbélyeg>” – egy korábbi ilyen utótag nem halmozódik, és egy valódi
+      // azonosító-végződés, pl. „-radio”, nem tévesztődik vele össze; azonos új kulcs nem jöhet létre kétszer)
+      let nk = `${k.replace(/--v[0-9a-z]+(?:-\d+)?$/, '')}--v${stamp}`;
+      for (let n = 2; Object.values(map).includes(nk); n++) nk = `${k.replace(/--v[0-9a-z]+(?:-\d+)?$/, '')}--v${stamp}-${n}`;
+      await api.docSet?.(nk, v);
+      written.push(nk);
+      map[k] = nk;
+    }
+  } catch (err) {
+    await dropDocs(written);
+    throw err;
+  }
+  for (const p of data.settings?.vodCustom || []) if (p && map[p.textKey]) p.textKey = map[p.textKey];
+  for (const [kind, k] of Object.entries(PACK_KINDS)) for (const p of data.settings?.[k.setting] || []) if (p && map[packDocKey(kind, p)]) p.doc = map[packDocKey(kind, p)];
+  return { written };
 }
+/** A stageDocs által megírt új példányok törlése (sikertelen csere után). */
+export const dropDocs = (keys) => Promise.all((keys || []).map((k) => Promise.resolve(api.docSet?.(k, null)).catch(() => {})));
 
 async function payload({ secrets, profiles }) {
   const data = JSON.parse(JSON.stringify(store.serialize()));
@@ -48,6 +77,8 @@ async function payload({ secrets, profiles }) {
 async function applyData(data, source, { profilesOnly = false } = {}) {
   if (!data || data.app !== 'adas' || !data.settings) throw new Error(_t('A válasz nem Adás-beállítás.'));
   if (profilesOnly) return mergeProfiles(data, source);
+  // (B32: a profilok nélküli átvétel is megengedett – akkor a mostaniak maradnak)
+  data = validateImport(data, { needProfiles: false });
   const what = [
     _t('a beállításokat és a listákat'),
     data.profiles ? `${_t('{length} profilt (kedvencekkel, előzményekkel)', { length: data.profiles.length })}` : '',
@@ -66,14 +97,19 @@ async function applyData(data, source, { profilesOnly = false } = {}) {
     if (!(k in settings) && cur.settings[k]) settings[k] = cur.settings[k];
   });
   if (!('osToken' in data.settings)) settings.osBaseUrl = cur.settings.osBaseUrl || '';
-  await restoreDocs(data);
-  await store.replaceAll({
-    version: data.version || 1,
-    settings,
-    profiles: data.profiles || cur.profiles,
-    activeProfileId: data.profiles ? data.activeProfileId : cur.activeProfileId,
-    health: store.health,
-  });
+  const staged = await stageDocs({ docs: data.docs, settings });
+  try {
+    await store.replaceAll({
+      version: data.version || 1,
+      settings,
+      profiles: data.profiles || cur.profiles,
+      activeProfileId: data.profiles ? data.activeProfileId : cur.activeProfileId,
+      health: store.health,
+    });
+  } catch (err) {
+    await dropDocs(staged.written);
+    throw err;
+  }
   toast(_t('Beállítások átvéve – újraindítás…'));
   setTimeout(() => location.reload(), 800);
   return true;

@@ -403,6 +403,15 @@ const flushNow = () => {
 document.addEventListener('visibilitychange', () => document.hidden && flushNow());
 window.addEventListener('pagehide', flushNow);
 window.__adasFlush = flushNow; // az Android-keret hívja, amikor az alkalmazás a háttérbe kerül
+// Sikertelen mentés: látható jelzés újrapróbálással (legfeljebb félpercenként egy), a sikeres újramentésről is
+let saveWarnAt = 0;
+bus.on('save-state', (err) => {
+  if (!err) return void (saveWarnAt && ((saveWarnAt = 0), toast(_t('A beállítások mentése most sikerült.'))));
+  if (Date.now() - saveWarnAt < 30e3) return;
+  saveWarnAt = Date.now();
+  const why = /quota/i.test(String(err?.name || '') + String(err?.message || '')) ? _t('betelt a tárhely') : String(err?.message || err).slice(0, 120);
+  toast(_t('Nem sikerült menteni a beállításokat ({x}). A legutóbbi módosítások újraindításkor elveszhetnek.', { x: why }), { action: _t('Újra'), onAction: () => store.flush(), timeout: 15000 });
+});
 // Android: a háttérlejátszás értesítésének „Leállítás” gombja
 window.__adasStopPlayback = () => player.active && player.close();
 // Háttér-beállítás átadása a keretnek (háttérlejátszás; a kép a képben mód megszűnt)

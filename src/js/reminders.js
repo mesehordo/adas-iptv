@@ -72,6 +72,35 @@ api.onOpenChannel?.(openChannel);
 
 const leadMs = () => Math.max(0, Number(store.settings.reminderLead ?? 2)) * 60000;
 
+// Függő automatikus átkapcsolások (B16): emlékeztetőhöz és profilhoz kötve. Profilváltás, a funkció kikapcsolása
+// és az emlékeztető törlése visszavonja őket; végrehajtáskor is újra ellenőrizzük a feltételeket. Ha a
+// felhasználó közben kézzel másik csatornára váltott, az automatikus váltás elmarad (ő már döntött).
+const pendingSwitch = new Map(); // `${profil}|${csatorna}|${kezdés}` → { timer, from }
+const switchKey = (pid, r) => `${pid}|${r.channelId}|${r.start}`;
+function cancelSwitches(pred = () => true) {
+  for (const [k, p] of pendingSwitch) {
+    if (!pred(k)) continue;
+    clearTimeout(p.timer);
+    pendingSwitch.delete(k);
+  }
+}
+function switchStillWanted(k, p, ch) {
+  const pid = store.profile?.id;
+  if (!store.settings.reminderAutoSwitch || !pid || !k.startsWith(pid + '|')) return false;
+  const exists = (store.profile.reminders || []).some((r) => switchKey(pid, r) === k);
+  if (!exists) return false;
+  const now = player.channel?.id || null;
+  if (now === ch.id) return false; // (már ezt nézi)
+  return now === p.from; // (közben kézzel nem váltott másik csatornára)
+}
+bus.on('profile', () => cancelSwitches());
+bus.on('settings', (k) => k === 'reminderAutoSwitch' && !store.settings.reminderAutoSwitch && cancelSwitches());
+bus.on('reminders', () => {
+  const pid = store.profile?.id;
+  const live = new Set((store.profile?.reminders || []).map((r) => switchKey(pid, r)));
+  cancelSwitches((k) => !live.has(k));
+});
+
 export function checkReminders() {
   const now = Date.now();
   let changed = false;
@@ -92,9 +121,15 @@ export function checkReminders() {
       r.switched = true;
       changed = true;
       if (player.channel?.id === ch.id) continue;
-      let cancelled = false;
-      toast(`${_t('Átkapcsolás 8 mp múlva: {name} – {title}', { name: ch.name, title: r.title })}`, { action: _t('Maradok'), onAction: () => (cancelled = true), timeout: 8000 });
-      setTimeout(() => !cancelled && player.play(ch), 8000);
+      const k = switchKey(store.profile.id, r);
+      cancelSwitches((x) => x === k);
+      const p = { from: player.channel?.id || null, timer: 0 };
+      p.timer = setTimeout(() => {
+        pendingSwitch.delete(k);
+        if (switchStillWanted(k, p, ch)) player.play(ch);
+      }, 8000);
+      pendingSwitch.set(k, p);
+      toast(`${_t('Átkapcsolás 8 mp múlva: {name} – {title}', { name: ch.name, title: r.title })}`, { action: _t('Maradok'), onAction: () => cancelSwitches((x) => x === k), timeout: 8000 });
     }
   }
   if (changed) {
