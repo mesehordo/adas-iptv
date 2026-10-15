@@ -2147,5 +2147,15 @@ export default {
  "Felvétel: {name} – a Rádió → Felvételek alatt találod": "Recording: {name} – find it under Radio → Recordings",
  "Még nincs rádiófelvétel": "No radio recordings yet",
  "Rádiózás közben a mini-lejátszó vagy a Most szól nézet ● gombjával veheted fel az adást, vagy a Rádió → Műsorújság fülön ütemezhetsz felvételt.": "While listening, record with the ● button on the mini player or in the Now playing view, or schedule a recording on the Radio → Schedule tab.",
- "Műsorújság@@rádió": "Schedule"
+ "Műsorújság@@rádió": "Schedule",
+ "A beállítások mentése most sikerült.": "Your settings were saved successfully.",
+ "betelt a tárhely": "storage is full",
+ "Nem sikerült menteni a beállításokat ({x}). A legutóbbi módosítások újraindításkor elveszhetnek.": "Your settings could not be saved ({x}). Your latest changes may be lost on restart.",
+ "Újra": "Retry",
+ "a mentéstár sérült": "the backup store is damaged",
+ "A mentési pontok most nem olvashatók ({x}). Új mentés nem írja felül őket, amíg ez fennáll.": "The restore points cannot be read right now ({x}). New backups will not overwrite them while this lasts.",
+ "A mentési pont nem készült el: {x}": "The restore point was not created: {x}",
+ "A visszaállítás nem sikerült: {x}": "Restore failed: {x}",
+ "hibás formátum: nincs benne profil": "invalid format: it contains no profiles",
+ "hibás formátum: sérült profiladat": "invalid format: damaged profile data"
 };

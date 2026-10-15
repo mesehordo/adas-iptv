@@ -590,8 +590,13 @@ function writeJsonFile(file, value) {
   return queueFileOp(file, async () => {
     await fs.promises.mkdir(path.dirname(file), { recursive: true });
     const tmp = `${file}.${process.pid}.tmp`;
-    await fs.promises.writeFile(tmp, JSON.stringify(value), 'utf8');
-    await fs.promises.rename(tmp, file);
+    try {
+      await fs.promises.writeFile(tmp, JSON.stringify(value), 'utf8');
+      await fs.promises.rename(tmp, file);
+    } catch (err) {
+      await fs.promises.rm(tmp, { force: true }).catch(() => {}); // (sikertelen írás után ne maradjon ideiglenes fájl)
+      throw err;
+    }
   });
 }
 
@@ -747,10 +752,13 @@ ipcMain.handle('kv-set', (_e, key, value) => writeJsonFile(kvFile(key), value));
 
 // Tartós dokumentumok (pl. fájlból felvett nagy listák) a felhasználói adatok mellett, „lists” mappában.
 const docFile = (key) => path.join(app.getPath('userData'), 'lists', String(key).replace(/[^\w.-]+/g, '_') + '.json');
-ipcMain.handle('doc-get', async (_e, key) => {
+// strict: csak a nem létező dokumentum ad üres választ; az olvashatatlan / sérült fájl hibát ad (B30 – a
+// mentéstár hibája ne látsszon üres tárnak, amire a következő mentés rá is írna)
+ipcMain.handle('doc-get', async (_e, key, opts) => {
   try {
     return JSON.parse(await fs.promises.readFile(docFile(key), 'utf8'));
-  } catch {
+  } catch (err) {
+    if (opts?.strict && err?.code !== 'ENOENT') throw new Error(`A dokumentum nem olvasható (${err?.code || err?.name || 'hiba'})`);
     return undefined;
   }
 });

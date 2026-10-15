@@ -1,7 +1,7 @@
 // Nézetek: főoldal, böngészés, kedvencek, keresés, műsorújság, beállítások, profilok.
 import { $, $$, esc, html, norm, hashHue, fmtTime, fmtDay, dayStart, dayLabel, toast, bus, seededShuffle, debounce } from './util.js';
 import { api, IS_TV, IS_ANDROID } from './api.js';
-import { store, BUILTIN_EPG, epgSourceName, PROFILE_COLORS, DEFAULT_PLAYLIST, BUILTIN_PLAYLISTS, AVATAR_COUNT, avatarUrl } from './store.js';
+import { store, BUILTIN_EPG, epgSourceName, PROFILE_COLORS, DEFAULT_PLAYLIST, BUILTIN_PLAYLISTS, AVATAR_COUNT, avatarUrl, validateImport } from './store.js';
 import { epg } from './epg.js';
 import { health } from './health.js';
 import {
@@ -25,7 +25,7 @@ import { radioFavsSection } from './radiopage.js';
 import { renderRadioSettings } from './radiosettings.js';
 const sportWatchCount = () => watchList().filter((w) => w.on !== false).length;
 import { requireAdult, hasPin, choosePin, setPin } from './pin.js';
-import { renderTransfer, importData, attachDocs, restoreDocs } from './transfer.js';
+import { renderTransfer, importData, attachDocs, stageDocs, dropDocs } from './transfer.js';
 import { renderRecordings } from './recorder.js';
 import { renderRemoteSettings } from './remote.js';
 import { renderBackups } from './backup.js';
@@ -1025,11 +1025,15 @@ export function renderSettings(view) {
       const f = await api.openFile([{ name: _t('Adás mentés'), extensions: ['json'] }]);
       if (!f) return;
       try {
-        const data = JSON.parse(f.text);
-        if (!data.settings || !Array.isArray(data.profiles)) throw new Error(_t('hibás formátum'));
+        const data = validateImport(JSON.parse(f.text)); // (B32: hibás szerkezetnél semmi sem módosul)
         if (!(await confirmDialog(_t('A visszaállítás felülírja a jelenlegi beállításokat és profilokat. Folytatod?'), { ok: _t('Visszaállítás'), danger: true }))) return;
-        await restoreDocs(data);
-        await store.replaceAll({ ...data, health: store.health });
+        const staged = await stageDocs(data);
+        try {
+          await store.replaceAll({ ...data, health: store.health });
+        } catch (err) {
+          await dropDocs(staged.written); // (a régi listák és dokumentumok érintetlenek)
+          throw err;
+        }
         location.reload();
       } catch (err) {
         toast(`${_t('Nem sikerült beolvasni a mentést:')} ` + err.message);

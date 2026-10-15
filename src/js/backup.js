@@ -1,8 +1,8 @@
 // Automatikus mentés: naponta egy mentési pont a beállításokról, profilokról, kedvencekről, előzményekről
 // (az utolsó 7 marad meg), ezen az eszközön tárolva – egy kattintással visszaállítható.
-import { toast, bus } from './util.js';
+import { toast, bus, esc } from './util.js';
 import { api } from './api.js';
-import { store } from './store.js';
+import { store, validateImport } from './store.js';
 import { confirmDialog } from './components.js';
 
 import { _t, LOCALE } from './i18n.js';
@@ -10,25 +10,40 @@ const KEY = 'backups';
 const KEEP = 7;
 const DAY = 24 * 3600e3;
 
+/**
+ * A mentési pontok. A valóban üres (még nem létező) tár üres lista; az olvashatatlan vagy sérült tár hibát ad
+ * (B30), hogy a következő mentés ne írja felül a régi pontokat.
+ */
 async function list() {
+  let v;
   try {
-    const v = await api.docGet?.(KEY);
-    return Array.isArray(v?.items) ? v.items : [];
-  } catch {
-    return [];
+    v = await api.docGet?.(KEY, { strict: true });
+  } catch (err) {
+    // (az asztali híd előtagja nélkül: „A dokumentum nem olvasható (EPERM)”)
+    throw new Error(String(err?.message || err).replace(/^Error invoking remote method '[^']+':\s*(Error:\s*)?/, ''));
   }
+  if (v === undefined || v === null) return [];
+  if (!Array.isArray(v.items)) throw new Error(_t('a mentéstár sérült'));
+  return v.items;
 }
 
-export async function backupNow(reason = 'auto') {
-  if (!api.docSet) return false;
-  const data = JSON.parse(JSON.stringify(store.serialize()));
-  delete data.health;
-  data.app = 'adas';
-  const items = [{ at: Date.now(), reason, profiles: (data.profiles || []).length, data }, ...(await list())].slice(0, KEEP);
-  await api.docSet(KEY, { items });
-  store.settings.lastBackup = Date.now();
-  store.save();
-  return true;
+// a mentéstár olvasás–módosítás–írás műveletei egymás után (két egyidejű mentés ne veszítsen pontot)
+let chain = Promise.resolve();
+export function backupNow(reason = 'auto') {
+  const run = chain.then(async () => {
+    if (!api.docSet) return false;
+    const data = JSON.parse(JSON.stringify(store.serialize()));
+    delete data.health;
+    data.app = 'adas';
+    const old = await list(); // (hibánál nem írunk: a régi mentési pontok érintetlenek maradnak)
+    const items = [{ at: Date.now(), reason, profiles: (data.profiles || []).length, data }, ...old].slice(0, KEEP);
+    await api.docSet(KEY, { items });
+    store.settings.lastBackup = Date.now();
+    store.save();
+    return true;
+  });
+  chain = run.catch(() => {});
+  return run;
 }
 
 async function tick() {
@@ -43,7 +58,13 @@ export async function renderBackups(box) {
   if (!box) return;
   if (!api.docSet) return box.remove();
   const draw = async () => {
-    const items = await list();
+    let items = [];
+    let readErr = '';
+    try {
+      items = await list();
+    } catch (err) {
+      readErr = String(err?.message || err);
+    }
     box.innerHTML = `<h3>${_t('Automatikus mentés')}</h3>
       <label class="setting"><span>${_t('<b>Napi mentési pont ezen az eszközön</b>')}<small>${_t('Az utolsó {KEEP} nap beállításai, profiljai, kedvencei és előzményei – ha valami elromlik vagy véletlenül törölsz, visszaállítható.', { KEEP })}</small></span>
         <input type="checkbox" class="switch" data-bk="on" ${store.settings.autoBackup === false ? '' : 'checked'} /></label>
@@ -52,7 +73,9 @@ export async function renderBackups(box) {
               .map((b, i) => `<li><span><b>${new Date(b.at).toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' })}</b><small>${b.reason === 'manual' ? _t('kézi mentés') : b.reason === 'before-restore' ? _t('visszaállítás előtti állapot') : _t('automatikus')} ${_t('· {profiles} profil', { profiles: b.profiles })}</small></span>
                 <button class="btn small" data-bk-restore="${i}">${_t('Visszaállítás')}</button></li>`)
               .join('')}</ul>`
-          : `<p class="muted small">${_t('Még nincs mentési pont.')}</p>`}
+          : readErr
+            ? `<p class="small warn-note">${esc(_t('A mentési pontok most nem olvashatók ({x}). Új mentés nem írja felül őket, amíg ez fennáll.', { x: readErr }))}</p>`
+            : `<p class="muted small">${_t('Még nincs mentési pont.')}</p>`}
       <div class="inline"><button class="btn small" data-bk="now">${_t('Mentés most')}</button></div>`;
     box._items = items;
   };
@@ -67,8 +90,12 @@ export async function renderBackups(box) {
     if (!b) return;
     if (b.dataset.bk === 'now') {
       e.stopPropagation();
-      await backupNow('manual');
-      toast(_t('Mentési pont elkészült'));
+      try {
+        await backupNow('manual');
+        toast(_t('Mentési pont elkészült'));
+      } catch (err) {
+        toast(_t('A mentési pont nem készült el: {x}', { x: err?.message || err }), { timeout: 9000 });
+      }
       draw();
     } else if (b.dataset.bkRestore !== undefined) {
       e.stopPropagation();
@@ -79,7 +106,7 @@ export async function renderBackups(box) {
       if (!ok) return;
       try {
         await backupNow('before-restore');
-        await store.replaceAll({ ...it.data, health: store.health });
+        await store.replaceAll({ ...validateImport(it.data), health: store.health });
       } catch (err) {
         // (a mostani állapot használható marad, a további mentések is működnek)
         toast(_t('A visszaállítás nem sikerült: {x}', { x: err?.message || err }), { timeout: 9000 });

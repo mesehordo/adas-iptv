@@ -36,6 +36,7 @@ svg { width: 1em; height: 1em; fill: currentColor; flex: none; }
 [hidden] { display: none !important; }
 h1, h2, h3, h4 { margin: 0; color: var(--text-strong); }
 .muted { color: var(--muted); }
+.warn-note { color: var(--warn); }
 .small { font-size: 0.85em; }
 .grow { flex: 1; }
 :focus { outline: none; }

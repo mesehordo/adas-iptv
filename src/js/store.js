@@ -180,6 +180,62 @@ const DEFAULT_SETTINGS = {
 /** A gyári beállítások mély másolata – a tömbök / objektumok ne legyenek közösek a mentett adatokkal. */
 const defaults = () => JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 
+// ---------------------------------------------------------------------------
+// Sémaellenőrzés (B32): betöltéskor és minden import előtt ugyanaz. A hibás típusú beállítás (pl. tömb helyett
+// null, szöveg vagy objektum) az alapértékre áll, a tömbök hibás elemei kimaradnak – így egy formailag
+// elfogadott, de hibás mentés sem okozhat tartós indítási hibát.
+// ---------------------------------------------------------------------------
+const kindOf = (v) => (Array.isArray(v) ? 'array' : v === null ? 'null' : typeof v);
+// az alapértékek között nem szereplő, de ismert szerkezetű beállítások
+const EXTRA_KINDS = { rssFeeds: 'array', recSchedule: 'array', kidsMarks: 'object', listRefresh: 'object', tvPacks: 'array', vodPacks: 'array', weatherLoc: 'object', rssDefaultsSeen: 'array', radioPacks: 'array' };
+// objektumelemekből álló tömbök (a nem objektum elem kimarad)
+const OBJECT_LISTS = ['customPlaylists', 'customChannels', 'vodCustom', 'ownSources', 'epgSources', 'rssFeeds', 'recSchedule', 'tvPacks', 'vodPacks', 'radioLists', 'radioPacks'];
+/** → { settings: javított másolat, fixed: [a javított kulcsok] } */
+export function sanitizeSettings(raw) {
+  const fixed = [];
+  if (kindOf(raw) !== 'object') {
+    fixed.push('settings');
+    raw = {};
+  }
+  const out = { ...raw };
+  for (const [k, dv] of Object.entries(DEFAULT_SETTINGS)) {
+    if (!(k in out)) continue;
+    const want = kindOf(dv);
+    if (want === 'null' || want === 'undefined') continue;
+    if (kindOf(out[k]) !== want) {
+      out[k] = JSON.parse(JSON.stringify(dv));
+      fixed.push(k);
+    }
+  }
+  for (const [k, want] of Object.entries(EXTRA_KINDS)) {
+    if (k in out && out[k] != null && kindOf(out[k]) !== want) {
+      delete out[k];
+      fixed.push(k);
+    }
+  }
+  for (const k of OBJECT_LISTS) {
+    if (!Array.isArray(out[k])) continue;
+    const n = out[k].length;
+    out[k] = out[k].filter((x) => kindOf(x) === 'object' && (k !== 'epgSources' || typeof x.url === 'string'));
+    if (out[k].length !== n) fixed.push(k + '[]');
+  }
+  return { settings: out, fixed };
+}
+
+/**
+ * Teljes import (fájl, átvétel, mentési pont) ellenőrzése a store cseréje előtt. Hibás szerkezetnél hibát dob
+ * (a működő állapot érintetlen); egyébként a javított másolatot adja. needProfiles: a profilok is kellenek.
+ */
+export function validateImport(data, { needProfiles = true } = {}) {
+  if (kindOf(data) !== 'object' || kindOf(data.settings) !== 'object') throw new Error(_t('hibás formátum'));
+  if (data.profiles !== undefined || needProfiles) {
+    if (!Array.isArray(data.profiles) || (needProfiles && !data.profiles.length)) throw new Error(_t('hibás formátum: nincs benne profil'));
+    if (!data.profiles.every((p) => kindOf(p) === 'object' && typeof p.id === 'string' && p.id && typeof (p.name ?? '') === 'string')) throw new Error(_t('hibás formátum: sérült profiladat'));
+  }
+  if (data.activeProfileId !== undefined && typeof data.activeProfileId !== 'string') throw new Error(_t('hibás formátum'));
+  return { ...data, settings: sanitizeSettings(data.settings).settings };
+}
+
 /** Véletlen azonosító (8 karakter, a-z0-9) kriptográfiai forrásból. */
 const randomId = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => (b % 36).toString(36)).join('');
 
@@ -285,8 +341,16 @@ export const store = {
   },
 
   async load() {
-    const data = (await api.storeLoad()) || {};
-    this.settings = { ...defaults(), ...(data.settings || {}) };
+    let data = (await api.storeLoad()) || {};
+    if (kindOf(data) !== 'object') data = {};
+    const { settings: clean, fixed } = sanitizeSettings(data.settings || {});
+    // ha javítani kellett: az eredeti példány megmarad a dokumentumtárban (kézzel visszanézhető / helyreállítható)
+    if (fixed.length) {
+      console.warn('Hibás beállítások javítva:', fixed.join(', '));
+      Promise.resolve(api.docSet?.('store-before-repair', { at: Date.now(), fixed, data })).catch(() => {});
+      this.repaired = fixed;
+    }
+    this.settings = { ...defaults(), ...clean };
     // Új beépített források felvétele, ha a mentett lista régebbi.
     const known = new Set(this.settings.epgSources.map((s) => s.url));
     for (const s of BUILTIN_EPG) if (!known.has(s.url)) this.settings.epgSources.push({ ...s });
@@ -308,8 +372,8 @@ export const store = {
     this.profiles.forEach((p, i) => {
       if (p.avatar === undefined) p.avatar = p.kids ? 6 : DEFAULT_AVATARS[i % DEFAULT_AVATARS.length];
     });
-    this.activeProfileId = data.activeProfileId || this.profiles[0].id;
-    this.health = data.health || {};
+    this.activeProfileId = typeof data.activeProfileId === 'string' && this.profiles.some((p) => p.id === data.activeProfileId) ? data.activeProfileId : this.profiles[0].id;
+    this.health = kindOf(data.health) === 'object' ? data.health : {};
     // A 30 napnál régebbi ellenőrzési eredmények elavultak; a tévén a tárhely is szűkös.
     const old = Date.now() - 30 * 86400e3;
     for (const [u, h] of Object.entries(this.health)) if (!h || h[1] < old) delete this.health[u];
