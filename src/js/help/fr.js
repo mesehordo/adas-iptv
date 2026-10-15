@@ -169,7 +169,6 @@ ${go('#/settings', 'Ouvrir les Paramètres')}`,
 <li>⚙ <b>Qualité et source</b>. ${t('quality', 'Détails')} Le panneau <b>📊 Infos du flux</b> s’y trouve aussi (<kbd>D</kbd>) : résolution, débit, vitesse de téléchargement, mémoire tampon. ${t('stream-info', 'Détails')}</li>
 <li>☰ <b>Panneau de la liste des chaînes</b> à droite, avec filtre.</li>
 <li>↺30 / ↻30 <b>Retour et avance</b> dans le direct, <b>Aller au direct</b>. ${t('timeshift', 'Détails')}</li>
-<li>▦ <b>Plusieurs flux à la fois</b>. ${t('multiview', 'Détails')}</li>
 <li><b>Caster</b> vers un Chromecast ou une TV DLNA (version de bureau). ${t('cast', 'Détails')}</li>
 <li><b>Mini-lecteur</b>, <b>Plein écran</b> ; les boutons supplémentaires peuvent être masqués un par un. ${t('pip-mini', 'Détails')}</li>
 </ul>
@@ -1258,21 +1257,6 @@ ${go('#/browse?geo=hide', 'Chaînes sans restriction géographique')}`,
 <div class="note">Les résultats s’actualisent environ toutes les 5 minutes. Si un championnat ne peut pas être chargé, le bas du bloc Sport le signale.</div>`,
   },
   {
-    id: 'multiview',
-    cat: 'watch',
-    title: 'Plusieurs flux à la fois',
-    keywords: 'plusieurs flux multi-vue écran partagé 2 4 fenêtres sport infos en même temps',
-    body: `
-<p>Vous pouvez regarder deux ou quatre chaînes à la fois – par exemple plusieurs retransmissions sportives ou journaux. Pour l’ouvrir : le bouton <b>▦</b> du lecteur (ou <kbd>V</kbd>), ou <i>Plusieurs flux à la fois</i> dans le menu du profil.</p>
-<ul>
-<li>La fenêtre <b>sélectionnée</b> (cadre de couleur) a le son, les autres tournent en muet. Pour changer : flèches, <kbd>1</kbd>–<kbd>4</kbd> ou clic.</li>
-<li><kbd>OK</kbd> / ⇄ : une autre chaîne dans la fenêtre (avec recherche), ✕ : vider la fenêtre.</li>
-<li><kbd>F</kbd>, double-clic ou ⤢ : la chaîne sélectionnée en plein écran ; de là, haut/bas passe d’une chaîne de la multi-vue à l’autre.</li>
-<li>Les chaînes de départ : celle depuis laquelle vous l’avez ouverte, puis vos favoris.</li>
-</ul>
-<div class="note">Quatre flux à la fois demandent beaucoup de bande passante et de puissance. Sur TV, deux fenêtres au maximum sont disponibles.</div>`,
-  },
-  {
     id: 'cast',
     cat: 'watch',
     title: 'Caster sur la TV (Chromecast, DLNA)',
@@ -1377,7 +1361,7 @@ ${go('#/settings?section=transfer', 'Synchronisation entre appareils')}`,
 <table class="help-table">
 <tr><td><b>🎮 Contrôle</b></td><td>Un <b>pavé tactile</b> à deux modes (à choisir au-dessus, le téléphone s’en souvient) : <b>🖱 Souris</b> – le glissement déplace un curseur sur l’écran de l’ordinateur / de la TV (mouvement lent = précis, rapide = grands sauts), toucher = clic, <b>glisser à deux doigts pour faire défiler</b> (aussi horizontalement, dans la rangée sous le curseur), et l’élément sous le curseur est sélectionné ; <b>✥ Flèches</b> – le glissement déplace la sélection (comme les flèches), toucher = OK. Dans les deux : appui long = Retour. En utilisation télécommande, le cadre de sélection est toujours visible. En dessous : Retour, Accueil, Fiche ; avance (±10 / ±30 s – en différé sur les directs) ; pause ; CH ▲ / ▼, chaîne précédente, muet, <b>curseur de volume</b> ; Sous-titres, Qualité, Liste des chaînes, Plein écran ; flèches et numéro de chaîne.</td></tr>
 <tr><td><b>📺 Chaînes</b></td><td>Une <b>recherche</b> parmi toutes les chaînes (filtre pendant la saisie, montre aussi le programme en cours), vos favoris et les chaînes vues récemment – elles démarrent d’un toucher.</td></tr>
-<tr><td><b>☰ Plus</b></td><td>Aller à n’importe quelle page (TV, Guide TV, Favoris, VOD, Enregistrements, Parcourir, Aide) ; <b>envoyer du texte</b> (saisit avec le clavier du téléphone dans le champ sélectionné, ou lance une recherche) ; Infos du flux, Plusieurs flux à la fois, minuterie de mise en veille.</td></tr>
+<tr><td><b>☰ Plus</b></td><td>Aller à n’importe quelle page (TV, Guide TV, Favoris, VOD, Enregistrements, Parcourir, Aide) ; <b>envoyer du texte</b> (saisit avec le clavier du téléphone dans le champ sélectionné, ou lance une recherche) ; Infos du flux, minuterie de mise en veille.</td></tr>
 </table>
 <div class="note">Le code PIN et la clé du QR code peuvent être régénérés à tout moment (Nouveau code PIN) – l’ancien téléphone doit alors rescanner le QR code (ou saisir le nouveau code PIN). Avec un mauvais code PIN, la télécommande ne fonctionne pas ; après de nombreux essais erronés depuis un appareil, cet appareil est bloqué 10 minutes (les autres téléphones continuent de fonctionner).</div>
 ${go('#/settings?section=remote', 'Télécommande depuis le téléphone')}`,

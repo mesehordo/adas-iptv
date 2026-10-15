@@ -169,7 +169,6 @@ ${go('#/settings', 'Abrir Ajustes')}`,
 <li>⚙ <b>Calidad y fuente</b>. ${t('quality', 'Detalles')} Aquí está también el panel <b>📊 Datos de la emisión</b> (<kbd>D</kbd>): resolución, tasa de bits, velocidad de descarga, búfer. ${t('stream-info', 'Detalles')}</li>
 <li>☰ <b>Panel de lista de canales</b> a la derecha, con filtro.</li>
 <li>↺30 / ↻30 <b>Retroceder y avanzar</b> en la emisión en directo, <b>Ir al directo</b>. ${t('timeshift', 'Detalles')}</li>
-<li>▦ <b>Varias emisiones a la vez</b>. ${t('multiview', 'Detalles')}</li>
 <li><b>Enviar</b> a Chromecast o a una TV DLNA (versión de escritorio). ${t('cast', 'Detalles')}</li>
 <li><b>Minirreproductor</b>, <b>Pantalla completa</b>; los botones adicionales se pueden ocultar uno a uno. ${t('pip-mini', 'Detalles')}</li>
 </ul>
@@ -1258,21 +1257,6 @@ ${go('#/browse?geo=hide', 'Canales sin restricción geográfica')}`,
 <div class="note">Los resultados se actualizan cada 5 minutos aproximadamente. Si una liga no se puede cargar, se indica al pie del bloque Deportes.</div>`,
   },
   {
-    id: 'multiview',
-    cat: 'watch',
-    title: 'Varias emisiones a la vez',
-    keywords: 'varias emisiones vista múltiple pantalla dividida 2 4 ventanas deporte noticias a la vez',
-    body: `
-<p>Puedes ver dos o cuatro canales a la vez, por ejemplo varias retransmisiones deportivas o informativos. Para abrirlo: el botón <b>▦</b> del reproductor (o <kbd>V</kbd>), o la opción <i>Varias emisiones a la vez</i> del menú del perfil.</p>
-<ul>
-<li>La ventana <b>seleccionada</b> (con marco de color) tiene sonido; las demás van silenciadas. Para cambiar: flechas, <kbd>1</kbd>–<kbd>4</kbd> o clic.</li>
-<li><kbd>OK</kbd> / ⇄: otro canal en la ventana (con buscador), ✕: vaciar la ventana.</li>
-<li><kbd>F</kbd>, doble clic o ⤢: el canal seleccionado a pantalla completa; desde ahí, arriba/abajo cambia entre los canales de la vista múltiple.</li>
-<li>Los canales iniciales: desde el que la abriste y luego tus favoritos.</li>
-</ul>
-<div class="note">Cuatro emisiones a la vez requieren bastante ancho de banda y procesador. En la TV hay como máximo dos ventanas.</div>`,
-  },
-  {
     id: 'cast',
     cat: 'watch',
     title: 'Enviar a la TV (Chromecast, DLNA)',
@@ -1377,7 +1361,7 @@ ${go('#/settings?section=transfer', 'Sincronización entre dispositivos')}`,
 <table class="help-table">
 <tr><td><b>🎮 Control</b></td><td>Un <b>panel táctil</b> con dos modos (se cambia encima, el móvil lo recuerda): <b>🖱 Ratón</b>: al deslizar mueves un cursor por la pantalla del ordenador / la TV (movimiento lento = preciso, rápido = saltos grandes), tocar = clic, <b>deslizar con dos dedos para desplazar</b> (también en horizontal, en la fila bajo el cursor), y el elemento bajo el cursor queda seleccionado; <b>✥ Flechas</b>: al deslizar se mueve la selección (como las flechas), tocar = OK. En ambos: pulsación larga = Atrás. Al usar el mando, el marco de selección siempre se ve. Debajo: Atrás, Inicio, Ficha; avanzar (±10 / ±30 s; diferido en las emisiones en directo); pausa; CH ▲ / ▼, canal anterior, silenciar, <b>control deslizante de volumen</b>; Subtítulos, Calidad, Lista de canales, Pantalla completa; flechas y número de canal.</td></tr>
 <tr><td><b>📺 Canales</b></td><td>Un <b>buscador</b> entre todos los canales (filtra mientras escribes y muestra también lo que se emite ahora), tus favoritos y los vistos recientemente; se inician con un toque.</td></tr>
-<tr><td><b>☰ Más</b></td><td>Ir a cualquier página (TV, Guía de TV, Favoritos, VOD, Grabaciones, Explorar, Ayuda); <b>enviar texto</b> (escribe con el teclado del móvil en el campo seleccionado o inicia una búsqueda); Datos de la emisión, Varias emisiones a la vez, temporizador de apagado.</td></tr>
+<tr><td><b>☰ Más</b></td><td>Ir a cualquier página (TV, Guía de TV, Favoritos, VOD, Grabaciones, Explorar, Ayuda); <b>enviar texto</b> (escribe con el teclado del móvil en el campo seleccionado o inicia una búsqueda); Datos de la emisión, temporizador de apagado.</td></tr>
 </table>
 <div class="note">El PIN y la clave del código QR se pueden regenerar en cualquier momento (Nuevo PIN); el móvil antiguo tendrá que volver a escanear el código QR (o escribir el nuevo PIN). Con un PIN incorrecto el control no funciona; tras muchos intentos fallidos desde un dispositivo, ese dispositivo queda bloqueado 10 minutos (los demás móviles siguen funcionando).</div>
 ${go('#/settings?section=remote', 'Mando desde el móvil')}`,

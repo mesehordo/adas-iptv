@@ -93,7 +93,7 @@ input.q{width:100%;font:inherit;font-size:17px;padding:12px 14px;border-radius:1
  <input class="q" id="txt" type="text" placeholder="${_t('Keresés az Adásban / gépelés a kijelölt mezőbe')}" autocomplete="off">
  <div class="row r3"><button id="sendTxt" class="ok sm">${_t('Küldés')}</button><button id="searchTxt" class="sm">${_t('⌕ Keresés')}</button><button data-c="key" data-a="Backspace" class="sm">${_t('⌫ Törlés')}</button></div>
  <h2>${_t('Lejátszó')}</h2>
- <div class="row r3"><button data-c="menu" data-a="stats" class="sm">${_t('📊 Adás adatai')}</button><button data-c="menu" data-a="multi" class="sm">${_t('▦ Több adás')}</button><button data-c="menu" data-a="sleep" class="sm">${_t('☾ Időzítő')}</button></div>
+ <div class="row r3"><button data-c="menu" data-a="stats" class="sm">${_t('📊 Adás adatai')}</button><button data-c="menu" data-a="sleep" class="sm">${_t('☾ Időzítő')}</button></div>
  <p class="muted">${_t('Tipp: a böngésző menüjében „Hozzáadás a kezdőképernyőhöz” – így alkalmazásként indul.')}</p>
 </div>
 </div>
@@ -404,7 +404,7 @@ async function command({ c, a }) {
       else if (a === 'list') player.toggleSide();
       else if (a === 'full') api.setFullscreen?.(!player.fullscreen);
       else if (a === 'stats') toggleStreamInfo(player, $('#player'), video);
-      else if (a === 'multi' && api.caps.multiview) player.multiHooks?.open([player.channel]);
+     
       player.poke?.();
       break;
     case 'text':

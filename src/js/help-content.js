@@ -169,7 +169,6 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
 <li>⚙ <b>Minőség és forrás</b>. ${t('quality', 'Részletek')} Itt van a <b>📊 Adás adatai</b> panel is (<kbd>D</kbd>): felbontás, bitráta, letöltési sebesség, puffer. ${t('stream-info', 'Részletek')}</li>
 <li>☰ <b>Csatornalista-panel</b> a jobb oldalon, szűrővel.</li>
 <li>↺30 / ↻30 <b>Vissza- és előretekerés</b> az élő adásban, <b>Ugrás élőbe</b>. ${t('timeshift', 'Részletek')}</li>
-<li>▦ <b>Több adás egyszerre</b>. ${t('multiview', 'Részletek')}</li>
 <li><b>Kivetítés</b> Chromecastra vagy DLNA-tévére (asztali változat). ${t('cast', 'Részletek')}</li>
 <li><b>Mini lejátszó</b>, <b>Teljes képernyő</b>; a kiegészítő gombok egyenként elrejthetők. ${t('pip-mini', 'Részletek')}</li>
 </ul>
@@ -234,7 +233,7 @@ ${go('#/settings?section=huinfo', 'Kedvenc nyelvek beállítása')}`,
 <h2>Mini lejátszó (<kbd>N</kbd>, csak az asztali változatban)</h2>
 <p>Az egész Adás ablak 480×270 pontosra zsugorodik, a képernyő jobb alsó sarkába kerül, és <b>mindig felül</b> marad. Ilyenkor csak a kép és néhány alapgomb látszik. Dupla kattintás vagy <kbd>Esc</kbd>: vissza a normál méretre. Tévén nem érhető el.</p>
 <h2>A lejátszó gombjai</h2>
-<p>A vezérlősáv kiegészítő gombjai (felvétel, 30 mp vissza / előre, előző csatorna, kedvenc, adatlap, hang és felirat (CC), elalvási időzítő, csatornalista, több adás, kivetítés, mini lejátszó, teljes képernyő) egyenként elrejthetők: Beállítások → Lejátszás → <b>A lejátszó gombjai</b>. A billentyűk elrejtett gombnál is működnek; a szünet, a hangerő és a ⚙ menü mindig látszik.</p>`,
+<p>A vezérlősáv kiegészítő gombjai (felvétel, 30 mp vissza / előre, előző csatorna, kedvenc, adatlap, hang és felirat (CC), elalvási időzítő, csatornalista, kivetítés, mini lejátszó, teljes képernyő) egyenként elrejthetők: Beállítások → Lejátszás → <b>A lejátszó gombjai</b>. A billentyűk elrejtett gombnál is működnek; a szünet, a hangerő és a ⚙ menü mindig látszik.</p>`,
   },
   {
     id: 'sleep',
@@ -1258,7 +1257,7 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
 </table>
 <p><b>Billentyűk:</b> <kbd>Szóköz</kbd> vagy a médiagomb: szünet / folytatás; <kbd>CH+</kbd> / <kbd>CH−</kbd>: következő / előző adó abból a sorból, amelyből indítottad; <kbd>Esc</kbd>: a Most szól nézet bezárása.</p>
 <p><b>Források</b> (Beállítások → <i>Rádió</i>, mindegyik kikapcsolható): <i>Radio Browser</i> (közösségi adatbázis, több tízezer adó), <i>Verified Radio Streams</i> (kipróbált adások) és <i>IPRD</i> (országonkénti válogatás). Ugyanaz az adó több forrásból egy kártyán jelenik meg, a címei tartalékként egymás után próbálódnak. Saját M3U rádiólistát webcímről is hozzáadhatsz, frissítési gyakorisággal, vagy „radio” fajtájú .adaspack csomagot tölthetsz be.</p>
-<div class="note">Videó indításakor (élő adás, film, több adás egyszerre) a rádió elhallgat, rádió indításakor a videó bezárul. LG webOS tévén a hangeffektek és a vizualizáció nem érhetők el (a tévé böngészőmotorja nem fér hozzá az adás hangjához); a rádió ott is szól. A menüpont a Beállítások → <i>Rádió</i> alatt kikapcsolható; gyerekprofilban nem látszik.</div>`,
+<div class="note">Videó indításakor (élő adás, film) a rádió elhallgat, rádió indításakor a videó bezárul. LG webOS tévén a hangeffektek és a vizualizáció nem érhetők el (a tévé böngészőmotorja nem fér hozzá az adás hangjához); a rádió ott is szól. A menüpont a Beállítások → <i>Rádió</i> alatt kikapcsolható; gyerekprofilban nem látszik.</div>`,
   },
   {
     id: 'sport-page',
@@ -1295,21 +1294,6 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
 <h2>Csatornaajánlás</h2>
 <p>Minden eseménynél a program megkeresi a műsorújságban, melyik csatornán látható (a csapatnevek, a bajnokság és a sportág alapján, az időponthoz igazítva), és a sorban egy <b>📺 csatorna</b> gomb jelenik meg – rákattintva indul az adás. A bizonytalan találat halványabb. Csak műsorújsággal rendelkező, nem rejtett csatornák jöhetnek szóba; a kedvencek és a sportcsatornák előnyt kapnak.</p>
 <div class="note">Az eredmények kb. 5 percenként frissülnek. Ha egy bajnokság nem tölthető be, a Sport egység alján jelzi.</div>`,
-  },
-  {
-    id: 'multiview',
-    cat: 'watch',
-    title: 'Több adás egyszerre',
-    keywords: 'több adás multiview osztott képernyő 2 4 ablak sport hírek egyszerre',
-    body: `
-<p>Két vagy négy csatornát nézhetsz egyszerre – például több sportközvetítést vagy híradót. Megnyitása: a lejátszó <b>▦</b> gombja (vagy <kbd>V</kbd>), illetve a profilmenü <i>Több adás egyszerre</i> pontja.</p>
-<ul>
-<li>A <b>kijelölt</b> (színes keretes) ablak szól, a többi némítva fut. Váltás: nyilak, <kbd>1</kbd>–<kbd>4</kbd>, vagy kattintás.</li>
-<li><kbd>OK</kbd> / ⇄: másik csatorna az ablakba (kereséssel), ✕: ablak ürítése.</li>
-<li><kbd>F</kbd>, dupla kattintás vagy ⤢: a kijelölt csatorna teljes képernyőn; onnan fel/le a többképes nézet csatornái között váltasz.</li>
-<li>A kezdő csatornák: amelyikből indítottad, majd a kedvenceid.</li>
-</ul>
-<div class="note">Négy adás egyszerre jelentős sávszélességet és processzort igényel. Tévén legfeljebb két ablak érhető el.</div>`,
   },
   {
     id: 'cast',
@@ -1416,7 +1400,7 @@ ${go('#/settings?section=transfer', 'Szinkronizálás eszközök között')}`,
 <table class="help-table">
 <tr><td><b>🎮 Vezérlő</b></td><td><b>Érintőpad</b>, két módban (fölötte váltható, a telefon megjegyzi): <b>🖱 Egér</b> – húzással egy egérkurzort mozgatsz a gép / tévé képernyőjén (lassú mozdulat = pontos, gyors = nagy ugrás), koppintás = kattintás, <b>két ujjal húzva görgetés</b> (a kurzor alatti sorban vízszintesen is), a kurzor alatti elem ki is jelölődik; <b>✥ Nyilak</b> – húzásra a kijelölés lép (mint a nyilak), koppintás = OK. Mindkettőben: hosszan nyomva = Vissza. A kijelölés kerete távirányítós használatkor mindig látszik. Alatta: Vissza, Főoldal, Adatlap; tekerés (±10 / ±30 mp – élő adásnál időcsúsztatás); szünet; CH ▲ / ▼, Előző csatorna, némítás, <b>hangerő-csúszka</b>; Felirat, Minőség, Csatornalista, Teljes képernyő; nyilak és csatornaszám.</td></tr>
 <tr><td><b>📺 Csatornák</b></td><td><b>Kereső</b> az összes csatorna között (gépelés közben szűr, a most futó műsort is mutatja), a kedvenceid és a legutóbb nézett csatornák – egy érintéssel indulnak.</td></tr>
-<tr><td><b>☰ Továbbiak</b></td><td>Ugrás bármelyik oldalra (TV, Műsorújság, Kedvencek, VOD, Felvételek, Böngészés, Súgó); <b>szöveg küldése</b> (a telefon billentyűzetével a kijelölt mezőbe gépel, vagy keresést indít); Adás adatai, Több adás egyszerre, elalvási időzítő.</td></tr>
+<tr><td><b>☰ Továbbiak</b></td><td>Ugrás bármelyik oldalra (TV, Műsorújság, Kedvencek, VOD, Felvételek, Böngészés, Súgó); <b>szöveg küldése</b> (a telefon billentyűzetével a kijelölt mezőbe gépel, vagy keresést indít); Adás adatai, elalvási időzítő.</td></tr>
 </table>
 <div class="note">A PIN-t és a QR-kód kulcsát bármikor újra lehet generálni (Új PIN) – a régi telefonnak újra be kell olvasnia a QR-kódot (vagy be kell írnia az új PIN-t). Rossz PIN-nel a vezérlő nem működik; egy eszközről sok hibás próbálkozás után az az eszköz 10 percre kizáródik (a többi telefon közben is működik).</div>
 ${go('#/settings?section=remote', 'Távirányító telefonról')}`,

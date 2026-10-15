@@ -118,7 +118,7 @@ async function directDownload(url) {
 const webApi = {
   native: false,
   platform: 'web',
-  caps: { mini: false, fullscreen: true, files: true, external: true, health: false, preview: false, exit: false, multiview: 4 },
+  caps: { mini: false, fullscreen: true, files: true, external: true, health: false, preview: false, exit: false },
   fetchText: (url, opts) => cachedFetchText(url, opts, directDownload),
   /** Általános HTTP-kérés: { method, url, headers, body } → { status, text } */
   async request({ method = 'GET', url, headers = {}, body } = {}) {
@@ -281,7 +281,7 @@ let tvCheckRun = 0;
 const tvApi = {
   ...webApi,
   platform: 'webos',
-  caps: { mini: false, fullscreen: false, files: false, external: false, health: true, preview: false, exit: true, multiview: 2 },
+  caps: { mini: false, fullscreen: false, files: false, external: false, health: true, preview: false, exit: true },
   fetchText: (url, opts) => cachedFetchText(url, opts, tvDownload),
   async request(opts) {
     try {
@@ -380,7 +380,7 @@ const androidApi = {
   platform: ANDROID_TV ? 'androidtv' : 'android',
   caps: {
     mini: false, fullscreen: !ANDROID_TV, files: true, external: !ANDROID_TV, health: true,
-    preview: true, exit: true, multiview: 2, folders: false,
+    preview: true, exit: true, folders: false,
   },
   fetchText: (url, opts) => cachedFetchText(url, opts, directDownload),
   request: (opts) => native('request', { method: opts.method || 'GET', url: opts.url, headers: opts.headers || {}, body: opts.body || '' }),

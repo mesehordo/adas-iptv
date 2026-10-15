@@ -454,7 +454,7 @@ class RadioPlayer {
 
 export const radioPlayer = new RadioPlayer();
 
-// a videó (élő adás, film, több adás egyszerre) indulásakor a rádió elhallgat
+// a videó (élő adás, film) indulásakor a rádió elhallgat
 bus.on('video-open', () => radioPlayer.playing && radioPlayer.pause());
 // Android: az alkalmazásból kilépve (ha a háttérlejátszás ki van kapcsolva) a rádió is elhallgat
 window.__adasRadioPause = () => radioPlayer.playing && radioPlayer.pause();

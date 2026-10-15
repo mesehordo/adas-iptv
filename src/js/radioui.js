@@ -5,7 +5,6 @@
 import { $, esc, hashHue, initials, html, fmtTime, toast, bus } from './util.js';
 import { ICON } from './components.js';
 import { player } from './player.js';
-import { multiOpen, closeMultiview } from './multiview.js';
 import { countryName, countryFlag } from './catalog.js';
 import { _t } from './i18n.js';
 import { store } from './store.js';
@@ -26,7 +25,6 @@ const P = {
 
 // rádiózás közben a videó bezárul (és viszont: a videó indulásakor a rádió elhallgat – radioplayer.js)
 bus.on('radio-start', () => {
-  if (multiOpen()) closeMultiview();
   if (player.active) player.close();
 });
 // gyerekprofilban nincs rádió (a menüpont sem látszik)
@@ -315,7 +313,7 @@ setInterval(() => full && radioPlayer.sleepAt && drawFxChips(), 30e3);
 // Billentyűk (az app.js hívja, a videólejátszó után): szóköz, CH+/−, médiagombok, Esc
 // ---------------------------------------------------------------------------
 export function radioKey(e) {
-  if (!radioPlayer.active || player.active || multiOpen()) return false;
+  if (!radioPlayer.active || player.active) return false;
   const k = e.key;
   const typing = e.target.matches?.('input:not([type=checkbox]):not([type=range]), textarea, select');
   if (full && (k === 'Escape' || ((k === 'Backspace' || k === 'BrowserBack') && !typing))) return closeFull();

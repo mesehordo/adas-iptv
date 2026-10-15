@@ -54,9 +54,6 @@
   .pin-pad { display: flex; flex-wrap: wrap; width: 246px; margin: 0 auto; }
   .pin-pad .btn { width: 72px; margin: 0 10px 10px 0; }
   .pin-pad .btn:nth-child(3n) { margin-right: 0; }
-  #multiview .mv-grid { display: flex; flex-wrap: wrap; }
-  #multiview .mv-tile { width: calc(50% - 4px); height: calc(50% - 4px); margin: 2px; }
-  #multiview.layout-2 .mv-tile { height: calc(100% - 4px); }
   .stats .stat-cards { display: flex; flex-wrap: wrap; }
   .stat-card { width: 200px; margin: 0 12px 12px 0; }
   .stat-two { display: block; }
