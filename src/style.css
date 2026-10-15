@@ -1642,6 +1642,8 @@ body.rc-nav .tile:focus, body.rc-nav .see-all:focus { transform: scale(1.06); z-
 .radio-favs .rbox { margin-bottom: 12px; }
 .radio-loading { margin: 0 var(--gutter); }
 .radio-info .info-logo .rlogo { max-width: 80%; max-height: 80%; object-fit: contain; }
+.radio-info .link-btn { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.radio-info .link-btn:hover b, .radio-info .link-btn:focus-visible b { text-decoration: underline; }
 body.radio-on #view { padding-bottom: 90px; }
 
 /* mini-lejátszó – a téma felületszínével, keretével, lekerekítésével */

@@ -260,7 +260,7 @@ export function openStationInfo(st, list = [st]) {
       [_t('Weboldal'), st.homepage ? `<a href="#" data-ext="${esc(st.homepage)}">${esc(st.homepage.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''))}</a>` : ''],
     ].filter((f) => f[1] && f[1].trim());
     const from = dayStart(Date.now(), day);
-    const progs = epg.range(st.id, from, from + 864e5);
+    const progs = epg.range(st.id, from, dayStart(Date.now(), day + 1)); // (a következő helyi éjfélig)
     const t = Date.now();
     el.innerHTML = `
       <div class="info-hero" style="--h:${hashHue(st.name)}">
@@ -298,7 +298,7 @@ export function openStationInfo(st, list = [st]) {
                   const sch = isRecScheduled(st.id, p.start);
                   return `<li class="${live ? 'live' : ''} ${past ? 'past' : ''}" data-start="${p.start}">
                     <span class="time">${fmtTime(p.start)}</span>
-                    <div class="pt"><b>${esc(p.title)}</b>${p.subtitle ? ` <span class="muted">– ${esc(p.subtitle)}</span>` : ''}
+                    <div class="pt">${past ? `<b>${esc(p.title)}</b>` : `<button class="link-btn" data-rprog="${p.start}"><b>${esc(p.title)}</b></button>`}${p.subtitle ? ` <span class="muted">– ${esc(p.subtitle)}</span>` : ''}
                       ${p.category ? `<span class="pill small">${esc(p.category)}</span>` : ''}
                       ${p.desc ? `<p>${esc(p.desc)}</p>` : ''}</div>
                     ${live ? `<span class="now-label">${_t('MOST')}</span>` : ''}
@@ -341,6 +341,7 @@ export function openStationInfo(st, list = [st]) {
     const dayBtn = e.target.closest('[data-day]');
     const rr = e.target.closest('[data-rrec]');
     const ru = e.target.closest('[data-rurl]');
+    const rp = e.target.closest('[data-rprog]');
     if (a === 'play') {
       close();
       if (radioPlayer.station?.id === st.id && radioPlayer.playing) document.dispatchEvent(new CustomEvent('adas-radio-expand'));
@@ -352,6 +353,10 @@ export function openStationInfo(st, list = [st]) {
     } else if (a === 'rec') {
       await toggleRadioRecording(st);
       draw();
+    } else if (rp) {
+      // (élő műsornál Hallgatás, jövőbelinél felvétel-ütemezés – múltbelinél nincs: az az élő adást indítaná)
+      const p = epg.list(st.id).find((x) => x.start === Number(rp.dataset.rprog));
+      if (p) openRadioProgram(st, p, list, draw);
     } else if (dayBtn) {
       day = Number(dayBtn.dataset.day);
       draw();
@@ -438,7 +443,7 @@ function renderGuide(view) {
   if (guideState.filter === 'home' && !all.some((st) => st.country === cc)) guideState.filter = 'all';
   const list = guideState.filter === 'fav' ? favs : guideState.filter === 'home' ? all.filter((st) => st.country === cc) : all;
   const from = dayStart(Date.now(), guideState.day);
-  const to = from + 864e5;
+  const to = dayStart(Date.now(), guideState.day + 1); // (a következő helyi éjfél – nyári időszámításnál is)
   const width = 24 * 60 * PX_PER_MIN;
   const t = Date.now();
   const nowGrid = () => `<div class="now-grid">${list
@@ -652,7 +657,9 @@ const QUALITY = [
 function renderBrowse(view, params) {
   const q = params.get('q') || '';
   const f = { cc: params.get('cc') || '', g: params.get('genre') || '', kb: params.get('kb') || '', ok: params.get('ok') === '1' };
-  const countries = [...new Set([...radio.byId.values()].map((s) => s.country).filter(Boolean))].sort((a, b) => countryName(a).localeCompare(countryName(b)));
+  const countries = [...new Set([...radio.byId.values()].map((s) => s.country).filter(Boolean))];
+  if (/^[A-Z]{2}$/.test(f.cc) && !countries.includes(f.cc)) countries.push(f.cc);
+  countries.sort((a, b) => countryName(a).localeCompare(countryName(b)));
   view.innerHTML = `<div class="page radio-page">${tabs('browse')}
     <div class="radio-filters">
       <input class="input" type="search" id="rq" placeholder="${_t('Adó neve, műfaj, ország…')}" value="${esc(q)}" />
@@ -684,7 +691,7 @@ function renderBrowse(view, params) {
           genreCache.set(g, r);
           if (view.isConnected) fill();
         })
-        .catch(() => {});
+        .catch(() => genreCache.delete(g)); // (hiba után a műfaj újra kiválasztva újrapróbál)
     }
   };
   const fill = () => {
@@ -695,7 +702,8 @@ function renderBrowse(view, params) {
     const ok = view.querySelector('#rok').checked;
     ensure(cc, g);
     const ids = new Set();
-    let list = query ? [...radioSearch(query), ...online] : radioPopular([...radio.byId.values(), ...(g ? genreCache.get(g) || [] : [])]);
+    const pool = [...radio.byId.values(), ...(g ? genreCache.get(g) || [] : [])];
+    let list = query ? [...radioSearch(query, pool), ...online] : radioPopular(pool);
     list = list.filter((s) => !ids.has(s.id) && ids.add(s.id));
     if (cc) list = list.filter((s) => s.country === cc);
     if (g) list = list.filter((s) => s.genres.includes(g));
@@ -733,11 +741,13 @@ function renderBrowse(view, params) {
     .then((all) => {
       const sel = view.querySelector('#rcc');
       if (!sel || !all.length) return;
-      const keep = sel.value;
+      const keep = sel.value || f.cc;
       const known = new Map(all.map((c) => [c.code, c.count]));
       for (const c of countries) if (!known.has(c)) known.set(c, 0);
       const opts = [...known.entries()].sort((a, b) => countryName(a[0]).localeCompare(countryName(b[0])));
       sel.innerHTML = `<option value="">${_t('Minden ország')}</option>${opts.map(([c, n]) => `<option value="${esc(c)}" ${c === keep ? 'selected' : ''}>${esc(countryName(c))}${n ? ` (${n})` : ''}</option>`).join('')}`;
+      if (sel.value !== keep) return;
+      fill();
     })
     .catch(() => {});
 }
