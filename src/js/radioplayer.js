@@ -254,14 +254,22 @@ class RadioPlayer {
       if (seq !== this.seq) return;
       const ok = await this.start(url, seq);
       if (seq !== this.seq) return;
-      let geo = false;
+      store.setHealth(raw, ok, 'play');
       if (!ok && api.checkStreams && api.caps?.health) {
-        // (a lejátszó nem adja meg a HTTP-választ: a próba dönti el, hogy a szerver elutasította-e – 403 / 451)
-        const r = await api.checkStreams([{ url }]).catch(() => null);
-        geo = r?.results?.[url] === 'geo';
-        if (seq !== this.seq) return;
+        // (a lejátszó nem adja meg a HTTP-választ: a háttérben futó próba dönti el, hogy a szerver elutasította-e
+        // – 403 / 451; a következő cím kipróbálását nem tartja fel, és egy közben sikerült indítást nem ír felül)
+        const t = Date.now();
+        api
+          .checkStreams([{ url }])
+          .then((r) => {
+            const h = store.healthOf(raw);
+            if (r?.results?.[url] === 'geo' && h && !h.ok && h.t <= t + 1000) {
+              store.setHealth(raw, false, 'play', true);
+              bus.emit('health');
+            }
+          })
+          .catch(() => {});
       }
-      store.setHealth(raw, ok, 'play', geo);
       if (ok) {
         this.url = url;
         this.rawUrl = raw; // (a lista szerinti cím – Adás adatai: hányadik forrás, lejátszólistából feloldva)

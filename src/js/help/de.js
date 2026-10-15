@@ -233,7 +233,7 @@ ${go('#/settings?section=huinfo', 'Lieblingssprachen festlegen')}`,
 <h2>Mini-Player (<kbd>N</kbd>, nur Desktop-Version)</h2>
 <p>Das ganze Adás-Fenster schrumpft auf 480×270 Pixel, wandert in die untere rechte Bildschirmecke und bleibt <b>immer im Vordergrund</b>. Dann sind nur das Bild und einige Grundtasten zu sehen. Doppelklick oder <kbd>Esc</kbd>: zurück zur normalen Größe. Auf dem Fernseher nicht verfügbar.</p>
 <h2>Die Player-Tasten</h2>
-<p>Die Zusatztasten der Steuerleiste (Aufnahme, 30 s zurück / vor, vorheriger Sender, Favorit, Details, Ton und Untertitel (CC), Sleep-Timer, Senderliste, Mehrfachansicht, Übertragen, Mini-Player, Vollbild) lassen sich einzeln ausblenden: Einstellungen → Wiedergabe → <b>Player-Tasten</b>. Die Tastenkürzel funktionieren auch bei ausgeblendeter Taste; Pause, Lautstärke und das ⚙-Menü sind immer sichtbar.</p>`,
+<p>Die Zusatztasten der Steuerleiste (Aufnahme, 30 s zurück / vor, vorheriger Sender, Favorit, Details, Ton und Untertitel (CC), Sleep-Timer, Senderliste, Übertragen, Mini-Player, Vollbild) lassen sich einzeln ausblenden: Einstellungen → Wiedergabe → <b>Player-Tasten</b>. Die Tastenkürzel funktionieren auch bei ausgeblendeter Taste; Pause, Lautstärke und das ⚙-Menü sind immer sichtbar.</p>`,
   },
   {
     id: 'sleep',

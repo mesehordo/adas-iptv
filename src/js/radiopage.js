@@ -120,7 +120,7 @@ function arrows(el) {
 /** Adók sora (fokozatos feltöltéssel, mint a TV oldal sorai). */
 export function stationRowEl(title, list, { href = '', limit = 60 } = {}) {
   const ctx = registerList(list);
-  queueRadioChecks(list.slice(0, 14));
+  queueRadioChecks(list.slice(0, limit)); // (a sor fokozatosan betöltött kártyáié is)
   const el = rowWrap(title, href, list.length, list.slice(0, 14).map((s) => stationCardHtml(s, ctx)).join('') + seeAllHtml(href, list.length));
   progressiveTrack(el.querySelector('.row-track'), list, (s) => stationCardHtml(s, ctx), limit);
   return arrows(el);
@@ -147,13 +147,18 @@ bus.on('health', () => {
   healthTimer = setTimeout(() => {
     document.querySelectorAll('.rcard[data-rid]').forEach((card) => {
       const st = radio.byId.get(card.dataset.rid);
-      if (!st || card.matches(':hover, :focus, :focus-within')) return;
-      const off = radioAvailability(st) === 0;
-      const geo = off && radioGeo(st) === 'sure';
-      if (off === card.classList.contains('is-off') && geo === !!card.querySelector('.off-badge.geo')) return;
+      if (!st) return;
+      const av = radioAvailability(st);
+      const state = av >= 2 ? 'ok' : av === 0 ? 'bad' : 'unknown';
+      const geo = av === 0 && radioGeo(st) === 'sure';
+      if (card.querySelector(`.st.st-${state}`) && geo === !!card.querySelector('.off-badge.geo')) return;
       const tmp = document.createElement('div');
       tmp.innerHTML = stationCardHtml(st, card.dataset.rl || '');
-      card.replaceWith(tmp.firstElementChild);
+      const fresh = tmp.firstElementChild;
+      // (a fókuszban lévő kártya is frissül – a fókusz az új kártyára kerül, a felugró gombok nélkül)
+      const hadFocus = card.contains(document.activeElement);
+      card.replaceWith(fresh);
+      if (hadFocus) fresh.focus({ preventScroll: true });
     });
   }, 800);
 });
@@ -167,6 +172,7 @@ function bindMore(box, getList) {
     const ctx = registerList(list);
     const grid = box.querySelector('.rgrid');
     grid.insertAdjacentHTML('beforeend', list.slice(from, from + 120).map((s) => stationCardHtml(s, ctx)).join(''));
+    queueRadioChecks(list.slice(from, from + 120));
     if (from + 120 >= list.length) b.parentElement.remove();
     else {
       b.dataset.rmore = String(from + 120);
@@ -355,7 +361,7 @@ export function openStationInfo(st, list = [st]) {
   };
   render();
   // (bezáráskor a figyelők leiratkoznak)
-  const off = [bus.on('radio-favs', draw), bus.on('rec', draw), bus.on('epg', draw)];
+  const off = [bus.on('radio-favs', draw), bus.on('rec', draw), bus.on('epg', draw), bus.on('health', draw)];
   const close = openModal(el, { cls: 'wide', onClose: () => off.forEach((fn) => fn()) });
   el.addEventListener('click', async (e) => {
     const a = e.target.closest('[data-a]')?.dataset.a;

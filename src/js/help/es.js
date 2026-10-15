@@ -233,7 +233,7 @@ ${go('#/settings?section=huinfo', 'Elegir idiomas favoritos')}`,
 <h2>Minirreproductor (<kbd>N</kbd>, solo versión de escritorio)</h2>
 <p>Toda la ventana de Adás se reduce a 480×270 píxeles, pasa a la esquina inferior derecha de la pantalla y queda <b>siempre encima</b>. Entonces solo se ven la imagen y algunos botones básicos. Doble clic o <kbd>Esc</kbd>: vuelta al tamaño normal. No está disponible en la TV.</p>
 <h2>Los botones del reproductor</h2>
-<p>Los botones adicionales de la barra de control (grabar, 30 s atrás / adelante, canal anterior, favorito, ficha, audio y subtítulos (CC), temporizador de apagado, lista de canales, vista múltiple, enviar, minirreproductor, pantalla completa) se pueden ocultar uno a uno: Ajustes → Reproducción → <b>Botones del reproductor</b>. Las teclas funcionan aunque el botón esté oculto; pausa, volumen y el menú ⚙ siempre se ven.</p>`,
+<p>Los botones adicionales de la barra de control (grabar, 30 s atrás / adelante, canal anterior, favorito, ficha, audio y subtítulos (CC), temporizador de apagado, lista de canales, enviar, minirreproductor, pantalla completa) se pueden ocultar uno a uno: Ajustes → Reproducción → <b>Botones del reproductor</b>. Las teclas funcionan aunque el botón esté oculto; pausa, volumen y el menú ⚙ siempre se ven.</p>`,
   },
   {
     id: 'sleep',

@@ -49,16 +49,18 @@ export function radioStatsHtml() {
   const hls = r.hls?.[r.cur];
   const rows = [];
   const add = (k, v, warn = false) => v !== undefined && v !== null && v !== '' && rows.push(`<dt>${esc(k)}</dt><dd${warn ? ' class="warn"' : ''}>${v}</dd>`);
+  // (csak az ennél az adónál sikeresen elindult cím – egy korábbi adóé nem látszhat az újnál)
+  const confirmed = r.rawUrl && st.urls.includes(r.rawUrl) ? r.url : '';
   let host = '';
   try {
-    const u = new URL(r.url || st.urls[0]);
+    const u = new URL(confirmed);
     host = `${u.protocol === 'https:' ? '🔒 ' : ''}${u.host}`;
   } catch {}
   add(_t('Lejátszó'), esc(hls ? 'hls.js (HLS)' : _t('Beépített hanglejátszó')));
   add(_t('Kiszolgáló'), esc(host || '–'));
-  const idx = r.rawUrl ? st.urls.indexOf(r.rawUrl) : -1;
-  if (st.urls.length > 1 || (r.rawUrl && r.url && r.rawUrl !== r.url))
-    add(_t('Forrás'), esc([idx >= 0 ? `${idx + 1} / ${st.urls.length}` : '', r.rawUrl && r.url && r.rawUrl !== r.url ? _t('lejátszólistából feloldva') : ''].filter(Boolean).join(' · ')));
+  const idx = confirmed ? st.urls.indexOf(r.rawUrl) : -1;
+  if (confirmed && (st.urls.length > 1 || r.rawUrl !== r.url))
+    add(_t('Forrás'), esc([`${idx + 1} / ${st.urls.length}`, r.rawUrl !== r.url ? _t('lejátszólistából feloldva') : ''].filter(Boolean).join(' · ')));
   // formátum: a HLS-szint, ill. az adatbázis szerinti kodek és bitráta
   const lvl = hls?.levels?.[hls.currentLevel >= 0 ? hls.currentLevel : hls.loadLevel];
   const codec = lvl?.audioCodec || st.codec || '';

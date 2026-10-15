@@ -233,7 +233,7 @@ ${go('#/settings?section=huinfo', 'Définir les langues préférées')}`,
 <h2>Mini-lecteur (<kbd>N</kbd>, version de bureau uniquement)</h2>
 <p>Toute la fenêtre d’Adás se réduit à 480×270 pixels, se place dans le coin inférieur droit de l’écran et reste <b>toujours au premier plan</b>. Seuls l’image et quelques boutons de base sont alors visibles. Double-clic ou <kbd>Échap</kbd> : retour à la taille normale. Non disponible sur TV.</p>
 <h2>Les boutons du lecteur</h2>
-<p>Les boutons supplémentaires de la barre de contrôle (enregistrer, 30 s arrière / avant, chaîne précédente, favori, fiche, audio et sous-titres (CC), minuterie de mise en veille, liste des chaînes, multi-vue, caster, mini-lecteur, plein écran) peuvent être masqués un par un : Paramètres → Lecture → <b>Boutons du lecteur</b>. Les touches fonctionnent même si le bouton est masqué ; pause, volume et le menu ⚙ restent toujours visibles.</p>`,
+<p>Les boutons supplémentaires de la barre de contrôle (enregistrer, 30 s arrière / avant, chaîne précédente, favori, fiche, audio et sous-titres (CC), minuterie de mise en veille, liste des chaînes, caster, mini-lecteur, plein écran) peuvent être masqués un par un : Paramètres → Lecture → <b>Boutons du lecteur</b>. Les touches fonctionnent même si le bouton est masqué ; pause, volume et le menu ⚙ restent toujours visibles.</p>`,
   },
   {
     id: 'sleep',
