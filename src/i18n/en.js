@@ -2174,5 +2174,12 @@ export default {
  "hibás formátum: sérült profiladat": "invalid format: damaged profile data",
  "a korábbi műsor látszik ({x} csatorna)": "showing the previous schedule ({x} channels)",
  "Magyar TV adók": "Hungarian TV channels",
- "Válogatott, szabadon fogható magyar adások: közszolgálati, országos, városi és helyi tévék, Országgyűlés (kb. 80 adás).": "A curated list of free-to-air Hungarian channels: public, national, city and local TV, the Parliament (about 80 streams)."
+ "Válogatott, szabadon fogható magyar adások: közszolgálati, országos, városi és helyi tévék, Országgyűlés (kb. 80 adás).": "A curated list of free-to-air Hungarian channels: public, national, city and local TV, the Parliament (about 80 streams).",
+ "Ebből a mentési pontból {n} lista tartalma hiányzik ({names}). Ezek a visszaállítás után üresek lesznek. Így is visszaállítod?": "The content of {n} list(s) is missing from this restore point ({names}). They will be empty after restoring. Restore anyway?",
+ "Hangkép": "Visuals",
+ "Hangerő-kiegyenlítés, térhatás, retro rádió, átúsztatás": "Loudness levelling, stereo widening, retro radio, crossfade",
+ "Hangszín": "Tone",
+ "Elalvás": "Sleep",
+ "Átúsztatás adóváltáskor": "Crossfade when switching stations",
+ "{s} mp": "{s} s"
 };

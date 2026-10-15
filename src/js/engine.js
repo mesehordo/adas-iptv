@@ -30,6 +30,23 @@ export function applyQualityCap(hls) {
   // ha minden szint nagyobb (vagy ismeretlen a magasság), a legkisebbet engedjük
   hls.autoLevelCapping = cap >= 0 ? cap : 0;
 }
+/** A beállított legnagyobb képmagasság (0: automatikus). */
+export const maxQualityHeight = () => Number(store.settings.maxQuality) || 0;
+/**
+ * (B12) dash.js: a korlátnál nem nagyobb változatok közül a legnagyobb bitrátájú a felső határ (ha mind
+ * nagyobb, a legkisebb – mint a hls.js-nél). Automatikusnál a korlát feloldva.
+ */
+function applyDashCap(dash) {
+  const list = dash?.getBitrateInfoListFor?.('video') || [];
+  const max = maxQualityHeight();
+  let kbps = -1;
+  if (max && list.length) {
+    const ok = list.filter((b) => b.height > 0 && b.height <= max);
+    const pick = ok.length ? Math.max(...ok.map((b) => b.bitrate)) : Math.min(...list.map((b) => b.bitrate));
+    if (pick > 0) kbps = Math.ceil(pick / 1000);
+  }
+  dash.updateSettings({ streaming: { abr: { maxBitrate: { video: kbps } } } });
+}
 
 function detectType(url) {
   const u = url.split(/[?#]/)[0].toLowerCase();
@@ -281,6 +298,7 @@ export class Engine {
         p.on('error', (e) => fail(new Error(`${_t('DASH hiba:')} ` + (e.error?.message || e.error || ''))));
         p.on('streamInitialized', () => {
           this.headReceived = true;
+          applyDashCap(p);
           this.onTracks();
         });
         p.initialize(video, stream.url, true);
@@ -390,6 +408,13 @@ export class Engine {
       return (this.dash.getBitrateInfoListFor?.('video') || []).map((b, i) => ({ index: i, label: `${b.height}p` }));
     }
     return [];
+  }
+
+  /** (B12) A legnagyobb minőség beállításának érvényesítése a futó motoron (hls.js, dash.js, ExoPlayer). */
+  capQuality() {
+    if (this.hls) applyQualityCap(this.hls);
+    if (this.dash) applyDashCap(this.dash);
+    this.exo?.applyQualityCap();
   }
 
   get level() {
