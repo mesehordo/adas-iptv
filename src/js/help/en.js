@@ -1035,7 +1035,8 @@ https://…/sport/playlist.m3u8</pre>
 </ul>
 <h2>Background playback</h2>
 <ul>
-<li><b>Background playback (audio only)</b>: Settings → Playback → <i>Background playback</i>. When on, the stream’s audio keeps playing when you switch to another app; a notification shows it, from where you can return or stop it. When off (the default), playback stops when you leave.</li>
+<li><b>Background playback (audio only)</b>: Settings → Playback → <i>Background playback</i>. When on, the stream’s audio keeps playing when you switch to another app; a notification shows it, from where you can pause, resume, return or stop it (headset and Bluetooth buttons work too). When off (the default), playback stops when you leave.</li>
+<li><b>Mini player above other apps</b>: the player’s mini button puts the video into a small window (the system picture-in-picture mode – from Android 8, if the device supports it; if not, the button is hidden). Settings → Playback → <i>Small window when leaving</i>: while a video plays, pressing Home or switching apps moves it into the small window automatically. Closing the small window stops playback.</li>
 </ul>
 <div class="note">On Android there’s no casting, night mode audio or update check. Settings can be synced with a code with the computer and other Android devices, in both directions (${t('transfer', 'Sync between devices')}), and the phone can be used as a remote (${t('remote', 'Remote from phone')}). You get a new version by installing the new APK – the settings are kept.</div>`,
   },
