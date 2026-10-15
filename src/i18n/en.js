@@ -2201,5 +2201,6 @@ export default {
  "A letöltött csomag aláírása eltér a telepítettétől – a frissítés megszakítva.": "The downloaded package is signed differently from the installed one – update cancelled.",
  "A letöltött csomag aláírása nem ellenőrizhető.": "The signature of the downloaded package cannot be verified.",
  "A letöltött frissítés már nem található – töltsd le újra.": "The downloaded update is no longer available – download it again.",
- "Az alkalmazások telepítésének engedélyezése ezen az eszközön nem nyitható meg.": "The setting to allow installing apps cannot be opened on this device."
+ "Az alkalmazások telepítésének engedélyezése ezen az eszközön nem nyitható meg.": "The setting to allow installing apps cannot be opened on this device.",
+ "(Androidon a natív lejátszóval; a HDMI-n kódoltan továbbított hangnál nem hat.)": "(On Android with the native player; no effect when the audio is passed through encoded over HDMI.)"
 };

@@ -391,6 +391,19 @@ public class MainActivity extends Activity {
       runOnUiThread(() -> nativePlayer.seek(sec));
     }
 
+    /** (F05) Éjszakai hang a natív lejátszóhoz (Android 9+). */
+    @JavascriptInterface
+    public boolean nightAvailable() {
+      return NightAudio.available();
+    }
+
+    @JavascriptInterface
+    public boolean exoNight(final boolean on) {
+      if (!NightAudio.available()) return false;
+      runOnUiThread(() -> nativePlayer.setNight(on));
+      return true;
+    }
+
     @JavascriptInterface
     public void exoVolume(final double v) {
       runOnUiThread(() -> nativePlayer.volume((float) v));
