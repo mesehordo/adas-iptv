@@ -204,6 +204,7 @@ state();setInterval(function(){if(document.visibilityState!=='hidden')state()},2
 let results = null; // { q, items } vagy null
 let rresults = null; // rádió: { q, items } vagy null
 let rfindSeq = 0;
+const rfound = new Map(); // id → a találat teljes adóobjektuma (urls-szal)
 async function findRadio(q) {
   const my = ++rfindSeq;
   if (!q) {
@@ -211,14 +212,19 @@ async function findRadio(q) {
     return;
   }
   const item = (x) => ({ id: x.id, name: x.name, logo: /^https?:/.test(x.logo || '') ? x.logo : '', sub: [x.country, x.genres?.[0]].filter(Boolean).join(' · ') });
-  rresults = { q, items: radioSearch(q).slice(0, 20).map(item) };
+  rfound.clear();
+  const local = radioSearch(q).slice(0, 20);
+  local.forEach((x) => rfound.set(x.id, x));
+  rresults = { q, items: local.map(item) };
   pushState();
   // a helyi találatok mellé az online adatbázis (Radio Browser) találatai
   try {
     const online = await searchRadioOnline(q);
     if (my !== rfindSeq) return;
     const seen = new Set(rresults.items.map((x) => x.id));
-    rresults = { q, items: [...rresults.items, ...online.filter((x) => !seen.has(x.id)).map(item)].slice(0, 30) };
+    const extra = online.filter((x) => !seen.has(x.id)).slice(0, 30 - rresults.items.length);
+    extra.forEach((x) => rfound.set(x.id, x));
+    rresults = { q, items: [...rresults.items, ...extra.map(item)] };
     pushState();
   } catch {}
 }
@@ -395,6 +401,7 @@ function scrollCursor(dx, dy) {
 /** A rádió szól-e (és nincs nyitva videó) – ilyenkor a hangerő, a szünet és a csatornaváltás a rádióé. */
 const radioLive = () => radioPlayer.active && !player.active;
 const SLEEP_STEPS = [0, 15, 30, 60, 90];
+let radioMutedVol = 0;
 
 async function command({ c, a }) {
   const live = player.active;
@@ -404,7 +411,13 @@ async function command({ c, a }) {
     else if (c === 'chup' || c === 'chdown') radioPlayer.step(c === 'chup' ? -1 : 1);
     else if (c === 'vol' && Number.isFinite(Number(a))) radioPlayer.setVolume(Math.min(1, Math.max(0, Number(a))));
     else if (c === 'volup' || c === 'voldown') radioPlayer.setVolume(Math.min(1, Math.max(0, fx().volume + (c === 'volup' ? 0.08 : -0.08))));
-    else if (c === 'mute') radioPlayer.setVolume(fx().volume > 0 ? 0 : 0.8);
+    else if (c === 'mute') {
+      // (feloldáskor a némítás előtti hangerő jön vissza)
+      if (fx().volume > 0) {
+        radioMutedVol = fx().volume;
+        radioPlayer.setVolume(0);
+      } else radioPlayer.setVolume(radioMutedVol || 0.8);
+    }
     setTimeout(pushState, 250);
     return;
   }
@@ -533,9 +546,10 @@ async function radioCommand(c, a) {
   const st = r.station;
   switch (c) {
     case 'rplay': {
-      const x = radio.byId.get(a) || [...radioFavs(), ...radioRecent()].find((y) => y.id === a) || rresults?.items?.find((y) => y.id === a);
+      // a betöltött adók, a kedvencek / előzmények, ill. a keresés teljes (urls-os) találata
+      const x = radio.byId.get(a) || [...radioFavs(), ...radioRecent()].find((y) => y.id === a) || rfound.get(a);
       if (!x) break;
-      const s0 = radio.byId.get(a) || stationFrom(x.urls ? x : (radioFavs().find((y) => y.id === a) || radioRecent().find((y) => y.id === a) || x));
+      const s0 = x.urls?.length ? x : stationFrom(x);
       if (s0?.urls?.length) r.play(s0, radioFavs().some((y) => y.id === s0.id) ? radioFavs() : null);
       break;
     }
