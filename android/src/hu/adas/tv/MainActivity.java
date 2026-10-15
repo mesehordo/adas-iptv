@@ -113,8 +113,11 @@ public class MainActivity extends Activity {
     instance = this;
     covers = new Covers(new java.io.File(getFilesDir(), "covers"), (url, h) -> open(url, "GET", streamHeaders(url, h), null, 30000));
     UiModeManager ui = (UiModeManager) getSystemService(Context.UI_MODE_SERVICE);
-    tv = (ui != null && ui.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION)
-        || getPackageManager().hasSystemFeature(PackageManager.FEATURE_LEANBACK);
+    // (F07) a buildcél dönt (mobile / tv); univerzális csomagnál a rendszer jelzése
+    String target = buildTarget();
+    tv = "tv".equals(target) || (!"mobile".equals(target)
+        && ((ui != null && ui.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION)
+            || getPackageManager().hasSystemFeature(PackageManager.FEATURE_LEANBACK)));
     Window w = getWindow();
     w.setStatusBarColor(Color.BLACK);
     w.setNavigationBarColor(Color.BLACK);
@@ -147,6 +150,17 @@ public class MainActivity extends Activity {
     if (state != null) web.restoreState(state);
     else web.loadUrl("https://" + HOST + "/index.html");
     web.requestFocus();
+  }
+
+  /** (F07) A buildcél (mobile / tv / universal) – a csomag metaadata. */
+  String buildTarget() {
+    try {
+      android.os.Bundle m = getPackageManager().getApplicationInfo(getPackageName(), PackageManager.GET_META_DATA).metaData;
+      String t = m != null ? m.getString("hu.adas.target") : null;
+      return t == null ? "universal" : t;
+    } catch (Exception e) {
+      return "universal";
+    }
   }
 
   String version() {
@@ -338,6 +352,11 @@ public class MainActivity extends Activity {
     @JavascriptInterface
     public boolean isTv() {
       return tv;
+    }
+
+    @JavascriptInterface
+    public String buildTarget() {
+      return MainActivity.this.buildTarget();
     }
 
     @JavascriptInterface

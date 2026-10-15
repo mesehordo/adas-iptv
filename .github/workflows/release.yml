@@ -162,7 +162,9 @@ jobs:
       - name: Fordítás
         run: |
           export ANDROID_HOME="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
-          npm run android
+          # (F07) két csomag ugyanabból a commitból és verzióból: telefon / tablet és Android TV
+          npm run android:mobile
+          npm run android:tv
       - name: Az aláírókulcs törlése
         if: always()
         run: rm -rf android/keystore

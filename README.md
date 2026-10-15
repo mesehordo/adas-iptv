@@ -405,9 +405,20 @@ npm run android-deps
 npm run android
 ```
 
-Elkészíti a `dist-android/Adas-<verzió>.apk` csomagot. Egy APK fut telefonon, tableten és
+Elkészíti a `dist-android/Adas-<verzió>.apk` (univerzális) csomagot: fut telefonon, tableten és
 Android TV-n / Google TV-n is (Android 6.0 vagy újabb); tévén a Leanback indítóban jelenik meg,
 és a távirányítós (tévés) felület indul.
+
+Külön buildcél (a kiadás ezt a kettőt készíti, ugyanabból a commitból és verzióból):
+
+```
+npm run android:mobile   # dist-android/Adas-<verzió>-android-mobile.apk – telefon / tablet, érintéses indító
+npm run android:tv       # dist-android/Adas-<verzió>-android-tv.apk – Android TV, tévés indító, távirányítós alapmód
+```
+
+A két csomag csomagazonosítója és aláírása közös, így egymásra (és a régi univerzálisra) telepítve
+megmaradnak a profilok, a listák és a beállítások; a beépített frissítés a telepített célnak megfelelő
+csomagot tölti le. A buildcél a natív rétegtől jut el a felülethez (`AdasAndroid.buildTarget()`).
 
 - **Felépítés**: kis natív keret (`android/`, Java, egyetlen WebView), benne ugyanaz az egyfájlos
   felület, mint a tévés változatban. A keret minden hálózati kérést maga tölt le, CORS-fejlécet
