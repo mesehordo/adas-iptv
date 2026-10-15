@@ -216,7 +216,7 @@ document.addEventListener('adas-radio-expand', openFull);
 // minden egy képernyőre fér.
 let menuKind = '';
 const sleepLeft = () => (radioPlayer.sleepAt ? Math.max(1, Math.round((radioPlayer.sleepAt - Date.now()) / 60e3)) : 0);
-const mi = (attr, val, label, on, title = '') => `<button class="menu-item ${on ? 'sel' : ''}" role="menuitemradio" aria-checked="${on}" ${attr}="${esc(val)}" ${title ? `title="${esc(title)}"` : ''}>${esc(label)}</button>`;
+const mi = (attr, val, label, on, title = '', role = 'menuitemradio') => `<button class="menu-item ${on ? 'sel' : ''}" role="${role}" aria-checked="${on}" ${attr}="${esc(val)}" ${title ? `title="${esc(title)}"` : ''}>${esc(label)}</button>`;
 
 function drawFxChips() {
   const box = full?.querySelector('.rf-menus');
@@ -248,9 +248,9 @@ function renderMenu() {
   if (menuKind === 'vis') body = `<h4>${_t('Vizualizáció')}</h4>${VIS_MODES.map(([id, n]) => mi('data-vis', id, n, f.vis === id)).join('')}`;
   else if (menuKind === 'sound')
     body = `<h4>${_t('Hangzás')}</h4>
-      ${mi('data-tog', 'level', _t('Hangerő-kiegyenlítés'), f.level, _t('Az adók eltérő hangerejét kiegyenlíti, a halk részeket kiemeli'))}
-      ${mi('data-tog', 'widen', _t('Térhatás'), f.widen, _t('Szélesebb sztereó kép'))}
-      ${mi('data-tog', 'retro', _t('Retro rádió'), f.retro, _t('Régi középhullámú készülék hangja, halk sercegéssel'))}
+      ${mi('data-tog', 'level', _t('Hangerő-kiegyenlítés'), f.level, _t('Az adók eltérő hangerejét kiegyenlíti, a halk részeket kiemeli'), 'menuitemcheckbox')}
+      ${mi('data-tog', 'widen', _t('Térhatás'), f.widen, _t('Szélesebb sztereó kép'), 'menuitemcheckbox')}
+      ${mi('data-tog', 'retro', _t('Retro rádió'), f.retro, _t('Régi középhullámú készülék hangja, halk sercegéssel'), 'menuitemcheckbox')}
       <h4>${_t('Átúsztatás adóváltáskor')}</h4>${XFADE.map((s) => mi('data-xfade', String(s), s ? _t('{s} mp', { s }) : _t('Ki'), f.xfade === s)).join('')}`;
   else if (menuKind === 'eq') body = `<h4>${_t('Hangszínszabályzó')}</h4>${EQ_PRESETS.map(([id, n]) => mi('data-eq', id, n, f.eq === id)).join('')}`;
   else if (menuKind === 'sleep')
@@ -267,7 +267,14 @@ function renderMenu() {
         : `<p class="muted small">${_t('Itt jelennek meg a rádióban elhangzott számok (ha az adó küldi a címüket).')}</p>`
     }`;
   }
+  // (újrarajzoláskor – pl. új szám az előzményekben – a fókusz ugyanazon a helyen marad)
+  const focusables = () => [...menu.querySelectorAll('button, a')];
+  const fi = menu.contains(document.activeElement) ? focusables().indexOf(document.activeElement) : -1;
   menu.innerHTML = body;
+  if (fi >= 0) {
+    const list = focusables();
+    list[Math.min(fi, list.length - 1)]?.focus({ preventScroll: true });
+  }
   menu.dataset.kind = menuKind;
   menu.hidden = false;
   // a menü a gombja fölött (jobb széléhez igazítva, a képernyőn belül)

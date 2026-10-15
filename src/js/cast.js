@@ -156,7 +156,7 @@ const hooks = {
   },
   /** A vevőn ténylegesen megy-e az adás (szünet és leállt / üresjárati vevő nem számít). */
   get playing() {
-    return !!state.device && !state.paused && state.status !== 'IDLE';
+    return !!state.device && !state.paused && state.status === 'PLAYING'; // (betöltés / pufferelés még nem nézés)
   },
   get deviceName() {
     return state.device?.name || '';

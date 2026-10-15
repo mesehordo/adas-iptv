@@ -177,7 +177,16 @@ video.addEventListener('play', tick);
 document.addEventListener('visibilitychange', tick);
 bus.on('player-closed', tick);
 bus.on('cast-state', tick);
-bus.on('profile', () => (since = 0));
+bus.on('profile', () => {
+  // (a váltás után már az új profil aktív: az utolsó szakasz a korábbi gyerekprofilhoz tartozik)
+  const gap = since ? Date.now() - since : 0;
+  const prev = sinceProfile && store.profiles.find((x) => x.id === sinceProfile);
+  if (prev?.kids && prev.dailyLimit && gap > 0 && gap <= MAX_GAP) {
+    usage(prev).sec += gap / 1000;
+    store.save();
+  }
+  since = 0;
+});
 
 /** Beállítások → Tartalom és gyerekek → Gyerekprofilok: napi keret és korhatár profilonként. */
 export function limitsHtml(profs) {

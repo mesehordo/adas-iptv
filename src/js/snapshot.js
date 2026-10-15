@@ -10,7 +10,8 @@ export async function attachDocs(data) {
   for (const p of data.settings?.vodCustom || []) {
     // csak a fájlból felvett listák szövege – egy (importált) lista ne hivatkozhasson más tárolt dokumentumra
     if (typeof p?.textKey !== 'string' || !/^vodtext:[\w-]+$/.test(p.textKey)) continue;
-    const v = await api.docGet?.(p.textKey).catch(() => null);
+    // (olvasási hiba: kivétel – a hiányos pillanatkép ne szorítsa ki az utolsó teljeset; a hiányzó lista null)
+    const v = await api.docGet?.(p.textKey);
     if (v && typeof v.text === 'string') docs[p.textKey] = v;
   }
   // a kiegészítő csomagok (tévé és VOD) is mennek – így a másik eszközön is megjelennek

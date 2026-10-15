@@ -1729,7 +1729,7 @@ body.radio-full > :not(#radio-full):not(#modal-root):not(#toasts) { visibility: 
   #radio-full { overflow: hidden; padding-bottom: 2.4vh; }
   .rf-main { flex: 1 1 0; min-height: 0; flex-wrap: nowrap; margin: 1vh 0 0; gap: 3vw; }
   .rf-art { width: min(46vh, 26vw); margin: 0; }
-  .rf-info { flex: 1 1 0; max-height: 100%; overflow: hidden; }
+  .rf-info { flex: 1 1 0; max-height: 100%; overflow-y: auto; }
   .rf-vis { flex: 1 1 0; min-width: 0; height: min(36vh, 100%); }
   .rf-bar { margin-top: 1.6vh; }
 }

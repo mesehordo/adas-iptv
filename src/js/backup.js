@@ -58,15 +58,26 @@ export function backupNow(reason = 'auto') {
     const old = await list(); // (hibánál nem írunk: a régi mentési pontok érintetlenek maradnak)
     // a dokumentumok tartalma külön, tartalom szerinti kulccsal (ami már megvan, nem íródik újra)
     const docs = {};
-    for (const [k, v] of Object.entries(data.docs || {})) {
-      const h = fingerprint(v.text);
-      docs[k] = h;
-      const have = await api.docGet?.(DOC_PREFIX + h).catch(() => null);
-      if (typeof have?.text !== 'string' || have.text !== v.text) await api.docSet(DOC_PREFIX + h, { text: v.text });
+    const oldRefs = refsOf(old);
+    const created = []; // (ebben a körben írt, még sehol nem hivatkozott tartalmak – hiba esetén törlődnek)
+    let items;
+    try {
+      for (const [k, v] of Object.entries(data.docs || {})) {
+        const h = fingerprint(v.text);
+        docs[k] = h;
+        const have = await api.docGet?.(DOC_PREFIX + h).catch(() => null);
+        if (typeof have?.text !== 'string' || have.text !== v.text) {
+          if (!oldRefs.has(h)) created.push(h);
+          await api.docSet(DOC_PREFIX + h, { text: v.text });
+        }
+      }
+      delete data.docs;
+      items = [{ v: FORMAT, at: Date.now(), reason, profiles: (data.profiles || []).length, data, docs }, ...old].slice(0, KEEP);
+      await api.docSet(KEY, { items });
+    } catch (err) {
+      await Promise.all(created.map((h) => Promise.resolve(api.docSet(DOC_PREFIX + h, null)).catch(() => {})));
+      throw err;
     }
-    delete data.docs;
-    const items = [{ v: FORMAT, at: Date.now(), reason, profiles: (data.profiles || []).length, data, docs }, ...old].slice(0, KEEP);
-    await api.docSet(KEY, { items });
     // a kiszorult pontok már nem hivatkozott tartalma törlődik (a hivatkozott marad)
     const keep = refsOf(items);
     for (const h of refsOf(old)) if (!keep.has(h)) await Promise.resolve(api.docSet(DOC_PREFIX + h, null)).catch(() => {});
@@ -91,10 +102,17 @@ async function pointData(it) {
     for (const [k, h] of Object.entries(it.docs)) {
       const v = await api.docGet?.(DOC_PREFIX + h).catch(() => null);
       if (typeof v?.text === 'string' && fingerprint(v.text) === h) data.docs[k] = v;
-      else missing.push(names[k] || k);
+      else {
+        missing.push(names[k] || k);
+        data.docs[k] = { text: '' }; // (üresen áll vissza – ne a mostani eszköz azonos kulcsú tartalma látsszon)
+      }
     }
-    // (a hivatkozott, de már a mentéskor sem meglévő lista is hiányzik)
-    for (const r of referencedDocKeys(data.settings)) if (!(r.key in it.docs)) missing.push(r.name);
+    // (a hivatkozott, de már a mentéskor sem meglévő lista is hiányzik – ez is üresen)
+    for (const r of referencedDocKeys(data.settings)) {
+      if (r.key in it.docs) continue;
+      missing.push(r.name);
+      data.docs[r.key] = { text: '' };
+    }
   } else {
     for (const r of referencedDocKeys(data.settings)) {
       const v = await api.docGet?.(r.key).catch(() => null);

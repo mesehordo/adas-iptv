@@ -32,10 +32,12 @@ function record(ch, sec) {
   }
   if (ch.vod) {
     const it = ch.vod.item;
-    if (!it) return void store.save(); // (tétel nélküli lejátszás: csak a napi / órás összesítés)
-    const v = (s.vod[it.id] ||= { t: 0, title: it.title, type: it.type, poster: it.poster || '' });
-    v.t += sec;
-    v.last = Date.now();
+    // (tétel nélküli lejátszás: csak a napi / órás összesítés)
+    if (it) {
+      const v = (s.vod[it.id] ||= { t: 0, title: it.title, type: it.type, poster: it.poster || '' });
+      v.t += sec;
+      v.last = Date.now();
+    }
   } else {
     s.ch[ch.id] = (s.ch[ch.id] || 0) + sec;
     const cats = ch.categories.length ? ch.categories : ['general'];
