@@ -101,6 +101,27 @@ export class Engine {
     if (preferNative && this.type === 'hls') this.type = 'native';
     return new Promise((resolve, reject) => {
       let settled = false;
+      // (B36) a betöltés saját egyszeri eseménykezelői és időzítői: a stop() ezekkel együtt, pontosan egyszer
+      // zárja le a függő kérést („megszakítva”) – a régi betöltés kezelői nem halmozódnak a videóelemen
+      let t = 0;
+      let headTimer = 0;
+      const own = [];
+      const once = (ev, fn) => {
+        video.addEventListener(ev, fn, { once: true });
+        own.push([ev, fn]);
+      };
+      const cleanup = () => {
+        clearTimeout(t);
+        clearTimeout(headTimer);
+        for (const [ev, fn] of own) video.removeEventListener(ev, fn);
+        own.length = 0;
+      };
+      this.abortLoad = (err) => {
+        cleanup();
+        if (settled) return;
+        settled = true;
+        reject(err);
+      };
       const ok = () => {
         if (settled || token !== this.token) return;
         settled = true;
@@ -118,17 +139,17 @@ export class Engine {
           this.onFail(err);
         }
       };
-      const t = setTimeout(() => fail(new Error(_t('Időtúllépés – az adás nem indult el'))), START_TIMEOUT);
-      video.addEventListener('playing', ok, { once: true });
+      t = setTimeout(() => fail(new Error(_t('Időtúllépés – az adás nem indult el'))), START_TIMEOUT);
+      once('playing', ok);
       // Ha az adó egyáltalán nem válaszol, ne a teljes 20 másodpercet várjuk: a lista (hls.js-nél
       // a manifest, máshol a metaadatok) ennyi idő alatt megérkezik, ha él az adás.
-      const headTimer = setTimeout(() => {
+      headTimer = setTimeout(() => {
         if (!settled && !this.headReceived) fail(new Error(_t('Az adó nem válaszol')));
       }, !timeshift ? HEAD_TIMEOUT_VOD : this.type === 'hls' ? HEAD_TIMEOUT : HEAD_TIMEOUT_NATIVE);
       this.headReceived = false;
-      video.addEventListener('loadedmetadata', () => (this.headReceived = true), { once: true });
+      once('loadedmetadata', () => (this.headReceived = true));
       const clearHead = () => clearTimeout(headTimer);
-      video.addEventListener('playing', clearHead, { once: true });
+      once('playing', clearHead);
       video.onerror = () => fail(new Error(_t('A videó nem játszható le')));
 
       const tryPlay = () => video.play().catch((e) => {
@@ -150,7 +171,7 @@ export class Engine {
           onTracks: () => this.onTracks(),
         });
         this.bridge = b;
-        video.addEventListener('loadedmetadata', () => this.onTracks(), { once: true });
+        once('loadedmetadata', () => this.onTracks());
         b.open()
           .then(() => {
             if (token !== this.token) return;
@@ -266,7 +287,7 @@ export class Engine {
       } else {
         video.src = stream.url;
         // Több hangsávos fájl (pl. MKV): a sávok a metaadatok betöltése után ismertek.
-        video.addEventListener('loadedmetadata', () => this.onTracks(), { once: true });
+        once('loadedmetadata', () => this.onTracks());
         tryPlay();
       }
     });
@@ -293,6 +314,10 @@ export class Engine {
   stop() {
     this.token++;
     this.started = false;
+    // a függő betöltés lezárása (egyszer, a hívók által ismert belső jelzéssel), a kezelőivel és időzítőivel
+    const abort = this.abortLoad;
+    this.abortLoad = null;
+    abort?.(new Error('megszakítva'));
     clearTimeout(this.stallTimer);
     const v = this.video;
     v.onerror = null;
