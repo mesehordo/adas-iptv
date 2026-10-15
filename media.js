@@ -449,18 +449,27 @@ let recSeq = 0;
  * megszakad és az FFmpeg kilép, néhány másodperc múlva újraindítjuk, és ugyanabba a fájlba folytatja
  * (az MPEG-TS egyszerűen összefűzhető). Élő HLS-nél a lejátszólista frissítését is türelmesebben várja.
  * until: a leállás ideje (ütemezett felvétel), 0 = kézi leállításig.
+ * audio (rádió): 'mp3' / 'aac' – a hang változatlanul MP3, ill. AAC (ADTS) fájlba; 'enc' – más kódolású adás
+ * (Opus, Vorbis, FLAC…) AAC-be kódolva. Ezek a formátumok is egyszerűen összefűzhetők.
  */
-async function recStart({ url, dir, name, until }) {
+const AUDIO_OUT = {
+  mp3: { ext: '.mp3', args: ['-vn', '-c:a', 'copy', '-f', 'mp3'] },
+  aac: { ext: '.aac', args: ['-vn', '-c:a', 'copy', '-f', 'adts'] },
+  enc: { ext: '.aac', args: ['-vn', '-c:a', 'aac', '-b:a', '192k', '-f', 'adts'] },
+};
+async function recStart({ url, dir, name, until, audio }) {
   if (!FF) throw new Error(_t('Az FFmpeg nem érhető el.'));
   await ensureServer();
   fs.mkdirSync(dir, { recursive: true });
   const safe = String(name || 'felvetel').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) || 'felvetel';
-  let file = path.join(dir, `${safe}.ts`);
-  for (let i = 2; fs.existsSync(file); i++) file = path.join(dir, `${safe} (${i}).ts`);
+  const aOut = AUDIO_OUT[audio] || null;
+  const ext = aOut ? aOut.ext : '.ts';
+  let file = path.join(dir, `${safe}${ext}`);
+  for (let i = 2; fs.existsSync(file); i++) file = path.join(dir, `${safe} (${i})${ext}`);
   const hlsOpts = /\.m3u8?(\?|$)/i.test(url) ? ['-max_reload', '1000', '-m3u8_hold_counters', '1000'] : [];
   // Újraindításkor a kimenet ideje az addig eltelt idővel folytatódik (különben az összefűzött fájlban az idő visszaugrana)
   // (élő HLS-nél újraindításkor a legfrissebb résztől folytatjuk – különben a korábbi részek ismétlődnének)
-  const argsFor = (offset) => ['-hide_banner', '-nostdin', '-loglevel', 'error', ...headerArgs(url), ...hlsOpts, ...(offset > 0 && hlsOpts.length ? ['-live_start_index', '-1'] : []), '-i', inputOf(url), '-c', 'copy', ...(offset > 0 ? ['-output_ts_offset', offset.toFixed(1)] : []), '-f', 'mpegts', 'pipe:1'];
+  const argsFor = (offset) => ['-hide_banner', '-nostdin', '-loglevel', 'error', ...headerArgs(url), ...hlsOpts, ...(offset > 0 && hlsOpts.length ? ['-live_start_index', '-1'] : []), '-i', inputOf(url), ...(aOut ? aOut.args : ['-c', 'copy', ...(offset > 0 ? ['-output_ts_offset', offset.toFixed(1)] : []), '-f', 'mpegts']), 'pipe:1'];
   const id = String(++recSeq);
   const out = fs.createWriteStream(file, { flags: 'a' });
   const rec = { proc: null, file, out, started: Date.now(), until: until || 0, restarts: 0, err: '' };
@@ -538,7 +547,7 @@ function recList(dir) {
   try {
     return fs
       .readdirSync(dir)
-      .filter((f) => /\.(ts|mkv|mp4)$/i.test(f) && !f.endsWith('.vagas.tmp.ts'))
+      .filter((f) => /\.(ts|mkv|mp4|mp3|aac)$/i.test(f) && !/\.vagas\.tmp\.[a-z0-9]+$/i.test(f))
       .map((f) => {
         const p = path.join(dir, f);
         const st = fs.statSync(p);
@@ -574,8 +583,11 @@ async function recTrim(p, start, end) {
   const orig = originalOf(p);
   await fs.promises.mkdir(path.dirname(orig), { recursive: true });
   if (!fs.existsSync(orig)) await fs.promises.rename(p, orig); // első vágás: az eredeti félretéve
-  const tmp = p.replace(/\.[^.]+$/, '') + '.vagas.tmp.ts';
-  const args = ['-hide_banner', '-nostdin', '-loglevel', 'error', '-y', '-ss', start.toFixed(3), '-i', orig, '-t', (end - start).toFixed(3), '-map', '0', '-c', 'copy', '-avoid_negative_ts', 'make_zero', '-f', 'mpegts', tmp];
+  // (a rádiófelvétel MP3 / AAC marad; minden más MPEG-TS)
+  const ext = (/\.(mp3|aac)$/i.exec(p)?.[1] || 'ts').toLowerCase();
+  const fmt = { mp3: 'mp3', aac: 'adts', ts: 'mpegts' }[ext];
+  const tmp = p.replace(/\.[^.]+$/, '') + '.vagas.tmp.' + ext;
+  const args = ['-hide_banner', '-nostdin', '-loglevel', 'error', '-y', '-ss', start.toFixed(3), '-i', orig, '-t', (end - start).toFixed(3), '-map', '0', '-c', 'copy', '-avoid_negative_ts', 'make_zero', '-f', fmt, tmp];
   await new Promise((resolve, reject) => {
     const proc = spawn(FF, args, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
     let err = '';

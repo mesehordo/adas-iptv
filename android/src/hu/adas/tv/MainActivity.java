@@ -216,7 +216,7 @@ public class MainActivity extends Activity {
       PlaybackService.start(this, nowPlaying);
       return;
     }
-    web.evaluateJavascript("document.querySelectorAll('video').forEach(function(v){try{v.pause()}catch(e){}})", null);
+    web.evaluateJavascript("document.querySelectorAll('video').forEach(function(v){try{v.pause()}catch(e){}});window.__adasRadioPause&&window.__adasRadioPause()", null);
     if (nativePlayer != null) nativePlayer.pause();
   }
 
@@ -448,6 +448,7 @@ public class MainActivity extends Activity {
           else if ("lanGet".equals(method)) out = lanGet(a.getJSONArray("urls"), a.optInt("timeout", 2500)).toString();
           else if ("lanIps".equals(method)) out = new JSONArray(LanServer.localIps()).toString();
           else if ("coverStats".equals(method)) out = covers.stats().toString();
+          else if ("icyTitle".equals(method)) out = JSONObject.quote(icyTitle(a.getString("url")));
           else if ("coverClear".equals(method)) {
             covers.clear();
             out = "true";
@@ -624,6 +625,57 @@ public class MainActivity extends Activity {
     String text = in == null ? "" : new String(readAll(in, 40 * 1024 * 1024), StandardCharsets.UTF_8);
     c.disconnect();
     return new JSONObject().put("status", code).put("text", text);
+  }
+
+  /**
+   * Rádió – a most szóló szám címe az adás ICY-metaadatából (StreamTitle): `Icy-MetaData: 1` fejléccel
+   * az első metaadat-blokkig olvasunk ('' ha az adó nem küld ilyet).
+   */
+  String icyTitle(String url) {
+    if (!url.startsWith("http://") && !url.startsWith("https://")) return "";
+    HttpURLConnection c = null;
+    try {
+      Map<String, String> h = new HashMap<>();
+      h.put("Icy-MetaData", "1");
+      h.put("Accept-Encoding", "identity");
+      c = open(url, "GET", h, null, 8000);
+      int metaint = 0;
+      try {
+        metaint = Integer.parseInt(String.valueOf(c.getHeaderField("icy-metaint")).trim());
+      } catch (NumberFormatException e) {
+        return "";
+      }
+      if (c.getResponseCode() >= 400 || metaint <= 0 || metaint > 256 * 1024) return "";
+      InputStream in = new BufferedInputStream(c.getInputStream());
+      long skip = metaint;
+      while (skip > 0) {
+        long n = in.skip(skip);
+        if (n <= 0) {
+          if (in.read() < 0) return "";
+          n = 1;
+        }
+        skip -= n;
+      }
+      int len = in.read() * 16;
+      if (len <= 0) return "";
+      byte[] meta = new byte[len];
+      int off = 0;
+      while (off < len) {
+        int n = in.read(meta, off, len - off);
+        if (n < 0) break;
+        off += n;
+      }
+      String t = new String(meta, 0, off, StandardCharsets.UTF_8);
+      int a = t.indexOf("StreamTitle='");
+      if (a < 0) return "";
+      int b = t.indexOf("';", a + 13);
+      String title = (b < 0 ? t.substring(a + 13) : t.substring(a + 13, b)).replace(String.valueOf((char) 0), "").trim();
+      return title.length() > 300 ? title.substring(0, 300) : title;
+    } catch (Exception e) {
+      return "";
+    } finally {
+      if (c != null) c.disconnect();
+    }
   }
 
   /**

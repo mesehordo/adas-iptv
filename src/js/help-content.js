@@ -1239,6 +1239,27 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
 <div class="note">A tévék beépített lejátszója (webOS) maga dönt arról, mennyit tárol; ott a visszatekerés az adótól függően rövidebb lehet vagy hiányozhat.</div>`,
   },
   {
+    id: 'radio',
+    cat: 'watch',
+    title: 'Rádió',
+    keywords: 'rádió radio adó állomás zene most szól műsor dal szám borító előadó hangszínszabályzó eq hangerő kiegyenlítés térhatás retro átúsztatás vizualizáció spektrum vu mérő elalvás időzítő radio browser verified iprd m3u rádiólista csomag',
+    body: `
+<p>A menüsor <b>Rádió</b> pontja (a TV után) élő rádióadókat hoz a világból. Az oldal a TV oldal mintájára sorokból áll: <i>Legutóbb hallgatott</i>, <i>Kedvenc rádiók</i>, a hazai ország adói, a <i>Műfajok</i> csempéi, a hazai adók a legnagyobb műfajokban, <i>Népszerű a világban</i> és az <i>Országok</i>. A <b>Böngészés</b> fülön kereshetsz (név, műfaj, ország), és szűrhetsz ország, műfaj, minőség (kbps) és működés szerint. Mindenhol a működő adók állnak elöl.</p>
+<table class="help-table">
+<tr><td><b>Lejátszás</b></td><td>Kattintás vagy OK egy adó kártyáján. Alul megjelenik a <b>mini-lejátszó</b>: adó, most szóló szám, kis spektrum, előző / szünet / következő adó, kedvenc, hangerő. A ⌃ gomb (vagy a mini-lejátszó bal oldala) a <b>Most szól</b> nézetet nyitja.</td></tr>
+<tr><td><b>Most szól</b></td><td>A szám címe és előadója (ha az adó küldi), a borítója, az <i>Előtte szólt</i> számok listája, és keresés a YouTube-on vagy a Spotify-on. Sok adó csak a nevét vagy a szlogenjét küldi – ilyenkor a cím helyén az áll.</td></tr>
+<tr><td><b>Vizualizáció</b></td><td>Spektrum, Hullám, Tükör (középről fel-le tükrözött sávok) és Hullámhegyek (lágy, kitöltött spektrumgörbe).</td></tr>
+<tr><td><b>Hangzás</b></td><td><i>Hangerő-kiegyenlítés</i> (az adók eltérő hangerejéhez), <i>Térhatás</i>, <i>Retro rádió</i> (régi középhullámú készülék hangja), <i>Átúsztatás</i> adóváltáskor, és a hangszínszabályzó előbeállításai (Pop, Rock, Beszéd, Klasszikus, Mélykiemelés, Éjszakai). A választás megmarad.</td></tr>
+<tr><td><b>Elalvás-időzítő</b></td><td>15–90 perc múlva a rádió elhalkul és kikapcsol.</td></tr>
+<tr><td><b>Kedvencek</b></td><td>A kártya + gombja vagy kijelölve az <kbd>F</kbd> (távirányítón a piros gomb). A Rádió oldal <b>Kedvencek</b> fülén sorba rendezhetők (húzással vagy <kbd>Ctrl</kbd>+<kbd>←</kbd> / <kbd>→</kbd>, tévén <kbd>CH+</kbd> / <kbd>CH−</kbd>); a főmenü Kedvencek oldalán is látszanak, a <i>Rádiók</i> részben.</td></tr>
+<tr><td><b>Műsorújság</b></td><td>A Rádió oldal <b>Műsorújság</b> füle olyan, mint a tévéé: Kedvencek / hazai / minden adó, napok, <i>Idővonal</i> és <i>Most műsoron</i>. A műsort a műsorújság-források adják (a magyar epgshare01-forrásban a Kossuth, a Petőfi és a Bartók szerepel); a kártyán és a Most szól nézetben is látszik a most futó és a következő műsor. Egy műsorra kattintva: leírás, hallgatás, felvétel ütemezése.</td></tr>
+<tr><td><b>Felvétel</b></td><td>Asztali változatban a mini-lejátszó vagy a Most szól nézet <b>●</b> gombjával azonnal, a műsorújságból ütemezve (a tévés felvételek ráhagyásával). A hang változatlanul MP3 / AAC fájlba kerül (más kódolású adásnál AAC-be alakítva); a <b>Felvételek</b> fülön lejátszható, vágható, megnyitható.</td></tr>
+</table>
+<p><b>Billentyűk:</b> <kbd>Szóköz</kbd> vagy a médiagomb: szünet / folytatás; <kbd>CH+</kbd> / <kbd>CH−</kbd>: következő / előző adó abból a sorból, amelyből indítottad; <kbd>Esc</kbd>: a Most szól nézet bezárása.</p>
+<p><b>Források</b> (Beállítások → <i>Rádió</i>, mindegyik kikapcsolható): <i>Radio Browser</i> (közösségi adatbázis, több tízezer adó), <i>Verified Radio Streams</i> (kipróbált adások) és <i>IPRD</i> (országonkénti válogatás). Ugyanaz az adó több forrásból egy kártyán jelenik meg, a címei tartalékként egymás után próbálódnak. Saját M3U rádiólistát webcímről is hozzáadhatsz, frissítési gyakorisággal, vagy „radio” fajtájú .adaspack csomagot tölthetsz be.</p>
+<div class="note">Videó indításakor (élő adás, film, több adás egyszerre) a rádió elhallgat, rádió indításakor a videó bezárul. LG webOS tévén a hangeffektek és a vizualizáció nem érhetők el (a tévé böngészőmotorja nem fér hozzá az adás hangjához); a rádió ott is szól. A menüpont a Beállítások → <i>Rádió</i> alatt kikapcsolható; gyerekprofilban nem látszik.</div>`,
+  },
+  {
     id: 'sport-page',
     cat: 'watch',
     title: 'Sport oldal',

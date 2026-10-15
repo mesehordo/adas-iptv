@@ -8,7 +8,7 @@
 //     "text": "#EXTM3U\n…",
 //     "url": "https://…/lista.m3u", "epg": "https://…/epg.xml.gz", "refresh": 6 }   ← nem kötelezők
 // Forráscímes csomag ("url"): a lista a beállított gyakorisággal innen frissül, a "text" a tartalék.
-// Fájlnév: <azonosító>_tv.adaspack vagy <azonosító>_vod.adaspack (a „kind” hiányában a fájlnév vége dönt).
+// Fájlnév: <azonosító>_tv / _vod / _radio.adaspack (a „kind” hiányában a fájlnév vége dönt).
 import { api } from './api.js';
 import { store, VOD_BUILTIN, BUILTIN_PLAYLISTS, REFRESH_CHOICES } from './store.js';
 import { parseM3U } from './catalog.js';
@@ -18,6 +18,7 @@ import { _t } from './i18n.js';
 export const PACK_KINDS = {
   tv: { setting: 'tvPacks', doc: 'tvpack:', label: _t('tévécsatorna-csomag') },
   vod: { setting: 'vodPacks', doc: 'vodpack:', label: 'VOD-csomag' },
+  radio: { setting: 'radioPacks', doc: 'radiopack:', label: _t('rádiócsomag') },
 };
 export const PACK_EXT = /\.adaspa(c)?k$/i; // (.adaspack, elírva .adaspak is)
 const MAX_TEXT = 60e6;
@@ -26,7 +27,7 @@ const MAX_TEXT = 60e6;
 export const packsOf = (kind) => (store.settings[PACK_KINDS[kind].setting] || []).map((p) => ({ ...p, kind, textKey: PACK_KINDS[kind].doc + p.id, pack: true }));
 
 /** A fajta a fájlnévből: …_tv.adaspack / …_vod.adaspack */
-const kindFromName = (name) => (/_tv\.adaspa(c)?k$/i.test(name || '') ? 'tv' : /_vod\.adaspa(c)?k$/i.test(name || '') ? 'vod' : '');
+const kindFromName = (name) => (/_tv\.adaspa(c)?k$/i.test(name || '') ? 'tv' : /_vod\.adaspa(c)?k$/i.test(name || '') ? 'vod' : /_radio\.adaspa(c)?k$/i.test(name || '') ? 'radio' : '');
 
 /**
  * Csomagfájl ellenőrzése → { kind, id, name, desc, off, text } vagy { error }.
@@ -42,12 +43,12 @@ export function parsePack(text, fileName = '') {
   if (j?.adasPack !== 1) return { error: _t('hiányzik az "adasPack": 1 jelölés') };
   const kind = j.kind || kindFromName(fileName) || 'vod';
   // (közvetlen összevetés: pl. a "__proto__" nem csúszhat át az objektum örökölt kulcsaként)
-  if (kind !== 'tv' && kind !== 'vod') return { error: `${_t('ismeretlen fajta: "{slice}" (tv vagy vod lehet)', { slice: String(kind).slice(0, 20) })}` };
+  if (kind !== 'tv' && kind !== 'vod' && kind !== 'radio') return { error: `${_t('ismeretlen fajta: "{slice}" (tv, vod vagy radio lehet)', { slice: String(kind).slice(0, 20) })}` };
   if (!/^[a-z0-9_-]{1,40}$/i.test(j.id || '')) return { error: _t('az "id" csak betűt, számot, - és _ jelet tartalmazhat (legfeljebb 40)') };
   if (typeof j.text !== 'string' || !j.text.trim()) return { error: _t('hiányzik a "text" (a lejátszólista szövege)') };
   if (j.text.length > MAX_TEXT) return { error: _t('túl nagy (legfeljebb 60 MB)') };
   // beépített listát nem írhat felül
-  if ((kind === 'vod' ? VOD_BUILTIN : BUILTIN_PLAYLISTS).some((b) => b.id === j.id)) return { error: `${_t('az "{id}" azonosító foglalt (beépített lista)', { id: j.id })}` };
+  if ((kind === 'vod' ? VOD_BUILTIN : kind === 'tv' ? BUILTIN_PLAYLISTS : []).some((b) => b.id === j.id)) return { error: `${_t('az "{id}" azonosító foglalt (beépített lista)', { id: j.id })}` };
   const parsed = parseM3U(j.text).entries.length;
   if (!parsed) return { error: _t('a lejátszólistában nincs lejátszható bejegyzés') };
   // minden #EXTINF-hez kell cím (a feldolgozó a cím nélküli bejegyzést csendben elhagyná)
@@ -123,7 +124,7 @@ export async function importPackFiles(files) {
 function reportImport(res) {
   for (const b of res.bad) toast(`${_t('„{file}” nem tölthető be: {error}.', { file: b.file, error: b.error })}`, { timeout: 9000 });
   if (res.ok.length) {
-    const where = [...new Set(res.ok.map((x) => (x.kind === 'tv' ? _t('Csatornalisták') : _t('VOD és médiatár'))))].join(' és a ');
+    const where = [...new Set(res.ok.map((x) => (x.kind === 'tv' ? _t('Csatornalisták') : x.kind === 'radio' ? _t('Rádió') : _t('VOD és médiatár'))))].join(' és a ');
     toast(_t('Betöltve: {names}. A(z) {where} beépített listái között kapcsolhatod be / ki.', { names: res.ok.map((x) => `„${x.name}”`).join(', '), where }), { timeout: 8000 });
   }
   return res;
@@ -171,7 +172,7 @@ export async function promptImportPackUrl() {
 
 /** Asztali változat: a „packs” mappában talált csomagok betöltése (új vagy megváltozott) → { tv, vod } darabszám */
 export async function syncPackFolder() {
-  const n = { tv: 0, vod: 0 };
+  const n = { tv: 0, vod: 0, radio: 0 };
   if (!api.packsScan) return n;
   const bad = [];
   for (const f of await api.packsScan().catch(() => [])) {

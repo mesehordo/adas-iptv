@@ -10,13 +10,15 @@ import { store } from './store.js';
 import { catalog, orderedStreams } from './catalog.js';
 import { epg } from './epg.js';
 import { player } from './player.js';
-import { programExtras, confirmDialog, ICON, emptyState, tvTabs } from './components.js';
+import { programExtras, confirmDialog, ICON, emptyState, tvTabs as tvTabsOf, radioTabs } from './components.js';
 import { playVod, pathToUrl } from './vod.js';
 import { allowOutsidePlayback } from './watchtime.js';
+import { radioSnapshot, stationFrom } from './radio.js';
+import { radioPlayer, resolveStream } from './radioplayer.js';
 
 import { _t, LOCALE } from './i18n.js';
 export const canRecord = !!api.recStart;
-const active = new Map(); // felvétel-azonosító → { chId, title, file, sched }
+const active = new Map(); // felvétel-azonosító → { chId, chName, title, file, sched }
 const schedule = () => (store.settings.recSchedule ||= []);
 const fmtSize = (b) => (b > 1e9 ? `${fmtNum(b / 1e9, 2)} GB` : `${fmtNum(Math.max(0.1, b / 1e6), 1)} MB`);
 /** Ráhagyás percben a műsor előtt / után (Beállítások → Felvételek) */
@@ -45,6 +47,70 @@ async function startRec(ch, { title, until = 0, sched = null, progStart = 0, pro
   return r.id;
 }
 
+// ---------------------------------------------------------------------------
+// Rádió: a hang MP3 / AAC fájlba (az adás kódolása szerint; más kódolásnál AAC-be alakítva)
+// ---------------------------------------------------------------------------
+const audioOut = (st) => (/mp3|mpeg/i.test(st.codec || '') ? 'mp3' : /aac/i.test(st.codec || '') ? 'aac' : 'enc');
+async function startRadioRec(st, { title, until = 0, sched = null, progStart = 0, progStop = 0 } = {}) {
+  // ami most szól, annak a működő címe; egyébként az első (a lejátszólista-címet feloldva)
+  const url = radioPlayer.station?.id === st.id && radioPlayer.url ? radioPlayer.url : await resolveStream(st.urls[0] || '');
+  if (!url) throw new Error(_t('A csatornának nincs forrása.'));
+  const d = new Date();
+  const name = `${st.name} – ${title || _t('felvétel')} – ${d.toISOString().slice(0, 10)} ${String(d.getHours()).padStart(2, '0')}.${String(d.getMinutes()).padStart(2, '0')}`;
+  const r = await api.recStart({ url, name, until, audio: audioOut(st) });
+  active.set(r.id, { chId: st.id, chName: st.name, title: title || st.name, file: r.file, sched });
+  if (r.file) {
+    const meta = (store.settings.recMeta ||= {});
+    meta[r.file] = { chId: st.id, title: title || st.name, at: Date.now(), progStart: progStart || 0, progStop: progStop || 0, radio: { name: st.name, logo: st.logo || '' } };
+    store.save();
+  }
+  bus.emit('rec');
+  return r.id;
+}
+
+/** Rádió ● gomb: az adó felvétele be / ki (a cím a műsorújságból, ennek híján „élő adás”). */
+export async function toggleRadioRecording(st) {
+  if (!st || !canRecord) return;
+  const id = recordingOf(st.id);
+  if (id) {
+    await api.recStop(id);
+    toast(_t('Felvétel leállítva'));
+    return;
+  }
+  try {
+    const cur = epg.now(st.id, Date.now())?.cur;
+    await startRadioRec(st, { title: cur?.title || _t('élő adás'), progStart: cur?.start, progStop: cur?.stop });
+    toast(_t('Felvétel: {name} – a Rádió → Felvételek alatt találod', { name: st.name }));
+  } catch (err) {
+    toast(`${_t('A felvétel nem indult el:')} ` + (err.message || err));
+  }
+}
+
+/** Rádióműsor felvételének ütemezése (újra meghívva törli). → be van-e ütemezve */
+export function scheduleRadioRec(st, p) {
+  const list = schedule();
+  const i = list.findIndex((s) => s.chId === st.id && s.start === p.start);
+  if (i >= 0) {
+    list.splice(i, 1);
+    store.save();
+    syncSchedule();
+    toast(_t('Ütemezett felvétel törölve'));
+    return false;
+  }
+  list.push({ id: `${st.id}|${p.start}`, chId: st.id, title: p.title, start: p.start, stop: p.stop, radio: radioSnapshot(st) });
+  list.sort((a, b) => a.start - b.start);
+  store.save();
+  syncSchedule();
+  const pre = recPre();
+  const post = recPost();
+  toast(`${_t('Felvétel ütemezve: {title} ({fmtDay} {fmtTime}–{fmtTime2}, {pre} / {post} perc ráhagyással) – az Adás fusson ekkor (a tálcán is jó)', { title: p.title, fmtDay: fmtDay(p.start), fmtTime: fmtTime(p.start - pre * 60e3), fmtTime2: fmtTime(p.stop + post * 60e3), pre, post })}`, { timeout: 7000 });
+  tick();
+  return true;
+}
+export const isRecScheduled = (chId, start) => schedule().some((s) => s.chId === chId && s.start === start);
+/** Az ütemezett tétel forrásának neve (tévécsatorna vagy rádióadó). */
+const schedName = (s) => catalog.byId.get(s.chId)?.name || s.radio?.name || s.chId;
+
 /** A lejátszó ● gombja: az éppen nézett csatorna felvétele be / ki. */
 export async function toggleRecording() {
   const ch = player.channel;
@@ -68,10 +134,11 @@ export async function toggleRecording() {
 /** Egy ütemezett felvétel indítása (ha még nem indult). */
 function startScheduled(s) {
   if (s.startedId) return;
-  const ch = catalog.byId.get(s.chId);
+  const ch = s.radio ? stationFrom(s.radio) : catalog.byId.get(s.chId);
   if (!ch) return;
   s.startedId = 'pending';
-  startRec(ch, { title: s.title, until: s.stop + recPost() * 60e3, sched: s.id, progStart: s.start, progStop: s.stop })
+  const opts = { title: s.title, until: s.stop + recPost() * 60e3, sched: s.id, progStart: s.start, progStop: s.stop };
+  (s.radio ? startRadioRec(ch, opts) : startRec(ch, opts))
     .then((id) => {
       s.startedId = id;
       toast(`${_t('Ütemezett felvétel elindult: {title} ({name})', { title: s.title, name: ch.name })}`);
@@ -164,14 +231,15 @@ if (canRecord) {
 /** A felvétel adatai: a felvételkor mentett csatorna és cím, ennek híján a fájlnévből („Csatorna – cím – dátum”). */
 function recInfo(f) {
   const m = store.settings.recMeta?.[f.path];
-  const base = f.name.replace(/\.(ts|mkv|mp4)$/i, '');
+  const base = f.name.replace(/\.(ts|mkv|mp4|mp3|aac)$/i, '');
   const parts = base.split(' – ');
-  const ch = (m?.chId && catalog.byId.get(m.chId)) || (parts.length >= 3 ? catalog.channels.find((c) => c.name === parts[0]) : null);
+  const ch = (m?.chId && catalog.byId.get(m.chId)) || (!m?.radio && parts.length >= 3 ? catalog.channels.find((c) => c.name === parts[0]) : null);
   return {
     title: m?.title || (parts.length >= 3 ? parts.slice(1, -1).join(' – ') : base),
-    chName: ch?.name || (parts.length >= 3 ? parts[0] : ''),
-    logo: ch?.logo || '',
+    chName: ch?.name || m?.radio?.name || (parts.length >= 3 ? parts[0] : ''),
+    logo: ch?.logo || (/^https?:\/\//i.test(m?.radio?.logo || '') ? m.radio.logo : ''),
     chId: ch?.id || '',
+    radio: !!m?.radio || /\.(mp3|aac)$/i.test(f.name),
     at: m?.at || f.mtime,
   };
 }
@@ -410,30 +478,35 @@ export async function openTrimEditor(f, onDone) {
 // ---------------------------------------------------------------------------
 // TV → Felvételek oldal
 // ---------------------------------------------------------------------------
-export async function renderRecordingsPage(view) {
+export async function renderRecordingsPage(view, params) {
+  // #/recordings?kind=radio: a Rádió oldal Felvételek füle (csak a rádiófelvételek); egyébként a tévéseké
+  const radioKind = params?.get?.('kind') === 'radio';
+  const tvTabs = radioKind ? radioTabs : tvTabsOf;
   if (!canRecord) {
     view.innerHTML = `<div class="page">${tvTabs('rec')}<p class="muted">${_t('Felvenni és a felvételeket lejátszani az asztali alkalmazásban lehet.')}</p></div>`;
     return;
   }
   view.innerHTML = `<div class="page recs">${tvTabs('rec')}<div class="empty-state"><div class="spinner"></div></div></div>`;
   const draw = async () => {
-    const { dir, files } = await api.recList();
+    const { dir, files: all } = await api.recList();
     if (!view.isConnected || document.body.dataset.route !== 'recordings') return;
-    const sch = schedule().filter((s) => !s.startedId);
+    const files = all.filter((f) => !!recInfo(f).radio === radioKind);
+    const sch = schedule().filter((s) => !s.startedId && !!s.radio === radioKind);
     const prog = store.profile.vodProgress || {};
     const done = files.filter((f) => !f.active);
     view.innerHTML = `<div class="page recs">${tvTabs('rec')}
       <div class="page-head"><h1>${_t('Felvételek')}</h1><span class="muted">${_t('{length} felvétel', { length: done.length })}</span>
         <span class="grow"></span><button class="btn small" data-r-folder>${_t('Mappa megnyitása')}</button> <button class="help-link" data-help="recording" title="${_t('Súgó')}">?</button></div>
       <p class="muted small">${_t('Az élő adás a lejátszó <b>●</b> gombjával vehető fel, vagy a műsorújságban egy műsor adatlapján a <b>Felvétel</b> gombbal ütemezhető. Hely: <code>{esc}</code>', { esc: esc(dir) })}</p>
-      ${active.size
+      ${[...active.values()].some((r) => r.chId.startsWith('r:') === radioKind)
           ? `<h2 class="section-title">${_t('Most rögzít')}</h2><ul class="src-list">${[...active.entries()]
-              .map(([id, r]) => `<li><span class="rec-dot"></span><span><b>${esc(r.title)}</b><small>${esc(catalog.byId.get(r.chId)?.name || '')}</small></span><button class="btn small danger" data-r-stop="${esc(id)}">${_t('Leállítás')}</button></li>`)
+              .filter(([, r]) => r.chId.startsWith('r:') === radioKind)
+              .map(([id, r]) => `<li><span class="rec-dot"></span><span><b>${esc(r.title)}</b><small>${esc(catalog.byId.get(r.chId)?.name || r.chName || '')}</small></span><button class="btn small danger" data-r-stop="${esc(id)}">${_t('Leállítás')}</button></li>`)
               .join('')}</ul>`
           : ''}
       ${sch.length
           ? `<h2 class="section-title">${_t('Ütemezve')}</h2><ul class="src-list">${sch
-              .map((s) => `<li><span><b>${esc(s.title)}</b><small>${esc(catalog.byId.get(s.chId)?.name || s.chId)} · ${esc(fmtDay(s.start))} ${fmtTime(s.start)}–${fmtTime(s.stop)}</small></span><button class="btn small" data-r-cancel="${esc(s.id)}">${_t('Törlés')}</button></li>`)
+              .map((s) => `<li><span><b>${esc(s.title)}</b><small>${esc(schedName(s))} · ${esc(fmtDay(s.start))} ${fmtTime(s.start)}–${fmtTime(s.stop)}</small></span><button class="btn small" data-r-cancel="${esc(s.id)}">${_t('Törlés')}</button></li>`)
               .join('')}</ul>`
           : ''}
       ${done.length
@@ -460,7 +533,9 @@ export async function renderRecordingsPage(view) {
                 </article>`;
               })
               .join('')}</div>`
-          : emptyState(_t('Még nincs felvétel'), _t('Lejátszás közben a ● gombbal veheted fel az adást, vagy a műsorújságban ütemezhetsz felvételt.'), `<a class="btn primary" href="#/guide">${_t('Műsorújság')}</a>`)}
+          : radioKind
+            ? emptyState(_t('Még nincs rádiófelvétel'), _t('Rádiózás közben a mini-lejátszó vagy a Most szól nézet ● gombjával veheted fel az adást, vagy a Rádió → Műsorújság fülön ütemezhetsz felvételt.'), `<a class="btn primary" href="#/radio?tab=guide">${_t('Műsorújság@@rádió')}</a>`)
+            : emptyState(_t('Még nincs felvétel'), _t('Lejátszás közben a ● gombbal veheted fel az adást, vagy a műsorújságban ütemezhetsz felvételt.'), `<a class="btn primary" href="#/guide">${_t('Műsorújság')}</a>`)}
     </div>`;
     view._files = files;
   };
@@ -521,12 +596,12 @@ export async function renderRecordings(box) {
         <select data-set-num="recPost">${[0, 2, 5, 10, 15, 20, 30].map((m) => `<option value="${m}" ${recPost() === m ? 'selected' : ''}>${m ? m + ` ${_t('perc')}` : _t('nincs')}</option>`).join('')}</select></label>
       ${active.size
           ? `<h3>${_t('Most rögzít')}</h3><ul class="src-list">${[...active.entries()]
-              .map(([id, r]) => `<li><span class="rec-dot"></span><span><b>${esc(r.title)}</b><small>${esc(catalog.byId.get(r.chId)?.name || '')}</small></span><button class="btn small danger" data-r-stop="${esc(id)}">${_t('Leállítás')}</button></li>`)
+              .map(([id, r]) => `<li><span class="rec-dot"></span><span><b>${esc(r.title)}</b><small>${esc(catalog.byId.get(r.chId)?.name || r.chName || '')}</small></span><button class="btn small danger" data-r-stop="${esc(id)}">${_t('Leállítás')}</button></li>`)
               .join('')}</ul>`
           : ''}
       ${sch.length
           ? `<h3>${_t('Ütemezve')}</h3><ul class="src-list">${sch
-              .map((s) => `<li><span><b>${esc(s.title)}</b><small>${esc(catalog.byId.get(s.chId)?.name || s.chId)} · ${esc(fmtDay(s.start))} ${fmtTime(s.start)}–${fmtTime(s.stop)}</small></span><button class="btn small" data-r-cancel="${esc(s.id)}">${_t('Törlés')}</button></li>`)
+              .map((s) => `<li><span><b>${esc(s.title)}</b><small>${esc(schedName(s))} · ${esc(fmtDay(s.start))} ${fmtTime(s.start)}–${fmtTime(s.stop)}</small></span><button class="btn small" data-r-cancel="${esc(s.id)}">${_t('Törlés')}</button></li>`)
               .join('')}</ul>`
           : ''}
       <h3>${_t('Legutóbbi felvételek')}</h3>

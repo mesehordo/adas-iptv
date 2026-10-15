@@ -1,0 +1,334 @@
+// Rádió – a lejátszó felülete: alul a mini-lejátszó (logó, adó, most szól, kis spektrum, előző / szünet /
+// következő, kedvenc, hangerő, kinagyítás), kinagyítva a „Most szól” nézet (borító, vizualizáció, hangzás,
+// előzmények, keresés a YouTube-on / Spotify-on, elalvás-időzítő). A videó indulásakor a rádió elhallgat,
+// a rádió indulásakor a videólejátszó bezárul.
+import { $, esc, hashHue, initials, html, fmtTime, toast, bus } from './util.js';
+import { ICON } from './components.js';
+import { player } from './player.js';
+import { multiOpen, closeMultiview } from './multiview.js';
+import { countryName, countryFlag } from './catalog.js';
+import { _t } from './i18n.js';
+import { store } from './store.js';
+import { genreName, isRadioFav, toggleRadioFav } from './radio.js';
+import { radioPlayer, fx, setFx, EQ_PRESETS, VIS_MODES, audioFxAvailable, drawVisualizer } from './radioplayer.js';
+import { epg } from './epg.js';
+import { canRecord, recordingOf, toggleRadioRecording } from './recorder.js';
+import { openRadioProgram } from './radiopage.js';
+
+const P = {
+  pause: '<svg viewBox="0 0 24 24"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg>',
+  prev: '<svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>',
+  next: '<svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>',
+  expand: '<svg viewBox="0 0 24 24"><path d="M7.4 15.4 12 10.8l4.6 4.6L18 14l-6-6-6 6z"/></svg>',
+  vol: '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3Zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4Z"/></svg>',
+  heart: '★',
+};
+
+// rádiózás közben a videó bezárul (és viszont: a videó indulásakor a rádió elhallgat – radioplayer.js)
+bus.on('radio-start', () => {
+  if (multiOpen()) closeMultiview();
+  if (player.active) player.close();
+});
+// gyerekprofilban nincs rádió (a menüpont sem látszik)
+bus.on('profile', () => store.profile?.kids && radioPlayer.active && (closeFull(), radioPlayer.stop()));
+
+// ---------------------------------------------------------------------------
+// Mini-lejátszó
+// ---------------------------------------------------------------------------
+let bar = null;
+let full = null;
+
+const logoBox = (st, cls = 'rb-logo') =>
+  `<span class="${cls}" style="--h:${hashHue(st.name)}">${st.logo ? `<img class="rlogo" src="${esc(st.logo)}" alt="" referrerpolicy="no-referrer" />` : ''}<span class="initials">${esc(initials(st.name))}</span></span>`;
+
+function stateText() {
+  const r = radioPlayer;
+  if (r.state === 'loading') return _t('Csatlakozás…');
+  if (r.state === 'error') return r.error;
+  if (r.state === 'paused') return _t('Szünetel');
+  return r.now.text || epg.now(r.station.id)?.cur?.title || [countryName(r.station.country), r.station.genres[0] ? genreName(r.station.genres[0]) : ''].filter(Boolean).join(' · ');
+}
+
+function ensureBar() {
+  if (bar) return bar;
+  bar = html(`<div id="radio-bar" role="region" aria-label="${_t('Rádió')}">
+    <button class="rb-main" data-rb="expand" title="${_t('Most szól – kinagyítás')}"><span class="rb-logo-slot"></span>
+      <span class="rb-text"><b class="rb-name"></b><small class="rb-now"></small></span></button>
+    <canvas class="rb-vis" aria-hidden="true"></canvas>
+    <span class="rb-btns">
+      <button class="round small" data-rb="prev" title="${_t('Előző adó (CH−)')}">${P.prev}</button>
+      <button class="round white" data-rb="toggle" title="${_t('Lejátszás / szünet (szóköz)')}"></button>
+      <button class="round small" data-rb="next" title="${_t('Következő adó (CH+)')}">${P.next}</button>
+      <button class="round small rb-fav" data-rb="fav"></button>
+      ${canRecord ? `<button class="round small rb-rec" data-rb="rec"></button>` : ''}
+    </span>
+    <label class="rb-vol" title="${_t('Hangerő')}">${P.vol}<input type="range" min="0" max="1" step="0.05" aria-label="${_t('Hangerő')}" /></label>
+    <button class="round small" data-rb="expand" title="${_t('Most szól – kinagyítás')}">${P.expand}</button>
+    <button class="round small" data-rb="close" title="${_t('Rádió kikapcsolása')}">${ICON.close}</button>
+  </div>`);
+  document.body.append(bar);
+  bar.addEventListener('click', (e) => {
+    const a = e.target.closest('[data-rb]')?.dataset.rb;
+    if (a) cmd(a);
+  });
+  bar.querySelector('input').addEventListener('input', (e) => radioPlayer.setVolume(Number(e.target.value)));
+  // (hangfeldolgozás nélkül – tévén – nincs mit mutatnia)
+  if (audioFxAvailable) drawVisualizer(bar.querySelector('.rb-vis'), () => 'spectrum', { mini: true });
+  else bar.querySelector('.rb-vis').remove();
+  return bar;
+}
+
+function cmd(a) {
+  const r = radioPlayer;
+  if (a === 'toggle') r.toggle();
+  else if (a === 'prev') r.step(-1);
+  else if (a === 'next') r.step(1);
+  else if (a === 'close') {
+    closeFull();
+    r.stop();
+  } else if (a === 'expand') openFull();
+  else if (a === 'rec' && r.station) toggleRadioRecording(r.station).then(() => radioPlayer.emit());
+  else if (a === 'fav' && r.station) {
+    const on = toggleRadioFav(r.station);
+    toast(on ? _t('{name} hozzáadva a kedvencekhez', { name: r.station.name }) : _t('{name} eltávolítva a kedvencek közül', { name: r.station.name }));
+  }
+}
+
+let lastId = '';
+function updateBar() {
+  const r = radioPlayer;
+  document.body.classList.toggle('radio-on', r.active);
+  if (!r.active) {
+    bar?.remove();
+    bar = null;
+    lastId = '';
+    return;
+  }
+  const b = ensureBar();
+  const st = r.station;
+  if (lastId !== st.id) {
+    lastId = st.id;
+    b.querySelector('.rb-logo-slot').innerHTML = logoBox(st);
+    b.querySelector('.rb-name').textContent = st.name;
+  }
+  b.querySelector('.rb-now').textContent = stateText();
+  b.classList.toggle('is-error', r.state === 'error');
+  b.classList.toggle('is-loading', r.state === 'loading');
+  const t = b.querySelector('[data-rb="toggle"]');
+  t.innerHTML = r.playing ? P.pause : ICON.play;
+  t.setAttribute('aria-label', r.playing ? _t('Szünet') : _t('Lejátszás'));
+  const fav = isRadioFav(st.id);
+  const f = b.querySelector('.rb-fav');
+  f.innerHTML = fav ? ICON.check : ICON.plus;
+  f.title = fav ? _t('Eltávolítás a kedvencekből') : _t('Kedvencekhez');
+  b.querySelector('input').value = String(fx().volume);
+  recBtn(b.querySelector('.rb-rec'), st);
+  const multi = r.list.length > 1;
+  b.querySelectorAll('[data-rb="prev"], [data-rb="next"]').forEach((x) => (x.hidden = !multi));
+  if (full) updateFull();
+}
+/** A ● gomb állapota (felvétel közben piros, „Felvétel leállítása”). */
+function recBtn(b, st) {
+  if (!b) return;
+  const on = !!recordingOf(st.id);
+  b.classList.toggle('on', on);
+  b.innerHTML = '<span class="rec-ico">●</span>';
+  b.title = on ? _t('Felvétel leállítása') : _t('Felvétel (a Rádió → Felvételek alatt találod)');
+}
+bus.on('radio-player', updateBar);
+bus.on('rec', () => radioPlayer.active && updateBar());
+bus.on('epg', () => radioPlayer.active && updateBar());
+bus.on('radio-favs', () => radioPlayer.active && updateBar());
+bus.on('radio-fx', () => {
+  if (bar) bar.querySelector('input').value = String(fx().volume);
+  if (full) drawFxChips();
+});
+// (betöltetlen logó helyett a monogram marad)
+document.addEventListener('error', (e) => e.target.classList?.contains('rlogo') && e.target.remove(), true);
+
+// ---------------------------------------------------------------------------
+// „Most szól” nézet
+// ---------------------------------------------------------------------------
+const SLEEP = [0, 15, 30, 60, 90];
+const XFADE = [0, 2, 4];
+
+function openFull() {
+  if (!radioPlayer.active || full) return;
+  full = html(`<section id="radio-full" role="dialog" aria-label="${_t('Most szól')}">
+    <div class="rf-bg"></div>
+    <div class="rf-head">
+      <span class="muted">${_t('Most szól')}</span><span class="grow"></span>
+      <button class="round small" data-rf="close" title="${_t('Vissza (Esc)')}">${ICON.chevron}</button>
+    </div>
+    <div class="rf-main">
+      <div class="rf-art"><div class="rf-cover"></div></div>
+      <div class="rf-info">
+        <div class="rf-station"></div>
+        <h1 class="rf-title"></h1>
+        <div class="rf-artist"></div>
+        <div class="rf-state muted"></div>
+        <div class="rf-ctrls">
+          <button class="round" data-rf="prev" title="${_t('Előző adó (CH−)')}">${P.prev}</button>
+          <button class="round white big" data-rf="toggle"></button>
+          <button class="round" data-rf="next" title="${_t('Következő adó (CH+)')}">${P.next}</button>
+          <button class="round" data-rf="fav"></button>
+          ${canRecord ? `<button class="round rb-rec" data-rf="rec"></button>` : ''}
+          <label class="rb-vol">${P.vol}<input type="range" min="0" max="1" step="0.05" aria-label="${_t('Hangerő')}" /></label>
+        </div>
+        <div class="rf-prog"></div>
+        <div class="rf-links"></div>
+      </div>
+    </div>
+    <canvas class="rf-vis" aria-hidden="true"></canvas>
+    <div class="rf-panels">
+      <div class="rf-panel rf-fx"></div>
+      <div class="rf-panel rf-hist"><h3>${_t('Előtte szólt')}</h3><div class="rf-hist-list"></div></div>
+    </div>
+  </section>`);
+  document.body.append(full);
+  document.body.classList.add('radio-full');
+  full.addEventListener('click', onFullClick);
+  full.querySelector('input').addEventListener('input', (e) => radioPlayer.setVolume(Number(e.target.value)));
+  drawVisualizer(full.querySelector('.rf-vis'), () => fx().vis);
+  lastCover = '';
+  drawFxChips();
+  updateFull();
+  full.querySelector('[data-rf="toggle"]').focus({ preventScroll: true });
+}
+
+function closeFull() {
+  if (!full) return false;
+  full.remove();
+  full = null;
+  document.body.classList.remove('radio-full');
+  bar?.querySelector('[data-rb="expand"]')?.focus({ preventScroll: true });
+  return true;
+}
+document.addEventListener('adas-radio-expand', openFull);
+
+const chip = (attr, val, label, on, title = '') => `<button class="chip ${on ? 'on' : ''}" ${attr}="${esc(val)}" aria-pressed="${on}" ${title ? `title="${esc(title)}"` : ''}>${esc(label)}</button>`;
+
+function drawFxChips() {
+  const box = full?.querySelector('.rf-fx');
+  if (!box) return;
+  const f = fx();
+  const sleepLeft = radioPlayer.sleepAt ? Math.max(1, Math.round((radioPlayer.sleepAt - Date.now()) / 60e3)) : 0;
+  box.innerHTML = audioFxAvailable
+    ? `<h3>${_t('Vizualizáció')}</h3><div class="chips">${VIS_MODES.map(([id, n]) => chip('data-vis', id, n, f.vis === id)).join('')}</div>
+      <h3>${_t('Hangzás')}</h3>
+      <div class="chips">
+        ${chip('data-tog', 'level', _t('Hangerő-kiegyenlítés'), f.level, _t('Az adók eltérő hangerejét kiegyenlíti, a halk részeket kiemeli'))}
+        ${chip('data-tog', 'widen', _t('Térhatás'), f.widen, _t('Szélesebb sztereó kép'))}
+        ${chip('data-tog', 'retro', _t('Retro rádió'), f.retro, _t('Régi középhullámú készülék hangja, halk sercegéssel'))}
+        ${chip('data-xfade', '', f.xfade ? _t('Átúsztatás: {s} mp', { s: f.xfade }) : _t('Átúsztatás: ki'), f.xfade > 0, _t('Adóváltáskor az új adó fokozatosan erősödik fel'))}
+      </div>
+      <h3>${_t('Hangszínszabályzó')}</h3><div class="chips">${EQ_PRESETS.map(([id, n]) => chip('data-eq', id, n, f.eq === id)).join('')}</div>`
+    : `<h3>${_t('Hangzás')}</h3><p class="muted small">${_t('Ezen az eszközön a hangeffektek és a vizualizáció nem érhetők el (a tévé böngészőmotorja nem fér hozzá az adás hangjához).')}</p>`;
+  box.insertAdjacentHTML('beforeend', `<h3>${_t('Elalvás-időzítő')}</h3><div class="chips">${SLEEP.map((m) => chip('data-sleep', String(m), m ? _t('{m} perc', { m }) : _t('Ki'), m ? false : !sleepLeft)).join('')}${sleepLeft ? `<span class="muted small rf-sleep-left">${_t('Még {m} perc', { m: sleepLeft })}</span>` : ''}</div>`);
+}
+
+function onFullClick(e) {
+  const t = e.target.closest('button, a');
+  if (!t) return;
+  const d = t.dataset;
+  if (d.rf === 'close') return void closeFull();
+  if (d.rfProg && radioPlayer.station) {
+    const p = epg.list(radioPlayer.station.id).find((x) => x.start === Number(d.rfProg));
+    return void (p && openRadioProgram(radioPlayer.station, p, radioPlayer.list));
+  }
+  if (d.rf) return cmd(d.rf);
+  if (d.vis) setFx({ vis: d.vis });
+  else if (d.tog) setFx({ [d.tog]: !fx()[d.tog] });
+  else if (d.eq) setFx({ eq: d.eq });
+  else if (d.xfade !== undefined) setFx({ xfade: XFADE[(XFADE.indexOf(fx().xfade) + 1) % XFADE.length] });
+  else if (d.sleep !== undefined) {
+    radioPlayer.setSleep(Number(d.sleep));
+    if (Number(d.sleep)) toast(_t('A rádió {m} perc múlva elhalkul és kikapcsol.', { m: d.sleep }));
+    drawFxChips();
+  } else return;
+  // (a fókusz az újrarajzolt chipen maradjon)
+  const sel = Object.keys(d).map((k) => `[data-${k}="${CSS.escape(d[k])}"]`)[0];
+  if (sel) full?.querySelector(sel)?.focus({ preventScroll: true });
+}
+
+const searchLinks = (q) =>
+  q
+    ? `<a class="btn small" href="#" data-ext="https://www.youtube.com/results?search_query=${encodeURIComponent(q)}">${_t('Keresés a YouTube-on')}</a>
+       <a class="btn small" href="#" data-ext="https://open.spotify.com/search/${encodeURIComponent(q)}">${_t('Keresés a Spotify-on')}</a>`
+    : '';
+
+let lastCover = '';
+function updateFull() {
+  const r = radioPlayer;
+  if (!full) return;
+  if (!r.active) return void closeFull();
+  const st = r.station;
+  const n = r.now;
+  const isSong = !!n.artist;
+  full.querySelector('.rf-station').innerHTML = `${logoBox(st, 'rf-logo')}<span><b>${esc(st.name)}</b><small>${esc([countryFlag(st.country), countryName(st.country), st.genres.map(genreName).join(', '), st.bitrate ? `${st.bitrate} kbps` : '', st.codec].filter(Boolean).join(' · '))}</small></span>`;
+  full.querySelector('.rf-title').textContent = isSong ? n.title : n.text || st.name;
+  full.querySelector('.rf-artist').textContent = isSong ? n.artist : '';
+  full.querySelector('.rf-state').textContent = r.state === 'playing' ? (n.text ? '' : _t('Az adó nem küldi, mi szól éppen.')) : stateText();
+  const cover = n.cover || st.logo || '';
+  if (cover !== lastCover) {
+    lastCover = cover;
+    const c = full.querySelector('.rf-cover');
+    c.classList.toggle('is-logo', !n.cover);
+    c.style.setProperty('--h', String(hashHue(st.name)));
+    c.innerHTML = cover ? `<img src="${esc(cover)}" alt="" referrerpolicy="no-referrer" />` : `<span class="initials">${esc(initials(st.name))}</span>`;
+    full.querySelector('.rf-bg').style.backgroundImage = cover ? `url("${cover.replace(/["\\]/g, '')}")` : '';
+  }
+  const tg = full.querySelector('[data-rf="toggle"]');
+  tg.innerHTML = r.playing ? P.pause : ICON.play;
+  tg.title = r.playing ? _t('Szünet (szóköz)') : _t('Lejátszás (szóköz)');
+  const fav = isRadioFav(st.id);
+  const fb = full.querySelector('[data-rf="fav"]');
+  fb.innerHTML = fav ? ICON.check : ICON.plus;
+  fb.title = fav ? _t('Eltávolítás a kedvencekből') : _t('Kedvencekhez');
+  full.querySelectorAll('[data-rf="prev"], [data-rf="next"]').forEach((x) => (x.hidden = r.list.length < 2));
+  recBtn(full.querySelector('[data-rf="rec"]'), st);
+  // műsorújság: a most futó és a következő műsor (kattintva az adatlap: leírás, felvétel ütemezése)
+  const ep = epg.now(st.id);
+  full.querySelector('.rf-prog').innerHTML = ep
+    ? [ep.cur && [_t('Most'), ep.cur], ep.next && [_t('Utána'), ep.next]]
+        .filter(Boolean)
+        .map(([l, p]) => `<button class="rf-p" data-rf-prog="${p.start}"><small>${esc(l)} · ${fmtTime(p.start)}–${fmtTime(p.stop)}</small><b>${esc(p.title)}</b>${p === ep.cur ? `<i class="rg-bar" style="width:${(ep.progress * 100).toFixed(1)}%"></i>` : ''}</button>`)
+        .join('')
+    : '';
+  full.querySelector('input').value = String(fx().volume);
+  full.querySelector('.rf-links').innerHTML = searchLinks(isSong ? `${n.artist} ${n.title}` : '') + (st.homepage && /^https?:\/\//.test(st.homepage) ? `<a class="btn small" href="#" data-ext="${esc(st.homepage)}">${_t('Az adó honlapja')}</a>` : '');
+  // (az éppen szóló szám nem „előtte szólt”)
+  const hist = r.history.filter((h, i) => i > 0 || h.text !== n.text);
+  full.querySelector('.rf-hist-list').innerHTML = hist.length
+    ? hist
+        .map((h) => `<div class="rf-h">${h.cover ? `<img src="${esc(h.cover)}" alt="" />` : '<span class="rf-h-ph">♪</span>'}<span><b>${esc(h.title)}</b><small>${esc(h.artist)} · ${fmtTime(h.t)}</small></span>
+          <a href="#" class="round small" data-ext="https://www.youtube.com/results?search_query=${encodeURIComponent(`${h.artist} ${h.title}`)}" title="${_t('Keresés a YouTube-on')}">${ICON.external}</a></div>`)
+        .join('')
+    : `<p class="muted small">${_t('Itt jelennek meg a rádióban elhangzott számok (ha az adó küldi a címüket).')}</p>`;
+  full.classList.toggle('is-playing', r.state === 'playing');
+}
+// az elalvás-időzítő hátralévő ideje percenként
+setInterval(() => full && radioPlayer.sleepAt && drawFxChips(), 30e3);
+
+// ---------------------------------------------------------------------------
+// Billentyűk (az app.js hívja, a videólejátszó után): szóköz, CH+/−, médiagombok, Esc
+// ---------------------------------------------------------------------------
+export function radioKey(e) {
+  if (!radioPlayer.active || player.active || multiOpen()) return false;
+  const k = e.key;
+  const typing = e.target.matches?.('input:not([type=checkbox]):not([type=range]), textarea, select');
+  if (full && (k === 'Escape' || ((k === 'Backspace' || k === 'BrowserBack') && !typing))) return closeFull();
+  if (['MediaPlayPause', 'MediaPlay', 'MediaPause'].includes(k)) {
+    if (k === 'MediaPlay') radioPlayer.resume();
+    else if (k === 'MediaPause') radioPlayer.pause();
+    else radioPlayer.toggle();
+    return true;
+  }
+  if (k === 'MediaStop') return (radioPlayer.stop(), true);
+  if (k === 'ChannelUp' || k === 'MediaTrackNext') return (radioPlayer.step(1), true);
+  if (k === 'ChannelDown' || k === 'MediaTrackPrevious') return (radioPlayer.step(-1), true);
+  if (k === ' ' && !typing && !e.target.closest?.('button, a, .rcard, .card')) return (radioPlayer.toggle(), true);
+  return false;
+}
+export const radioFullOpen = () => !!full;
+export { closeFull as closeRadioFull };

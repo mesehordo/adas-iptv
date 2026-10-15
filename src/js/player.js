@@ -430,6 +430,7 @@ export const player = {
     const ae = document.activeElement;
     this.returnFocus = ae && ae !== document.body && !root.contains(ae) ? { el: ae, id: ae.closest?.('[data-id]')?.dataset.id || '', vid: ae.closest?.('[data-vid]')?.dataset.vid || '' } : null;
     this.active = true;
+    bus.emit('video-open'); // (a rádió ilyenkor elhallgat – radioplayer.js)
     root.hidden = false;
     document.body.classList.add('playing');
     video.volume = store.settings.volume;
