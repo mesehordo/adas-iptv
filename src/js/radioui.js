@@ -206,7 +206,8 @@ function closeFull() {
 }
 document.addEventListener('adas-radio-expand', openFull);
 
-const chip = (attr, val, label, on, title = '') => `<button class="chip ${on ? 'on' : ''}" ${attr}="${esc(val)}" aria-pressed="${on}" ${title ? `title="${esc(title)}"` : ''}>${esc(label)}</button>`;
+// (a téma fülgombjai: .tabs / .tab.active – minden felületstílusban illeszkednek)
+const chip = (attr, val, label, on, title = '') => `<button class="tab ${on ? 'active' : ''}" ${attr}="${esc(val)}" aria-pressed="${on}" ${title ? `title="${esc(title)}"` : ''}>${esc(label)}</button>`;
 
 function drawFxChips() {
   const box = full?.querySelector('.rf-fx');
@@ -214,17 +215,17 @@ function drawFxChips() {
   const f = fx();
   const sleepLeft = radioPlayer.sleepAt ? Math.max(1, Math.round((radioPlayer.sleepAt - Date.now()) / 60e3)) : 0;
   box.innerHTML = audioFxAvailable
-    ? `<h3>${_t('Vizualizáció')}</h3><div class="chips">${VIS_MODES.map(([id, n]) => chip('data-vis', id, n, f.vis === id)).join('')}</div>
+    ? `<h3>${_t('Vizualizáció')}</h3><div class="tabs">${VIS_MODES.map(([id, n]) => chip('data-vis', id, n, f.vis === id)).join('')}</div>
       <h3>${_t('Hangzás')}</h3>
-      <div class="chips">
+      <div class="tabs">
         ${chip('data-tog', 'level', _t('Hangerő-kiegyenlítés'), f.level, _t('Az adók eltérő hangerejét kiegyenlíti, a halk részeket kiemeli'))}
         ${chip('data-tog', 'widen', _t('Térhatás'), f.widen, _t('Szélesebb sztereó kép'))}
         ${chip('data-tog', 'retro', _t('Retro rádió'), f.retro, _t('Régi középhullámú készülék hangja, halk sercegéssel'))}
         ${chip('data-xfade', '', f.xfade ? _t('Átúsztatás: {s} mp', { s: f.xfade }) : _t('Átúsztatás: ki'), f.xfade > 0, _t('Adóváltáskor az új adó fokozatosan erősödik fel'))}
       </div>
-      <h3>${_t('Hangszínszabályzó')}</h3><div class="chips">${EQ_PRESETS.map(([id, n]) => chip('data-eq', id, n, f.eq === id)).join('')}</div>`
+      <h3>${_t('Hangszínszabályzó')}</h3><div class="tabs">${EQ_PRESETS.map(([id, n]) => chip('data-eq', id, n, f.eq === id)).join('')}</div>`
     : `<h3>${_t('Hangzás')}</h3><p class="muted small">${_t('Ezen az eszközön a hangeffektek és a vizualizáció nem érhetők el (a tévé böngészőmotorja nem fér hozzá az adás hangjához).')}</p>`;
-  box.insertAdjacentHTML('beforeend', `<h3>${_t('Elalvás-időzítő')}</h3><div class="chips">${SLEEP.map((m) => chip('data-sleep', String(m), m ? _t('{m} perc', { m }) : _t('Ki'), m ? false : !sleepLeft)).join('')}${sleepLeft ? `<span class="muted small rf-sleep-left">${_t('Még {m} perc', { m: sleepLeft })}</span>` : ''}</div>`);
+  box.insertAdjacentHTML('beforeend', `<h3>${_t('Elalvás-időzítő')}</h3><div class="tabs">${SLEEP.map((m) => chip('data-sleep', String(m), m ? _t('{m} perc', { m }) : _t('Ki'), m ? false : !sleepLeft)).join('')}${sleepLeft ? `<span class="muted small rf-sleep-left">${_t('Még {m} perc', { m: sleepLeft })}</span>` : ''}</div>`);
 }
 
 function onFullClick(e) {
@@ -292,7 +293,7 @@ function updateFull() {
   full.querySelector('.rf-prog').innerHTML = ep
     ? [ep.cur && [_t('Most'), ep.cur], ep.next && [_t('Utána'), ep.next]]
         .filter(Boolean)
-        .map(([l, p]) => `<button class="rf-p" data-rf-prog="${p.start}"><small>${esc(l)} · ${fmtTime(p.start)}–${fmtTime(p.stop)}</small><b>${esc(p.title)}</b>${p === ep.cur ? `<i class="rg-bar" style="width:${(ep.progress * 100).toFixed(1)}%"></i>` : ''}</button>`)
+        .map(([l, p]) => `<button class="btn rf-p" data-rf-prog="${p.start}"><small>${esc(l)} · ${fmtTime(p.start)}–${fmtTime(p.stop)}</small><b>${esc(p.title)}</b>${p === ep.cur ? `<i class="rg-bar" style="width:${(ep.progress * 100).toFixed(1)}%"></i>` : ''}</button>`)
         .join('')
     : '';
   full.querySelector('input').value = String(fx().volume);

@@ -247,7 +247,7 @@ select { cursor: pointer; }
 .card { position: relative; flex: none; width: var(--card-w); border-radius: var(--radius); transition: transform 0.28s cubic-bezier(0.3, 0, 0.2, 1) 0s, box-shadow 0.28s; cursor: pointer; scroll-margin: 90px var(--gutter) 60px; }
 .thumb { position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius); overflow: hidden; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 30% 20%, hsl(var(--h) 45% 32%), hsl(var(--h) 40% 13%)); }
 .thumb .logo { max-width: 62%; max-height: 62%; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45)); }
-.initials { font-weight: 900; font-size: calc(var(--card-w) * 0.16); color: rgba(255, 255, 255, 0.9); letter-spacing: 0.02em; }
+.initials { font-weight: 900; font-size: calc(var(--card-w) * 0.16); color: var(--thumb-ink, rgba(255, 255, 255, 0.9)); letter-spacing: 0.02em; }
 .thumb .q { position: absolute; top: 6px; right: 6px; font-size: 10px; font-weight: 800; background: rgba(0, 0, 0, 0.6); padding: 1px 5px; border-radius: 3px; border: 1px solid rgba(255, 255, 255, 0.35); }
 .thumb .st { position: absolute; top: 8px; left: 8px; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5); }
 .thumb .st-unknown { opacity: 0; }
@@ -1621,63 +1621,37 @@ body.rc-nav .tile:focus, body.rc-nav .see-all:focus { transform: scale(1.06); z-
 .set-body .src-list li { background: var(--bg-3); }
 
 /* ------------------------------------------------------------------ Rádió */
-:root { --rcard-w: calc((100vw - 2 * var(--gutter)) / 8.2); }
-.rcard { position: relative; flex: none; width: var(--rcard-w); cursor: pointer; border-radius: var(--radius); scroll-margin: 90px var(--gutter) 60px; transition: transform 0.22s cubic-bezier(0.3, 0, 0.2, 1); }
-.rcard:focus-visible { outline: none; }
-.rthumb { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 30% 20%, hsl(var(--h) 45% 34%), hsl(var(--h) 40% 13%)); }
-.rthumb .rlogo { position: absolute; inset: 14%; width: 72%; height: 72%; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45)); z-index: 1; }
-.rthumb .rlogo + .initials { visibility: hidden; }
-.rthumb .initials { font-size: calc(var(--rcard-w) * 0.24); }
-.rthumb .st { position: absolute; top: 8px; left: 8px; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5); z-index: 2; }
-.rthumb .st-unknown { opacity: 0; }
-.rthumb .fav-mark { position: absolute; bottom: 6px; right: 8px; color: #ffd54a; font-size: 14px; text-shadow: 0 1px 3px #000; z-index: 2; }
-.rthumb .round { position: absolute; z-index: 3; opacity: 0; transition: opacity 0.15s; }
-.rthumb .round svg { width: 60%; height: 60%; fill: currentColor; }
-.rthumb .rplay { left: 50%; top: 50%; transform: translate(-50%, -50%); width: 44px; height: 44px; }
-.rthumb .rfav { right: 6px; top: 6px; width: 28px; height: 28px; font-size: 14px; }
-.rcard:hover .rthumb .round, .rcard:focus-visible .rthumb .round { opacity: 1; }
-.rcard:hover .rthumb::after, .rcard:focus-visible .rthumb::after { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.35); z-index: 2; }
-.rcard:hover, .rcard:focus-visible { transform: scale(1.08); z-index: 5; }
-.rcard:focus-visible .rthumb { outline: 3px solid #fff; outline-offset: -3px; }
-.rcard .meta { padding: 6px 2px 0; }
-.rcard .name { font-size: 0.86rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rcard .sub { font-size: 0.74rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
-.rcard.is-off .rthumb { background: radial-gradient(circle at 30% 20%, hsl(var(--h) 6% 32%), hsl(var(--h) 6% 16%)); }
-.rcard.is-off .rlogo, .rcard.is-off .initials { filter: grayscale(1) brightness(0.75); opacity: 0.7; }
-.rcard .eq-bars { display: none; position: absolute; left: 8px; bottom: 8px; z-index: 2; gap: 2px; align-items: flex-end; height: 14px; }
+/* Az adókártya a tévés .card / .thumb / .pop elemeit használja (a felületstílusok így ugyanúgy alakítják);
+   itt csak a rádiós kiegészítések: logó, „most szól” jelzés, hangoszlopok. A lejátszó a téma színeivel. */
+.rcard .thumb .rlogo { max-width: 62%; max-height: 62%; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45)); }
+.rcard .thumb .rlogo + .initials, .radio-info .info-logo .rlogo + .initials, .rb-logo .rlogo + .initials, .rf-logo .rlogo + .initials, .radio-guide .g-logo .rlogo + .initials { display: none; }
+.rcard.is-off .thumb .rlogo { filter: grayscale(1) brightness(0.75); opacity: 0.75; }
+.rcard.on-air .thumb { box-shadow: inset 0 0 0 3px var(--accent); }
+.rcard .eq-bars { display: none; position: absolute; left: 8px; bottom: 12px; z-index: 2; gap: 2px; align-items: flex-end; height: 14px; }
 .rcard.on-air .eq-bars { display: flex; }
-.rcard.on-air .rthumb { box-shadow: inset 0 0 0 3px var(--accent); }
 .eq-bars i { width: 3px; background: var(--accent); border-radius: 1px; animation: rEq 0.9s ease-in-out infinite; }
 .eq-bars i:nth-child(2) { animation-delay: -0.3s; }
 .eq-bars i:nth-child(3) { animation-delay: -0.6s; }
 .rcard.is-paused .eq-bars i { animation: none; height: 4px; }
 @keyframes rEq { 0%, 100% { height: 4px; } 50% { height: 14px; } }
-.radio-row .row-arrow { height: calc(var(--rcard-w) + 40px); }
-.rgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(var(--rcard-w), 30vw), 1fr)); gap: 22px 12px; }
-.rgrid .rcard { width: auto; }
 .rmore { text-align: center; margin: 22px 0; }
-.rtile { flex: none; width: calc(var(--rcard-w) * 1.15); aspect-ratio: 16 / 9; border-radius: 10px; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; padding: 12px; color: #fff; text-decoration: none; background: linear-gradient(135deg, hsl(var(--h) 55% 38%), hsl(var(--h) 45% 16%)); transition: transform 0.2s; scroll-margin: 90px var(--gutter) 60px; }
-.rtile .rt-ico { font-size: 1.9rem; line-height: 1; margin-bottom: auto; }
-.rtile b { font-size: 0.95rem; }
-.rtile small { color: rgba(255, 255, 255, 0.75); font-size: 0.74rem; }
-.rtile:hover, .rtile:focus-visible { transform: scale(1.06); outline: 3px solid #fff; outline-offset: -3px; }
-.tile-row .row-arrow { height: calc(var(--rcard-w) * 0.65 + 10px); }
 .radio-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0 4px; }
 .radio-filters .input { flex: 1 1 260px; max-width: 420px; }
 .radio-favs .rbox { margin-bottom: 12px; }
 .radio-loading { margin: 0 var(--gutter); }
+.radio-info .info-logo .rlogo { max-width: 80%; max-height: 80%; object-fit: contain; }
 body.radio-on #view { padding-bottom: 90px; }
 
-/* mini-lejátszó */
-#radio-bar { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 900; display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 8px; border-radius: 14px; background: rgba(24, 24, 24, 0.92); backdrop-filter: blur(14px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); border: 1px solid var(--line); }
+/* mini-lejátszó – a téma felületszínével, keretével, lekerekítésével */
+#radio-bar { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 900; display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 8px; border-radius: var(--radius); background: var(--bg-2); color: var(--text); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); border: 1px solid var(--line); }
+@supports (background: color-mix(in srgb, red 50%, transparent)) { #radio-bar { background: color-mix(in srgb, var(--bg-2) 94%, transparent); backdrop-filter: blur(14px); } }
 body.playing #radio-bar, body.radio-full #radio-bar, body.picking #radio-bar { display: none; }
-#radio-bar .rb-main { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto; background: none; border: 0; color: inherit; text-align: left; padding: 0; cursor: pointer; }
-.rb-logo, .rf-logo { position: relative; flex: none; width: 52px; height: 52px; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 30% 20%, hsl(var(--h) 45% 34%), hsl(var(--h) 40% 13%)); }
+#radio-bar .rb-main { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto; background: none; border: 0; color: inherit; font: inherit; text-align: left; padding: 0; cursor: pointer; }
+.rb-logo, .rf-logo { position: relative; flex: none; width: 52px; height: 52px; border-radius: var(--radius); overflow: hidden; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 30% 20%, hsl(var(--h) 45% 34%), hsl(var(--h) 40% 13%)); }
 .rb-logo .rlogo, .rf-logo .rlogo { position: absolute; inset: 8%; width: 84%; height: 84%; object-fit: contain; }
-.rb-logo .rlogo + .initials, .rf-logo .rlogo + .initials { visibility: hidden; }
 .rb-logo .initials, .rf-logo .initials { font-size: 18px; }
 .rb-text { display: flex; flex-direction: column; min-width: 0; }
-.rb-text b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rb-text b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-strong); }
 .rb-text small { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.8rem; }
 #radio-bar.is-error .rb-now { color: var(--bad); }
 #radio-bar.is-loading .rb-now { animation: rBlink 1.2s ease-in-out infinite; }
@@ -1688,21 +1662,24 @@ body.playing #radio-bar, body.radio-full #radio-bar, body.picking #radio-bar { d
 .rb-vol { display: flex; align-items: center; gap: 6px; flex: none; color: var(--muted); }
 .rb-vol svg { width: 20px; height: 20px; fill: currentColor; }
 .rb-vol input { width: 90px; accent-color: var(--accent); }
+.rb-rec .rec-ico { color: var(--bad); font-size: 15px; line-height: 1; }
+.rb-rec.on { background: var(--bad); border-color: var(--bad); }
+.rb-rec.on .rec-ico { color: #fff; animation: rBlink 1.2s ease-in-out infinite; }
 @media (max-width: 760px) {
   .rb-vol, .rb-vis, #radio-bar [data-rb="prev"], #radio-bar [data-rb="next"] { display: none; }
   .rb-logo { width: 42px; height: 42px; }
-  :root { --rcard-w: 28vw; }
 }
 
-/* „Most szól” nézet */
-#radio-full { position: fixed; inset: 0; z-index: 950; background: var(--bg); overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; padding: 18px var(--gutter) 30px; isolation: isolate; }
+/* „Most szól” nézet – a téma háttere, felületei, gombjai és fülei */
+#radio-full { position: fixed; inset: 0; z-index: 950; background: var(--bg); color: var(--text); overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; padding: 18px var(--gutter) 30px; isolation: isolate; }
 body.radio-full { overflow: hidden; }
 .rf-bg { position: fixed; inset: -40px; background-size: cover; background-position: center; filter: blur(48px) brightness(0.35) saturate(1.3); z-index: -1; opacity: 0.9; }
+[data-tone="light"] .rf-bg { filter: blur(48px) saturate(1.2); opacity: 0.3; }
 .rf-head { display: flex; align-items: center; gap: 10px; }
 .rf-head .round svg { width: 70%; height: 70%; fill: currentColor; }
 .rf-main { display: flex; gap: 4vw; align-items: center; margin: 2vh 0; flex-wrap: wrap; }
 .rf-art { position: relative; flex: none; width: min(36vh, 64vw); aspect-ratio: 1; margin: 4vh auto; }
-.rf-cover { position: absolute; inset: 0; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 30% 20%, hsl(var(--h, 0) 45% 34%), hsl(var(--h, 0) 40% 13%)); }
+.rf-cover { position: absolute; inset: 0; border-radius: var(--radius); overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45); display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 30% 20%, hsl(var(--h, 0) 45% 34%), hsl(var(--h, 0) 40% 13%)); }
 .rf-cover img { width: 100%; height: 100%; object-fit: cover; }
 .rf-cover.is-logo img { width: 70%; height: 70%; object-fit: contain; }
 .rf-cover .initials { font-size: 4rem; }
@@ -1718,35 +1695,26 @@ body.radio-full { overflow: hidden; }
 .rf-links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 .rf-prog { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .rf-prog:empty { display: none; }
-.rf-p { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.06); color: var(--text); cursor: pointer; min-width: 0; }
-.rf-p { max-width: 320px; }
-.rf-p b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; font-size: 0.9rem; }
-.rf-p small { color: var(--muted); font-size: 0.74rem; display: flex; align-items: center; gap: 5px; }
-.rf-p:hover, .rf-p:focus-visible { border-color: #fff; outline: none; }
+.rf-p { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; max-width: 320px; min-width: 0; }
+.rf-p b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.rf-p small { color: var(--muted); font-size: 0.74rem; }
 .rg-bar { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--accent); }
-.rb-rec .rec-ico { color: #e5484d; font-size: 15px; line-height: 1; }
-.rb-rec.on { background: #e5484d; border-color: #e5484d; }
-.rb-rec.on .rec-ico { color: #fff; animation: rBlink 1.2s ease-in-out infinite; }
-/* rádió műsorújság (a tévés műsorújság elemeivel) */
-.radio-guide .g-logo { position: relative; overflow: hidden; }
-.radio-guide .g-logo .rlogo { position: absolute; inset: 4%; width: 92%; height: 92%; object-fit: contain; }
-.radio-guide .g-logo .rlogo + .initials { visibility: hidden; }
-.rg-desc { white-space: pre-line; color: var(--text); }
 .rf-vis { width: 100%; height: 120px; flex: none; margin: 1vh 0 2vh; }
 .rf-panels { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; }
 @media (max-width: 900px) { .rf-panels { grid-template-columns: 1fr; } }
-.rf-panel { background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px 16px; }
+.rf-panel { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
 .rf-panel h3 { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 14px 0 8px; }
 .rf-panel h3:first-child { margin-top: 0; }
-#radio-full .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-#radio-full .chip { border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.06); color: var(--text); border-radius: 999px; padding: 6px 13px; font-size: 0.85rem; cursor: pointer; }
-#radio-full .chip:hover, #radio-full .chip:focus-visible { border-color: #fff; outline: none; }
-#radio-full .chip.on { background: #fff; border-color: #fff; color: #000; font-weight: 600; box-shadow: 0 0 0 2px var(--accent); }
-.rf-sleep-left { margin-left: 6px; }
+.rf-panel .tabs { flex-wrap: wrap; }
+.rf-sleep-left { margin-left: 6px; align-self: center; }
 .rf-hist-list { display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; }
 .rf-h { display: flex; align-items: center; gap: 10px; }
-.rf-h img, .rf-h-ph { width: 40px; height: 40px; border-radius: 6px; flex: none; object-fit: cover; background: var(--bg-3); display: flex; align-items: center; justify-content: center; }
+.rf-h img, .rf-h-ph { width: 40px; height: 40px; border-radius: var(--radius); flex: none; object-fit: cover; background: var(--bg-3); display: flex; align-items: center; justify-content: center; }
 .rf-h > span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .rf-h b, .rf-h small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rf-h small { color: var(--muted); }
 .rf-h .round svg { width: 55%; height: 55%; fill: currentColor; }
+/* rádió műsorújság (a tévés műsorújság elemeivel) */
+.radio-guide .g-logo { position: relative; overflow: hidden; }
+.radio-guide .g-logo .rlogo { position: absolute; inset: 4%; width: 92%; height: 92%; object-fit: contain; }
+.rg-desc { white-space: pre-line; color: var(--text); }

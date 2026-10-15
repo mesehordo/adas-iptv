@@ -2147,5 +2147,19 @@ export default {
  "Felvétel: {name} – a Rádió → Felvételek alatt találod": "Recording: {name} – find it under Radio → Recordings",
  "Még nincs rádiófelvétel": "No radio recordings yet",
  "Rádiózás közben a mini-lejátszó vagy a Most szól nézet ● gombjával veheted fel az adást, vagy a Rádió → Műsorújság fülön ütemezhetsz felvételt.": "While listening, record with the ● button on the mini player or in the Now playing view, or schedule a recording on the Radio → Schedule tab.",
- "Műsorújság@@rádió": "Schedule"
+ "Műsorújság@@rádió": "Schedule",
+ "mentett adó": "saved station",
+ "saját lista / csomag": "own list / pack",
+ "Most nem szól – a címei nem indultak el": "Not playing right now – its addresses did not start",
+ "Címkék": "Tags",
+ "Formátum": "Format",
+ "Adatbázis": "Directory",
+ "Népszerűség": "Popularity",
+ "Kipróbálva": "Tested",
+ "Most nem szól": "Not playing right now",
+ "Most szól ›": "Now playing ›",
+ "{play} Hallgatás": "{play} Listen",
+ "Ehhez az adóhoz nem érhető el műsorújság. A „most szól” cím (ha az adó küldi) a lejátszóban látszik.": "No schedule is available for this station. The “now playing” title (if the station sends it) appears in the player.",
+ "Adáscímek": "Stream addresses",
+ "Hallgatás ezen a címen": "Listen on this address"
 };
