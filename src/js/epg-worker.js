@@ -173,7 +173,8 @@ self.onmessage = (e) => {
       for (const p of list) {
         const last = merged[merged.length - 1];
         if (last && last[0] === p[0]) {
-          if (!last[1] && p[1]) last[1] = p[1];
+          // (érvénytelen – nem a kezdés utáni – vég hiányzónak számít: egy későbbi érvényes vég felülírja)
+          if (!(last[1] > last[0]) && p[1] > p[0]) last[1] = p[1];
           for (let j = 2; j < p.length; j++) if (!last[j] && p[j]) last[j] = p[j];
           continue;
         }

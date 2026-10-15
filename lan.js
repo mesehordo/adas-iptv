@@ -379,20 +379,29 @@ async function fetchPolicy(url, opts = {}, root = url) {
     try {
       await res.body?.cancel();
     } catch {}
-    const next = new URL(loc, cur);
-    if (!/^https?:$/.test(next.protocol)) throw policyDenied();
-    const foreign = next.origin !== first.origin;
-    if (secret && first.protocol === 'https:' && next.protocol === 'http:') throw new Error('Hitelesített kérés nem irányítható át titkosítatlan címre');
-    // (a fetch-szabvány szerint: 303 → GET (HEAD marad); 301 / 302 → csak a POST lesz GET; minden más
-    // kérés metódusa és törzse megmarad – idegen eredetre törzset viszont nem küldünk)
-    const m = String(o.method || 'GET').toUpperCase();
-    if ((res.status === 303 && m !== 'HEAD' && m !== 'GET') || ((res.status === 301 || res.status === 302) && m === 'POST')) o = { ...o, method: 'GET', body: undefined };
-    else if (res.status === 303) o = { ...o, body: undefined };
-    if (foreign && o.body != null && o.body !== '') throw new Error('A kérés törzse nem küldhető másik szerverre');
-    if (foreign) o = { ...o, headers: Object.fromEntries(Object.entries(o.headers).filter(([k]) => !SECRET_HEADER.test(k))) };
-    cur = next.href;
+    ({ url: cur, opts: o } = redirectStep(first, cur, res.status, loc, o, secret));
   }
   throw new Error('Túl sok átirányítás');
+}
+
+/**
+ * Egy átirányítási lépés szabályai (közös: a Node-os fetchPolicy és a főfolyamat Chromium-os útja is ezt
+ * használja). → { url: a következő cím, opts: a következő kérés beállításai }; tiltott lépésnél hibát dob.
+ *  - csak http(s); hitelesített HTTPS-kérés nem léphet vissza HTTP-re;
+ *  - fetch-szabvány: 303 → GET (HEAD marad), 301 / 302 → csak a POST lesz GET; más metódus és törzs marad;
+ *  - más eredetre törzs nem megy, és a hitelesítő fejlécek (API-kulcs, token, süti) kimaradnak.
+ */
+function redirectStep(first, cur, status, loc, o, secret) {
+  const next = new URL(loc, cur);
+  if (!/^https?:$/.test(next.protocol)) throw policyDenied();
+  const foreign = next.origin !== first.origin;
+  if (secret && first.protocol === 'https:' && next.protocol === 'http:') throw new Error('Hitelesített kérés nem irányítható át titkosítatlan címre');
+  const m = String(o.method || 'GET').toUpperCase();
+  if ((status === 303 && m !== 'HEAD' && m !== 'GET') || ((status === 301 || status === 302) && m === 'POST')) o = { ...o, method: 'GET', body: undefined };
+  else if (status === 303) o = { ...o, body: undefined };
+  if (foreign && o.body != null && o.body !== '') throw new Error('A kérés törzse nem küldhető másik szerverre');
+  if (foreign) o = { ...o, headers: Object.fromEntries(Object.entries(o.headers || {}).filter(([k]) => !SECRET_HEADER.test(k))) };
+  return { url: next.href, opts: o };
 }
 
 /** Egy kérés (átirányítás követése nélkül) → a válasz (IncomingMessage) */
@@ -1266,4 +1275,4 @@ function castControl(action, value) {
   return active.control(action, value);
 }
 
-module.exports = { fetchPolicy, hasSecretHeader, readBody, isPrivateHost, init, discover, castPlay, castControl, castForget, shareStart, shareStop, rcStart, rcStop, rcState, lanGet, sortedIPs, localIPv4s, proxyUrl };
+module.exports = { fetchPolicy, hasSecretHeader, redirectStep, readBody, isPrivateHost, init, discover, castPlay, castControl, castForget, shareStart, shareStop, rcStart, rcStop, rcState, lanGet, sortedIPs, localIPv4s, proxyUrl };
