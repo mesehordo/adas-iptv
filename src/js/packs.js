@@ -212,7 +212,7 @@ export async function packDocs(settings) {
     const kind = Object.keys(PACK_KINDS).find((x) => PACK_KINDS[x] === k);
     for (const p of settings?.[k.setting] || []) {
       const key = packDocKey(kind, p);
-      const v = await api.docGet?.(key); // (olvasási hiba: kivétel – lásd snapshot.attachDocs)
+      const v = await api.docGet?.(key, { strict: true }); // (olvasási hiba: kivétel – lásd snapshot.attachDocs)
       if (v) docs[key] = v;
     }
   }
