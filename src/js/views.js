@@ -266,7 +266,12 @@ export function renderBrowse(view, params) {
   };
   form.onchange = (e) => e.target.name !== 'q' && apply(false);
   form.onsubmit = (e) => (e.preventDefault(), apply(false));
-  form.q.addEventListener('input', debounce(() => apply(true), 500));
+  // (B02) ékezetes / összetett bevitel (IME-kompozíció) közben nincs újrarajzolás – a végén igen
+  let composing = false;
+  const onQ = debounce(() => !composing && apply(true), 500);
+  form.q.addEventListener('compositionstart', () => (composing = true));
+  form.q.addEventListener('compositionend', () => ((composing = false), onQ()));
+  form.q.addEventListener('input', onQ);
   if (f.q && document.activeElement === document.body) {
     requestAnimationFrame(() => {
       if (IS_TV) return; // tévén a kereső ne nyissa fel a képernyő-billentyűzetet magától

@@ -147,7 +147,22 @@ function route({ keepScroll = false } = {}) {
     searchInput.value = '';
     $('#search-box').classList.remove('open');
   }
+  // (B02) Gépelés közben (pl. a Böngészés vagy a VOD szűrőjének keresőmezőjében) a nézet újrarajzolódik:
+  // az új mező kapja vissza a fókuszt, a kurzort és a pontos szöveget (a címsorban a végéről levágott szóköz
+  // nélkül). Tévén is – ott eddig elveszett a fókusz, és minden karakter után újra ki kellett választani.
+  const ae = document.activeElement;
+  const keep = ae && view.contains(ae) && isTypingField(ae) && (ae.id || ae.name) ? { id: ae.id, name: ae.name, v: ae.value, s: ae.selectionStart, e: ae.selectionEnd } : null;
   fn(view, params);
+  if (keep) {
+    const n = keep.id ? view.querySelector('#' + CSS.escape(keep.id)) : view.querySelector(`[name="${CSS.escape(keep.name)}"]`);
+    if (n && n !== document.activeElement && isTypingField(n)) {
+      if (n.value !== keep.v) n.value = keep.v;
+      n.focus({ preventScroll: true });
+      try {
+        n.setSelectionRange(keep.s, keep.e);
+      } catch {}
+    }
+  }
   window.scrollTo(0, keepScroll || sameRoute ? y : 0);
 }
 

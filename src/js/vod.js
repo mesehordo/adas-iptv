@@ -1,7 +1,7 @@
 // Filmek és sorozatok (VOD): M3U / M3U8 listákból (akár egész GitHub-tárhelyből) betöltött
 // filmek és sorozatok felismerése, böngészése, adatlapja, lejátszása folytatással.
 import { $, $$, esc, html, norm, hashHue, toast, bus, debounce, seededShuffle, errText, fmtNum } from './util.js';
-import { api, coverSrc } from './api.js';
+import { api, coverSrc, IS_TV } from './api.js';
 import { store, VOD_BUILTIN, refreshHoursOf, DEFAULT_REFRESH_HOURS, setRefreshHours } from './store.js';
 import { parseM3U, catalog, isLiveEntry, setVodLive } from './catalog.js';
 import { ICON, openModal, confirmDialog, promptDialog, emptyState, rowTitleHtml, seeAllHtml, rowOrderEditor, progressiveTrack, refreshSelectHtml } from './components.js';
@@ -1486,9 +1486,15 @@ function renderVodPage(view, params, lib) {
       location.replace(R + '?' + p);
     };
     form.onchange = apply;
-    form.q.addEventListener('input', debounce(apply, 400));
+    // (B02) IME-kompozíció közben nincs újrarajzolás; a fókuszt és a kurzort a route() adja vissza
+    let composing = false;
+    const onQ = debounce(() => !composing && apply(), 400);
+    form.q.addEventListener('compositionstart', () => (composing = true));
+    form.q.addEventListener('compositionend', () => ((composing = false), onQ()));
+    form.q.addEventListener('input', onQ);
     form.onsubmit = (e) => (e.preventDefault(), apply());
-    if (q) requestAnimationFrame(() => {
+    // (közvetlen megnyitáskor – kereséssel érkezve – a mezőbe; tévén nem: ne nyíljon fel magától a billentyűzet)
+    if (q && document.activeElement === document.body && !IS_TV) requestAnimationFrame(() => {
       form.q.focus();
       form.q.setSelectionRange(q.length, q.length);
     });
