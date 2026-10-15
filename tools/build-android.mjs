@@ -1,4 +1,8 @@
-// Android-csomag (APK) készítése Gradle nélkül: node tools/build-android.mjs
+// Android-csomag (APK) készítése Gradle nélkül: node tools/build-android.mjs [--target=mobile|tv]
+//
+// (F07) Buildcél: --target=mobile (telefon / tablet: érintéses indító) vagy --target=tv (Android TV: tévés
+// indító, távirányítós alapmód) – közös kód, közös csomagazonosító és aláírás (a meglévő telepítések adatai
+// megmaradnak; a frissítő a telepített célnak megfelelő APK-t választja). Cél nélkül univerzális csomag.
 //
 // Kell hozzá: JDK 17 és Android SDK (platforms;android-34, build-tools;34.0.0). Alapból a
 // .android-tools mappában keresi (lásd README), vagy a JAVA_HOME / ANDROID_HOME változókban.
@@ -29,6 +33,12 @@ for (const [what, p] of [['JDK', jbin('javac')], ['android.jar', ANDROID_JAR], [
     console.error(`Hiányzik: ${what} (${p}). Lásd a README Android részét.`);
     process.exit(1);
   }
+}
+
+const TARGET = (process.argv.find((a) => a.startsWith('--target=')) || '').slice(9) || 'universal';
+if (!['mobile', 'tv', 'universal'].includes(TARGET)) {
+  console.error(`Ismeretlen buildcél: ${TARGET} (mobile | tv)`);
+  process.exit(1);
 }
 
 const env = { ...process.env, JAVA_HOME, PATH: path.join(JAVA_HOME, 'bin') + path.delimiter + process.env.PATH };
@@ -70,9 +80,20 @@ console.log('» Erőforrások (aapt2)…');
 run(exe(BT, 'aapt2'), ['compile', '--dir', r('android', 'res'), '-o', path.join(build, 'res.zip')]);
 fs.mkdirSync(path.join(build, 'gen'), { recursive: true });
 const unsigned = path.join(build, 'unsigned.apk');
+// (F07) a buildcél manifestje: mobilon csak az érintéses indító, tévén csak a tévés (és a tévés funkció kötelező);
+// a cél metaadatként a natív rétegnek – onnan a felületnek
+let manifest = fs.readFileSync(r('android', 'AndroidManifest.xml'), 'utf8');
+if (TARGET === 'mobile') manifest = manifest.replace(/\s*<category android:name="android\.intent\.category\.LEANBACK_LAUNCHER" \/>/, '');
+if (TARGET === 'tv') {
+  manifest = manifest.replace(/\s*<category android:name="android\.intent\.category\.LAUNCHER" \/>/, '');
+  manifest = manifest.replace('<uses-feature android:name="android.software.leanback" android:required="false" />', '<uses-feature android:name="android.software.leanback" android:required="true" />');
+}
+manifest = manifest.replace(/(<application\b[^>]*>)/, (m) => `${m}\n    <meta-data android:name="hu.adas.target" android:value="${TARGET}" />`);
+const manifestFile = path.join(build, 'AndroidManifest.xml');
+fs.writeFileSync(manifestFile, manifest);
 run(exe(BT, 'aapt2'), [
   'link', '-I', ANDROID_JAR,
-  '--manifest', r('android', 'AndroidManifest.xml'),
+  '--manifest', manifestFile,
   '--min-sdk-version', String(MIN_SDK), '--target-sdk-version', String(API),
   '--version-code', String(versionCode), '--version-name', pkg.version,
   '--java', path.join(build, 'gen'),
@@ -167,7 +188,7 @@ try {
   fs.chmodSync(passFile, 0o600);
 } catch {}
 const pass = fs.readFileSync(passFile, 'utf8').trim();
-const apk = path.join(out, `Adas-${pkg.version}.apk`);
+const apk = path.join(out, TARGET === 'universal' ? `Adas-${pkg.version}.apk` : `Adas-${pkg.version}-android-${TARGET}.apk`);
 run(exe(BT, 'apksigner'), ['sign', '--ks', ks, '--ks-pass', 'env:ADAS_KS_PASS', '--key-pass', 'env:ADAS_KS_PASS', '--ks-key-alias', 'adas', '--out', apk, aligned], signEnv(pass));
 run(exe(BT, 'apksigner'), ['verify', '--min-sdk-version', String(MIN_SDK), apk]);
 fs.rmSync(apk + '.idsig', { force: true });

@@ -256,6 +256,7 @@ ${go('#/settings?section=huinfo', 'Set favourite languages')}`,
 <tr><td><b>Built-in player</b></td><td>The system’s / TV’s own player. On TV this is the default for HLS, because there hls.js couldn’t reach many streams due to CORS restrictions.</td></tr>
 <tr><td><b>mpegts.js</b></td><td>MPEG-TS (<code>.ts</code>) and FLV streams.</td></tr>
 <tr><td><b>dash.js</b></td><td>DASH (<code>.mpd</code>) streams.</td></tr>
+<tr><td><b>Native player (ExoPlayer)</b></td><td>On Android: used automatically for films (MKV, MP4, AVI – AC3 / DTS audio, embedded subtitles); with the <i>Native player (ExoPlayer) – also for live TV</i> engine, live channels and HLS / DASH films use it too. Live streams start at the live point and can only be rewound as far as the provider allows. If it fails, the app retries with the web player.</td></tr>
 </table>
 <p>Settings → Playback → <b>Playback engine</b>: <i>Automatic</i> (recommended), <i>Built-in player</i> or <i>hls.js</i>. If an HLS stream doesn’t start with one, try the other. On TV the program does this by itself: if the built-in player can’t cope, it tries the same source with hls.js too.</p>`,
   },
@@ -1035,9 +1036,10 @@ https://…/sport/playlist.m3u8</pre>
 </ul>
 <h2>Background playback</h2>
 <ul>
-<li><b>Background playback (audio only)</b>: Settings → Playback → <i>Background playback</i>. When on, the stream’s audio keeps playing when you switch to another app; a notification shows it, from where you can return or stop it. When off (the default), playback stops when you leave.</li>
+<li><b>Background playback (audio only)</b>: Settings → Playback → <i>Background playback</i>. When on, the stream’s audio keeps playing when you switch to another app; a notification shows it, from where you can pause, resume, return or stop it (headset and Bluetooth buttons work too). When off (the default), playback stops when you leave.</li>
+<li><b>Mini player above other apps</b>: the player’s mini button puts the video into a small window (the system picture-in-picture mode – from Android 8, if the device supports it; if not, the button is hidden). Settings → Playback → <i>Small window when leaving</i>: while a video plays, pressing Home or switching apps moves it into the small window automatically. Closing the small window stops playback.</li>
 </ul>
-<div class="note">On Android there’s no casting, night mode audio or update check. Settings can be synced with a code with the computer and other Android devices, in both directions (${t('transfer', 'Sync between devices')}), and the phone can be used as a remote (${t('remote', 'Remote from phone')}). You get a new version by installing the new APK – the settings are kept.</div>`,
+<div class="note">Android also has casting (from a phone / tablet), night mode audio (with the native player, from Android 9) and built-in updates (${t('update', 'Updates')}). Settings can be synced with a code with the computer and other Android devices, in both directions (${t('transfer', 'Sync between devices')}), and the phone can be used as a remote (${t('remote', 'Remote from phone')}). New versions can also be downloaded and installed in the app – the settings are kept.</div>`,
   },
   {
     id: 'tv-install',
@@ -1301,7 +1303,7 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
     title: 'Casting to a TV (Chromecast, DLNA)',
     keywords: 'cast chromecast dlna upnp tv smart tv google tv play on another device',
     body: `
-<p>From the desktop version you can send the stream or film to a <b>Chromecast</b>, Google TV, or a <b>DLNA-capable</b> smart TV or media player. Click the cast icon on the player’s control bar and the program looks for devices on the local network.</p>
+<p>From the desktop version and from an <b>Android phone / tablet</b> you can send the stream or film to a <b>Chromecast</b>, Google TV, or a <b>DLNA-capable</b> smart TV or media player. Click the cast icon on the player’s control bar and the program looks for devices on the local network.</p>
 <ul>
 <li>While casting, the controls stay on the computer: pause / resume, channel switching (up/down), volume, stop. A film continues on the TV where it was here.</li>
 <li>After <b>Stop casting</b>, playback continues on the computer.</li>
@@ -1313,7 +1315,8 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 <li>The computer and the TV must be on the same Wi-Fi / router (guest networks are usually isolated).</li>
 <li>For DLNA, media sharing / a “DLNA renderer” must be switched on in the TV (LG: <i>Settings → General → Devices → Screen share / DLNA</i>).</li>
 </ul>
-<div class="note">Not every device plays every format: Chromecast handles HLS and MP4 well, but many DLNA TVs only MP4 or MPEG-TS. If the device reports an error, try another source (⚙ → Source).</div>`,
+<div class="note">Not every device plays every format: Chromecast handles HLS and MP4 well, but many DLNA TVs only MP4 or MPEG-TS. If the device reports an error, try another source (⚙ → Source).</div>
+<div class="note">On <b>Android</b>, casting needs no Google services: the phone finds the devices itself and relays the stream to them (keep Adás running while casting, with the phone on the same Wi-Fi). The TV (Android TV) build has no sender function.</div>`,
   },
   {
     id: 'night-audio',
@@ -1400,6 +1403,7 @@ ${go('#/settings?section=transfer', 'Sync between devices')}`,
 <table class="help-table">
 <tr><td><b>🎮 Controller</b></td><td>A <b>touchpad</b> in two modes (switchable above it, the phone remembers): <b>🖱 Mouse</b> – dragging moves a mouse cursor on the computer / TV screen (slow movement = precise, fast = big jumps), tap = click, <b>drag with two fingers to scroll</b> (horizontally too, in the row under the cursor), and the item under the cursor gets selected; <b>✥ Arrows</b> – dragging moves the selection (like the arrow keys), tap = OK. In both: long press = Back. While using a remote the selection frame always shows. Below it: Back, Home, Details; seeking (±10 / ±30 s – timeshift on live streams); pause; CH ▲ / ▼, Previous channel, mute, <b>volume slider</b>; Subtitles, Quality, Channel list, Full screen; arrows and channel number.</td></tr>
 <tr><td><b>📺 Channels</b></td><td>A <b>search</b> across all channels (filters as you type, shows what’s on now too), your favourites and recently watched channels – they start with a single tap.</td></tr>
+<tr><td><b>📻 Radio</b></td><td>The station and song now playing; previous / pause / next station, favourite, record, its own volume, the <i>Now playing</i> view, switching the visuals, sleep timer (15 / 30 / 60 / 90 minutes), turn off; station search (in the local and the online database), favourite and recently played stations – one tap starts them. While the radio plays, the Control tab’s pause, CH and volume buttons control the radio too. (Not in a kids profile.)</td></tr>
 <tr><td><b>☰ More</b></td><td>Jump to any page (TV, TV guide, Favourites, VOD, Recordings, Browse, Help); <b>send text</b> (types into the selected field with the phone’s keyboard, or starts a search); Stream info, sleep timer.</td></tr>
 </table>
 <div class="note">The PIN and the QR code’s key can be regenerated at any time (New PIN) – an old phone then has to scan the QR code again (or type the new PIN). With a wrong PIN the controller doesn’t work; after many wrong attempts from one device, that device is locked out for 10 minutes (other phones keep working meanwhile).</div>
@@ -1463,7 +1467,7 @@ ${go('#/recordings', 'Recordings')}`,
 <li>Installation follows how the app was installed: installed with the installer (Setup), the new installer starts; installed with MSI, the new MSI; for the <b>portable</b> version you’ll find the downloaded file in the folder that opens (start it instead of the old one); on Linux the AppImage replaces itself.</li>
 <li><b>Update source</b>: empty means the official releases. You can give your own GitHub repository (<code>owner/repo</code>) or the address of a JSON file: <code>{ "version": "1.25.0", "url": "https://…/Adas-Setup-1.25.0.exe", "notes": "…" }</code>.</li>
 </ul>
-<div class="note">The Android version is updated by installing the new <code>.apk</code> downloaded from the GitHub release page (your settings are kept).</div>
+<div class="note">On <b>Android</b> you can update here too: <b>Download and install</b> downloads the new <code>.apk</code>, verifies it (the release checksum, the package name, its version and signature – a differently signed or older package is not installed), then Android asks you to confirm the installation. The first time, you need to allow Adás to install apps (the setting opens automatically). Profiles, lists and settings are kept. On a TV the TV build, on a phone the mobile build is downloaded if the release contains them separately.</div>
 ${go('#/settings?section=update', 'Updates')}`,
   },
 

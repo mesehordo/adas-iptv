@@ -46,6 +46,7 @@ class NativePlayer implements Player.Listener {
   Tracks lastTracks = Tracks.EMPTY;
   final Handler handler = new Handler(Looper.getMainLooper());
   boolean active;
+  final NightAudio night = new NightAudio(); // (F05) éjszakai hang
   int videoW, videoH;
   float pixelRatio = 1f;
 
@@ -91,6 +92,12 @@ class NativePlayer implements Player.Listener {
     player = new ExoPlayer.Builder(act, renderers).setMediaSourceFactory(new DefaultMediaSourceFactory(data, extractors)).build();
     player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true);
     player.addListener(this);
+    // (F05) éjszakai hang: a lejátszó hangmunkamenetére (ha a felület kérte); új munkamenetnél újra
+    night.set(o.optBoolean("night", false));
+    try {
+      night.attach(player.getAudioSessionId());
+    } catch (Exception ignored) {
+    }
     // (B26) az alkalmazás hangereje / némítása már az első hallható pillanattól
     player.setVolume((float) Math.max(0, Math.min(1, o.optDouble("volume", 1))));
 
@@ -113,7 +120,9 @@ class NativePlayer implements Player.Listener {
     surface.setVisibility(View.VISIBLE);
     act.web.setBackgroundColor(Color.TRANSPARENT);
     active = true;
-    player.setMediaItem(MediaItem.fromUri(Uri.parse(url)), startMs);
+    // (F01) élő adás (HLS / DASH): az élő pontról indul – a 0-s kezdőpont a visszatekerhető ablak elejére vinne
+    if (startMs > 0) player.setMediaItem(MediaItem.fromUri(Uri.parse(url)), startMs);
+    else player.setMediaItem(MediaItem.fromUri(Uri.parse(url)));
     player.prepare();
     player.setPlayWhenReady(true);
     handler.removeCallbacks(tick);
@@ -164,9 +173,22 @@ class NativePlayer implements Player.Listener {
     release();
   }
 
+  /** (F05) Éjszakai hang be / ki. → sikerült-e */
+  boolean setNight(boolean on) {
+    boolean ok = night.set(on);
+    if (player != null) night.attach(player.getAudioSessionId());
+    return ok;
+  }
+
+  @Override
+  public void onAudioSessionIdChanged(int audioSessionId) {
+    night.attach(audioSessionId);
+  }
+
   void release() {
     handler.removeCallbacks(tick);
     active = false;
+    night.release();
     if (player != null) {
       player.removeListener(this);
       player.release();
@@ -220,7 +242,10 @@ class NativePlayer implements Player.Listener {
       JSONObject o = new JSONObject();
       o.put("type", "time");
       o.put("pos", player.getCurrentPosition() / 1000.0);
-      o.put("dur", dur == C.TIME_UNSET ? -1 : dur / 1000.0);
+      // (F01) élő adásnál nincs (állandó) hossz: a felület nem ígér tekerést, amit a szolgáltató nem ad
+      boolean live = player.isCurrentMediaItemLive();
+      o.put("live", live);
+      o.put("dur", live || dur == C.TIME_UNSET ? -1 : dur / 1000.0);
       o.put("buf", player.getBufferedPosition() / 1000.0);
       o.put("playing", player.isPlaying());
       o.put("pwr", player.getPlayWhenReady());

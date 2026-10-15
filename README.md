@@ -156,6 +156,7 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 **Kiadás a GitHubról, egérkurzor a távirányítón, új feliratforrás, egységes műfajok (1.25)**
 - **Kiadások:** a `v*` címke pusholásakor a GitHub Actions minden platformra lefordít, és GitHub Release-be tölti a fájlokat (Windows: telepítő, hordozható, MSI · Linux: AppImage, deb · macOS: dmg, zip · Android: APK), SHA256SUMS.txt-vel; az asztali változat innen frissül (induláskor keres, kikapcsolható)
+- **Windows-telepítő (Setup):** ha a gépen már vannak Adás-adatok, felajánlja a *tiszta telepítést* (a beállítások, profilok, listák törlése); eltávolításkor megkérdezi, törlődjenek-e az adatok is (csendes / automatikus frissítésnél nem kérdez, nem töröl). Az **MSI** ablakos (magyar nyelvű) telepítő: a „Kész a telepítésre” lépés előtt az *Adatok* oldalon jelölőnégyzettel kérhető a tiszta telepítés; az MSI újbóli indításával választott Eltávolításnál ugyanez az oldal jön, a Windows Beállítások felőli eltávolításnál Igen / Nem kérdés (frissítésnél, csendes futásnál nem kérdez, nem töröl; parancssorból: `msiexec /i Adas-<verzió>.msi CLEANDATA=1`). A telepítés végén nem indítja el az Adást (a Start menüből indul) – az msiexec-ből indított ablak nem mindig kapta meg a billentyűzetfókuszt.
 - **Kiegészítő csomagok** (`.adaspack`): nem nyilvános listák a programmal nem szállítva, beépítettként megjelenve – betöltés fájlból vagy az asztali „packs” mappából; a mentés és az átvitel is viszi. Készítés: `tools/make-pack.mjs`
 - **Távirányító:** egér mód (kurzor a képernyőn, koppintás = kattintás, két ujjal görgetés), a parancsok sorban mennek (nem ugrál), a kijelölés mindig látszik; gyorsgombok: TV, Műsorújság, Böngészés, VOD; a Főoldalon *Távirányító* gomb – egy kis ablakban QR-kóddal csatlakoztat
 - **Feliratok.eu:** magyar és angol feliratok fiók és napi korlát nélkül, sorozatnál évadcsomagból is; a régi (Windows-1250) magyar feliratok ékezetei is helyesek; **SubDL** ingyenes kulccsal; a CC-menüben egyetlen *Felirat keresése* gomb (alatta az aktív adatbázisok), magyarul és angolul is keres
@@ -405,9 +406,20 @@ npm run android-deps
 npm run android
 ```
 
-Elkészíti a `dist-android/Adas-<verzió>.apk` csomagot. Egy APK fut telefonon, tableten és
+Elkészíti a `dist-android/Adas-<verzió>.apk` (univerzális) csomagot: fut telefonon, tableten és
 Android TV-n / Google TV-n is (Android 6.0 vagy újabb); tévén a Leanback indítóban jelenik meg,
 és a távirányítós (tévés) felület indul.
+
+Külön buildcél (a kiadás ezt a kettőt készíti, ugyanabból a commitból és verzióból):
+
+```
+npm run android:mobile   # dist-android/Adas-<verzió>-android-mobile.apk – telefon / tablet, érintéses indító
+npm run android:tv       # dist-android/Adas-<verzió>-android-tv.apk – Android TV, tévés indító, távirányítós alapmód
+```
+
+A két csomag csomagazonosítója és aláírása közös, így egymásra (és a régi univerzálisra) telepítve
+megmaradnak a profilok, a listák és a beállítások; a beépített frissítés a telepített célnak megfelelő
+csomagot tölti le. A buildcél a natív rétegtől jut el a felülethez (`AdasAndroid.buildTarget()`).
 
 - **Felépítés**: kis natív keret (`android/`, Java, egyetlen WebView), benne ugyanaz az egyfájlos
   felület, mint a tévés változatban. A keret minden hálózati kérést maga tölt le, CORS-fejlécet
@@ -425,8 +437,9 @@ Android TV-n / Google TV-n is (Android 6.0 vagy újabb); tévén a Leanback ind�
   telepítést); Android TV-re pl. a *Send files to TV* alkalmazással vagy `adb install`-lal.
 - **Távirányító**: OK = lejátszás, **hosszan nyomott OK** = csatorna-adatlap (kedvenc, emlékeztető),
   Vissza = vissza / kilépés. Színes gombok, CH+/CH−, ◀◀ / ▶▶ ugyanúgy, mint a webOS-en, ha a távirányítón van.
-- **Nincs benne**: kivetítés, éjszakai hang, frissítés-ellenőrzés, a beállítások *átadása* (az átvétel megy),
-  saját mappa (a saját médiatár hálózati címmel működik).
+- **Androidon is**: kivetítés telefonról / tabletről (Chromecast, DLNA), éjszakai hang (a natív lejátszóval,
+  Android 9-től), beépített frissítés (a buildcélnak megfelelő APK), helyi / USB-mappa a saját médiatárhoz.
+- **Nincs benne**: a beállítások *átadása* (az átvétel megy).
 
 ## Billentyűparancsok
 

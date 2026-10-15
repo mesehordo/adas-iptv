@@ -266,7 +266,12 @@ export function renderBrowse(view, params) {
   };
   form.onchange = (e) => e.target.name !== 'q' && apply(false);
   form.onsubmit = (e) => (e.preventDefault(), apply(false));
-  form.q.addEventListener('input', debounce(() => apply(true), 500));
+  // (B02) ékezetes / összetett bevitel (IME-kompozíció) közben nincs újrarajzolás – a végén igen
+  let composing = false;
+  const onQ = debounce(() => !composing && apply(true), 500);
+  form.q.addEventListener('compositionstart', () => (composing = true));
+  form.q.addEventListener('compositionend', () => ((composing = false), onQ()));
+  form.q.addEventListener('input', onQ);
   if (f.q && document.activeElement === document.body) {
     requestAnimationFrame(() => {
       if (IS_TV) return; // tévén a kereső ne nyissa fel a képernyő-billentyűzetet magától
@@ -750,6 +755,7 @@ export function renderSettings(view) {
       ${toggle('resumeLast', _t('Utolsó csatorna folytatása indításkor'))}
       ${toggle('perChannelVolume', _t('Hangerő csatornánként'), _t('Minden csatorna megjegyzi a saját hangerejét (a halkabb és hangosabb adók miatt).'))}
       ${api.setBackgroundPrefs ? toggle('bgAudio', _t('Háttérlejátszás (csak hang)'), _t('Másik alkalmazásra váltva az adás hangja tovább szól (értesítéssel, onnan leállítható).')) : ''}
+      ${api.enterPip && api.caps.mini && !IS_TV ? toggle('autoPip', _t('Kis ablak kilépéskor'), _t('Videó közben a Home gombra vagy másik alkalmazásra váltva a videó kis ablakban, más alkalmazások fölött látszik tovább (a lejátszó mini gombjával bármikor is indítható).')) : ''}
       <label class="setting"><span>${_t('<b>Legnagyobb minőség</b>')}<small>${_t('A több minőségben elérhető adásoknál: lassú vagy mobil kapcsolaton kisebb felbontással kevesebbet akad, és kevesebb adatot használ. Automatikusan az ablak méretéhez igazodik. (Az egyetlen minőségű adásokon nem változtat.)')}</small></span>
         <select data-set="maxQuality">${[['', _t('Automatikus (az ablakmérethez)')], ['1080', _t('Legfeljebb 1080p (Full HD)')], ['720', _t('Legfeljebb 720p (HD)')], ['480', _t('Legfeljebb 480p (SD)')], ['360', _t('Legfeljebb 360p (adatkímélő)')]]
           .map(([v, l]) => `<option value="${v}" ${String(s.maxQuality || '') === v ? 'selected' : ''}>${l}</option>`)
@@ -758,7 +764,7 @@ export function renderSettings(view) {
 
     <section class="set-section" id="engine" data-g="play"><h2>${_t('Lejátszómotor')} <button class="help-link" data-help="engines" title="${_t('Súgó')}">?</button></h2>
       <label class="setting"><span>${_t('<b>Lejátszómotor</b>')}<small>${_t('Automatikus: tévén a beépített lejátszó, máshol a hls.js. Ha egy adás nem indul, érdemes átváltani.')}</small></span>
-        <select data-set="playbackEngine">${[['auto', _t('Automatikus')], ['native', _t('Beépített lejátszó')], ['hlsjs', 'hls.js']]
+        <select data-set="playbackEngine">${[['auto', _t('Automatikus')], ['native', _t('Beépített lejátszó')], ['hlsjs', 'hls.js'], ...(exoAvailable() ? [['exo', _t('Natív lejátszó (ExoPlayer) – élő tévéhez is')]] : [])]
           .map(([v, l]) => `<option value="${v}" ${s.playbackEngine === v ? 'selected' : ''}>${l}</option>`)
           .join('')}</select></label>
       ${api.mediaProbe ? toggle('mediaBridge', _t('Lejátszási híd (FFmpeg) filmekhez'), _t('AC3 / DTS hang, a fájlba ágyazott feliratok (MKV, MP4), több hangsáv és régi videóformátumok lejátszása. Kikapcsolva a beépített lejátszó próbálja (néma lehet, felirat nélkül).')) + `<p class="muted small media-status">${_t('FFmpeg ellenőrzése…')}</p>` : ''}

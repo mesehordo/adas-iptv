@@ -3,7 +3,8 @@
 //
 // Csak az asztali változatban: a böngészőben és a tévén a más címről érkező (nem MSE-s) videó
 // hangja a WebAudio-n át elnémulna, és az egyszer átirányított hang nem vihető vissza.
-import { api } from './api.js';
+import { api, IS_ANDROID } from './api.js';
+import { exoCurrent, exoNightAvailable } from './exo.js';
 
 let ctx = null;
 let src = null;
@@ -12,12 +13,18 @@ let eq = null;
 let gain = null;
 let on = false;
 
-export const nightAvailable = () => !!api.caps?.nightAudio && !!(window.AudioContext || window.webkitAudioContext);
+// (F05) Androidon a natív lejátszó (ExoPlayer) hangmunkamenetén, rendszer-hangeffekttel (Android 9+); a WebView
+// saját videójánál nem érhető el – a kapcsoló ilyenkor nem látszik (nincs hamis „bekapcsolva” állapot)
+const androidNight = () => IS_ANDROID && exoNightAvailable();
+/** Az éjszakai hang a mostani lejátszásnál elérhető-e (Androidon csak a natív lejátszóval). */
+export const nightAvailable = () => (IS_ANDROID ? androidNight() && !!exoCurrent() : !!api.caps?.nightAudio && !!(window.AudioContext || window.webkitAudioContext));
+/** Az eszköz egyáltalán támogatja-e (a profilbeállításhoz). */
+export const nightSupported = () => (IS_ANDROID ? androidNight() : !!api.caps?.nightAudio && !!(window.AudioContext || window.webkitAudioContext));
 
 // A más címről érkező (nem MSE-s, pl. MP4) videó hangja a WebAudio-ban csak akkor nem némul el,
 // ha CORS-módban töltődik. Az asztali változatban a CORS-ellenőrzés ki van kapcsolva, így ez
 // minden szervernél működik.
-if (nightAvailable()) document.getElementById('video')?.setAttribute('crossorigin', 'anonymous');
+if (!IS_ANDROID && nightAvailable()) document.getElementById('video')?.setAttribute('crossorigin', 'anonymous');
 export const nightOn = () => on;
 
 function build(video) {
@@ -38,6 +45,13 @@ function build(video) {
 
 /** Be- / kikapcsolás. Kikapcsolva a lánc semleges (a hang változatlan). */
 export function setNight(video, enable) {
+  if (IS_ANDROID) {
+    const e = exoCurrent();
+    if (!androidNight() || !e) return false;
+    if (!e.setNight(!!enable)) return false;
+    on = !!enable;
+    return true;
+  }
   if (!nightAvailable()) return false;
   if (!ctx) {
     if (!enable) return false;

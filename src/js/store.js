@@ -156,12 +156,13 @@ const DEFAULT_SETTINGS = {
   subsSize: 'normal', // 'small' | 'normal' | 'large' | 'huge'
   playerButtons: {}, // a vezérlősáv kiegészítő gombjai: { kulcs: false } = elrejtve (player.js PLAYER_BUTTONS)
   bgAudio: false, // Android: háttérlejátszás (csak hang)
+  autoPip: false, // Android: videó közben kilépve kis ablakban (kép a képben) látszik tovább
   epgSources: BUILTIN_EPG,
   useEmbeddedEpg: true, // a lejátszólista x-tvg-url forrása
   epgRefreshHours: 12,
   homeCountry: 'HU',
   autoFallback: true,
-  playbackEngine: 'auto', // 'auto' | 'native' | 'hlsjs' – auto: TV-n a beépített lejátszó, máshol hls.js
+  playbackEngine: 'auto', // 'auto' | 'native' | 'hlsjs' | 'exo' (Android: natív lejátszó élő tévéhez is) – auto: TV-n a beépített lejátszó, máshol hls.js
   hideOffline: false,
   autoCheck: true,
   sportMenu: true, // Sport menüpont (a TV, VOD mellett) – Beállítások → Sport

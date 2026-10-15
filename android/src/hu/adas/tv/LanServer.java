@@ -77,6 +77,9 @@ class LanServer {
   long rcFloor;
   int rcPinFails;
   final Map<String, long[]> ipFails = new HashMap<>(); // cím → { hibák, első hiba, tiltás vége }
+  // (F04) kivetítés: munkamenethez kötött közvetítő – csak a kivetítő eszköz címéről, csak ennek az adásnak
+  volatile String castToken;
+  volatile String castRoot = "", castUa = "", castRef = "", castDevice = "";
 
   LanServer(Listener l) {
     listener = l;
@@ -105,7 +108,7 @@ class LanServer {
 
   synchronized void stopIfIdle() {
     boolean share = shareSecret != null && System.currentTimeMillis() < shareExpires;
-    if (share || rcPin != null || socket == null) return;
+    if (share || rcPin != null || castToken != null || socket == null) return;
     try {
       socket.close();
     } catch (IOException ignored) {
@@ -259,8 +262,10 @@ class LanServer {
       String line = readLine(in, deadline);
       if (line == null) return;
       String[] req = line.split(" ");
+      String range = null;
       for (int n = 0; (line = readLine(in, deadline)) != null && !line.isEmpty(); n++) {
-        if (n > 100) return; // fejlécek – nincs rájuk szükség, de korlátlanul se jöhetnek
+        if (n > 100) return; // fejlécek – csak a Range kell (kivetítés), de korlátlanul se jöhetnek
+        if (line.regionMatches(true, 0, "range:", 0, 6)) range = line.substring(6).trim();
       }
       String target = req.length > 1 ? req[1] : "/";
       String path = target, query = "";
@@ -295,6 +300,10 @@ class LanServer {
         }
         send(out, 200, "application/json; charset=utf-8", shareData);
         listener.onShareUsed(sock.getInetAddress().getHostAddress());
+        return;
+      }
+      if (parts.length >= 3 && parts[0].equals("adas") && parts[1].equals("cast")) {
+        castServe(sock, out, req[0], parts[2], query, range);
         return;
       }
       if (parts.length >= 2 && parts[0].equals("adas") && parts[1].equals("remote")) {
@@ -340,9 +349,224 @@ class LanServer {
     }
   }
 
+  // ------------------------------------------------------------------------------- (F04) kivetítés
+  /** A kivetítő eszköz által elérhető cím az adáshoz (új munkamenet: a korábbi kulcs érvényét veszti). */
+  synchronized String castProxy(String url, String ua, String ref, String deviceHost) throws IOException {
+    int p = ensure();
+    byte[] t = new byte[16];
+    rnd.nextBytes(t);
+    StringBuilder sb = new StringBuilder();
+    for (byte b : t) sb.append(String.format(java.util.Locale.ROOT, "%02x", b));
+    castToken = sb.toString();
+    castRoot = url;
+    castUa = ua == null ? "" : ua;
+    castRef = ref == null ? "" : ref;
+    castDevice = deviceHost;
+    return "http://" + addressFor(deviceHost) + ":" + p + castPath(url);
+  }
+
+  synchronized void castProxyStop() {
+    castToken = null;
+    stopIfIdle();
+  }
+
+  /**
+   * A közvetítő címe egy adáshoz / szegmenshez: a cél a munkamenet kulcsával aláírva (HMAC) – a vevő csak a
+   * közvetítő által kiadott (az adásból származó) címeket kérheti, tetszőlegeset nem.
+   */
+  String castPath(String target) throws IOException {
+    return "/adas/cast/" + castToken + "/s?u=" + java.net.URLEncoder.encode(target, "UTF-8") + "&s=" + castSig(castToken, target);
+  }
+
+  static String castSig(String token, String target) {
+    try {
+      Mac m = Mac.getInstance("HmacSHA256");
+      m.init(new SecretKeySpec(token.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+      byte[] d = m.doFinal(target.getBytes(StandardCharsets.UTF_8));
+      StringBuilder sb = new StringBuilder();
+      for (int i = 0; i < 16; i++) sb.append(String.format(java.util.Locale.ROOT, "%02x", d[i]));
+      return sb.toString();
+    } catch (Exception e) {
+      return "";
+    }
+  }
+
+  /** A név feloldott címei közt van-e helyi / belső (loopback, any-local, link-local, site-local). */
+  static boolean resolvesInternal(String host) {
+    try {
+      for (InetAddress ad : InetAddress.getAllByName(host)) {
+        if (ad.isLoopbackAddress() || ad.isAnyLocalAddress() || ad.isLinkLocalAddress() || ad.isSiteLocalAddress()) return true;
+      }
+      return false;
+    } catch (Exception e) {
+      return true; // (fel nem oldható: nem engedjük)
+    }
+  }
+
+  /** A saját cím, amelyen a vevő elér (az ő hálózatában – azonos alhálózat elöl). */
+  static String addressFor(String host) {
+    List<String> ips = localIps();
+    int dot = host.lastIndexOf('.');
+    String net = dot > 0 ? host.substring(0, dot + 1) : "";
+    for (String ip : ips) if (!net.isEmpty() && ip.startsWith(net)) return ip;
+    return ips.isEmpty() ? "127.0.0.1" : ips.get(0);
+  }
+
+  static boolean resolvesLoopback(String host) {
+    try {
+      for (InetAddress ad : InetAddress.getAllByName(host)) if (ad.isLoopbackAddress() || ad.isAnyLocalAddress()) return true;
+      return false;
+    } catch (Exception e) {
+      return true;
+    }
+  }
+
+  static boolean localOrPrivate(String host) {
+    String h = host.toLowerCase(java.util.Locale.ROOT);
+    return h.equals("localhost") || h.startsWith("127.") || h.equals("0.0.0.0") || h.startsWith("::") || h.startsWith("[")
+        || h.startsWith("192.168.") || h.startsWith("10.") || h.startsWith("169.254.") || h.matches("^172\\.(1[6-9]|2\\d|3[01])\\..*");
+  }
+
+  /**
+   * A közvetítő: csak érvényes kulccsal, csak a kivetítő eszköz címéről; a cél http(s), és helyi hálózati címre
+   * csak akkor mehet, ha maga az adás is ott van (pl. NAS) – a gép saját címére soha. HLS-listánál a hivatkozott
+   * címek is a közvetítőre mutatnak; a Range (tekerés) átmegy.
+   */
+  void castServe(Socket sock, OutputStream out, String method, String token, String query, String range) throws IOException {
+    String tok = castToken;
+    if (tok == null || !MessageDigest.isEqual(tok.getBytes(StandardCharsets.UTF_8), token.getBytes(StandardCharsets.UTF_8)) || !sock.getInetAddress().getHostAddress().equals(castDevice)) {
+      send(out, 403, "text/plain", "Nem engedélyezett");
+      return;
+    }
+    String target = null, sig = "";
+    for (String kv : query.split("&")) {
+      if (kv.startsWith("u=")) target = URLDecoder.decode(kv.substring(2), "UTF-8");
+      else if (kv.startsWith("s=")) sig = kv.substring(2);
+    }
+    // csak a közvetítő által kiadott (aláírt) cím
+    if (target == null || !MessageDigest.isEqual(castSig(tok, target).getBytes(StandardCharsets.UTF_8), sig.getBytes(StandardCharsets.UTF_8))) {
+      send(out, 403, "text/plain", "Nem engedélyezett cím");
+      return;
+    }
+    java.net.URL u;
+    try {
+      u = new java.net.URL(target);
+    } catch (Exception e) {
+      send(out, 403, "text/plain", "Nem engedélyezett cím");
+      return;
+    }
+    String rootHost = "";
+    try {
+      rootHost = new java.net.URL(castRoot).getHost();
+    } catch (Exception ignored) {
+    }
+    boolean proto = "http".equals(u.getProtocol()) || "https".equals(u.getProtocol());
+    // a feloldott cím számít (nem a név szövege – pl. „127.0.0.1.nip.io”): belső címre csak akkor, ha maga az
+    // adás is ott van (pl. NAS), a gép saját címére soha
+    boolean self = u.getHost().equals("localhost") || u.getHost().startsWith("127.") || resolvesLoopback(u.getHost());
+    boolean lanOk = !self && (!(localOrPrivate(u.getHost()) || resolvesInternal(u.getHost())) || u.getHost().equals(rootHost));
+    if (!proto || !lanOk) {
+      send(out, 403, "text/plain", "Nem engedélyezett cím");
+      return;
+    }
+    Map<String, String> h = new HashMap<>();
+    h.put("User-Agent", castUa.isEmpty() ? MainActivity.CHROME_UA : castUa);
+    if (!castRef.isEmpty()) h.put("Referer", castRef);
+    if (range != null) h.put("Range", range);
+    java.net.HttpURLConnection c;
+    try {
+      c = HttpOpen.open(target, "HEAD".equals(method) ? "HEAD" : "GET", h, null, 20000);
+    } catch (Exception e) {
+      send(out, 502, "text/plain", "A forrás nem érhető el");
+      return;
+    }
+    int code = c.getResponseCode();
+    String type = String.valueOf(c.getContentType()).toLowerCase(java.util.Locale.ROOT);
+    String finalUrl = c.getURL().toString();
+    boolean list = type.contains("mpegurl") || c.getURL().getPath().toLowerCase(java.util.Locale.ROOT).matches(".*\\.m3u8?$");
+    if (list && code >= 200 && code < 300) {
+      byte[] body;
+      try (InputStream in = c.getInputStream()) {
+        ByteArrayOutputStream b = new ByteArrayOutputStream();
+        byte[] buf = new byte[16384];
+        for (int n; (n = in.read(buf)) > 0; ) {
+          b.write(buf, 0, n);
+          if (b.size() > 4 * 1024 * 1024) {
+            send(out, 502, "text/plain", "A lista túl nagy");
+            return;
+          }
+        }
+        body = b.toByteArray();
+      }
+      String text = new String(body, StandardCharsets.UTF_8);
+      if (text.trim().startsWith("#EXTM3U")) {
+        StringBuilder o = new StringBuilder();
+        java.util.regex.Pattern uri = java.util.regex.Pattern.compile("URI=\"([^\"]+)\"");
+        for (String line : text.split("\r?\n")) {
+          String l = line.trim();
+          if (l.isEmpty()) o.append(line);
+          else if (l.startsWith("#")) {
+            java.util.regex.Matcher m = uri.matcher(line);
+            StringBuffer sbuf = new StringBuffer();
+            while (m.find()) m.appendReplacement(sbuf, java.util.regex.Matcher.quoteReplacement("URI=\"" + castPath(abs(finalUrl, m.group(1))) + "\""));
+            m.appendTail(sbuf);
+            o.append(sbuf);
+          } else o.append(castPath(abs(finalUrl, l)));
+          o.append('\n');
+        }
+        byte[] ob = o.toString().getBytes(StandardCharsets.UTF_8);
+        String head = "HTTP/1.1 200 OK\r\nContent-Type: application/vnd.apple.mpegurl\r\nContent-Length: " + ob.length + "\r\nCache-Control: no-cache\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n";
+        out.write(head.getBytes(StandardCharsets.UTF_8));
+        if (!"HEAD".equals(method)) out.write(ob);
+        out.flush();
+        return;
+      }
+      String head = "HTTP/1.1 " + code + " OK\r\nContent-Type: application/octet-stream\r\nContent-Length: " + body.length + "\r\nConnection: close\r\n\r\n";
+      out.write(head.getBytes(StandardCharsets.UTF_8));
+      if (!"HEAD".equals(method)) out.write(body);
+      out.flush();
+      return;
+    }
+    StringBuilder head = new StringBuilder("HTTP/1.1 " + code + " " + (code == 206 ? "Partial Content" : code < 300 ? "OK" : "Error") + "\r\n");
+    String ct = c.getContentType();
+    // aktív dokumentumtípus (HTML, SVG, szkript) nem mehet tovább – a vevőnek csak média kell (a DASH-leíró marad)
+    if (ct != null && (ct.matches("(?i).*(html|svg|javascript|ecmascript).*") || (ct.toLowerCase(java.util.Locale.ROOT).contains("xml") && !ct.toLowerCase(java.util.Locale.ROOT).contains("dash+xml")))) ct = "application/octet-stream";
+    if (ct != null) head.append("Content-Type: ").append(ct).append("\r\n");
+    for (String k : new String[] {"Content-Length", "Content-Range", "Accept-Ranges", "Last-Modified", "ETag"}) {
+      String v = c.getHeaderField(k);
+      if (v != null) head.append(k).append(": ").append(v).append("\r\n");
+    }
+    head.append("Access-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n");
+    out.write(head.toString().getBytes(StandardCharsets.UTF_8));
+    if ("HEAD".equals(method)) {
+      out.flush();
+      return;
+    }
+    sock.setSoTimeout(0); // (élő adásnál a kapcsolat sokáig nyitva marad)
+    try (InputStream in = code >= 400 ? c.getErrorStream() : c.getInputStream()) {
+      if (in == null) return;
+      byte[] buf = new byte[64 * 1024];
+      for (int n; (n = in.read(buf)) > 0; ) {
+        if (castToken == null || !tok.equals(castToken)) break; // a kivetítés véget ért / új munkamenet
+        out.write(buf, 0, n);
+      }
+      out.flush();
+    } catch (IOException ignored) {
+      // a vevő bontotta a kapcsolatot
+    }
+  }
+
+  static String abs(String base, String ref) {
+    try {
+      return new java.net.URL(new java.net.URL(base), ref).toString();
+    } catch (Exception e) {
+      return ref;
+    }
+  }
+
   static void send(OutputStream out, int code, String type, String body) throws IOException {
     byte[] b = (body == null ? "" : body).getBytes(StandardCharsets.UTF_8);
-    String status = code == 200 ? "OK" : code == 204 ? "No Content" : code == 403 ? "Forbidden" : code == 429 ? "Too Many Requests" : "Not Found";
+    String status = code == 200 ? "OK" : code == 204 ? "No Content" : code == 403 ? "Forbidden" : code == 429 ? "Too Many Requests" : code == 502 ? "Bad Gateway" : "Not Found";
     String head = "HTTP/1.1 " + code + " " + status + "\r\nContent-Type: " + type + "\r\nContent-Length: " + b.length
         + "\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: *\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n";
     out.write(head.getBytes(StandardCharsets.UTF_8));

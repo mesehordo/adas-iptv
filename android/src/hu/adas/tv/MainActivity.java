@@ -90,6 +90,8 @@ public class MainActivity extends Activity {
       "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36";
   static final int REQ_FILE = 1;
   static final int REQ_SAVE = 2;
+  static final int REQ_TREE = 3; // (F02) mappaválasztó
+  int folderId = -1;
 
   WebView web;
   NativePlayer nativePlayer;
@@ -111,8 +113,11 @@ public class MainActivity extends Activity {
     instance = this;
     covers = new Covers(new java.io.File(getFilesDir(), "covers"), (url, h) -> open(url, "GET", streamHeaders(url, h), null, 30000));
     UiModeManager ui = (UiModeManager) getSystemService(Context.UI_MODE_SERVICE);
-    tv = (ui != null && ui.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION)
-        || getPackageManager().hasSystemFeature(PackageManager.FEATURE_LEANBACK);
+    // (F07) a buildcél dönt (mobile / tv); univerzális csomagnál a rendszer jelzése
+    String target = buildTarget();
+    tv = "tv".equals(target) || (!"mobile".equals(target)
+        && ((ui != null && ui.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION)
+            || getPackageManager().hasSystemFeature(PackageManager.FEATURE_LEANBACK)));
     Window w = getWindow();
     w.setStatusBarColor(Color.BLACK);
     w.setNavigationBarColor(Color.BLACK);
@@ -147,6 +152,17 @@ public class MainActivity extends Activity {
     web.requestFocus();
   }
 
+  /** (F07) A buildcél (mobile / tv / universal) – a csomag metaadata. */
+  String buildTarget() {
+    try {
+      android.os.Bundle m = getPackageManager().getApplicationInfo(getPackageName(), PackageManager.GET_META_DATA).metaData;
+      String t = m != null ? m.getString("hu.adas.target") : null;
+      return t == null ? "universal" : t;
+    } catch (Exception e) {
+      return "universal";
+    }
+  }
+
   String version() {
     try {
       return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
@@ -175,6 +191,7 @@ public class MainActivity extends Activity {
     super.onResume();
     foreground = true;
     web.onResume();
+    PlaybackService.stop(this); // (előtérben nincs szükség a háttér-értesítésre)
   }
 
   /** Értesítésre kattintva, futó alkalmazásnál: a csatorna indul. */
@@ -189,15 +206,65 @@ public class MainActivity extends Activity {
   // Háttérlejátszás (a kép a képben mód megszűnt)
   // -------------------------------------------------------------------------------------------
   static MainActivity instance;
-  boolean bgAudio = false; // kilépve a háttérben szól tovább
+  // (a JavaScript-híd más szálon írja, a UI-szál olvassa – volatile)
+  volatile boolean bgAudio = false; // kilépve a háttérben szól tovább
+  volatile boolean autoPip = false; // (B38) videó közben kilépve kis ablakban (más alkalmazások fölött) látszik tovább
+  volatile boolean videoActive = false; // a videólejátszó nyitva (a rádióhoz nincs kis ablak)
   String nowPlaying = "";
 
-  /** A háttérlejátszás értesítésének „Leállítás” gombja. */
+  // -------------------------------------------------------------------------------------------
+  // (B38 / F06) Mini lejátszó más alkalmazások fölött: a rendszer kép a képben módja (Android 8+, ha az eszköz
+  // támogatja – több Android TV-n is). A kis ablakban csak a videó látszik (body.pip), a lap tovább fut; a
+  // bezárásakor (X) a lejátszás megáll, kivéve, ha a háttérlejátszás be van kapcsolva.
+  // -------------------------------------------------------------------------------------------
+  boolean canPip() {
+    return Build.VERSION.SDK_INT >= 26 && getPackageManager().hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE);
+  }
+
+  boolean enterPip() {
+    if (!canPip()) return false;
+    try {
+      return enterPictureInPictureMode(new android.app.PictureInPictureParams.Builder().setAspectRatio(new android.util.Rational(16, 9)).build());
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  boolean inPip() {
+    return Build.VERSION.SDK_INT >= 24 && isInPictureInPictureMode();
+  }
+
+  /** Home gomb / másik alkalmazás videó közben: kis ablakba vált (ha a Beállításokban be van kapcsolva). */
+  @Override
+  protected void onUserLeaveHint() {
+    super.onUserLeaveHint();
+    if (videoActive && playing && autoPip && !tv) enterPip();
+  }
+
+  @Override
+  public void onPictureInPictureModeChanged(boolean pip, Configuration cfg) {
+    super.onPictureInPictureModeChanged(pip, cfg);
+    // (a Home útvonalon az onPause a kis ablak előtt fut, és elindíthatta a háttér-értesítést – kis ablakban nem kell)
+    if (pip) PlaybackService.stop(this);
+    web.evaluateJavascript("window.__adasPip&&window.__adasPip(" + pip + ")", null);
+  }
+
+  /** A háttérlejátszás értesítésének „Leállítás” gombja (videó és rádió). */
   void stopFromNotification() {
     runOnUiThread(() -> {
       web.evaluateJavascript("window.__adasStopPlayback&&window.__adasStopPlayback()", null);
       if (nativePlayer != null) nativePlayer.pause();
     });
+  }
+
+  /** Médiaparancs az értesítésről / a médiamunkamenetből: play, pause, next, prev (a felület hajtja végre). */
+  void mediaCommand(final String cmd) {
+    runOnUiThread(() -> web.evaluateJavascript("window.__adasMedia&&window.__adasMedia(" + JSONObject.quote(cmd) + ")", null));
+  }
+
+  /** Háttérbe menet a szolgáltatás indítása – még előtérben (B37: Android 12-től az onStop-ból tiltott). */
+  void startBackgroundPlayback() {
+    if (bgAudio && playing && !isFinishing() && !PlaybackService.running()) PlaybackService.start(this, nowPlaying);
   }
 
   @Override
@@ -211,11 +278,13 @@ public class MainActivity extends Activity {
     super.onStop();
     // a beállítások és a film pozíciójának azonnali mentése (a WebView nem mindig jelez a lapnak)
     web.evaluateJavascript("window.__adasFlush&&window.__adasFlush()", null);
-    // Háttérlejátszás bekapcsolva: szól tovább (értesítéssel); egyébként megáll.
+    // Háttérlejátszás bekapcsolva: szól tovább (értesítéssel – a szolgáltatás már az onPause-ban elindult);
+    // egyébként megáll.
     if (bgAudio && playing && !isFinishing()) {
-      PlaybackService.start(this, nowPlaying);
+      startBackgroundPlayback(); // (ha valamiért nem indult el – régebbi Androidon ez még megengedett)
       return;
     }
+    // (a kis ablak bezárása is ide fut: a lejátszás megáll – nincs kettős vagy láthatatlan hang)
     web.evaluateJavascript("document.querySelectorAll('video').forEach(function(v){try{v.pause()}catch(e){}});window.__adasRadioPause&&window.__adasRadioPause()", null);
     if (nativePlayer != null) nativePlayer.pause();
   }
@@ -224,13 +293,17 @@ public class MainActivity extends Activity {
   protected void onPause() {
     super.onPause();
     foreground = false;
-    // háttérlejátszásnál a lap tovább fut
-    if (!(bgAudio && playing)) web.onPause();
+    // háttérlejátszásnál a lap tovább fut, és a szolgáltatás (értesítés, médiavezérlők) most indul – az
+    // alkalmazás ekkor még előtérben van; visszatéréskor (onResume) leáll
+    if (inPip()) return; // kis ablakban a lap tovább fut (látható), értesítés sem kell
+    if (bgAudio && playing) startBackgroundPlayback();
+    else web.onPause();
   }
 
   @Override
   protected void onDestroy() {
     PlaybackService.stop(this);
+    Updater.unregister(this);
     if (instance == this) instance = null;
     if (nativePlayer != null) nativePlayer.release();
     if (lanServer != null) {
@@ -260,7 +333,7 @@ public class MainActivity extends Activity {
     if (hasFocus && (tv || playing)) immersive(true);
   }
 
-  boolean playing;
+  volatile boolean playing;
 
   // -------------------------------------------------------------------------------------------
   // JavaScript-híd
@@ -279,6 +352,11 @@ public class MainActivity extends Activity {
     @JavascriptInterface
     public boolean isTv() {
       return tv;
+    }
+
+    @JavascriptInterface
+    public String buildTarget() {
+      return MainActivity.this.buildTarget();
     }
 
     @JavascriptInterface
@@ -335,6 +413,26 @@ public class MainActivity extends Activity {
     @JavascriptInterface
     public void exoSeek(final double sec) {
       runOnUiThread(() -> nativePlayer.seek(sec));
+    }
+
+    /** (F05) Éjszakai hang a natív lejátszóhoz (Android 9+). */
+    @JavascriptInterface
+    public boolean nightAvailable() {
+      return NightAudio.available();
+    }
+
+    @JavascriptInterface
+    public boolean exoNight(final boolean on) {
+      if (!NightAudio.available()) return false;
+      // (a hangeffekt a UI-szálon jön létre: az eredményét megvárjuk – sikertelenségnél ne mutasson „bekapcsolva”)
+      java.util.concurrent.FutureTask<Boolean> t = new java.util.concurrent.FutureTask<>(() -> nativePlayer.setNight(on));
+      runOnUiThread(t);
+      try {
+        return t.get(3, java.util.concurrent.TimeUnit.SECONDS);
+      } catch (Exception e) {
+        t.cancel(false); // (ha még nem futott le, később sem)
+        return false;
+      }
     }
 
     @JavascriptInterface
@@ -418,12 +516,42 @@ public class MainActivity extends Activity {
     /** Beállítás: háttérlejátszás (az első paraméter a megszűnt kép a képben módé, nem használjuk). */
     @JavascriptInterface
     public void setBackgroundPrefs(boolean pip, boolean audio) {
+      autoPip = pip;
       bgAudio = audio;
+    }
+
+    /** (B38) Mini lejátszó most (rendszer kép a képben). → elindulhat-e ezen az eszközön */
+    @JavascriptInterface
+    public boolean enterPip() {
+      if (!canPip()) return false;
+      // (a tényleges belépés a UI-szálon dől el: ha nem sikerül, a felület visszajelzést kap)
+      runOnUiThread(() -> {
+        if (!MainActivity.this.enterPip()) web.evaluateJavascript("window.__adasPipFailed&&window.__adasPipFailed()", null);
+      });
+      return true;
+    }
+
+    @JavascriptInterface
+    public boolean pipAvailable() {
+      return canPip();
+    }
+
+    /** A videólejátszó nyitva van-e (a kilépéskori kis ablakhoz). */
+    @JavascriptInterface
+    public void setVideoActive(boolean on) {
+      videoActive = on;
     }
 
     @JavascriptInterface
     public void setNowPlaying(String title) {
       nowPlaying = title == null ? "" : title;
+      PlaybackService.setState(nowPlaying, null);
+    }
+
+    /** A lejátszás szünetel-e (a háttér-értesítés és a médiamunkamenet állapota). */
+    @JavascriptInterface
+    public void setMediaState(boolean paused) {
+      PlaybackService.setState(null, paused);
     }
 
     /** A távirányító-lap állapota (most nézett adás, kedvencek) – a telefon ezt kéri le. */
@@ -444,12 +572,36 @@ public class MainActivity extends Activity {
         runOnUiThread(() -> startSave(id, json));
         return;
       }
+      if ("pickFolder".equals(method)) {
+        runOnUiThread(() -> startPickFolder(id));
+        return;
+      }
       pool.submit(() -> {
         try {
           JSONObject a = new JSONObject(json);
           String out;
           if ("request".equals(method)) out = request(a).toString();
           else if ("probe".equals(method)) out = probeAll(a.getJSONArray("items")).toString();
+          // (F03) beépített frissítés: letöltés + ellenőrzés, majd telepítés a rendszer telepítőjével
+          // (F04) kivetítés (Chromecast, DLNA) – Google-szolgáltatások nélkül, mint az asztali változat
+          else if ("castDiscover".equals(method)) {
+            Cast.act = MainActivity.this;
+            out = Cast.discover(MainActivity.this, a.optInt("ms", 3500)).toString();
+          } else if ("castPlay".equals(method)) out = Cast.play(MainActivity.this, a).toString();
+          else if ("castControl".equals(method)) {
+            Cast.control(MainActivity.this, a.getString("action"), a.optDouble("value", 0));
+            out = "true";
+          } else if ("castForget".equals(method)) {
+            Cast.forget(MainActivity.this, a.getString("id"));
+            out = "true";
+          }
+          // (F02) helyi / USB-mappák (a kiválasztott, engedélyezett mappán belül)
+          else if ("scanFolder".equals(method)) out = Folders.scan(MainActivity.this, a.getString("uri")).toString();
+          else if ("readDoc".equals(method)) out = JSONObject.quote(Folders.readText(MainActivity.this, a.getString("uri"), 20 * 1024 * 1024));
+          else if ("sidecarSubs".equals(method)) out = Folders.sidecars(MainActivity.this, a.getString("uri"), false).toString();
+          else if ("sidecarImage".equals(method)) out = JSONObject.quote((String) Folders.sidecars(MainActivity.this, a.getString("uri"), true));
+          else if ("updateDownload".equals(method)) out = Updater.download(MainActivity.this, a).toString();
+          else if ("updateInstall".equals(method)) out = JSONObject.quote(Updater.install(MainActivity.this, a.getString("file")));
           else if ("lanGet".equals(method)) out = lanGet(a.getJSONArray("urls"), a.optInt("timeout", 2500)).toString();
           else if ("lanIps".equals(method)) out = new JSONArray(LanServer.localIps()).toString();
           else if ("coverStats".equals(method)) out = covers.stats().toString();
@@ -894,6 +1046,22 @@ public class MainActivity extends Activity {
     }
   }
 
+  /** (F02) A rendszer mappaválasztója (helyi tár, USB-meghajtó). Ahol nincs (több tévén), hibaüzenet. */
+  void startPickFolder(int id) {
+    if (folderId >= 0) {
+      reply(id, false, JSONObject.quote(L.t(MainActivity.this, "Már nyitva van egy mappaválasztó.")));
+      return;
+    }
+    try {
+      folderId = id;
+      Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+      startActivityForResult(i, REQ_TREE);
+    } catch (Exception e) {
+      folderId = -1;
+      reply(id, false, JSONObject.quote(L.t(MainActivity.this, "Ezen az eszközön nincs mappaválasztó – a lejátszólistákat hálózati címről (pl. a NAS webszerveréről) add meg.")));
+    }
+  }
+
   void startSave(int id, String json) {
     try {
       JSONObject a = new JSONObject(json);
@@ -913,6 +1081,19 @@ public class MainActivity extends Activity {
     if (req == REQ_FILE && fileCallback != null) {
       fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result, data));
       fileCallback = null;
+    } else if (req == REQ_TREE) {
+      final int id = folderId;
+      folderId = -1;
+      if (id < 0) return;
+      if (result != RESULT_OK || data == null || data.getData() == null) {
+        reply(id, true, "null");
+        return;
+      }
+      try {
+        reply(id, true, Folders.keep(this, data.getData()).toString());
+      } catch (Exception e) {
+        reply(id, false, JSONObject.quote(String.valueOf(e.getMessage())));
+      }
     } else if (req == REQ_SAVE) {
       final int id = saveId;
       final String text = saveText;

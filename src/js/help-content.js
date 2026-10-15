@@ -256,6 +256,7 @@ ${go('#/settings?section=huinfo', 'Kedvenc nyelvek beállítása')}`,
 <tr><td><b>Beépített lejátszó</b></td><td>A rendszer / tévé saját lejátszója. Tévén ez az alapértelmezés HLS-hez, mert ott a hls.js a CORS-korlátozás miatt sok adást nem érne el.</td></tr>
 <tr><td><b>mpegts.js</b></td><td>MPEG-TS (<code>.ts</code>) és FLV adások.</td></tr>
 <tr><td><b>dash.js</b></td><td>DASH (<code>.mpd</code>) adások.</td></tr>
+<tr><td><b>Natív lejátszó (ExoPlayer)</b></td><td>Androidon: filmekhez (MKV, MP4, AVI – AC3 / DTS hang, beágyazott felirat) magától; a <i>Natív lejátszó (ExoPlayer) – élő tévéhez is</i> motorral az élő adások és a HLS / DASH filmek is ezzel mennek. Élő adásnál az élő pontról indul, és csak annyit lehet tekerni, amennyit a szolgáltató ad. Ha nem indul, a program magától a webes lejátszóval próbálja.</td></tr>
 </table>
 <p>Beállítások → Lejátszás → <b>Lejátszómotor</b>: <i>Automatikus</i> (ajánlott), <i>Beépített lejátszó</i> vagy <i>hls.js</i>. Ha egy HLS adás az egyikkel nem indul, érdemes a másikat kipróbálni. Tévén a program ezt magától is megteszi: ha a beépített lejátszó nem boldogul, ugyanazt a forrást a hls.js-sel is megpróbálja.</p>`,
   },
@@ -1035,9 +1036,10 @@ https://…/sport/playlist.m3u8</pre>
 </ul>
 <h2>Háttérlejátszás</h2>
 <ul>
-<li><b>Háttérlejátszás (csak hang)</b>: Beállítások → Lejátszás → <i>Háttérlejátszás</i>. Bekapcsolva másik alkalmazásra váltva az adás hangja tovább szól; egy értesítés jelzi, onnan visszatérhetsz vagy leállíthatod. Kikapcsolva (alapból) kilépéskor a lejátszás megáll.</li>
+<li><b>Háttérlejátszás (csak hang)</b>: Beállítások → Lejátszás → <i>Háttérlejátszás</i>. Bekapcsolva másik alkalmazásra váltva az adás hangja tovább szól; egy értesítés jelzi, onnan szüneteltetheted, folytathatod, visszatérhetsz vagy leállíthatod (a fülhallgató és a Bluetooth-eszköz gombjai is működnek). Kikapcsolva (alapból) kilépéskor a lejátszás megáll.</li>
+<li><b>Mini lejátszó más alkalmazások fölött</b>: a lejátszó mini gombja a videót kis ablakba teszi (a rendszer kép a képben módja – Android 8-tól, ha az eszköz támogatja; ha nem, a gomb nem látszik). Beállítások → Lejátszás → <i>Kis ablak kilépéskor</i>: videó közben a Home gombra vagy másik alkalmazásra váltva magától is kis ablakba kerül. A kis ablak bezárásakor a lejátszás megáll.</li>
 </ul>
-<div class="note">Androidon nincs kivetítés, éjszakai hang és frissítés-ellenőrzés. A beállítások kóddal szinkronizálhatók a számítógéppel és a többi Android-eszközzel, mindkét irányba (${t('transfer', 'Szinkronizálás eszközök között')}), és a telefon távirányítóként is használható (${t('remote', 'Távirányító telefonról')}). Új verziót az új APK telepítésével kapsz – a beállítások megmaradnak.</div>`,
+<div class="note">Androidon is van kivetítés (telefonról / tabletről), éjszakai hang (a natív lejátszóval, Android 9-től) és beépített frissítés (${t('update', 'Frissítések')}). A beállítások kóddal szinkronizálhatók a számítógéppel és a többi Android-eszközzel, mindkét irányba (${t('transfer', 'Szinkronizálás eszközök között')}), és a telefon távirányítóként is használható (${t('remote', 'Távirányító telefonról')}). Az új verzió az alkalmazásban is letölthető és telepíthető – a beállítások megmaradnak.</div>`,
   },
   {
     id: 'tv-install',
@@ -1301,7 +1303,7 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
     title: 'Kivetítés tévére (Chromecast, DLNA)',
     keywords: 'kivetítés cast chromecast dlna upnp tévé smart tv google tv lejátszás másik eszközön',
     body: `
-<p>Az asztali változatból az adást vagy filmet <b>Chromecastra</b>, Google TV-re, illetve <b>DLNA-képes</b> okostévére vagy médialejátszóra küldheted. A lejátszó vezérlősávján a kivetítés ikonra kattintva a program megkeresi az eszközöket a helyi hálózaton.</p>
+<p>Az asztali változatból és <b>Android telefonról / tabletről</b> az adást vagy filmet <b>Chromecastra</b>, Google TV-re, illetve <b>DLNA-képes</b> okostévére vagy médialejátszóra küldheted. A lejátszó vezérlősávján a kivetítés ikonra kattintva a program megkeresi az eszközöket a helyi hálózaton.</p>
 <ul>
 <li>Kivetítés közben a gépen a vezérlők maradnak: szünet / folytatás, csatornaváltás (fel/le), hangerő, leállítás. A film onnan folytatódik a tévén, ahol itt tartott.</li>
 <li>A <b>Kivetítés leállítása</b> után a lejátszás a gépen folytatódik.</li>
@@ -1313,7 +1315,8 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
 <li>A gép és a tévé ugyanazon a Wi-Fi-n / routeren legyen (a vendéghálózat általában elszigetelt).</li>
 <li>DLNA-nál a tévén legyen bekapcsolva a médiamegosztás / „DLNA-renderelő” (LG: <i>Beállítások → Általános → Eszközök → Képernyőtükrözés / DLNA</i>).</li>
 </ul>
-<div class="note">Nem minden eszköz játszik le minden formátumot: a Chromecast a HLS-t és az MP4-et jól kezeli, sok DLNA-tévé viszont csak MP4-et vagy MPEG-TS-t. Ha az eszköz hibát jelez, próbálj másik forrást (⚙ → Forrás).</div>`,
+<div class="note">Nem minden eszköz játszik le minden formátumot: a Chromecast a HLS-t és az MP4-et jól kezeli, sok DLNA-tévé viszont csak MP4-et vagy MPEG-TS-t. Ha az eszköz hibát jelez, próbálj másik forrást (⚙ → Forrás).</div>
+<div class="note"><b>Androidon</b> a kivetítéshez nem kell Google-szolgáltatás: a telefon maga keresi meg az eszközöket, és továbbítja nekik az adást (a kivetítés alatt az Adás fusson, a telefon ugyanazon a Wi-Fi-n legyen). A tévés (Android TV) kiadásban nincs küldőfunkció.</div>`,
   },
   {
     id: 'night-audio',
@@ -1400,6 +1403,7 @@ ${go('#/settings?section=transfer', 'Szinkronizálás eszközök között')}`,
 <table class="help-table">
 <tr><td><b>🎮 Vezérlő</b></td><td><b>Érintőpad</b>, két módban (fölötte váltható, a telefon megjegyzi): <b>🖱 Egér</b> – húzással egy egérkurzort mozgatsz a gép / tévé képernyőjén (lassú mozdulat = pontos, gyors = nagy ugrás), koppintás = kattintás, <b>két ujjal húzva görgetés</b> (a kurzor alatti sorban vízszintesen is), a kurzor alatti elem ki is jelölődik; <b>✥ Nyilak</b> – húzásra a kijelölés lép (mint a nyilak), koppintás = OK. Mindkettőben: hosszan nyomva = Vissza. A kijelölés kerete távirányítós használatkor mindig látszik. Alatta: Vissza, Főoldal, Adatlap; tekerés (±10 / ±30 mp – élő adásnál időcsúsztatás); szünet; CH ▲ / ▼, Előző csatorna, némítás, <b>hangerő-csúszka</b>; Felirat, Minőség, Csatornalista, Teljes képernyő; nyilak és csatornaszám.</td></tr>
 <tr><td><b>📺 Csatornák</b></td><td><b>Kereső</b> az összes csatorna között (gépelés közben szűr, a most futó műsort is mutatja), a kedvenceid és a legutóbb nézett csatornák – egy érintéssel indulnak.</td></tr>
+<tr><td><b>📻 Rádió</b></td><td>A most szóló adó és szám; előző / szünet / következő adó, kedvenc, felvétel, saját hangerő, a <i>Most szól</i> nézet, a hangkép váltása, elalvás-időzítő (15 / 30 / 60 / 90 perc), kikapcsolás; adókereső (a helyi és az online adatbázisban), kedvenc és legutóbb hallgatott rádiók – egy érintéssel indulnak. Rádiózás közben a Vezérlő fül szünet, CH és hangerő gombja is a rádióra hat. (Gyerekprofilban nincs.)</td></tr>
 <tr><td><b>☰ Továbbiak</b></td><td>Ugrás bármelyik oldalra (TV, Műsorújság, Kedvencek, VOD, Felvételek, Böngészés, Súgó); <b>szöveg küldése</b> (a telefon billentyűzetével a kijelölt mezőbe gépel, vagy keresést indít); Adás adatai, elalvási időzítő.</td></tr>
 </table>
 <div class="note">A PIN-t és a QR-kód kulcsát bármikor újra lehet generálni (Új PIN) – a régi telefonnak újra be kell olvasnia a QR-kódot (vagy be kell írnia az új PIN-t). Rossz PIN-nel a vezérlő nem működik; egy eszközről sok hibás próbálkozás után az az eszköz 10 percre kizáródik (a többi telefon közben is működik).</div>
@@ -1463,7 +1467,7 @@ ${go('#/recordings', 'Felvételek')}`,
 <li>A telepítés a telepítés módjához igazodik: telepítővel (Setup) telepítve az új telepítő indul, MSI-vel telepítve az új MSI, a <b>hordozható</b> változatnál a letöltött fájlt a megnyíló mappában találod (azt indítsd a régi helyett), Linuxon az AppImage magát cseréli le.</li>
 <li><b>Frissítési forrás</b>: üresen a hivatalos kiadások. Megadható saját GitHub-tároló (<code>tulajdonos/tároló</code>) vagy egy JSON-fájl címe: <code>{ "version": "1.25.0", "url": "https://…/Adas-Setup-1.25.0.exe", "notes": "…" }</code>.</li>
 </ul>
-<div class="note">Az Android-változatot a GitHub-kiadás oldaláról letöltött új <code>.apk</code> telepítésével lehet frissíteni (a beállításaid megmaradnak).</div>
+<div class="note"><b>Androidon</b> is itt frissíthetsz: a <b>Letöltés és telepítés</b> letölti az új <code>.apk</code>-t, ellenőrzi (a kiadás ellenőrző összege, a csomag azonosítója, a verziója és az aláírása – más aláírású vagy régebbi csomag nem települ), majd az Android rákérdez a telepítésre. Első alkalommal engedélyezni kell az Adásnak az alkalmazások telepítését (a beállítás magától megnyílik). A profilok, a listák és a beállítások megmaradnak. Tévén a tévés, telefonon a mobil kiadást tölti le, ha a kiadás külön tartalmazza őket.</div>
 ${go('#/settings?section=update', 'Frissítések')}`,
   },
 

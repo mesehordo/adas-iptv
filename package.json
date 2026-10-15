@@ -16,6 +16,8 @@
     "dist:linux:any": "electron-builder --linux dir && node tools/build-linux.mjs",
     "dist:mac:any": "electron-builder --linux dir && node tools/build-mac.mjs",
     "android": "node tools/build-android.mjs",
+    "android:mobile": "node tools/build-android.mjs --target=mobile",
+    "android:tv": "node tools/build-android.mjs --target=tv",
     "ffmpeg": "node tools/fetch-ffmpeg.mjs",
     "linux-tools": "node tools/fetch-linux-tools.mjs",
     "android-deps": "node tools/fetch-android-deps.mjs",
@@ -111,14 +113,19 @@
       }
     },
     "nsis": {
-      "artifactName": "Adas-Setup-${version}.${ext}"
+      "artifactName": "Adas-Setup-${version}.${ext}",
+      "include": "build/installer.nsh"
     },
     "portable": {
       "artifactName": "Adas-${version}-portable.${ext}"
     },
     "msi": {
-      "artifactName": "Adas-${version}.${ext}"
+      "artifactName": "Adas-${version}.${ext}",
+      "oneClick": false,
+      "runAfterFinish": false,
+      "additionalLightArgs": ["-cultures:hu-HU"]
     },
+    "msiProjectCreated": "build/msi-hook.js",
     "dmg": {
       "artifactName": "Adas-${version}-mac-${arch}.${ext}"
     },

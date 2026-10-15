@@ -18,6 +18,7 @@ import './cast.js'; // kivetítés (Chromecast / DLNA)
 import { renderStats } from './stats.js';
 import { renderSport, sportMenuOn } from './sportpage.js';
 import { renderRadio, radioMenuOn } from './radiopage.js';
+import { radioPlayer } from './radioplayer.js';
 import { radioKey } from './radioui.js'; // a rádió mini-lejátszója és „Most szól” nézete
 import { radio } from './radio.js';
 import { autoCheckUpdate } from './update.js';
@@ -146,7 +147,32 @@ function route({ keepScroll = false } = {}) {
     searchInput.value = '';
     $('#search-box').classList.remove('open');
   }
+  // (B02) Gépelés közben (pl. a Böngészés vagy a VOD szűrőjének keresőmezőjében) a nézet újrarajzolódik:
+  // az új mező kapja vissza a fókuszt, a kurzort és a pontos szöveget (a címsorban a végéről levágott szóköz
+  // nélkül). Tévén is – ott eddig elveszett a fókusz, és minden karakter után újra ki kellett választani.
+  const ae = document.activeElement;
+  const keep = ae && view.contains(ae) && isTypingField(ae) && (ae.id || ae.name) ? { id: ae.id, name: ae.name, v: ae.value, s: ae.selectionStart, e: ae.selectionEnd } : null;
+  // (B03) a kijelölt kártya (csatorna, adó, film) azonosítója és hányadik előfordulása – ugyanaz a csatorna
+  // több sorban is szerepelhet; újrarajzolás után oda kerül vissza a fókusz, nem az oldal elejére
+  const cardSel = (el) =>
+    el.matches('.see-all') ? `a.see-all[href="${CSS.escape(el.getAttribute('href') || '')}"]` : el.dataset.id ? `.card[data-id="${CSS.escape(el.dataset.id)}"]` : el.dataset.rid ? `.card[data-rid="${CSS.escape(el.dataset.rid)}"]` : el.dataset.key ? `.card[data-key="${CSS.escape(el.dataset.key)}"]` : '';
+  const card = !keep && sameRoute && ae && view.contains(ae) ? ae.closest('.card, .see-all') : null;
+  const cardKeep = card && cardSel(card) ? { sel: cardSel(card), n: [...view.querySelectorAll(cardSel(card))].indexOf(card) } : null;
   fn(view, params);
+  if (cardKeep && !view.contains(document.activeElement)) {
+    const all = view.querySelectorAll(cardKeep.sel);
+    (all[cardKeep.n] || all[0])?.focus({ preventScroll: true });
+  }
+  if (keep) {
+    const n = keep.id ? view.querySelector('#' + CSS.escape(keep.id)) : view.querySelector(`[name="${CSS.escape(keep.name)}"]`);
+    if (n && n !== document.activeElement && isTypingField(n)) {
+      if (n.value !== keep.v) n.value = keep.v;
+      n.focus({ preventScroll: true });
+      try {
+        n.setSelectionRange(keep.s, keep.e);
+      } catch {}
+    }
+  }
   window.scrollTo(0, keepScroll || sameRoute ? y : 0);
 }
 
@@ -409,16 +435,60 @@ bus.on('save-state', (err) => {
   const why = /quota/i.test(String(err?.name || '') + String(err?.message || '')) ? _t('betelt a tárhely') : String(err?.message || err).slice(0, 120);
   toast(_t('Nem sikerült menteni a beállításokat ({x}). A legutóbbi módosítások újraindításkor elveszhetnek.', { x: why }), { action: _t('Újra'), onAction: () => store.flush(), timeout: 15000 });
 });
-// Android: a háttérlejátszás értesítésének „Leállítás” gombja
-window.__adasStopPlayback = () => player.active && player.close();
-// Háttér-beállítás átadása a keretnek (háttérlejátszás; a kép a képben mód megszűnt)
-const sendBgPrefs = () => api.setBackgroundPrefs?.(false, !!store.settings.bgAudio);
-bus.on('settings', (k) => k === 'bgAudio' && sendBgPrefs());
+// Android: a háttérlejátszás értesítésének „Leállítás” gombja (videó és rádió)
+window.__adasStopPlayback = () => {
+  if (player.active) player.close();
+  if (radioPlayer.active) radioPlayer.stop();
+};
+// (B37) az értesítés / a rendszer médiavezérlői (fülhallgató, Bluetooth, zárolt képernyő, tévé): play, pause,
+// next, prev – a rádióra, ha az szól, egyébként a videólejátszóra
+window.__adasMedia = (cmd) => {
+  if (radioPlayer.active && !player.active) {
+    if (cmd === 'play') radioPlayer.resume();
+    else if (cmd === 'pause') radioPlayer.pause();
+    else if (cmd === 'next') radioPlayer.step(1);
+    else if (cmd === 'prev') radioPlayer.step(-1);
+  } else if (player.active) {
+    if (cmd === 'play') mediaVideo.play().catch(() => {});
+    else if (cmd === 'pause') mediaVideo.pause();
+    else if (cmd === 'next' || cmd === 'prev') player.step(cmd === 'next' ? 1 : -1);
+  }
+};
+const mediaVideo = $('#video');
+// a lejátszás állapota a keretnek (a háttér-értesítés szünet / folytatás gombja ehhez igazodik)
+const reportMedia = () => api.setMediaState?.(radioPlayer.active && !player.active ? !radioPlayer.playing : mediaVideo.paused);
+mediaVideo.addEventListener('play', reportMedia);
+mediaVideo.addEventListener('pause', reportMedia);
+bus.on('radio-player', reportMedia);
+// (B38) Android kis ablak (kép a képben): csak a videó látszik; a vezérlők, a fejléc és a lap rejtve
+window.__adasPip = (on) => {
+  document.body.classList.toggle('pip', !!on);
+  if (on) document.activeElement?.blur?.();
+};
+window.__adasPipFailed = () => toast(_t('A kép a képben mód ezen az eszközön nem érhető el.'));
+bus.on('player-opened', () => api.setVideoActive?.(true));
+bus.on('player-closed', () => api.setVideoActive?.(false));
+// Háttér-beállítások átadása a keretnek: kilépéskor kis ablak (videó) / háttérlejátszás (csak hang) – külön
+const sendBgPrefs = () => api.setBackgroundPrefs?.(store.settings.autoPip === true, !!store.settings.bgAudio);
+bus.on('settings', (k) => (k === 'bgAudio' || k === 'autoPip') && sendBgPrefs());
 setTimeout(sendBgPrefs, 1000);
 
 // Szövegbevitel közben (telefonon a képernyő-billentyűzet nyitva) az alsó menüsáv elrejthető.
 const isTypingField = (el) => el?.matches?.('input:not([type=checkbox]):not([type=range]):not([type=radio]), textarea');
 document.addEventListener('focusin', (e) => document.body.classList.toggle('typing', isTypingField(e.target)));
+// (ha az ablak fókusz nélkül indult – pl. a telepítő indította –, a fókuszáltnak látszó mező a rendszerfókusz
+// visszatérésekor újra megkapja a fókuszt, így a leütések ténylegesen beleíródnak)
+window.addEventListener('focus', () => {
+  const a = document.activeElement;
+  if (!isTypingField(a)) return;
+  const s = a.selectionStart;
+  const e = a.selectionEnd;
+  a.blur();
+  a.focus({ preventScroll: true });
+  try {
+    a.setSelectionRange(s, e);
+  } catch {}
+});
 document.addEventListener('focusout', () => setTimeout(() => document.body.classList.toggle('typing', isTypingField(document.activeElement)), 0));
 
 let lastContentFocus = null;
@@ -426,7 +496,10 @@ document.addEventListener('focusin', (e) => {
   if (e.target.closest && !e.target.closest('#nav, #modal-root, #player')) lastContentFocus = e.target;
 });
 
-function moveFocus(dir) {
+// a kártyasorok és -rácsok tárolói (vízszintes lépés ezeken belül marad)
+const ROW_BOX = '.row-track, .grid, .rgrid, .vgrid, .fav-grid';
+
+function moveFocus(dir, { repeat = false } = {}) {
   const scope = scopeEl();
   const cur = document.activeElement;
   const list = candidates(scope);
@@ -458,6 +531,12 @@ function moveFocus(dir) {
     best = $('#nav .links a.active') || $('#nav .links a');
   } else if (rail && !curNav && (dir === 'up' || dir === 'down')) {
     best = pickDirection(cur, content, dir);
+  } else if ((dir === 'left' || dir === 'right') && cur.closest(ROW_BOX)) {
+    // (B03) sorban / rácsban vízszintesen csak a saját soron belül: a kijelölt (nagyított) kártya átfedheti a
+    // szomszéd sort, és a sor végén eddig oda ugorhatott – a sor végén a fókusz marad
+    const box = cur.closest(ROW_BOX);
+    best = pickDirectionIn(cur, content.filter((el) => box.contains(el)), dir, true);
+    if (!best) return;
   } else {
     // saját területen (tartalom / fejléc) bárhol; átlépni a másikba csak azonos sávban lehet
     best = pickDirection(cur, list.filter((el) => inNav(el) === curNav), dir) || pickDirectionIn(cur, list, dir, true);
@@ -466,7 +545,7 @@ function moveFocus(dir) {
   if (best?.closest?.('.set-tabs') && !cur.closest('.set-tabs')) best = best.closest('.set-tabs').querySelector('.tab.active') || best;
   if (best) {
     best.focus({ preventScroll: true });
-    best.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+    best.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: repeat ? 'auto' : 'smooth' });
   }
 }
 
@@ -639,8 +718,14 @@ document.addEventListener('keydown', (e) => {
   if (typing && (dir === 'left' || dir === 'right')) return;
   if (t.matches?.('select') || (t.matches?.('input[type=range]') && (dir === 'left' || dir === 'right'))) return;
   e.preventDefault();
-  moveFocus(dir);
+  if (e.repeat) {
+    const now = performance.now();
+    if (now - lastRepeatMove < 70) return;
+    lastRepeatMove = now;
+  }
+  moveFocus(dir, { repeat: e.repeat });
 });
+let lastRepeatMove = 0;
 
 // A „Most” csíkok frissítése percenként.
 setInterval(() => {

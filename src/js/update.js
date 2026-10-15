@@ -9,6 +9,12 @@ import { _t } from './i18n.js';
 export const updateAvailable = () => !!api.caps?.update;
 let progressCb = null;
 if (api.onUpdateProgress) api.onUpdateProgress((p) => progressCb?.(p));
+// (F03) Android: a rendszertelepítő visszajelzése (jóváhagyás után az alkalmazás magától újraindul)
+if (api.onUpdateStatus)
+  api.onUpdateStatus((s) => {
+    if (s.state === 'aborted') toast(_t('A frissítés telepítése megszakítva – az Adás a mostani verzióval fut tovább.'));
+    else if (s.state === 'error') toast(`${_t('A frissítés telepítése nem sikerült:')} ${s.message || ''}`, { timeout: 10000 });
+  });
 
 async function downloadAndInstall(info, out) {
   if (!info.asset) {
@@ -20,6 +26,13 @@ async function downloadAndInstall(info, out) {
   try {
     toast(`${_t('Az új verzió ({latest}) letöltése…', { latest: info.latest })}`);
     const file = await api.updateDownload(info.asset);
+    if (info.android) {
+      // Android: a rendszer telepítője kér jóváhagyást; a profilok, listák és beállítások megmaradnak
+      if (!(await confirmDialog(_t('A letöltés kész és ellenőrizve. Telepíted most? Az Android rákérdez a telepítésre; a profilok, a listák és a beállítások megmaradnak.'), { ok: _t('Telepítés most'), cancel: _t('Később') }))) return;
+      const r = await api.updateInstall(file);
+      if (r === 'permission') toast(_t('Engedélyezd az Adásnak az alkalmazások telepítését a megnyíló beállításban, majd nyomd meg újra a Telepítés gombot.'), { timeout: 12000 });
+      return;
+    }
     const msg = info.portable
       ? _t('A letöltés kész. A hordozható változatnál az új fájlt a megnyíló mappában találod – azt indítsd el a régi helyett.')
       : _t('A letöltés kész. Elindítod most a telepítőt? Az Adás bezárul, és a telepítés után újraindítható.');

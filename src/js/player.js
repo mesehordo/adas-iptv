@@ -233,7 +233,11 @@ export const player = {
       const container = stream.url.split(/[?#]/)[0];
       // Android / Android TV: filmekhez a natív lejátszó (ExoPlayer) – AC3 / DTS hang, beágyazott felirat,
       // MKV; hiba esetén ugyanez a fájl a WebView saját lejátszójával.
-      const exo = !!(ch.vod && !noExo && !bridge && exoAvailable() && store.settings.mediaBridge !== false && !/\.(m3u8|mpd)$/i.test(container));
+      // (F01) „Natív lejátszó (ExoPlayer)” motorral élő tévé és HLS / DASH film is ezzel megy (hiba esetén a
+      // webes lejátszóval – lásd lent); az „Automatikus” mód egyelőre csak a fájlokat (MKV, MP4…) adja neki
+      // (F02) helyi / USB-mappából (content://): csak a natív lejátszó olvassa
+      const exoAll = (mode === 'exo' || /^content:/i.test(stream.url)) && exoAvailable() && !noExo && !bridge;
+      const exo = exoAll || !!(ch.vod && !noExo && !bridge && exoAvailable() && store.settings.mediaBridge !== false && !/\.(m3u8|mpd)$/i.test(container));
       const canBridge = !exo && ch.vod && api.mediaProbe && !this.castHooks?.active && store.settings.mediaBridge !== false && !/\.(m3u8|mpd)$/i.test(container);
       const probeFirst = canBridge && !bridge && !/\.(mp4|m4v|webm|mp3|m4a|aac|ogg|opus|flac|wav)$/i.test(container);
       if (probeFirst) {
@@ -857,6 +861,12 @@ export const player = {
   },
 
   async setMini(on) {
+    // (B38) Androidon a rendszer kép a képben módja: az egész alkalmazás kis ablakba kerül, más alkalmazások
+    // fölött; a kilépést (teljes nézet / bezárás) a rendszer ablaka kezeli
+    if (api.enterPip) {
+      if (on && !api.enterPip()) toast(_t('A kép a képben mód ezen az eszközön nem érhető el.'));
+      return;
+    }
     this.mini = on;
     document.body.classList.toggle('mini', on);
     await api.setMini(on);

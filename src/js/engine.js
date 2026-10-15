@@ -3,7 +3,7 @@
 import { api } from './api.js';
 import { store } from './store.js';
 import { MediaBridge } from './bridge.js';
-import { ExoEngine } from './exo.js';
+import { ExoEngine, exoNightAvailable } from './exo.js';
 import { NetWatch } from './netwatch.js';
 import { fmtNum } from './util.js';
 
@@ -178,7 +178,7 @@ export class Engine {
 
       if (this.type === 'exo') {
         // Android: natív lejátszó (ExoPlayer) – az események a videóelemen érkeznek
-        const e = new ExoEngine(video, stream, { startAt, onFail: (err) => fail(err), onTracks: () => this.onTracks() });
+        const e = new ExoEngine(video, stream, { startAt, night: !!store.profile?.nightAudio && exoNightAvailable(), onFail: (err) => fail(err), onTracks: () => this.onTracks() });
         this.exo = e;
         e.start();
       } else if (this.type === 'bridge') {

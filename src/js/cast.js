@@ -174,6 +174,9 @@ const hooks = {
       title: ch.vod ? ch.vod.title : ch.name,
       subtitle: ch.vod ? ch.vod.subtitle || '' : n?.cur?.title || '',
       image: ch.vod?.item?.poster || ch.logo || '',
+      // (Androidon a közvetítő ezekkel kéri le az adást – a vevő ugyanazt kapja, amit a helyi lejátszó)
+      ua: stream.ua || '',
+      referrer: stream.referrer || '',
     };
     try {
       await api.castPlay(opts);

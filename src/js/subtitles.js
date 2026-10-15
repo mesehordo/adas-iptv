@@ -1,11 +1,11 @@
 // Feliratok filmekhez és sorozatokhoz: Feliratok.eu és OpenSubtitles (magyar és angol), helyi .srt / .vtt fájl,
 // időeltolás, betűméret. A kiválasztott felirat profilonként megmarad az adott filmhez / részhez.
-import { api } from './api.js';
+import { api, IS_ANDROID } from './api.js';
 import { store } from './store.js';
 import { esc, toast, bus, fmtNum } from './util.js';
 import { player } from './player.js';
 import { isHuLang, isEnLang, langMatcher } from './engine.js';
-import { nightAvailable, nightOn, setNight } from './audiofx.js';
+import { nightAvailable, nightSupported, nightOn, setNight } from './audiofx.js';
 import { isZip, unzip, bytesToText } from './unzip.js';
 
 // Éjszakai hang: a profil beállítása minden adás indulásakor érvényesül.
@@ -529,8 +529,8 @@ function urlToPath(u) {
 
 async function findSidecars(url) {
   try {
-    if (url.startsWith('file:')) {
-      return api.sidecarSubs ? await api.sidecarSubs(urlToPath(url)) : [];
+    if (url.startsWith('file:') || url.startsWith('content:')) {
+      return api.sidecarSubs ? await api.sidecarSubs(url.startsWith('content:') ? url : urlToPath(url)) : [];
     }
     if (/^https?:/.test(url) && !/\.m3u8(\?|$)/i.test(url)) {
       // Hálózati cím: a leggyakoribb elnevezések kipróbálása (nem létező fájl esetén csendben kihagyja).
@@ -575,7 +575,7 @@ player.subsHooks = {
       // A videó melletti feliratfájlok (a menüben is megjelennek).
       // (csak a saját médiatárnál, ill. helyi fájlnál – a nyilvános listák szervereit nem terheljük)
       const url0 = ch.streams[0]?.url || '';
-      if (ch.vod.item?.lib === 'own' || url0.startsWith('file:')) {
+      if (ch.vod.item?.lib === 'own' || url0.startsWith('file:') || url0.startsWith('content:')) {
         // (helyi változóba: a közös állapotba csak az aktuális munkamenet eredménye kerülhet)
         const found = await findSidecars(url0);
         if (!live()) return;
@@ -838,8 +838,8 @@ export function renderHuSettings(box) {
       <select data-hp="prefSubs">${[['auto', _t('A fájl alapértelmezése (pl. feliratos kiadásnál)')], ['off', _t('Kikapcsolva')], ...SUB_LANGS.map((l) => [l, _t('{lang}, ha van', { lang: esc(languageName(l)) })])]
         .map(([v, l]) => `<option value="${v}" ${(store.profile.prefSubs || 'auto') === v ? 'selected' : ''}>${l}</option>`)
         .join('')}</select></label>
-    ${nightAvailable()
-        ? `<label class="setting"><span>${_t('<b>Éjszakai hang</b>')}<small>${_t('A hangos részek (zene, reklám, robbanás) tompítása, a halk párbeszéd kiemelése – ha a többiek már alszanak.')}</small></span>
+    ${nightSupported()
+        ? `<label class="setting"><span>${_t('<b>Éjszakai hang</b>')}<small>${_t('A hangos részek (zene, reklám, robbanás) tompítása, a halk párbeszéd kiemelése – ha a többiek már alszanak.')}${IS_ANDROID ? ` ${_t('(Androidon a natív lejátszóval; a HDMI-n kódoltan továbbított hangnál nem hat.)')}` : ''}</small></span>
       <input type="checkbox" class="switch" data-hpb="nightAudio" ${store.profile.nightAudio ? 'checked' : ''} /></label>`
         : ''}`;
   // a kulcsok és jelszavak csak tulajdonságként kerülnek a mezőkbe (nem HTML-attribútumként, amit egy téma CSS-e vizsgálhatna)

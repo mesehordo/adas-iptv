@@ -7,6 +7,16 @@ import { store } from './store.js';
 
 import { _t, lang as uiLang } from './i18n.js';
 const A = () => window.AdasAndroid;
+/** A most futó natív lejátszó (vagy null). */
+export const exoCurrent = () => current;
+/** (F05) Az éjszakai hang a natív lejátszóval ezen az eszközön elérhető-e (Android 9+). */
+export const exoNightAvailable = () => {
+  try {
+    return !!A()?.nightAvailable?.();
+  } catch {
+    return false;
+  }
+};
 export const exoAvailable = () => {
   try {
     return !!A()?.exoAvailable?.();
@@ -24,10 +34,10 @@ const LANG_HU = /^(hu|hun|magyar|hungarian)/i;
 const LANG_EN = /^(en|eng|english)/i;
 
 export class ExoEngine {
-  constructor(video, stream, { onFail, onTracks, startAt = 0 } = {}) {
+  constructor(video, stream, { onFail, onTracks, startAt = 0, night = false } = {}) {
     this.video = video;
     this.stream = stream;
-    this.opts = { onFail, onTracks, startAt };
+    this.opts = { onFail, onTracks, startAt, night };
     this.st = { pos: startAt, dur: NaN, buf: 0, playing: false, pwr: true, state: 'idle', w: 0, h: 0, vol: 1, muted: false, ended: false, seekingTo: null };
     this.audio = [];
     this.text = [];
@@ -75,6 +85,7 @@ export class ExoEngine {
         referrer: this.stream.referrer || '',
         start: this.opts.startAt || 0,
         volume: st.muted ? 0 : st.vol,
+        night: !!this.opts.night, // (F05) éjszakai hang már az indulástól
         maxHeight: Number(store.settings.maxQuality) || 0, // (B12) legnagyobb minőség (0: automatikus)
         prefAudio: /^[a-z]{2}$/.test(p.prefAudio || '') ? p.prefAudio : '',
         prefText: p.prefSubs || 'auto',
@@ -95,7 +106,9 @@ export class ExoEngine {
       const durBefore = st.dur;
       st.pos = ev.pos;
       st.buf = ev.buf;
+      st.live = !!ev.live;
       if (ev.dur > 0) st.dur = ev.dur;
+      else if (ev.live) st.dur = NaN; // (élő adás: nincs hossz, nincs idősáv)
       st.playing = ev.playing;
       st.pwr = ev.pwr;
       if (st.seekingTo != null && Math.abs(ev.pos - st.seekingTo) < 1.5) {
@@ -161,6 +174,16 @@ export class ExoEngine {
   }
   applyVolume() {
     A().exoVolume(this.st.muted ? 0 : this.st.vol);
+  }
+  /** (F05) éjszakai hang be / ki – a natív lejátszó hangmunkamenetén (Android 9+). → sikerült-e */
+  setNight(on) {
+    try {
+      const ok = !!A().exoNight?.(!!on);
+      if (ok) this.opts.night = !!on;
+      return ok;
+    } catch {
+      return false;
+    }
   }
   /** (B12) a legnagyobb minőség változása lejátszás közben (régebbi natív oldalon nincs ilyen hívás) */
   applyQualityCap() {
