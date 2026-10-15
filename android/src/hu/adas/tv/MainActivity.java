@@ -576,6 +576,18 @@ public class MainActivity extends Activity {
           if ("request".equals(method)) out = request(a).toString();
           else if ("probe".equals(method)) out = probeAll(a.getJSONArray("items")).toString();
           // (F03) beépített frissítés: letöltés + ellenőrzés, majd telepítés a rendszer telepítőjével
+          // (F04) kivetítés (Chromecast, DLNA) – Google-szolgáltatások nélkül, mint az asztali változat
+          else if ("castDiscover".equals(method)) {
+            Cast.act = MainActivity.this;
+            out = Cast.discover(MainActivity.this, a.optInt("ms", 3500)).toString();
+          } else if ("castPlay".equals(method)) out = Cast.play(MainActivity.this, a).toString();
+          else if ("castControl".equals(method)) {
+            Cast.control(MainActivity.this, a.getString("action"), a.optDouble("value", 0));
+            out = "true";
+          } else if ("castForget".equals(method)) {
+            Cast.forget(MainActivity.this, a.getString("id"));
+            out = "true";
+          }
           // (F02) helyi / USB-mappák (a kiválasztott, engedélyezett mappán belül)
           else if ("scanFolder".equals(method)) out = Folders.scan(MainActivity.this, a.getString("uri")).toString();
           else if ("readDoc".equals(method)) out = JSONObject.quote(Folders.readText(MainActivity.this, a.getString("uri"), 20 * 1024 * 1024));

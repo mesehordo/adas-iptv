@@ -1303,7 +1303,7 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
     title: 'Casting to a TV (Chromecast, DLNA)',
     keywords: 'cast chromecast dlna upnp tv smart tv google tv play on another device',
     body: `
-<p>From the desktop version you can send the stream or film to a <b>Chromecast</b>, Google TV, or a <b>DLNA-capable</b> smart TV or media player. Click the cast icon on the player’s control bar and the program looks for devices on the local network.</p>
+<p>From the desktop version and from an <b>Android phone / tablet</b> you can send the stream or film to a <b>Chromecast</b>, Google TV, or a <b>DLNA-capable</b> smart TV or media player. Click the cast icon on the player’s control bar and the program looks for devices on the local network.</p>
 <ul>
 <li>While casting, the controls stay on the computer: pause / resume, channel switching (up/down), volume, stop. A film continues on the TV where it was here.</li>
 <li>After <b>Stop casting</b>, playback continues on the computer.</li>
@@ -1315,7 +1315,8 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 <li>The computer and the TV must be on the same Wi-Fi / router (guest networks are usually isolated).</li>
 <li>For DLNA, media sharing / a “DLNA renderer” must be switched on in the TV (LG: <i>Settings → General → Devices → Screen share / DLNA</i>).</li>
 </ul>
-<div class="note">Not every device plays every format: Chromecast handles HLS and MP4 well, but many DLNA TVs only MP4 or MPEG-TS. If the device reports an error, try another source (⚙ → Source).</div>`,
+<div class="note">Not every device plays every format: Chromecast handles HLS and MP4 well, but many DLNA TVs only MP4 or MPEG-TS. If the device reports an error, try another source (⚙ → Source).</div>
+<div class="note">On <b>Android</b>, casting needs no Google services: the phone finds the devices itself and relays the stream to them (keep Adás running while casting, with the phone on the same Wi-Fi). The TV (Android TV) build has no sender function.</div>`,
   },
   {
     id: 'night-audio',

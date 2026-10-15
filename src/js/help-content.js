@@ -1303,7 +1303,7 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
     title: 'Kivetítés tévére (Chromecast, DLNA)',
     keywords: 'kivetítés cast chromecast dlna upnp tévé smart tv google tv lejátszás másik eszközön',
     body: `
-<p>Az asztali változatból az adást vagy filmet <b>Chromecastra</b>, Google TV-re, illetve <b>DLNA-képes</b> okostévére vagy médialejátszóra küldheted. A lejátszó vezérlősávján a kivetítés ikonra kattintva a program megkeresi az eszközöket a helyi hálózaton.</p>
+<p>Az asztali változatból és <b>Android telefonról / tabletről</b> az adást vagy filmet <b>Chromecastra</b>, Google TV-re, illetve <b>DLNA-képes</b> okostévére vagy médialejátszóra küldheted. A lejátszó vezérlősávján a kivetítés ikonra kattintva a program megkeresi az eszközöket a helyi hálózaton.</p>
 <ul>
 <li>Kivetítés közben a gépen a vezérlők maradnak: szünet / folytatás, csatornaváltás (fel/le), hangerő, leállítás. A film onnan folytatódik a tévén, ahol itt tartott.</li>
 <li>A <b>Kivetítés leállítása</b> után a lejátszás a gépen folytatódik.</li>
@@ -1315,7 +1315,8 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
 <li>A gép és a tévé ugyanazon a Wi-Fi-n / routeren legyen (a vendéghálózat általában elszigetelt).</li>
 <li>DLNA-nál a tévén legyen bekapcsolva a médiamegosztás / „DLNA-renderelő” (LG: <i>Beállítások → Általános → Eszközök → Képernyőtükrözés / DLNA</i>).</li>
 </ul>
-<div class="note">Nem minden eszköz játszik le minden formátumot: a Chromecast a HLS-t és az MP4-et jól kezeli, sok DLNA-tévé viszont csak MP4-et vagy MPEG-TS-t. Ha az eszköz hibát jelez, próbálj másik forrást (⚙ → Forrás).</div>`,
+<div class="note">Nem minden eszköz játszik le minden formátumot: a Chromecast a HLS-t és az MP4-et jól kezeli, sok DLNA-tévé viszont csak MP4-et vagy MPEG-TS-t. Ha az eszköz hibát jelez, próbálj másik forrást (⚙ → Forrás).</div>
+<div class="note"><b>Androidon</b> a kivetítéshez nem kell Google-szolgáltatás: a telefon maga keresi meg az eszközöket, és továbbítja nekik az adást (a kivetítés alatt az Adás fusson, a telefon ugyanazon a Wi-Fi-n legyen). A tévés (Android TV) kiadásban nincs küldőfunkció.</div>`,
   },
   {
     id: 'night-audio',

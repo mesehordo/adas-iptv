@@ -2208,5 +2208,6 @@ export default {
  "A mappa nem olvasható.": "The folder cannot be read.",
  "A mappához nincs (már) hozzáférés – válaszd ki újra (pl. kihúzott USB-meghajtó vagy visszavont engedély).": "There is no (longer) access to the folder – choose it again (e.g. the USB drive was removed or the permission revoked).",
  "A fájl nem olvasható.": "The file cannot be read.",
- "Ezen az eszközön nincs mappaválasztó – a lejátszólistákat hálózati címről (pl. a NAS webszerveréről) add meg.": "This device has no folder picker – add the playlists from a network address (e.g. the NAS web server)."
+ "Ezen az eszközön nincs mappaválasztó – a lejátszólistákat hálózati címről (pl. a NAS webszerveréről) add meg.": "This device has no folder picker – add the playlists from a network address (e.g. the NAS web server).",
+ "a kapcsolat megszakadt": "the connection was lost"
 };

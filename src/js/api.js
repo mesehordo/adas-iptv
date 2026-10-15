@@ -393,6 +393,7 @@ const androidApi = {
   caps: {
     // (B38) mini lejátszó: a rendszer kép a képben módja, ha az eszköz támogatja (egyébként a gomb sem látszik)
     update: true,
+    cast: !ANDROID_TV, // (F04) telefonos / tabletes küldőfunkció (Chromecast, DLNA)
     mini: (() => {
       try {
         return !!window.AdasAndroid?.pipAvailable?.();
@@ -476,6 +477,14 @@ const androidApi = {
     return r.file;
   },
   updateInstall: (file) => native('updateInstall', { file }),
+  // (F04) kivetítés – a cast.js ugyanazt a felületet kapja, mint az asztali változatban
+  castDiscover: () => native('castDiscover', { ms: 3500 }),
+  castPlay: (opts) => native('castPlay', opts),
+  castControl: (action, value) => native('castControl', { action, value: Number(value) || 0 }),
+  castForget: (id) => native('castForget', { id }),
+  onCastStatus(cb) {
+    window.__adasCastStatus = (s) => cb(s);
+  },
   // (F02) helyi / USB-mappák (Storage Access Framework): a kiválasztott mappa content:// címe tartós engedéllyel
   async pickFolder() {
     const r = await native('pickFolder');
