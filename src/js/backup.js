@@ -4,6 +4,7 @@ import { toast, bus, esc } from './util.js';
 import { api } from './api.js';
 import { store, validateImport } from './store.js';
 import { confirmDialog } from './components.js';
+import { attachDocs, stageDocs, dropDocs, dropUnreferenced, referencedDocKeys } from './snapshot.js';
 
 import { _t, LOCALE } from './i18n.js';
 const KEY = 'backups';
@@ -27,23 +28,80 @@ async function list() {
   return v.items;
 }
 
+// (B05) A mentési pont a beállítások mellett a külön tárolt listadokumentumok tartalmát is megőrzi (fájlból
+// felvett VOD-listák, kiegészítő csomagok). A tartalom tartalom szerinti kulccsal, egyszer tárolódik
+// („bkdoc:<ujjlenyomat>”) – a 7 napi pont nem hétszer tárolja ugyanazt a nagy listát –, a pont csak hivatkozik
+// rá; a kiszoruló pontok már nem hivatkozott tartalma törlődik. Formátum: v: 2 (a régi, v1 pont is olvasható).
+const FORMAT = 2;
+const DOC_PREFIX = 'bkdoc:';
+/** Tartalom-ujjlenyomat (két független FNV-1a + hossz; nem biztonsági célú, csak az azonos tartalom felismerésére). */
+function fingerprint(text) {
+  let a = 0x811c9dc5;
+  let b = 0x01000193 ^ 0x5bd1e995;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    a = Math.imul(a ^ c, 0x01000193);
+    b = Math.imul(b ^ c, 0x01000193) ^ (b >>> 15);
+  }
+  return (a >>> 0).toString(36) + (b >>> 0).toString(36) + text.length.toString(36);
+}
+const refsOf = (items) => new Set(items.flatMap((it) => Object.values(it.docs || {})));
+
 // a mentéstár olvasás–módosítás–írás műveletei egymás után (két egyidejű mentés ne veszítsen pontot)
 let chain = Promise.resolve();
 export function backupNow(reason = 'auto') {
   const run = chain.then(async () => {
     if (!api.docSet) return false;
-    const data = JSON.parse(JSON.stringify(store.serialize()));
+    const data = await attachDocs(JSON.parse(JSON.stringify(store.serialize())));
     delete data.health;
     data.app = 'adas';
     const old = await list(); // (hibánál nem írunk: a régi mentési pontok érintetlenek maradnak)
-    const items = [{ at: Date.now(), reason, profiles: (data.profiles || []).length, data }, ...old].slice(0, KEEP);
+    // a dokumentumok tartalma külön, tartalom szerinti kulccsal (ami már megvan, nem íródik újra)
+    const docs = {};
+    for (const [k, v] of Object.entries(data.docs || {})) {
+      const h = fingerprint(v.text);
+      docs[k] = h;
+      const have = await api.docGet?.(DOC_PREFIX + h).catch(() => null);
+      if (typeof have?.text !== 'string' || have.text !== v.text) await api.docSet(DOC_PREFIX + h, { text: v.text });
+    }
+    delete data.docs;
+    const items = [{ v: FORMAT, at: Date.now(), reason, profiles: (data.profiles || []).length, data, docs }, ...old].slice(0, KEEP);
     await api.docSet(KEY, { items });
+    // a kiszorult pontok már nem hivatkozott tartalma törlődik (a hivatkozott marad)
+    const keep = refsOf(items);
+    for (const h of refsOf(old)) if (!keep.has(h)) await Promise.resolve(api.docSet(DOC_PREFIX + h, null)).catch(() => {});
     store.settings.lastBackup = Date.now();
     store.save();
     return true;
   });
   chain = run.catch(() => {});
   return run;
+}
+
+/**
+ * A mentési pont adatai a dokumentumokkal együtt. → { data (data.docs-szal), missing: [hiányzó listák neve] }
+ * A régi (v1) pontnál a hivatkozott dokumentumokat a mostani tárban keressük: ami nincs meg, az hiányzó.
+ */
+async function pointData(it) {
+  const data = JSON.parse(JSON.stringify(it.data));
+  const missing = [];
+  const names = Object.fromEntries(referencedDocKeys(data.settings).map((r) => [r.key, r.name]));
+  if (it.docs) {
+    data.docs = {};
+    for (const [k, h] of Object.entries(it.docs)) {
+      const v = await api.docGet?.(DOC_PREFIX + h).catch(() => null);
+      if (typeof v?.text === 'string' && fingerprint(v.text) === h) data.docs[k] = v;
+      else missing.push(names[k] || k);
+    }
+    // (a hivatkozott, de már a mentéskor sem meglévő lista is hiányzik)
+    for (const r of referencedDocKeys(data.settings)) if (!(r.key in it.docs)) missing.push(r.name);
+  } else {
+    for (const r of referencedDocKeys(data.settings)) {
+      const v = await api.docGet?.(r.key).catch(() => null);
+      if (typeof v?.text !== 'string') missing.push(r.name);
+    }
+  }
+  return { data, missing };
 }
 
 async function tick() {
@@ -104,12 +162,21 @@ export async function renderBackups(box) {
       const when = new Date(it.at).toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' });
       const ok = await confirmDialog(_t('Visszaállítod a(z) {when} állapotot? A mostani beállítások felülíródnak (előtte erről is készül mentési pont).', { when }), { ok: _t('Visszaállítás'), danger: true });
       if (!ok) return;
+      let staged = null;
       try {
         // (előbb az ellenőrzés: hibás pontnál ne készüljön előzetes mentés, ami a legrégebbi pontot kiszorítaná)
-        const data = validateImport(it.data);
+        validateImport(it.data);
+        const { data: full, missing } = await pointData(it);
+        // hiányzó listatartalom: a felhasználó dönt (a beállítások visszaállnak, a hiányzó listák üresek maradnak)
+        if (missing.length && !(await confirmDialog(_t('Ebből a mentési pontból {n} lista tartalma hiányzik ({names}). Ezek a visszaállítás után üresek lesznek. Így is visszaállítod?', { n: missing.length, names: missing.slice(0, 5).join(', ') }), { ok: _t('Visszaállítás'), danger: true }))) return;
+        const data = validateImport(full);
         await backupNow('before-restore');
+        staged = await stageDocs(data); // (új kulcsokra: hiba esetén a mostani listák érintetlenek – B31)
+        const before = JSON.parse(JSON.stringify(store.settings));
         await store.replaceAll({ ...data, health: store.health });
+        await dropUnreferenced(before, data.settings); // (a régiek a „visszaállítás előtti” pontban megvannak)
       } catch (err) {
+        if (staged) await dropDocs(staged.written);
         // (a mostani állapot használható marad, a további mentések is működnek)
         toast(_t('A visszaállítás nem sikerült: {x}', { x: err?.message || err }), { timeout: 9000 });
         return;
