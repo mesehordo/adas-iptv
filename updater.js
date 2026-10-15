@@ -160,7 +160,8 @@ async function check(source) {
   if (asset && !isHttps(asset.url)) asset = null; // csak titkosított kapcsolaton letölthető fájl
   offered = asset;
   if (!latest) throw new Error(_t('A forrás nem adott meg verziószámot.'));
-  return { current, latest: String(latest).replace(/^v/i, ''), newer: cmpVersion(latest, current) > 0 && (!isPrerelease(latest) || isPrerelease(current)), // (stabil telepítés előzetest nem kap) notes, page, asset, portable: isPortable() };
+  // (stabil telepítés előzetes kiadást nem kap automatikus frissítésként)
+  return { current, latest: String(latest).replace(/^v/i, ''), newer: cmpVersion(latest, current) > 0 && (!isPrerelease(latest) || isPrerelease(current)), notes, page, asset, portable: isPortable() };
 }
 
 let downloading = null;
