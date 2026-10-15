@@ -105,8 +105,10 @@ export async function renderBackups(box) {
       const ok = await confirmDialog(_t('Visszaállítod a(z) {when} állapotot? A mostani beállítások felülíródnak (előtte erről is készül mentési pont).', { when }), { ok: _t('Visszaállítás'), danger: true });
       if (!ok) return;
       try {
+        // (előbb az ellenőrzés: hibás pontnál ne készüljön előzetes mentés, ami a legrégebbi pontot kiszorítaná)
+        const data = validateImport(it.data);
         await backupNow('before-restore');
-        await store.replaceAll({ ...validateImport(it.data), health: store.health });
+        await store.replaceAll({ ...data, health: store.health });
       } catch (err) {
         // (a mostani állapot használható marad, a további mentések is működnek)
         toast(_t('A visszaállítás nem sikerült: {x}', { x: err?.message || err }), { timeout: 9000 });

@@ -343,7 +343,7 @@ function policyRequest(u, { method = 'GET', headers = {}, signal, body } = {}, r
       const h = new Headers();
       for (const [k, v] of Object.entries(res.headers)) if (v != null) h.set(k, Array.isArray(v) ? v.join(', ') : String(v));
       const status = res.statusCode || 502;
-      const noBody = method === 'HEAD' || status === 204 || status === 304 || status < 200;
+      const noBody = method === 'HEAD' || status === 204 || status === 205 || status === 304 || status < 200;
       if (noBody) res.resume();
       resolve(new Response(noBody ? null : Readable.toWeb(res), { status: status < 200 || status > 599 ? 502 : status, headers: h }));
     });
@@ -383,10 +383,12 @@ async function fetchPolicy(url, opts = {}, root = url) {
     if (!/^https?:$/.test(next.protocol)) throw policyDenied();
     const foreign = next.origin !== first.origin;
     if (secret && first.protocol === 'https:' && next.protocol === 'http:') throw new Error('Hitelesített kérés nem irányítható át titkosítatlan címre');
-    if (res.status === 301 || res.status === 302 || res.status === 303) {
-      const m = String(o.method || 'GET').toUpperCase();
-      o = { ...o, method: m === 'HEAD' ? 'HEAD' : 'GET', body: undefined };
-    } else if (foreign && o.body != null && o.body !== '') throw new Error('A kérés törzse nem küldhető másik szerverre');
+    // (a fetch-szabvány szerint: 303 → GET (HEAD marad); 301 / 302 → csak a POST lesz GET; minden más
+    // kérés metódusa és törzse megmarad – idegen eredetre törzset viszont nem küldünk)
+    const m = String(o.method || 'GET').toUpperCase();
+    if ((res.status === 303 && m !== 'HEAD' && m !== 'GET') || ((res.status === 301 || res.status === 302) && m === 'POST')) o = { ...o, method: 'GET', body: undefined };
+    else if (res.status === 303) o = { ...o, body: undefined };
+    if (foreign && o.body != null && o.body !== '') throw new Error('A kérés törzse nem küldhető másik szerverre');
     if (foreign) o = { ...o, headers: Object.fromEntries(Object.entries(o.headers).filter(([k]) => !SECRET_HEADER.test(k))) };
     cur = next.href;
   }

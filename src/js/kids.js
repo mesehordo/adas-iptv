@@ -12,7 +12,7 @@ export const KIDS_CH_CATS = new Set(['kids', 'animation', 'family', 'education']
 // (betűhatár: a magyar ékezetes betűket is betűnek veszi – a \b az ékezetnél határt látna)
 const W = (body) => new RegExp(`(?:^|[^\\p{L}\\p{N}])(?:${body})(?=$|[^\\p{L}\\p{N}])`, 'iu');
 const KIDS_VOD_RX = W('family|families|kids?|child|children|cartoons?|animation|animated|animáció|animációs|rajzfilm\\p{L}*|gyerek\\p{L}*|mesék?|mesefilm\\p{L}*|csal[aá]di|matinee|disney|junior|pixar|ghibli');
-const NOT_KIDS_RX = W('nem gyerekeknek|ecchi|guro|horror|thriller|seinen|háborús|őrültség|doujinshi|erotik\\p{L}*|hentai|xxx|adult|felnőtt\\p{L}*|18\\+|porn\\p{L}*|sex\\p{L}*|szex\\p{L}*');
+const NOT_KIDS_RX = W('nem gyerekeknek|ecchi\\p{L}*|guro\\p{L}*|horror\\p{L}*|thriller\\p{L}*|seinen\\p{L}*|háború\\p{L}*|őrült\\p{L}*|doujin\\p{L}*|erotik\\p{L}*|hentai\\p{L}*|xxx|adult\\p{L}*|felnőtt\\p{L}*|18\\+|porn\\p{L}*|sex\\p{L}*|szex\\p{L}*');
 
 const marks = () => (store.settings.kidsMarks ||= { ch: {}, vod: {} });
 

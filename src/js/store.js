@@ -229,7 +229,8 @@ export function sanitizeSettings(raw) {
 export function validateImport(data, { needProfiles = true } = {}) {
   if (kindOf(data) !== 'object' || kindOf(data.settings) !== 'object') throw new Error(_t('hibás formátum'));
   if (data.profiles !== undefined || needProfiles) {
-    if (!Array.isArray(data.profiles) || (needProfiles && !data.profiles.length)) throw new Error(_t('hibás formátum: nincs benne profil'));
+    // (a megadott, de üres profillista mindig hiba – különben a meglévő profilok elveszhetnének)
+    if (!Array.isArray(data.profiles) || !data.profiles.length) throw new Error(_t('hibás formátum: nincs benne profil'));
     if (!data.profiles.every((p) => kindOf(p) === 'object' && typeof p.id === 'string' && p.id && typeof (p.name ?? '') === 'string')) throw new Error(_t('hibás formátum: sérült profiladat'));
   }
   if (data.activeProfileId !== undefined && typeof data.activeProfileId !== 'string') throw new Error(_t('hibás formátum'));

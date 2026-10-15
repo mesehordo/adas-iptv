@@ -5,31 +5,34 @@
 // nélküli) műsorújságon újra és újra végigolvasták a dokumentum maradékát (négyzetes idő).
 
 const ENT = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
-/** <![CDATA[…]]> → a tartalma (záratlan CDATA-nál a maradék változatlan) */
-function uncdata(s) {
+/** Az XML-ben megengedett karakter-e (XML 1.0 Char) – a hibás hivatkozás (pl. &#x110000;) nem dob kivételt (B17). */
+const xmlChar = (n) => n === 0x9 || n === 0xa || n === 0xd || (n >= 0x20 && n <= 0xd7ff) || (n >= 0xe000 && n <= 0xfffd) || (n >= 0x10000 && n <= 0x10ffff);
+/** Entitások feloldása normál (nem CDATA) szövegben. A tiltott / tartományon kívüli kódpont helyére U+FFFD kerül. */
+const entities = (s) =>
+  s.replace(/&(#x[0-9a-f]+|#[0-9]+|[a-z]\w*);/gi, (m, e) => {
+    if (e[0] !== '#') return ENT[e.toLowerCase()] ?? m;
+    const n = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+    return Number.isFinite(n) && xmlChar(n) ? String.fromCodePoint(n) : '\uFFFD';
+  });
+/**
+ * Szövegtartalom dekódolása: a CDATA-szakaszok tartalma szó szerinti (B19 – benne nincs entitásfeloldás), a
+ * többi rész entitásai feloldódnak. Záratlan CDATA-nál a maradék normál szövegként. Lineáris, egy menetben.
+ */
+function decode(s) {
+  if (!s) return '';
   let out = '';
   let i = 0;
   for (;;) {
     const a = s.indexOf('<![CDATA[', i);
-    if (a < 0) return out + s.slice(i);
-    const b = s.indexOf(']]>', a + 9);
-    if (b < 0) return out + s.slice(i);
-    out += s.slice(i, a) + s.slice(a + 9, b);
+    const b = a < 0 ? -1 : s.indexOf(']]>', a + 9);
+    if (a < 0 || b < 0) {
+      out += entities(s.slice(i));
+      break;
+    }
+    out += entities(s.slice(i, a)) + s.slice(a + 9, b);
     i = b + 3;
   }
-}
-function decode(s) {
-  if (!s) return '';
-  s = uncdata(s);
-  return s
-    .replace(/&(#x?[0-9a-f]+|\w+);/gi, (m, e) => {
-      if (e[0] === '#') {
-        const n = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
-        return Number.isFinite(n) ? String.fromCodePoint(n) : m;
-      }
-      return ENT[e.toLowerCase()] ?? m;
-    })
-    .trim();
+  return out.trim();
 }
 
 function parseTime(s) {
@@ -44,10 +47,14 @@ function parseTime(s) {
   return utc - off * 60000;
 }
 
+// Attribútum (B07): idézőjeles vagy aposztrófos érték, szóköz az egyenlőségjel körül is lehet. Pontos név: a
+// szöveg elején vagy szóköz után áll (a provider-id ne adja az id-t). A minták attribútumnevenként egyszer készülnek.
+const ATTR_RX = new Map();
 const attr = (s, name) => {
-  // pontos név: az attribútum a szöveg elején vagy szóköz után áll (a provider-id ne adja az id-t)
-  const m = new RegExp('(?:^|\\s)' + name + '="([^"]*)"').exec(s);
-  return m ? decode(m[1]) : '';
+  let rx = ATTR_RX.get(name);
+  if (!rx) ATTR_RX.set(name, (rx = new RegExp('(?:^|\\s)' + name.replace(/[^\w-]/g, '') + '\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\')')));
+  const m = rx.exec(s);
+  return m ? decode(m[1] ?? m[2]) : '';
 };
 /**
  * Elem keresése `from`-tól: → { attrs, body, end } (önzáró elemnél body: ''), vagy null. Ha az elemnek nincs
@@ -159,9 +166,21 @@ self.onmessage = (e) => {
     }
     for (const [k, all] of programs) {
       const list = all.sort((x, y) => x[0] - y[0]);
-      // Hiányzó vég: a következő műsor kezdete (az utolsónál 1 óra); ismétlődő kezdés kiszűrése.
-      for (let i = 0; i < list.length; i++) if (!list[i][1]) list[i][1] = list[i + 1] ? list[i + 1][0] : list[i][0] + 3600e3;
-      programs.set(k, list.filter((p, i) => p[1] > from && p[0] < to && (i === 0 || p[0] !== list[i - 1][0])));
+      // (B18) Előbb az azonos kezdetű bejegyzések összevonása: a használható vég és a hiányzó metaadatok is
+      // megmaradnak; csak utána a hiányzó vég pótlása a következő ELTÉRŐ kezdésből (az utolsónál 1 óra), végül
+      // a stop > start feltétel – így nem marad nulla hosszúságú (soha nem aktuális) műsor.
+      const merged = [];
+      for (const p of list) {
+        const last = merged[merged.length - 1];
+        if (last && last[0] === p[0]) {
+          if (!last[1] && p[1]) last[1] = p[1];
+          for (let j = 2; j < p.length; j++) if (!last[j] && p[j]) last[j] = p[j];
+          continue;
+        }
+        merged.push(p.slice());
+      }
+      for (let i = 0; i < merged.length; i++) if (!merged[i][1]) merged[i][1] = merged[i + 1] ? merged[i + 1][0] : merged[i][0] + 3600e3;
+      programs.set(k, merged.filter((p) => p[1] > p[0] && p[1] > from && p[0] < to));
     }
     // Párosítás: csak a csatornalistában megtalált csatornák műsorai mennek vissza [[csatorna-id, műsorok], …]
     const matched = [];

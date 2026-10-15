@@ -454,8 +454,10 @@ function detectLooseSeries(bucket) {
     if (m) nums.set(x, parseInt(m[1], 10));
   }
   if (nums.size < 3 || nums.size < bucket.length * 0.7) return null;
-  // ha minden „sorszám” évszámnak látszik (pl. „Film - 1971”, „Film - 1985”), az filmek sora, nem sorozat (#21)
-  if ([...nums.values()].every((n) => YEAR_LIKE.test(String(n)))) return null;
+  // ha a „sorszámok” (szinte) mind évszámnak látszanak (pl. „Film - 1971”, „Film - 1985”), az filmek sora, nem sorozat (#21)
+  // (arányos: ha a számok legalább 70%-a évszámnak látszik, az filmek sora, nem sorozat)
+  const vals = [...nums.values()];
+  if (vals.filter((n) => YEAR_LIKE.test(String(n))).length >= vals.length * 0.7) return null;
   // (sok ismétlődő szám: nem sorszám, hanem pl. felbontás vagy évszám)
   if (new Set(nums.values()).size < nums.size * 0.8) return null;
   const series = cleanName(prefix.replace(/\b(?:layer|vol|no|#)\s*$/i, ''));

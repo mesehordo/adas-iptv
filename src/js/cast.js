@@ -57,13 +57,17 @@ function drawOverlay() {
 async function scan(listEl) {
   state.scanning = true;
   listEl.innerHTML = `<p class="muted"><span class="spinner small-spin"></span> ${_t('Eszközök keresése a hálózaton…')}</p>`;
+  state.scanError = '';
   try {
     state.devices = await api.castDiscover();
   } catch (err) {
+    // (B08) a hiba szövege a meglévő errText segéddel, és a rajzoláskor esc-kel – nem a „nincs eszköz” üzenet
+    // írja felül; a keresés jelzője minden esetben leáll, az Újrakeresés működik
     state.devices = [];
-    listEl.innerHTML = `<p class="muted">${_t('Hiba a keresésben: {escerrText}', { escerrText: escerrText(err) })}</p>`;
+    state.scanError = errText(err);
+  } finally {
+    state.scanning = false;
   }
-  state.scanning = false;
 }
 
 function openMenu() {
@@ -83,7 +87,9 @@ function openMenu() {
               <span><b>${esc(d.name)}</b><small>${esc(d.kind === 'chromecast' ? 'Chromecast' : 'DLNA')}${d.model ? ' · ' + esc(d.model) : ''} · ${esc(d.host)}</small></span></button>`
           )
           .join('')
-      : `<p class="muted">${_t('Nem található eszköz. Ellenőrizd, hogy a tévé / Chromecast be van-e kapcsolva, és ugyanazon a hálózaton van-e. Első használatkor a Windows tűzfal engedélyt kérhet – engedélyezd a magánhálózaton.')}</p>`;
+      : state.scanError
+        ? `<p class="muted">${esc(_t('Hiba a keresésben: {escerrText}', { escerrText: state.scanError }))}</p>`
+        : `<p class="muted">${_t('Nem található eszköz. Ellenőrizd, hogy a tévé / Chromecast be van-e kapcsolva, és ugyanazon a hálózaton van-e. Első használatkor a Windows tűzfal engedélyt kérhet – engedélyezd a magánhálózaton.')}</p>`;
     list.querySelector('[data-dev]')?.focus();
   };
   const run = async () => {

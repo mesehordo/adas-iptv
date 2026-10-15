@@ -15,7 +15,7 @@ import java.util.Map;
  *    süti) nem mennek tovább;
  *  - hitelesített HTTPS-kérés nem léphet vissza HTTP-re;
  *  - a kérés törzse (307 / 308) nem küldhető más eredetre;
- *  - 301 / 302 / 303 után a kérés GET, törzs nélkül (mint a böngészőkben).
+ *  - 303 után GET; 301 / 302 után csak a POST lesz GET, törzs nélkül (mint a böngészőkben).
  * Android-függőség nélkül, hogy a JDK-val is tesztelhető legyen.
  */
 final class HttpOpen {
@@ -63,12 +63,14 @@ final class HttpOpen {
         if (!p.equals("http") && !p.equals("https")) throw new IOException("Nem engedélyezett átirányítás");
         boolean foreign = !originOf(next).equals(origin);
         if (hasSecret && "https".equalsIgnoreCase(first.getProtocol()) && p.equals("http")) throw new IOException("Hitelesített kérés nem irányítható át titkosítatlan címre");
-        if (code == 301 || code == 302 || code == 303) {
-          if (!"GET".equals(method) && !"HEAD".equals(method)) method = "GET";
+        // (fetch-szabvány: 303 → GET (HEAD marad); 301 / 302 → csak a POST lesz GET; más metódus és törzs marad)
+        if ((code == 303 && !"GET".equals(method) && !"HEAD".equals(method)) || ((code == 301 || code == 302) && "POST".equals(method))) {
+          method = "GET";
           body = null;
-        } else if (foreign && body != null && body.length > 0) {
-          throw new IOException("A kérés törzse nem küldhető másik szerverre");
+        } else if (code == 303) {
+          body = null;
         }
+        if (foreign && body != null && body.length > 0) throw new IOException("A kérés törzse nem küldhető másik szerverre");
         if (foreign) hdrs.keySet().removeIf(HttpOpen::sensitiveHeader);
         url = next.toString();
         continue;

@@ -45,7 +45,10 @@ export async function stageDocs(data) {
   try {
     for (const [k, v] of Object.entries(docs)) {
       if (!DOC_KEY.test(k) || !v || typeof v.text !== 'string') continue;
-      const nk = `${k.replace(/-r[0-9a-z]+$/, '')}-r${stamp}`; // (egy korábbi utótag nem halmozódik)
+      // (saját, egyedi jelölő: „--v<időbélyeg>” – egy korábbi ilyen utótag nem halmozódik, és egy valódi
+      // azonosító-végződés, pl. „-radio”, nem tévesztődik vele össze; azonos új kulcs nem jöhet létre kétszer)
+      let nk = `${k.replace(/--v[0-9a-z]+(?:-\d+)?$/, '')}--v${stamp}`;
+      for (let n = 2; Object.values(map).includes(nk); n++) nk = `${k.replace(/--v[0-9a-z]+(?:-\d+)?$/, '')}--v${stamp}-${n}`;
       await api.docSet?.(nk, v);
       written.push(nk);
       map[k] = nk;
