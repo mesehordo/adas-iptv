@@ -2202,5 +2202,11 @@ export default {
  "A letöltött csomag aláírása nem ellenőrizhető.": "The signature of the downloaded package cannot be verified.",
  "A letöltött frissítés már nem található – töltsd le újra.": "The downloaded update is no longer available – download it again.",
  "Az alkalmazások telepítésének engedélyezése ezen az eszközön nem nyitható meg.": "The setting to allow installing apps cannot be opened on this device.",
- "(Androidon a natív lejátszóval; a HDMI-n kódoltan továbbított hangnál nem hat.)": "(On Android with the native player; no effect when the audio is passed through encoded over HDMI.)"
+ "(Androidon a natív lejátszóval; a HDMI-n kódoltan továbbított hangnál nem hat.)": "(On Android with the native player; no effect when the audio is passed through encoded over HDMI.)",
+ "Mappát ezen az eszközön nem lehet olvasni (böngészőben hálózati címet adj meg).": "Folders cannot be read on this device (in a browser, enter a network address).",
+ "Mappa: a belső tár vagy egy USB-meghajtó mappája, a rendszer mappaválasztójával (az engedély újraindítás után is megmarad).": "Folder: a folder on internal storage or a USB drive, chosen with the system folder picker (the permission is kept after restarting).",
+ "A mappa nem olvasható.": "The folder cannot be read.",
+ "A mappához nincs (már) hozzáférés – válaszd ki újra (pl. kihúzott USB-meghajtó vagy visszavont engedély).": "There is no (longer) access to the folder – choose it again (e.g. the USB drive was removed or the permission revoked).",
+ "A fájl nem olvasható.": "The file cannot be read.",
+ "Ezen az eszközön nincs mappaválasztó – a lejátszólistákat hálózati címről (pl. a NAS webszerveréről) add meg.": "This device has no folder picker – add the playlists from a network address (e.g. the NAS web server)."
 };

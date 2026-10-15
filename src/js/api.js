@@ -401,7 +401,7 @@ const androidApi = {
       }
     })(),
     fullscreen: !ANDROID_TV, files: true, external: !ANDROID_TV, health: true,
-    preview: true, exit: true, folders: false,
+    preview: true, exit: true, folders: true, // (F02) helyi / USB-mappa a rendszer mappaválasztójával
   },
   /** Mini lejátszó (kép a képben). → sikerült-e elindítani */
   enterPip() {
@@ -476,6 +476,15 @@ const androidApi = {
     return r.file;
   },
   updateInstall: (file) => native('updateInstall', { file }),
+  // (F02) helyi / USB-mappák (Storage Access Framework): a kiválasztott mappa content:// címe tartós engedéllyel
+  async pickFolder() {
+    const r = await native('pickFolder');
+    return r?.uri || null;
+  },
+  scanFolder: (uri) => native('scanFolder', { uri }),
+  readTextFile: (uri) => native('readDoc', { uri }),
+  sidecarSubs: (uri) => native('sidecarSubs', { uri }),
+  sidecarImage: (uri) => native('sidecarImage', { uri }),
   onUpdateProgress(cb) {
     window.__adasUpdateProgress = (p) => cb(p);
   },

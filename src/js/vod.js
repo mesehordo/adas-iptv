@@ -1,7 +1,7 @@
 // Filmek és sorozatok (VOD): M3U / M3U8 listákból (akár egész GitHub-tárhelyből) betöltött
 // filmek és sorozatok felismerése, böngészése, adatlapja, lejátszása folytatással.
 import { $, $$, esc, html, norm, hashHue, toast, bus, debounce, seededShuffle, errText, fmtNum } from './util.js';
-import { api, coverSrc, IS_TV } from './api.js';
+import { api, coverSrc, IS_TV, IS_ANDROID } from './api.js';
 import { store, VOD_BUILTIN, refreshHoursOf, DEFAULT_REFRESH_HOURS, setRefreshHours } from './store.js';
 import { parseM3U, catalog, isLiveEntry, setVodLive } from './catalog.js';
 import { ICON, openModal, confirmDialog, promptDialog, emptyState, rowTitleHtml, seeAllHtml, rowOrderEditor, progressiveTrack, refreshSelectHtml } from './components.js';
@@ -1316,8 +1316,8 @@ async function localPoster(x) {
   const hit = await api.kvGet?.(key).catch(() => null);
   if (hit && Date.now() - hit.at < (hit.url ? 30 : 3) * 86400e3) return hit.url;
   let found = '';
-  if (url.startsWith('file:') && api.sidecarImage) {
-    found = await api.sidecarImage(urlToPath(url)).catch(() => '');
+  if ((url.startsWith('file:') || url.startsWith('content:')) && api.sidecarImage) {
+    found = await api.sidecarImage(url.startsWith('content:') ? url : urlToPath(url)).catch(() => '');
   } else if (/^https?:/i.test(url)) {
     // Hálózati megosztás (HTTP-könyvtár): a fájl nevével egyező, majd a mappa közös képe
     const dir = url.slice(0, url.lastIndexOf('/') + 1);
@@ -1887,10 +1887,39 @@ export function urlToPath(u) {
 }
 
 /** A lejátszólistában álló cím feloldása a lista helyéhez képest. */
+/**
+ * (F02) Relatív útvonal egy Androidos mappán (content://…/tree/…/document/<azonosító>) belül: a dokumentum-
+ * azonosító útvonal-alapú (pl. „primary:Filmek/lista.m3u”, USB-n „ABCD-1234:…”), így a testvér- és
+ * almappák címe ebből képezhető. (A natív oldal csak az engedélyezett mappán belüli dokumentumot olvassa.)
+ */
+function resolveContent(rel, base) {
+  const m = /^(content:\/\/[^/]+\/tree\/[^/]+\/document\/)(.+)$/.exec(base);
+  if (!m) return rel;
+  const dec = (x) => {
+    try {
+      return decodeURIComponent(x);
+    } catch {
+      return x;
+    }
+  };
+  const doc = dec(m[2]);
+  const ci = doc.indexOf(':');
+  const vol = doc.slice(0, ci + 1);
+  const parts = doc.slice(ci + 1).split('/').filter(Boolean);
+  parts.pop(); // (a lista maga)
+  for (const seg of rel.replace(/\\/g, '/').split('/')) {
+    if (!seg || seg === '.') continue;
+    if (seg === '..') parts.pop();
+    else parts.push(dec(seg));
+  }
+  return m[1] + encodeURIComponent(vol + parts.join('/'));
+}
+
 function resolveEntry(u, base) {
   const s = String(u || '').trim();
   if (!s) return s;
   if (/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) return s; // http://, file://, rtsp:// …
+  if (base.startsWith('content:')) return resolveContent(s, base);
   if (/^[a-zA-Z]:[\\/]/.test(s) || s.startsWith('\\\\')) return pathToUrl(s); // C:\…, \\NAS\…
   if (s.startsWith('/') && base.startsWith('file:')) return pathToUrl(s); // /volume1/… (Unix)
   try {
@@ -1946,9 +1975,9 @@ async function scanOwnSources({ force = false } = {}) {
   for (const src of (s.ownSources || []).filter((x) => x.enabled)) {
     try {
       if (src.kind === 'folder') {
-        if (!api.scanFolder) throw new Error(_t('Mappát csak az asztali alkalmazás tud olvasni (tévén / böngészőben hálózati címet adj meg).'));
+        if (!api.scanFolder) throw new Error(_t('Mappát ezen az eszközön nem lehet olvasni (böngészőben hálózati címet adj meg).'));
         for (const f of await api.scanFolder(src.path)) {
-          files.push({ key: `${src.id}|${f.rel}`, src: src.id, name: f.name.replace(/\.m3u8?$/i, ''), rel: f.rel, kind: 'folder', loc: f.path, base: pathToUrl(f.path), mtime: f.mtime });
+          files.push({ key: `${src.id}|${f.rel}`, src: src.id, name: f.name.replace(/\.m3u8?$/i, ''), rel: f.rel, kind: 'folder', loc: f.path, base: f.path.startsWith('content:') ? f.path : pathToUrl(f.path), mtime: f.mtime });
         }
       } else {
         for (const f of await scanUrl(src.url, force)) {
@@ -2256,10 +2285,10 @@ export function renderOwnLists(box) {
         })
         .join('') || `<p class="muted">${_t('Még nincs forrás megadva.')}</p>`}</div>
     <div class="inline">
-      ${api.caps.folders ? `<button class="btn small" data-ol="pick">${_t('{plus} Mappa kiválasztása…', { plus: ICON.plus })}</button><button class="btn small" data-ol="path">${_t('{plus} Mappa útvonalának megadása', { plus: ICON.plus })}</button>` : ''}
+      ${api.caps.folders ? `<button class="btn small" data-ol="pick">${_t('{plus} Mappa kiválasztása…', { plus: ICON.plus })}</button>${IS_ANDROID ? '' : `<button class="btn small" data-ol="path">${_t('{plus} Mappa útvonalának megadása', { plus: ICON.plus })}</button>`}` : ''}
       <button class="btn small" data-ol="url">${_t('{plus} Hálózati cím (http) megadása', { plus: ICON.plus })}</button>
     </div>
-    <p class="muted small">${api.caps.folders ? `${_t('Mappa például: <code>\\\\NAS\\Media\\Listak</code>, <code>Z:\\Listak</code> vagy <code>/mnt/nas/listak</code>.')}` : `${_t('Ezen az eszközön mappát nem lehet olvasni; add meg a NAS webes címét (pl. <code>http://192.168.1.10/listak/</code>), ahol a lejátszólisták elérhetők.')}`} ${_t('A listákban lévő relatív útvonalakat (pl. <code>Filmek/Film.mkv</code>) a lista helyéhez képest értelmezi.')}</p>`;
+    <p class="muted small">${api.caps.folders && IS_ANDROID ? `${_t('Mappa: a belső tár vagy egy USB-meghajtó mappája, a rendszer mappaválasztójával (az engedély újraindítás után is megmarad).')}` : api.caps.folders ? `${_t('Mappa például: <code>\\\\NAS\\Media\\Listak</code>, <code>Z:\\Listak</code> vagy <code>/mnt/nas/listak</code>.')}` : `${_t('Ezen az eszközön mappát nem lehet olvasni; add meg a NAS webes címét (pl. <code>http://192.168.1.10/listak/</code>), ahol a lejátszólisták elérhetők.')}`} ${_t('A listákban lévő relatív útvonalakat (pl. <code>Filmek/Film.mkv</code>) a lista helyéhez képest értelmezi.')}</p>`;
 
   if (box.dataset.bound) return;
   box.dataset.bound = '1';
@@ -2303,7 +2332,9 @@ export function renderOwnLists(box) {
         break;
       case 'pick': {
         const p = await api.pickFolder();
-        if (p) addSource({ kind: 'folder', path: p, name: p.split(/[\\/]/).filter(Boolean).pop() || p });
+        // (Androidon content:// cím: a név a mappa azonosítójának vége, pl. „primary:Filmek” → „Filmek”)
+        const nm = p && p.startsWith('content:') ? decodeURIComponent(p.split('/').pop()).split(':').pop().split('/').pop() || _t('Mappa') : p && (p.split(/[\\/]/).filter(Boolean).pop() || p);
+        if (p) addSource({ kind: 'folder', path: p, name: nm });
         break;
       }
       case 'path': {

@@ -90,6 +90,8 @@ public class MainActivity extends Activity {
       "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36";
   static final int REQ_FILE = 1;
   static final int REQ_SAVE = 2;
+  static final int REQ_TREE = 3; // (F02) mappaválasztó
+  int folderId = -1;
 
   WebView web;
   NativePlayer nativePlayer;
@@ -538,6 +540,10 @@ public class MainActivity extends Activity {
         runOnUiThread(() -> startSave(id, json));
         return;
       }
+      if ("pickFolder".equals(method)) {
+        runOnUiThread(() -> startPickFolder(id));
+        return;
+      }
       pool.submit(() -> {
         try {
           JSONObject a = new JSONObject(json);
@@ -545,6 +551,11 @@ public class MainActivity extends Activity {
           if ("request".equals(method)) out = request(a).toString();
           else if ("probe".equals(method)) out = probeAll(a.getJSONArray("items")).toString();
           // (F03) beépített frissítés: letöltés + ellenőrzés, majd telepítés a rendszer telepítőjével
+          // (F02) helyi / USB-mappák (a kiválasztott, engedélyezett mappán belül)
+          else if ("scanFolder".equals(method)) out = Folders.scan(MainActivity.this, a.getString("uri")).toString();
+          else if ("readDoc".equals(method)) out = JSONObject.quote(Folders.readText(MainActivity.this, a.getString("uri"), 20 * 1024 * 1024));
+          else if ("sidecarSubs".equals(method)) out = Folders.sidecars(MainActivity.this, a.getString("uri"), false).toString();
+          else if ("sidecarImage".equals(method)) out = JSONObject.quote((String) Folders.sidecars(MainActivity.this, a.getString("uri"), true));
           else if ("updateDownload".equals(method)) out = Updater.download(MainActivity.this, a).toString();
           else if ("updateInstall".equals(method)) out = JSONObject.quote(Updater.install(MainActivity.this, a.getString("file")));
           else if ("lanGet".equals(method)) out = lanGet(a.getJSONArray("urls"), a.optInt("timeout", 2500)).toString();
@@ -991,6 +1002,18 @@ public class MainActivity extends Activity {
     }
   }
 
+  /** (F02) A rendszer mappaválasztója (helyi tár, USB-meghajtó). Ahol nincs (több tévén), hibaüzenet. */
+  void startPickFolder(int id) {
+    try {
+      folderId = id;
+      Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+      startActivityForResult(i, REQ_TREE);
+    } catch (Exception e) {
+      folderId = -1;
+      reply(id, false, JSONObject.quote(L.t(MainActivity.this, "Ezen az eszközön nincs mappaválasztó – a lejátszólistákat hálózati címről (pl. a NAS webszerveréről) add meg.")));
+    }
+  }
+
   void startSave(int id, String json) {
     try {
       JSONObject a = new JSONObject(json);
@@ -1010,6 +1033,19 @@ public class MainActivity extends Activity {
     if (req == REQ_FILE && fileCallback != null) {
       fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result, data));
       fileCallback = null;
+    } else if (req == REQ_TREE) {
+      final int id = folderId;
+      folderId = -1;
+      if (id < 0) return;
+      if (result != RESULT_OK || data == null || data.getData() == null) {
+        reply(id, true, "null");
+        return;
+      }
+      try {
+        reply(id, true, Folders.keep(this, data.getData()).toString());
+      } catch (Exception e) {
+        reply(id, false, JSONObject.quote(String.valueOf(e.getMessage())));
+      }
     } else if (req == REQ_SAVE) {
       final int id = saveId;
       final String text = saveText;

@@ -529,8 +529,8 @@ function urlToPath(u) {
 
 async function findSidecars(url) {
   try {
-    if (url.startsWith('file:')) {
-      return api.sidecarSubs ? await api.sidecarSubs(urlToPath(url)) : [];
+    if (url.startsWith('file:') || url.startsWith('content:')) {
+      return api.sidecarSubs ? await api.sidecarSubs(url.startsWith('content:') ? url : urlToPath(url)) : [];
     }
     if (/^https?:/.test(url) && !/\.m3u8(\?|$)/i.test(url)) {
       // Hálózati cím: a leggyakoribb elnevezések kipróbálása (nem létező fájl esetén csendben kihagyja).
@@ -575,7 +575,7 @@ player.subsHooks = {
       // A videó melletti feliratfájlok (a menüben is megjelennek).
       // (csak a saját médiatárnál, ill. helyi fájlnál – a nyilvános listák szervereit nem terheljük)
       const url0 = ch.streams[0]?.url || '';
-      if (ch.vod.item?.lib === 'own' || url0.startsWith('file:')) {
+      if (ch.vod.item?.lib === 'own' || url0.startsWith('file:') || url0.startsWith('content:')) {
         // (helyi változóba: a közös állapotba csak az aktuális munkamenet eredménye kerülhet)
         const found = await findSidecars(url0);
         if (!live()) return;
