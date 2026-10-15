@@ -18,7 +18,6 @@ import java.net.MulticastSocket;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -514,41 +513,52 @@ final class Cast {
   }
 
   /**
-   * Tanúsítvány-rögzítés (az első használatkor megjegyzett ujjlenyomat): ismert eszköznél csak az egyező
-   * tanúsítvány fogadható el, eltérésnél a kézfogás elutasul; új eszköznél az ujjlenyomat a sikeres kapcsolódás
-   * után tárolódik.
+   * A kivetítő tanúsítványának kiolvasása: ez a bizalomkezelő semmit nem fogad el (minden kézfogás elutasul),
+   * csak megjegyzi a felkínált tanúsítványt – így az első kapcsolódáskor rögzíthető, és a tényleges kapcsolat már
+   * a szabványos ellenőrzéssel, kizárólag ebben a tanúsítványban megbízva épül fel.
    */
-  static final class PinTrust implements X509TrustManager {
-    final String known;
-    volatile String seen;
-    volatile boolean changed;
-
-    PinTrust(String known) {
-      this.known = known;
-    }
+  static final class CertGrabber implements X509TrustManager {
+    volatile X509Certificate cert;
 
     public void checkClientTrusted(X509Certificate[] c, String t) throws java.security.cert.CertificateException {
       throw new java.security.cert.CertificateException("nem használt");
     }
 
     public void checkServerTrusted(X509Certificate[] chain, String t) throws java.security.cert.CertificateException {
-      if (chain == null || chain.length == 0) throw new java.security.cert.CertificateException("nincs tanúsítvány");
-      String fp;
-      try {
-        fp = Updater.hex(MessageDigest.getInstance("SHA-256").digest(chain[0].getEncoded()));
-      } catch (Exception e) {
-        throw new java.security.cert.CertificateException(e);
-      }
-      if (known != null && !known.equals(fp)) {
-        changed = true;
-        throw new java.security.cert.CertificateException("CERT_CHANGED");
-      }
-      seen = fp;
+      if (chain != null && chain.length > 0) cert = chain[0];
+      throw new java.security.cert.CertificateException("csak kiolvasás");
     }
 
     public X509Certificate[] getAcceptedIssuers() {
       return new X509Certificate[0];
     }
+  }
+
+  static X509Certificate grabCert(String host, int port) throws Exception {
+    CertGrabber g = new CertGrabber();
+    SSLContext ctx = SSLContext.getInstance("TLS");
+    ctx.init(null, new TrustManager[] {g}, null);
+    try (SSLSocket s = (SSLSocket) ctx.getSocketFactory().createSocket()) {
+      s.connect(new java.net.InetSocketAddress(host, port), 6000);
+      s.setSoTimeout(6000);
+      try {
+        s.startHandshake();
+      } catch (Exception expected) {
+        // (a kiolvasó minden tanúsítványt elutasít – ez a várt eset)
+      }
+    }
+    if (g.cert == null) throw new Exception(L.t(act, "Az eszköz nem válaszolt"));
+    return g.cert;
+  }
+
+  /** Szabványos bizalomkezelők, amelyek kizárólag a megadott (rögzített) tanúsítványban bíznak meg. */
+  static TrustManager[] pinnedTrust(X509Certificate cert) throws Exception {
+    java.security.KeyStore ks = java.security.KeyStore.getInstance(java.security.KeyStore.getDefaultType());
+    ks.load(null, null);
+    ks.setCertificateEntry("cast", cert);
+    javax.net.ssl.TrustManagerFactory tmf = javax.net.ssl.TrustManagerFactory.getInstance(javax.net.ssl.TrustManagerFactory.getDefaultAlgorithm());
+    tmf.init(ks);
+    return tmf.getTrustManagers();
   }
 
   static final class CastSession implements Session {
@@ -576,27 +586,39 @@ final class Cast {
     }
 
     void connect() throws Exception {
-      // A Chromecast saját aláírású tanúsítványt használ (nincs hitelesítési lánc): a tanúsítvány ujjlenyomatát az
-      // első kapcsolódáskor megjegyezzük (eszközönként), később csak ugyanazzal kapcsolódunk – egy közbeékelődő
-      // vagy álcázott eszköz nem kaphatja meg a közvetítő címét. Az ellenőrzés a kézfogás része (PinTrust).
+      // A Chromecast saját aláírású tanúsítványt használ (nincs hitelesítési lánc): az első kapcsolódáskor a
+      // tanúsítványt megjegyezzük (eszközönként), később csak ugyanazzal kapcsolódunk – egy közbeékelődő vagy
+      // álcázott eszköz nem kaphatja meg a közvetítő címét. A tényleges kapcsolat szabványos ellenőrzéssel megy,
+      // kizárólag a rögzített tanúsítványban megbízva.
+      String host = dev.getString("host");
+      int port = dev.optInt("port", 8009);
       SharedPreferences pins = a.getSharedPreferences(PINS, Context.MODE_PRIVATE);
-      PinTrust trust = new PinTrust(pins.getString(id, null));
+      X509Certificate offered = grabCert(host, port);
+      String known = pins.getString(id, null);
+      java.security.cert.CertificateFactory cf = java.security.cert.CertificateFactory.getInstance("X.509");
+      X509Certificate pinned;
+      if (known == null) {
+        pinned = offered;
+      } else {
+        pinned = (X509Certificate) cf.generateCertificate(new java.io.ByteArrayInputStream(android.util.Base64.decode(known, android.util.Base64.NO_WRAP)));
+        if (!java.util.Arrays.equals(pinned.getEncoded(), offered.getEncoded())) throw new Exception("CERT_CHANGED: az eszköz tanúsítványa megváltozott");
+      }
       SSLContext ctx = SSLContext.getInstance("TLS");
-      ctx.init(null, new TrustManager[] {trust}, null);
+      ctx.init(null, pinnedTrust(pinned), null);
       sock = (SSLSocket) ctx.getSocketFactory().createSocket();
-      sock.connect(new java.net.InetSocketAddress(dev.getString("host"), dev.optInt("port", 8009)), 6000);
-      sock.setSoTimeout(0);
+      sock.connect(new java.net.InetSocketAddress(host, port), 6000);
+      sock.setSoTimeout(8000); // (egy TCP-n válaszoló, de TLS-en néma eszköz ne akassza meg a kivetítést)
       try {
         sock.startHandshake();
+        sock.setSoTimeout(0);
       } catch (Exception e) {
         try {
           sock.close();
         } catch (Exception ignored) {
         }
-        if (trust.changed) throw new Exception("CERT_CHANGED: az eszköz tanúsítványa megváltozott");
         throw e;
       }
-      if (trust.seen != null && pins.getString(id, null) == null) pins.edit().putString(id, trust.seen).apply();
+      if (known == null) pins.edit().putString(id, android.util.Base64.encodeToString(pinned.getEncoded(), android.util.Base64.NO_WRAP)).apply();
       out = sock.getOutputStream();
       send(NS_CONN, "receiver-0", new JSONObject().put("type", "CONNECT"));
       reader = new Thread(this::readLoop, "adas-cast");

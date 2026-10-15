@@ -2209,5 +2209,21 @@ export default {
  "A mappához nincs (már) hozzáférés – válaszd ki újra (pl. kihúzott USB-meghajtó vagy visszavont engedély).": "There is no (longer) access to the folder – choose it again (e.g. the USB drive was removed or the permission revoked).",
  "A fájl nem olvasható.": "The file cannot be read.",
  "Ezen az eszközön nincs mappaválasztó – a lejátszólistákat hálózati címről (pl. a NAS webszerveréről) add meg.": "This device has no folder picker – add the playlists from a network address (e.g. the NAS web server).",
- "a kapcsolat megszakadt": "the connection was lost"
+ "a kapcsolat megszakadt": "the connection was lost",
+ "★ Kedvenc": "★ Favourite",
+ "● Felvétel": "● Record",
+ "▣ Mini": "▣ Mini",
+ "⇪ Kivetítés": "⇪ Cast",
+ "Most nem szól rádió.": "No radio is playing.",
+ "♪ Most szól": "♪ Now playing",
+ "〰 Hangkép": "〰 Visuals",
+ "☾ Elalvás": "☾ Sleep",
+ "✕ Kikapcsolás": "✕ Turn off",
+ "Rádióadó keresése…": "Search radio stations…",
+ "📻 Rádió": "📻 Radio",
+ "📻 Rádió-műsor": "📻 Radio guide",
+ "⚽ Sport": "⚽ Sport",
+ "Nincs kedvenc rádió.": "No favourite radio stations.",
+ "Elalvás-időzítő kikapcsolva": "Sleep timer off",
+ "Már nyitva van egy mappaválasztó.": "A folder picker is already open."
 };

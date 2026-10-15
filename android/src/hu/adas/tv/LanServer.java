@@ -370,8 +370,37 @@ class LanServer {
     stopIfIdle();
   }
 
+  /**
+   * A közvetítő címe egy adáshoz / szegmenshez: a cél a munkamenet kulcsával aláírva (HMAC) – a vevő csak a
+   * közvetítő által kiadott (az adásból származó) címeket kérheti, tetszőlegeset nem.
+   */
   String castPath(String target) throws IOException {
-    return "/adas/cast/" + castToken + "/s?u=" + java.net.URLEncoder.encode(target, "UTF-8");
+    return "/adas/cast/" + castToken + "/s?u=" + java.net.URLEncoder.encode(target, "UTF-8") + "&s=" + castSig(castToken, target);
+  }
+
+  static String castSig(String token, String target) {
+    try {
+      Mac m = Mac.getInstance("HmacSHA256");
+      m.init(new SecretKeySpec(token.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+      byte[] d = m.doFinal(target.getBytes(StandardCharsets.UTF_8));
+      StringBuilder sb = new StringBuilder();
+      for (int i = 0; i < 16; i++) sb.append(String.format(java.util.Locale.ROOT, "%02x", d[i]));
+      return sb.toString();
+    } catch (Exception e) {
+      return "";
+    }
+  }
+
+  /** A név feloldott címei közt van-e helyi / belső (loopback, any-local, link-local, site-local). */
+  static boolean resolvesInternal(String host) {
+    try {
+      for (InetAddress ad : InetAddress.getAllByName(host)) {
+        if (ad.isLoopbackAddress() || ad.isAnyLocalAddress() || ad.isLinkLocalAddress() || ad.isSiteLocalAddress()) return true;
+      }
+      return false;
+    } catch (Exception e) {
+      return true; // (fel nem oldható: nem engedjük)
+    }
   }
 
   /** A saját cím, amelyen a vevő elér (az ő hálózatában – azonos alhálózat elöl). */
@@ -381,6 +410,15 @@ class LanServer {
     String net = dot > 0 ? host.substring(0, dot + 1) : "";
     for (String ip : ips) if (!net.isEmpty() && ip.startsWith(net)) return ip;
     return ips.isEmpty() ? "127.0.0.1" : ips.get(0);
+  }
+
+  static boolean resolvesLoopback(String host) {
+    try {
+      for (InetAddress ad : InetAddress.getAllByName(host)) if (ad.isLoopbackAddress() || ad.isAnyLocalAddress()) return true;
+      return false;
+    } catch (Exception e) {
+      return true;
+    }
   }
 
   static boolean localOrPrivate(String host) {
@@ -400,8 +438,16 @@ class LanServer {
       send(out, 403, "text/plain", "Nem engedélyezett");
       return;
     }
-    String target = null;
-    for (String kv : query.split("&")) if (kv.startsWith("u=")) target = URLDecoder.decode(kv.substring(2), "UTF-8");
+    String target = null, sig = "";
+    for (String kv : query.split("&")) {
+      if (kv.startsWith("u=")) target = URLDecoder.decode(kv.substring(2), "UTF-8");
+      else if (kv.startsWith("s=")) sig = kv.substring(2);
+    }
+    // csak a közvetítő által kiadott (aláírt) cím
+    if (target == null || !MessageDigest.isEqual(castSig(tok, target).getBytes(StandardCharsets.UTF_8), sig.getBytes(StandardCharsets.UTF_8))) {
+      send(out, 403, "text/plain", "Nem engedélyezett cím");
+      return;
+    }
     java.net.URL u;
     try {
       u = new java.net.URL(target);
@@ -415,7 +461,10 @@ class LanServer {
     } catch (Exception ignored) {
     }
     boolean proto = "http".equals(u.getProtocol()) || "https".equals(u.getProtocol());
-    boolean lanOk = !localOrPrivate(u.getHost()) || (u.getHost().equals(rootHost) && !u.getHost().startsWith("127.") && !u.getHost().equals("localhost"));
+    // a feloldott cím számít (nem a név szövege – pl. „127.0.0.1.nip.io”): belső címre csak akkor, ha maga az
+    // adás is ott van (pl. NAS), a gép saját címére soha
+    boolean self = u.getHost().equals("localhost") || u.getHost().startsWith("127.") || resolvesLoopback(u.getHost());
+    boolean lanOk = !self && (!(localOrPrivate(u.getHost()) || resolvesInternal(u.getHost())) || u.getHost().equals(rootHost));
     if (!proto || !lanOk) {
       send(out, 403, "text/plain", "Nem engedélyezett cím");
       return;

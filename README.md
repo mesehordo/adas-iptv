@@ -436,8 +436,9 @@ csomagot tölti le. A buildcél a natív rétegtől jut el a felülethez (`AdasA
   telepítést); Android TV-re pl. a *Send files to TV* alkalmazással vagy `adb install`-lal.
 - **Távirányító**: OK = lejátszás, **hosszan nyomott OK** = csatorna-adatlap (kedvenc, emlékeztető),
   Vissza = vissza / kilépés. Színes gombok, CH+/CH−, ◀◀ / ▶▶ ugyanúgy, mint a webOS-en, ha a távirányítón van.
-- **Nincs benne**: kivetítés, éjszakai hang, frissítés-ellenőrzés, a beállítások *átadása* (az átvétel megy),
-  saját mappa (a saját médiatár hálózati címmel működik).
+- **Androidon is**: kivetítés telefonról / tabletről (Chromecast, DLNA), éjszakai hang (a natív lejátszóval,
+  Android 9-től), beépített frissítés (a buildcélnak megfelelő APK), helyi / USB-mappa a saját médiatárhoz.
+- **Nincs benne**: a beállítások *átadása* (az átvétel megy).
 
 ## Billentyűparancsok
 
