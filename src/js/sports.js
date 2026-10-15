@@ -245,7 +245,9 @@ const WIN_TZ = {
 };
 function tzName(tzid) {
   const t = String(tzid || '').replace(/^"|"$/g, '').trim();
-  const cands = [t, WIN_TZ[t.toLowerCase()], t.replace(/^\/[^/]*\//, '')].filter(Boolean); // („/mozilla.org/…/Europe/Budapest” alak is)
+  // („/mozilla.org/20070129_1/Europe/Budapest”, „/citadel.org/…” alak is: a perjeles név minden végződése jelölt)
+  const parts = t.split('/').filter(Boolean);
+  const cands = [t, WIN_TZ[t.toLowerCase()], ...parts.map((_, i) => parts.slice(i).join('/'))].filter(Boolean);
   for (const c of cands) {
     try {
       new Intl.DateTimeFormat('en-US', { timeZone: c });

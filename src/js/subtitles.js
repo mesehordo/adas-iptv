@@ -563,6 +563,8 @@ player.subsHooks = {
   async onStart(ch, video) {
     const my = ++session;
     clearSubs(video);
+    const myPick = pickSeq; // (a saját törlés után: a közbeni kikapcsolás / választás ezt érvényteleníti)
+    const live = () => my === session && myPick === pickSeq && player.channel === ch;
     applySize();
     if (!ch?.vod) return;
     state.key = ch.vod.key;
@@ -576,10 +578,10 @@ player.subsHooks = {
       if (ch.vod.item?.lib === 'own' || url0.startsWith('file:')) {
         // (helyi változóba: a közös állapotba csak az aktuális munkamenet eredménye kerülhet)
         const found = await findSidecars(url0);
-        if (my !== session || player.channel !== ch) return;
+        if (!live()) return;
         state.sidecars = found;
       }
-      if (my !== session || player.channel !== ch) return;
+      if (!live()) return;
       if (saved?.sidecar) {
         const sc = state.sidecars.find((x) => x.name === saved.sidecar);
         if (sc) return void applyText(video, sc.text, sc.name);
@@ -597,8 +599,8 @@ player.subsHooks = {
       if (s.subsAuto && (feOn() || sdlKey() || (s.osApiKey && s.osUser))) {
         const list = await searchSubs(ch, subsLangPref());
         const best = list.find((x) => !x.ai) || list[0];
-        if (best && my === session && player.channel === ch) await useResult(video, ch, best);
-        else if (!best) toast(_t('Nem található {lang} felirat ehhez a címhez.', { lang: languageName(subsLangPref()) }));
+        if (best && live()) await useResult(video, ch, best);
+        else if (!best && live()) toast(_t('Nem található {lang} felirat ehhez a címhez.', { lang: languageName(subsLangPref()) }));
       }
     } catch (err) {
       console.warn('Felirat', err);

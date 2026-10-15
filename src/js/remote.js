@@ -222,7 +222,7 @@ function typeText(text) {
     b = el.selectionEnd;
   } catch {}
   if (a == null || b == null) a = b = v.length;
-  const max = el.maxLength > 0 ? el.maxLength : Infinity;
+  const max = Number.isInteger(el.maxLength) && el.maxLength >= 0 ? el.maxLength : Infinity; // (-1: nincs korlát; 0 is korlát)
   const ins = String(text).slice(0, Math.max(0, max - (v.length - (b - a))));
   try {
     el.setRangeText(ins, a, b, 'end');

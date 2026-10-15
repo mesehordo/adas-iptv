@@ -20,7 +20,11 @@ const UA = 'Adas-Updater';
  * null, ha nem szabályos (B34).
  */
 function parseVersion(v) {
-  const m = /^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/.exec(String(v || '').trim());
+  // (SemVer: a számok vezető nulla nélkül, az azonosítók nem üresek – az „01.2.4”, „1.2.4-rc..1” érvénytelen)
+  const N = '(0|[1-9]\\d*)';
+  const ID = '(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*)';
+  const rx = new RegExp(`^v?${N}(?:\\.${N})?(?:\\.${N})?(?:-(${ID}(?:\\.${ID})*))?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$`);
+  const m = rx.exec(String(v || '').trim());
   if (!m) return null;
   return { core: [m[1], m[2] || '0', m[3] || '0'].map(Number), pre: m[4] ? m[4].split('.') : [] };
 }

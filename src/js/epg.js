@@ -42,15 +42,22 @@ const onWorkerMessage = (e) => {
 let workerP = null;
 function getWorker() {
   if (!workerP) {
-    workerP = (IS_ANDROID
+    const p = (IS_ANDROID
       ? fetch(workerUrl).then((r) => r.text()).then((t) => new Worker(URL.createObjectURL(new Blob([t], { type: 'application/javascript' }))))
       : Promise.resolve().then(() => new Worker(workerUrl))
     ).then((w) => {
       w.onmessage = onWorkerMessage;
-      w.onerror = (e) => failWorker(new Error(e?.message || 'a műsorújság-feldolgozó leállt'));
+      w.onerror = (e) => {
+        w.terminate();
+        // (egy már lecserélt háttérszál késői hibája ne állítsa le az újat, és ne utasítsa el annak kéréseit)
+        if (workerP === p) failWorker(new Error(e?.message || 'a műsorújság-feldolgozó leállt'));
+      };
       return w;
     });
-    workerP.catch(() => (workerP = null));
+    workerP = p;
+    p.catch(() => {
+      if (workerP === p) workerP = null;
+    });
   }
   return workerP;
 }
