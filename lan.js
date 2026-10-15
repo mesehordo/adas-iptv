@@ -336,7 +336,7 @@ function restricted(url, root) {
  * maga a checkedLookup-pal ellenőrzött címre megy (nincs külön előzetes névfeloldás, amit a DNS-válasz
  * megváltoztatása kijátszhatna).
  */
-function policyRequest(u, { method = 'GET', headers = {}, signal } = {}, remote) {
+function policyRequest(u, { method = 'GET', headers = {}, signal, body } = {}, remote) {
   return new Promise((resolve, reject) => {
     const mod = u.protocol === 'https:' ? https : http;
     const req = mod.request(u, { method, headers: { 'Accept-Encoding': 'identity', ...headers }, lookup: checkedLookup(remote), signal, timeout: 20000 }, (res) => {
@@ -349,25 +349,46 @@ function policyRequest(u, { method = 'GET', headers = {}, signal } = {}, remote)
     });
     req.on('timeout', () => req.destroy(new Error('Időtúllépés')));
     req.on('error', (err) => reject(err.code === 'EPRIVATE' ? policyDenied() : err));
-    req.end();
+    req.end(body == null ? undefined : body);
   });
 }
 
-/** Kérés kézi átirányítás-kezeléssel; minden lépés a fenti szabály szerint. → { res, finalUrl } */
+/** Hitelesítő fejlécek: másik eredetre (protokoll, szerver, port) átirányítva nem mehetnek tovább. */
+const SECRET_HEADER = /^(authorization|proxy-authorization|cookie|api-key|x-api-key|x-auth-token)$/i;
+const hasSecretHeader = (headers = {}) => Object.keys(headers).some((k) => SECRET_HEADER.test(k));
+
+/**
+ * Kérés kézi átirányítás-kezeléssel; minden lépés a fenti szabály szerint. → { res, finalUrl }
+ * Átirányításkor: más eredetre a hitelesítő fejlécek (API-kulcs, token, süti) nem mennek tovább; hitelesített
+ * HTTPS-kérés nem léphet vissza HTTP-re; a kérés törzse (307 / 308) nem mehet más eredetre; 301 / 302 / 303
+ * után GET, törzs nélkül (mint a böngészőkben).
+ */
 async function fetchPolicy(url, opts = {}, root = url) {
   let cur = url;
+  const first = new URL(url);
+  const secret = hasSecretHeader(opts.headers);
+  let o = { ...opts, headers: { ...(opts.headers || {}) } };
   for (let i = 0; i <= 5; i++) {
     const u = new URL(cur);
     if (!/^https?:$/.test(u.protocol)) throw policyDenied();
     const remote = restricted(cur, root);
     if (remote && isPrivateHost(u.hostname)) throw policyDenied(); // helyi név vagy IP-cím a hivatkozásban
-    const res = await policyRequest(u, opts, remote);
+    const res = await policyRequest(u, o, remote);
     const loc = res.status >= 300 && res.status < 400 && res.headers.get('location');
     if (!loc) return { res, finalUrl: cur };
     try {
       await res.body?.cancel();
     } catch {}
-    cur = new URL(loc, cur).href;
+    const next = new URL(loc, cur);
+    if (!/^https?:$/.test(next.protocol)) throw policyDenied();
+    const foreign = next.origin !== first.origin;
+    if (secret && first.protocol === 'https:' && next.protocol === 'http:') throw new Error('Hitelesített kérés nem irányítható át titkosítatlan címre');
+    if (res.status === 301 || res.status === 302 || res.status === 303) {
+      const m = String(o.method || 'GET').toUpperCase();
+      o = { ...o, method: m === 'HEAD' ? 'HEAD' : 'GET', body: undefined };
+    } else if (foreign && o.body != null && o.body !== '') throw new Error('A kérés törzse nem küldhető másik szerverre');
+    if (foreign) o = { ...o, headers: Object.fromEntries(Object.entries(o.headers).filter(([k]) => !SECRET_HEADER.test(k))) };
+    cur = next.href;
   }
   throw new Error('Túl sok átirányítás');
 }
@@ -1243,4 +1264,4 @@ function castControl(action, value) {
   return active.control(action, value);
 }
 
-module.exports = { fetchPolicy, readBody, isPrivateHost, init, discover, castPlay, castControl, castForget, shareStart, shareStop, rcStart, rcStop, rcState, lanGet, sortedIPs, localIPv4s, proxyUrl };
+module.exports = { fetchPolicy, hasSecretHeader, readBody, isPrivateHost, init, discover, castPlay, castControl, castForget, shareStart, shareStop, rcStart, rcStop, rcState, lanGet, sortedIPs, localIPv4s, proxyUrl };

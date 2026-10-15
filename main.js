@@ -604,7 +604,10 @@ ipcMain.handle('http-request', async (_e, { method = 'GET', url, headers = {}, b
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 30000);
   try {
-    const res = await net.fetch(url, { method, headers: { 'User-Agent': CHROME_UA, ...headers }, body, signal: ctrl.signal });
+    // Hitelesítő fejléccel (pl. OpenSubtitles API-kulcs, token) kézi átirányítás-követés: más szerverre a titok
+    // nem megy tovább (a fetch csak az Authorization fejlécet dobná el, az egyedi kulcsfejléceket nem)
+    const opts = { method, headers: { 'User-Agent': CHROME_UA, ...headers }, body, signal: ctrl.signal };
+    const res = lan.hasSecretHeader(headers) ? (await lan.fetchPolicy(url, opts)).res : await net.fetch(url, opts);
     // bájtként (pl. ZIP-be csomagolt vagy nem UTF-8 kódolású felirat): a megjelenítő dekódolja
     if (binary) {
       const buf = Buffer.from(await res.arrayBuffer());

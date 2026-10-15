@@ -254,6 +254,26 @@ export function cleanProfile(p) {
   return p;
 }
 
+// Mentések sorban, egymás után: egy korábban indult, lassan befejeződő írás nem írhatja felül a későbbit
+// (pl. a visszaállított állapotot). A hiba nem néma: a store.saveError és a „save-state” esemény jelzi (B04).
+let saveChain = Promise.resolve();
+function writeStore(data) {
+  const p = saveChain.then(() => api.storeSave(data));
+  saveChain = p.then(
+    () => {
+      if (store.saveError) {
+        store.saveError = null;
+        bus.emit('save-state', null);
+      }
+    },
+    (err) => {
+      store.saveError = err || new Error('?');
+      bus.emit('save-state', store.saveError);
+    }
+  );
+  return p;
+}
+
 export const store = {
   settings: defaults(),
   profiles: [],
@@ -306,21 +326,32 @@ export const store = {
   },
 
   save: debounce(function () {
-    if (!store.frozen) api.storeSave(store.serialize());
+    if (!store.frozen) writeStore(store.serialize()).catch(() => {}); // (a hibát a writeStore jelzi)
   }, 600),
 
-  /** Azonnali mentés (pl. háttérbe kerüléskor, amikor a késleltetett mentés már nem futna le). */
+  /** Azonnali mentés (pl. háttérbe kerüléskor, amikor a késleltetett mentés már nem futna le). → ígéret */
   flush() {
-    if (this.profiles.length && !this.frozen) api.storeSave(this.serialize());
+    if (this.profiles.length && !this.frozen) return writeStore(this.serialize()).catch(() => {});
+    return Promise.resolve();
   },
+
+  /** A legutóbbi mentés hibája (null, ha rendben van). */
+  saveError: null,
 
   /**
    * Az egész tár cseréje (átvétel másik eszközről, visszaállítás) – utána újratöltés jön. A memóriában lévő
-   * régi állapot ezután már nem mentődik (a késleltetett mentés és a bezáráskori mentés felülírná).
+   * régi állapot ezután már nem mentődik (a késleltetett mentés és a bezáráskori mentés felülírná). Ha az írás
+   * nem sikerül, a fagyasztás visszaáll (a további mentések működnek), és a hiba a hívóhoz jut (B15).
    */
   async replaceAll(data) {
+    const was = this.frozen;
     this.frozen = true;
-    await api.storeSave(data);
+    try {
+      await writeStore(data);
+    } catch (err) {
+      this.frozen = was;
+      throw err;
+    }
   },
 
   set(key, value) {

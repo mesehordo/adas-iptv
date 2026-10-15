@@ -3,7 +3,7 @@
 //    5 perccel előtte figyelmeztet;
 //  - korhatár: ha a műsorújság szerint a most futó műsor korhatára magasabb (pl. 16), az adás nem indul /
 //    leáll – szülői PIN-nel az adott műsorra feloldható. (Csak ahol a műsorújság közöl korhatárt.)
-import { $, esc, toast, fmtTime } from './util.js';
+import { $, esc, toast, fmtTime, bus } from './util.js';
 import { store } from './store.js';
 import { epg } from './epg.js';
 import { player } from './player.js';
@@ -17,7 +17,21 @@ const video = $('#video');
 const today = () => new Date().toDateString();
 export const LIMITS = [0, 30, 45, 60, 90, 120, 180, 240];
 export const AGES = [0, 6, 12, 16, 18];
-const unlockedProgs = new Set(); // `${csatorna}|${kezdés}` – szülő feloldotta
+// A szülő által feloldott műsorok: profilhoz és a konkrét műsorhoz kötve (B14 – egy gyereknek adott engedély
+// ne érvényesüljön egy másik gyerekprofilban), a műsor végéig. Profilváltáskor mind elévül.
+const unlockedProgs = new Map(); // `${profil}|${csatorna}|${kezdés}` → a műsor vége
+const unlockKey = (p, ch, cur) => `${p.id}|${ch.id}|${cur.start}`;
+function isUnlocked(p, ch, cur) {
+  const k = unlockKey(p, ch, cur);
+  const until = unlockedProgs.get(k);
+  if (until === undefined) return false;
+  if (Date.now() >= until) {
+    unlockedProgs.delete(k);
+    return false;
+  }
+  return true;
+}
+bus.on('profile', () => unlockedProgs.clear());
 
 function usage(p) {
   if (!p.usage || p.usage.day !== today()) p.usage = { day: today(), sec: 0, extra: 0 };
@@ -44,13 +58,13 @@ async function askMore(p) {
 function overAge(p, ch) {
   if (!p?.kids || !p.maxAge || ch.vod) return null;
   const cur = epg.now(ch.id, Date.now())?.cur;
-  if (!cur?.age || cur.age <= p.maxAge || unlockedProgs.has(`${ch.id}|${cur.start}`)) return null;
+  if (!cur?.age || cur.age <= p.maxAge || isUnlocked(p, ch, cur)) return null;
   return cur;
 }
 
 async function askAge(p, ch, cur) {
   const ok = await requireAdult(`${_t('A most futó műsor ({title}, {fmtTime}–{fmtTime2}) {age} éven felülieknek szól. Megnézéséhez', { title: cur.title, fmtTime: fmtTime(cur.start), fmtTime2: fmtTime(cur.stop), age: cur.age })}`);
-  if (ok) unlockedProgs.add(`${ch.id}|${cur.start}`);
+  if (ok) unlockedProgs.set(unlockKey(p, ch, cur), cur.stop);
   return ok;
 }
 

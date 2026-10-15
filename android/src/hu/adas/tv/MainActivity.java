@@ -537,34 +537,9 @@ public class MainActivity extends Activity {
   // -------------------------------------------------------------------------------------------
   // Hálózat
   // -------------------------------------------------------------------------------------------
-  /** Kapcsolat átirányítások követésével (a HttpURLConnection a http↔https váltást magától nem követi). */
+  /** Kapcsolat átirányítások követésével, a hitelesítő fejlécek védelmével (HttpOpen). */
   HttpURLConnection open(String url, String method, Map<String, String> headers, byte[] body, int timeoutMs) throws IOException {
-    for (int hop = 0; hop < 6; hop++) {
-      HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
-      c.setInstanceFollowRedirects(false);
-      c.setConnectTimeout(15000);
-      c.setReadTimeout(timeoutMs);
-      c.setRequestMethod(method);
-      for (Map.Entry<String, String> h : headers.entrySet()) c.setRequestProperty(h.getKey(), h.getValue());
-      if (body != null && body.length > 0) {
-        c.setDoOutput(true);
-        try (OutputStream o = c.getOutputStream()) {
-          o.write(body);
-        }
-      }
-      int code = c.getResponseCode();
-      if (code >= 300 && code < 400 && c.getHeaderField("Location") != null) {
-        url = new URL(new URL(url), c.getHeaderField("Location")).toString();
-        c.disconnect();
-        if (code == 303) {
-          method = "GET";
-          body = null;
-        }
-        continue;
-      }
-      return c;
-    }
-    throw new IOException("Túl sok átirányítás");
+    return HttpOpen.open(url, method, headers, body, timeoutMs);
   }
 
   Map<String, String> streamHeaders(String url, Map<String, String> fromPage) {

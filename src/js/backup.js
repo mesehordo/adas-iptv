@@ -77,8 +77,14 @@ export async function renderBackups(box) {
       const when = new Date(it.at).toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' });
       const ok = await confirmDialog(_t('Visszaállítod a(z) {when} állapotot? A mostani beállítások felülíródnak (előtte erről is készül mentési pont).', { when }), { ok: _t('Visszaállítás'), danger: true });
       if (!ok) return;
-      await backupNow('before-restore');
-      await store.replaceAll({ ...it.data, health: store.health });
+      try {
+        await backupNow('before-restore');
+        await store.replaceAll({ ...it.data, health: store.health });
+      } catch (err) {
+        // (a mostani állapot használható marad, a további mentések is működnek)
+        toast(_t('A visszaállítás nem sikerült: {x}', { x: err?.message || err }), { timeout: 9000 });
+        return;
+      }
       toast(_t('Visszaállítva – újraindítás…'));
       setTimeout(() => location.reload(), 700);
     }

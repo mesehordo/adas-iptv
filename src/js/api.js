@@ -153,10 +153,9 @@ const webApi = {
       return null;
     }
   },
+  // (a hiba – pl. betelt tárhely – a hívóhoz jut: a felület jelzi, hogy a mentés nem sikerült)
   async storeSave(data) {
-    try {
-      localStorage.setItem('adas-store', JSON.stringify(data));
-    } catch {}
+    localStorage.setItem('adas-store', JSON.stringify(data));
   },
   clearCache: idbClear,
   async saveFile(name, text) {
