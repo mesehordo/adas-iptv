@@ -137,7 +137,15 @@ function apply(video, cues, label) {
   toast(`${_t('Felirat: {label}', { label })}`);
 }
 
+// (B29) feliratválasztási művelet: minden új választás, a kikapcsolás és a filmváltás új azonosítót ad – egy
+// korábbi, még függő letöltés eredménye ezután már nem kerül a sávra, és a profilba sem mentődik
+let pickSeq = 0;
+// (B28) lejátszási munkamenet: minden indulás / bezárás újat kezd – a régi film késve érkező feliratlistája nem
+// írhatja felül az újét (ugyanazon film újraindítása is külön munkamenet)
+let session = 0;
+
 export function clearSubs(video) {
+  pickSeq++;
   state.cues = [];
   state.label = '';
   state.offset = 0;
@@ -464,9 +472,10 @@ async function downloadText(fileId) {
 }
 
 async function useResult(video, ch, res) {
+  const pick = ++pickSeq;
   const text = res.src === 'fe' ? await feDownload(res) : res.src === 'sdl' ? await sdlDownload(res) : await downloadText(res.fileId);
-  // a letöltés közben másik videóra válthattak: a régi felirat ne kerüljön az újra
-  if (player.channel !== ch) return;
+  // a letöltés közben másik videóra válthattak, kikapcsolták vagy másikat választottak: ez már nem érvényes
+  if (pick !== pickSeq || player.channel !== ch) return;
   const cues = parseSubs(text);
   if (!cues.length) throw new Error(_t('A feliratfájl üres vagy nem értelmezhető.'));
   const label = `${languageName(res.lang)} – ${res.release}`;
@@ -480,6 +489,7 @@ async function useResult(video, ch, res) {
 
 /** Felirat betöltése szövegből (helyi fájl, behúzott fájl). */
 export function applyText(video, text, label) {
+  pickSeq++; // (ez is új választás: egy függő letöltés nem írhatja felül)
   const cues = parseSubs(text);
   if (!cues.length) {
     toast(_t('A fájl nem tartalmaz feliratot.'));
@@ -551,6 +561,7 @@ async function findSidecars(url) {
 player.subsHooks = {
   /** Új film / rész indulásakor: korábban választott felirat, vagy automatikus keresés. */
   async onStart(ch, video) {
+    const my = ++session;
     clearSubs(video);
     applySize();
     if (!ch?.vod) return;
@@ -562,8 +573,13 @@ player.subsHooks = {
       // A videó melletti feliratfájlok (a menüben is megjelennek).
       // (csak a saját médiatárnál, ill. helyi fájlnál – a nyilvános listák szervereit nem terheljük)
       const url0 = ch.streams[0]?.url || '';
-      if (ch.vod.item?.lib === 'own' || url0.startsWith('file:')) state.sidecars = await findSidecars(url0);
-      if (player.channel !== ch) return;
+      if (ch.vod.item?.lib === 'own' || url0.startsWith('file:')) {
+        // (helyi változóba: a közös állapotba csak az aktuális munkamenet eredménye kerülhet)
+        const found = await findSidecars(url0);
+        if (my !== session || player.channel !== ch) return;
+        state.sidecars = found;
+      }
+      if (my !== session || player.channel !== ch) return;
       if (saved?.sidecar) {
         const sc = state.sidecars.find((x) => x.name === saved.sidecar);
         if (sc) return void applyText(video, sc.text, sc.name);
@@ -581,7 +597,7 @@ player.subsHooks = {
       if (s.subsAuto && (feOn() || sdlKey() || (s.osApiKey && s.osUser))) {
         const list = await searchSubs(ch, subsLangPref());
         const best = list.find((x) => !x.ai) || list[0];
-        if (best && player.channel === ch) await useResult(video, ch, best);
+        if (best && my === session && player.channel === ch) await useResult(video, ch, best);
         else if (!best) toast(_t('Nem található {lang} felirat ehhez a címhez.', { lang: languageName(subsLangPref()) }));
       }
     } catch (err) {
@@ -591,6 +607,7 @@ player.subsHooks = {
   },
 
   clear(video) {
+    session++; // (bezárás: a függő keresések eredménye már nem érvényes)
     clearSubs(video);
   },
 

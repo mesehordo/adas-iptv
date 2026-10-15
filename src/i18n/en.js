@@ -2157,5 +2157,6 @@ export default {
  "A mentési pont nem készült el: {x}": "The restore point was not created: {x}",
  "A visszaállítás nem sikerült: {x}": "Restore failed: {x}",
  "hibás formátum: nincs benne profil": "invalid format: it contains no profiles",
- "hibás formátum: sérült profiladat": "invalid format: damaged profile data"
+ "hibás formátum: sérült profiladat": "invalid format: damaged profile data",
+ "a korábbi műsor látszik ({x} csatorna)": "showing the previous schedule ({x} channels)"
 };
