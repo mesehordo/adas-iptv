@@ -36,6 +36,7 @@ svg { width: 1em; height: 1em; fill: currentColor; flex: none; }
 [hidden] { display: none !important; }
 h1, h2, h3, h4 { margin: 0; color: var(--text-strong); }
 .muted { color: var(--muted); }
+.warn-note { color: var(--warn); }
 .small { font-size: 0.85em; }
 .grow { flex: 1; }
 :focus { outline: none; }
@@ -875,9 +876,10 @@ mark { background: rgba(255, 213, 74, 0.45); color: inherit; border-radius: 2px;
 .w-ico, .wd-ico, .wc-i { font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif; }
 .w-ico { font-size: 46px; line-height: 1; }
 .w-temp { font-size: 40px; font-weight: 800; line-height: 1; }
-.w-mid { display: flex; flex-direction: column; min-width: 0; }
-.w-city { font-size: 1.05rem; }
-.w-desc, .w-mm { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+.w-mid { display: flex; flex-direction: column; min-width: 0; flex: 1 1 0; }
+/* hosszú településnév: egy sorban, ellipszissel (a teljes név a súgószövegben) */
+.w-city { font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w-desc, .w-mm { color: var(--muted); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .w-now.big { flex: 1; justify-content: center; align-content: center; }
 .w-now.big .w-ico { font-size: 80px; }
 .w-now.big .w-temp { font-size: 72px; }

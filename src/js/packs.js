@@ -23,8 +23,16 @@ export const PACK_KINDS = {
 export const PACK_EXT = /\.adaspa(c)?k$/i; // (.adaspack, elírva .adaspak is)
 const MAX_TEXT = 60e6;
 
+/**
+ * A csomag szövegének dokumentumkulcsa: alapból „<fajta>pack:<azonosító>”; visszaállítás / átvétel után a
+ * bejegyzés `doc` mezője mutathat az új példányra (B31 – az új tartalom új kulcsra kerül, a régi érintetlen).
+ */
+export function packDocKey(kind, p) {
+  const k = PACK_KINDS[kind];
+  return typeof p?.doc === 'string' && p.doc.startsWith(k.doc) && /^[a-z]+:[\w-]+$/.test(p.doc) ? p.doc : k.doc + p.id;
+}
 /** A betöltött csomagok egy fajtából, listaként (a szövegük a tartós tárban van). */
-export const packsOf = (kind) => (store.settings[PACK_KINDS[kind].setting] || []).map((p) => ({ ...p, kind, textKey: PACK_KINDS[kind].doc + p.id, pack: true }));
+export const packsOf = (kind) => (store.settings[PACK_KINDS[kind].setting] || []).map((p) => ({ ...p, kind, textKey: packDocKey(kind, p), pack: true }));
 
 /** A fajta a fájlnévből: …_tv.adaspack / …_vod.adaspack */
 const kindFromName = (name) => (/_tv\.adaspa(c)?k$/i.test(name || '') ? 'tv' : /_vod\.adaspa(c)?k$/i.test(name || '') ? 'vod' : /_radio\.adaspa(c)?k$/i.test(name || '') ? 'radio' : '');
@@ -93,9 +101,10 @@ export async function installPack(pk) {
 export async function removePack(kind, id) {
   const k = PACK_KINDS[kind];
   const s = store.settings;
+  const cur = (s[k.setting] || []).find((p) => p.id === id);
   s[k.setting] = (s[k.setting] || []).filter((p) => p.id !== id);
   store.save();
-  await api.docSet?.(k.doc + id, null);
+  await api.docSet?.(packDocKey(kind, cur || { id }), null);
   bus.emit('packs', kind);
 }
 
@@ -200,9 +209,11 @@ export async function syncPackFolder() {
 export async function packDocs(settings) {
   const docs = {};
   for (const k of Object.values(PACK_KINDS)) {
+    const kind = Object.keys(PACK_KINDS).find((x) => PACK_KINDS[x] === k);
     for (const p of settings?.[k.setting] || []) {
-      const v = await api.docGet?.(k.doc + p.id).catch(() => null);
-      if (v) docs[k.doc + p.id] = v;
+      const key = packDocKey(kind, p);
+      const v = await api.docGet?.(key).catch(() => null);
+      if (v) docs[key] = v;
     }
   }
   return docs;

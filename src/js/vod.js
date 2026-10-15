@@ -14,7 +14,7 @@ import { allowOutsidePlayback } from './watchtime.js';
 
 // A felismerés változásakor növelni kell, hogy a régi feldolgozott mentés ne töltődjön be.
 import { _t, lang, LOCALE } from './i18n.js';
-const VOD_CACHE_VERSION = 8;
+const VOD_CACHE_VERSION = 9; // (9: az évszám nem részszám – #21)
 const newId = () => Math.random().toString(36).slice(2, 10);
 const isUrl = (u) => /^https?:\/\/\S+$/i.test(u || '');
 
@@ -76,15 +76,19 @@ const EPISODE_PATTERNS = [
   { re: /(\d{1,4})\.\s*rész\b/i, e: 1 },
   { re: /第\s*(\d{1,4})\s*[集話话回]/, e: 1 },
   // „Cím - 01 [CRC]” (gyakori anime-fájlnév): a cím végén, kötőjel után álló sorszám – utolsóként,
-  // hogy pl. a „3. rész - 1812” alcím évszáma ne legyen részszám
-  { re: /\s[-–]\s(\d{1,4})(?:v\d)?(?=\s*(?:\[[^\]]*\]\s*|\([^)]*\)\s*)*$)/, e: 1 },
+  // hogy pl. a „3. rész - 1812” alcím évszáma ne legyen részszám. Gyenge jel: a négyjegyű, évszámnak
+  // látszó szám (pl. „Devil's Nightmare - 1971”) a film kiadási éve, nem részszám (#21).
+  { re: /\s[-–]\s(\d{1,4})(?:v\d)?(?=\s*(?:\[[^\]]*\]\s*|\([^)]*\)\s*)*$)/, e: 1, weak: true },
 ];
+/** Évszámnak látszó négyjegyű szám (1900–2099) – a gyenge mintánál nem részszám. */
+const YEAR_LIKE = /^(19|20)\d\d$/;
 
 /** Epizód felismerése: { season, episode, series, epTitle } vagy null (film). */
 export function parseEpisode(title) {
   for (const p of EPISODE_PATTERNS) {
     const m = p.re.exec(title);
     if (!m) continue;
+    if (p.weak && YEAR_LIKE.test(m[p.e])) continue;
     const season = p.s ? parseInt(m[p.s], 10) : 1;
     const episode = parseInt(m[p.e], 10);
     const before = title.slice(0, m.index);
@@ -450,7 +454,11 @@ function detectLooseSeries(bucket) {
     if (m) nums.set(x, parseInt(m[1], 10));
   }
   if (nums.size < 3 || nums.size < bucket.length * 0.7) return null;
-  // Évszámnak látszó 
+  // ha a „sorszámok” (szinte) mind évszámnak látszanak (pl. „Film - 1971”, „Film - 1985”), az filmek sora, nem sorozat (#21)
+  // (arányos: ha a számok legalább 70%-a évszámnak látszik, az filmek sora, nem sorozat)
+  const vals = [...nums.values()];
+  if (vals.filter((n) => YEAR_LIKE.test(String(n))).length >= vals.length * 0.7) return null;
+  // (sok ismétlődő szám: nem sorszám, hanem pl. felbontás vagy évszám)
   if (new Set(nums.values()).size < nums.size * 0.8) return null;
   const series = cleanName(prefix.replace(/\b(?:layer|vol|no|#)\s*$/i, ''));
   let extra = 0;

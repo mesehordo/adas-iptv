@@ -168,6 +168,20 @@ function bracketLabels(s) {
   }
 }
 
+/**
+ * Az #EXTINF fejlécet és a címet elválasztó vessző helye (-1, ha nincs): az első vessző az attribútumok
+ * idézőjelein kívül. Lezáratlan idézőjelnél (hibás sor) az első vessző – egy menetben, lineárisan.
+ */
+function extinfComma(body) {
+  let inQuote = false;
+  for (let i = 0; i < body.length; i++) {
+    const c = body[i];
+    if (c === '"') inQuote = !inQuote;
+    else if (c === ',' && !inQuote) return i;
+  }
+  return inQuote ? body.indexOf(',') : -1;
+}
+
 export function parseM3U(text) {
   const lines = text.split(/\r?\n/);
   const entries = [];
@@ -187,9 +201,10 @@ export function parseM3U(text) {
       cur = { attrs: {}, opts: {} };
       const body = line.slice(line.indexOf(':') + 1);
       cur.duration = parseFloat(body) || 0; // filmeknél a hossz másodpercben (élő adásnál -1)
-      parseAttrs(body, cur.attrs);
-      const lastQuote = body.lastIndexOf('"');
-      const comma = body.indexOf(',', lastQuote >= 0 ? lastQuote : 0);
+      // (B06) a fejléc (időtartam + attribútumok) és a cím között az első, idézőjelen KÍVÜLI vessző áll – a cím
+      // maga tartalmazhat idézőjelet és vesszőt; az attribútumok csak a fejlécből jönnek
+      const comma = extinfComma(body);
+      parseAttrs(comma >= 0 ? body.slice(0, comma) : body, cur.attrs);
       cur.title = comma >= 0 ? body.slice(comma + 1).trim() : '';
     } else if (line.startsWith('#EXTVLCOPT')) {
       if (!cur) continue;
