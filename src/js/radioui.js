@@ -21,6 +21,11 @@ const P = {
   expand: '<svg viewBox="0 0 24 24"><path d="M7.4 15.4 12 10.8l4.6 4.6L18 14l-6-6-6 6z"/></svg>',
   vol: '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3Zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4Z"/></svg>',
   heart: '★',
+  vis: '<svg viewBox="0 0 24 24"><path d="M3 10h2v4H3zm4-4h2v12H7zm4-3h2v18h-2zm4 5h2v8h-2zm4 3h2v2h-2z"/></svg>',
+  sound: '<svg viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>',
+  eq: '<svg viewBox="0 0 24 24"><path d="M5 3h2v6h2v2H3V9h2zm0 10h2v8H5zm6-10h2v10h2v2H9v-2h2zm0 14h2v4h-2zm6-14h2v2h2v2h-6V5h2zm0 6h2v12h-2z"/></svg>',
+  sleep: '<svg viewBox="0 0 24 24"><path d="M12.3 2a9.8 9.8 0 1 0 9.6 12.3A7.8 7.8 0 0 1 12.3 2z"/></svg>',
+  hist: '<svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l4 4 4-4H6a7 7 0 1 1 2.05 4.95l-1.42 1.42A9 9 0 1 0 13 3zm-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/></svg>',
 };
 
 // rádiózás közben a videó bezárul (és viszont: a videó indulásakor a rádió elhallgat – radioplayer.js)
@@ -153,7 +158,6 @@ const XFADE = [0, 2, 4];
 function openFull() {
   if (!radioPlayer.active || full) return;
   full = html(`<section id="radio-full" role="dialog" aria-label="${_t('Most szól')}">
-    <div class="rf-bg"></div>
     <div class="rf-head">
       <span class="muted">${_t('Most szól')}</span><span class="grow"></span>
       <button class="round small" data-rf="close" title="${_t('Vissza (Esc)')}">${ICON.chevron}</button>
@@ -165,29 +169,29 @@ function openFull() {
         <h1 class="rf-title"></h1>
         <div class="rf-artist"></div>
         <div class="rf-state muted"></div>
-        <div class="rf-ctrls">
-          <button class="round" data-rf="prev" title="${_t('Előző adó (CH−)')}">${P.prev}</button>
-          <button class="round white big" data-rf="toggle"></button>
-          <button class="round" data-rf="next" title="${_t('Következő adó (CH+)')}">${P.next}</button>
-          <button class="round" data-rf="fav"></button>
-          ${canRecord ? `<button class="round rb-rec" data-rf="rec"></button>` : ''}
-          <label class="rb-vol">${P.vol}<input type="range" min="0" max="1" step="0.05" aria-label="${_t('Hangerő')}" /></label>
-        </div>
         <div class="rf-prog"></div>
         <div class="rf-links"></div>
       </div>
+      ${audioFxAvailable ? '<canvas class="rf-vis" aria-hidden="true"></canvas>' : ''}
     </div>
-    <canvas class="rf-vis" aria-hidden="true"></canvas>
-    <div class="rf-panels">
-      <div class="rf-panel rf-fx"></div>
-      <div class="rf-panel rf-hist"><h3>${_t('Előtte szólt')}</h3><div class="rf-hist-list"></div></div>
+    <div class="rf-bar">
+      <div class="rf-ctrls">
+        <button class="round" data-rf="prev" title="${_t('Előző adó (CH−)')}">${P.prev}</button>
+        <button class="round white big" data-rf="toggle"></button>
+        <button class="round" data-rf="next" title="${_t('Következő adó (CH+)')}">${P.next}</button>
+        <button class="round" data-rf="fav"></button>
+        ${canRecord ? `<button class="round rb-rec" data-rf="rec"></button>` : ''}
+        <label class="rb-vol">${P.vol}<input type="range" min="0" max="1" step="0.05" aria-label="${_t('Hangerő')}" /></label>
+      </div>
+      <div class="rf-menus"></div>
     </div>
+    <div class="p-menu rf-menu" role="menu" hidden></div>
   </section>`);
   document.body.append(full);
   document.body.classList.add('radio-full');
   full.addEventListener('click', onFullClick);
   full.querySelector('input').addEventListener('input', (e) => radioPlayer.setVolume(Number(e.target.value)));
-  drawVisualizer(full.querySelector('.rf-vis'), () => fx().vis);
+  if (audioFxAvailable) drawVisualizer(full.querySelector('.rf-vis'), () => fx().vis);
   lastCover = '';
   drawFxChips();
   updateFull();
@@ -196,6 +200,7 @@ function openFull() {
 
 function closeFull() {
   if (!full) return false;
+  menuKind = '';
   full.remove();
   full = null;
   document.body.classList.remove('radio-full');
@@ -204,32 +209,106 @@ function closeFull() {
 }
 document.addEventListener('adas-radio-expand', openFull);
 
-// (a téma fülgombjai: .tabs / .tab.active – minden felületstílusban illeszkednek)
-const chip = (attr, val, label, on, title = '') => `<button class="tab ${on ? 'active' : ''}" ${attr}="${esc(val)}" aria-pressed="${on}" ${title ? `title="${esc(title)}"` : ''}>${esc(label)}</button>`;
+
+// A beállítások a tévés / VOD-lejátszóhoz hasonlóan egy-egy rövid gombról nyíló menüben – így fekvő képernyőn
+// minden egy képernyőre fér.
+let menuKind = '';
+const sleepLeft = () => (radioPlayer.sleepAt ? Math.max(1, Math.round((radioPlayer.sleepAt - Date.now()) / 60e3)) : 0);
+const mi = (attr, val, label, on, title = '', role = 'menuitemradio') => `<button class="menu-item ${on ? 'sel' : ''}" role="${role}" aria-checked="${on}" ${attr}="${esc(val)}" ${title ? `title="${esc(title)}"` : ''}>${esc(label)}</button>`;
 
 function drawFxChips() {
-  const box = full?.querySelector('.rf-fx');
+  const box = full?.querySelector('.rf-menus');
   if (!box) return;
   const f = fx();
-  const sleepLeft = radioPlayer.sleepAt ? Math.max(1, Math.round((radioPlayer.sleepAt - Date.now()) / 60e3)) : 0;
-  box.innerHTML = audioFxAvailable
-    ? `<h3>${_t('Vizualizáció')}</h3><div class="tabs">${VIS_MODES.map(([id, n]) => chip('data-vis', id, n, f.vis === id)).join('')}</div>
-      <h3>${_t('Hangzás')}</h3>
-      <div class="tabs">
-        ${chip('data-tog', 'level', _t('Hangerő-kiegyenlítés'), f.level, _t('Az adók eltérő hangerejét kiegyenlíti, a halk részeket kiemeli'))}
-        ${chip('data-tog', 'widen', _t('Térhatás'), f.widen, _t('Szélesebb sztereó kép'))}
-        ${chip('data-tog', 'retro', _t('Retro rádió'), f.retro, _t('Régi középhullámú készülék hangja, halk sercegéssel'))}
-        ${chip('data-xfade', '', f.xfade ? _t('Átúsztatás: {s} mp', { s: f.xfade }) : _t('Átúsztatás: ki'), f.xfade > 0, _t('Adóváltáskor az új adó fokozatosan erősödik fel'))}
-      </div>
-      <h3>${_t('Hangszínszabályzó')}</h3><div class="tabs">${EQ_PRESETS.map(([id, n]) => chip('data-eq', id, n, f.eq === id)).join('')}</div>`
-    : `<h3>${_t('Hangzás')}</h3><p class="muted small">${_t('Ezen az eszközön a hangeffektek és a vizualizáció nem érhetők el (a tévé böngészőmotorja nem fér hozzá az adás hangjához).')}</p>`;
-  box.insertAdjacentHTML('beforeend', `<h3>${_t('Elalvás-időzítő')}</h3><div class="tabs">${SLEEP.map((m) => chip('data-sleep', String(m), m ? _t('{m} perc', { m }) : _t('Ki'), m ? false : !sleepLeft)).join('')}${sleepLeft ? `<span class="muted small rf-sleep-left">${_t('Még {m} perc', { m: sleepLeft })}</span>` : ''}</div>`);
+  const left = sleepLeft();
+  const visName = VIS_MODES.find(([id]) => id === f.vis)?.[1] || '';
+  const eqName = EQ_PRESETS.find(([id]) => id === f.eq)?.[1] || '';
+  const mb = (k, ico, label, title, on = false) => `<button class="btn small rf-mb ${on ? 'on' : ''}" data-rfm="${k}" aria-haspopup="menu" aria-expanded="${menuKind === k}" title="${esc(title)}">${ico}<span>${esc(label)}</span></button>`;
+  box.innerHTML = [
+    audioFxAvailable && mb('vis', P.vis, _t('Hangkép'), `${_t('Vizualizáció')}: ${visName}`),
+    audioFxAvailable && mb('sound', P.sound, _t('Hangzás'), _t('Hangerő-kiegyenlítés, térhatás, retro rádió, átúsztatás'), f.widen || f.retro),
+    audioFxAvailable && mb('eq', P.eq, _t('Hangszín'), `${_t('Hangszínszabályzó')}: ${eqName}`, f.eq !== 'flat'),
+    mb('sleep', P.sleep, left ? _t('{m} perc', { m: left }) : _t('Elalvás'), _t('Elalvás-időzítő'), !!left),
+    mb('hist', P.hist, _t('Előtte szólt'), _t('Előtte szólt')),
+  ]
+    .filter(Boolean)
+    .join('');
+  if (menuKind) renderMenu();
+}
+
+function renderMenu() {
+  const menu = full?.querySelector('.rf-menu');
+  if (!menu) return;
+  const f = fx();
+  const r = radioPlayer;
+  const left = sleepLeft();
+  let body = '';
+  if (menuKind === 'vis') body = `<h4>${_t('Vizualizáció')}</h4>${VIS_MODES.map(([id, n]) => mi('data-vis', id, n, f.vis === id)).join('')}`;
+  else if (menuKind === 'sound')
+    body = `<h4>${_t('Hangzás')}</h4>
+      ${mi('data-tog', 'level', _t('Hangerő-kiegyenlítés'), f.level, _t('Az adók eltérő hangerejét kiegyenlíti, a halk részeket kiemeli'), 'menuitemcheckbox')}
+      ${mi('data-tog', 'widen', _t('Térhatás'), f.widen, _t('Szélesebb sztereó kép'), 'menuitemcheckbox')}
+      ${mi('data-tog', 'retro', _t('Retro rádió'), f.retro, _t('Régi középhullámú készülék hangja, halk sercegéssel'), 'menuitemcheckbox')}
+      <h4>${_t('Átúsztatás adóváltáskor')}</h4>${XFADE.map((s) => mi('data-xfade', String(s), s ? _t('{s} mp', { s }) : _t('Ki'), f.xfade === s)).join('')}`;
+  else if (menuKind === 'eq') body = `<h4>${_t('Hangszínszabályzó')}</h4>${EQ_PRESETS.map(([id, n]) => mi('data-eq', id, n, f.eq === id)).join('')}`;
+  else if (menuKind === 'sleep')
+    body = `<h4>${_t('Elalvás-időzítő')}</h4>${left ? `<p class="muted small">${_t('Még {m} perc', { m: left })}</p>` : ''}${SLEEP.map((m) => mi('data-sleep', String(m), m ? _t('{m} perc', { m }) : _t('Ki'), m ? false : !left)).join('')}`;
+  else if (menuKind === 'hist') {
+    // (az éppen szóló szám nem „előtte szólt”)
+    const hist = r.history.filter((h, i) => i > 0 || h.text !== r.now.text);
+    body = `<h4>${_t('Előtte szólt')}</h4>${
+      hist.length
+        ? hist
+            .map((h) => `<div class="rf-h">${h.cover ? `<img src="${esc(h.cover)}" alt="" />` : '<span class="rf-h-ph">♪</span>'}<span><b>${esc(h.title)}</b><small>${esc(h.artist)} · ${fmtTime(h.t)}</small></span>
+          <a href="#" class="round small" data-ext="https://www.youtube.com/results?search_query=${encodeURIComponent(`${h.artist} ${h.title}`)}" title="${_t('Keresés a YouTube-on')}">${ICON.external}</a></div>`)
+            .join('')
+        : `<p class="muted small">${_t('Itt jelennek meg a rádióban elhangzott számok (ha az adó küldi a címüket).')}</p>`
+    }`;
+  }
+  // (újrarajzoláskor – pl. új szám az előzményekben – a fókusz ugyanazon a helyen marad)
+  const focusables = () => [...menu.querySelectorAll('button, a')];
+  const fi = menu.contains(document.activeElement) ? focusables().indexOf(document.activeElement) : -1;
+  menu.innerHTML = body;
+  if (fi >= 0) {
+    const list = focusables();
+    list[Math.min(fi, list.length - 1)]?.focus({ preventScroll: true });
+  }
+  menu.dataset.kind = menuKind;
+  menu.hidden = false;
+  // a menü a gombja fölött (jobb széléhez igazítva, a képernyőn belül)
+  const btn = full.querySelector(`[data-rfm="${menuKind}"]`);
+  if (btn) {
+    const fr = full.getBoundingClientRect();
+    const br = btn.getBoundingClientRect();
+    menu.style.bottom = `${Math.round(fr.bottom - br.top + 8)}px`;
+    menu.style.right = `${Math.max(8, Math.round(fr.right - br.right))}px`;
+  }
+}
+function openMenu(kind) {
+  if (menuKind === kind) return void closeMenu(true);
+  menuKind = kind;
+  drawFxChips();
+  const menu = full.querySelector('.rf-menu');
+  (menu.querySelector('.menu-item.sel') || menu.querySelector('button, a'))?.focus({ preventScroll: true });
+}
+/** A menü bezárása; focusBtn: a fókusz vissza a gombjára (billentyűzet / távirányító). */
+function closeMenu(focusBtn = false) {
+  if (!full || !menuKind) return false;
+  const k = menuKind;
+  menuKind = '';
+  full.querySelector('.rf-menu').hidden = true;
+  drawFxChips();
+  if (focusBtn) full.querySelector(`[data-rfm="${k}"]`)?.focus({ preventScroll: true });
+  return true;
 }
 
 function onFullClick(e) {
   const t = e.target.closest('button, a');
+  // a menün kívüli kattintás bezárja a menüt
+  if (menuKind && !e.target.closest('.rf-menu, [data-rfm]')) closeMenu();
   if (!t) return;
   const d = t.dataset;
+  if (d.rfm) return void openMenu(d.rfm);
   if (d.rf === 'close') return void closeFull();
   if (d.rfProg && radioPlayer.station) {
     const p = epg.list(radioPlayer.station.id).find((x) => x.start === Number(d.rfProg));
@@ -239,15 +318,18 @@ function onFullClick(e) {
   if (d.vis) setFx({ vis: d.vis });
   else if (d.tog) setFx({ [d.tog]: !fx()[d.tog] });
   else if (d.eq) setFx({ eq: d.eq });
-  else if (d.xfade !== undefined) setFx({ xfade: XFADE[(XFADE.indexOf(fx().xfade) + 1) % XFADE.length] });
+  else if (d.xfade !== undefined) setFx({ xfade: Number(d.xfade) });
   else if (d.sleep !== undefined) {
     radioPlayer.setSleep(Number(d.sleep));
     if (Number(d.sleep)) toast(_t('A rádió {m} perc múlva elhalkul és kikapcsol.', { m: d.sleep }));
     drawFxChips();
   } else return;
-  // (a fókusz az újrarajzolt chipen maradjon)
-  const sel = Object.keys(d).map((k) => `[data-${k}="${CSS.escape(d[k])}"]`)[0];
-  if (sel) full?.querySelector(sel)?.focus({ preventScroll: true });
+  // egyválasztós menü a választás után bezárul; a hangzásmenü nyitva marad (több kapcsoló), a fókusz a
+  // kapcsolón marad
+  if (d.tog !== undefined || d.xfade !== undefined) {
+    const sel = Object.keys(d).map((k) => `[data-${k}="${CSS.escape(d[k])}"]`)[0];
+    if (sel) full?.querySelector(`.rf-menu ${sel}`)?.focus({ preventScroll: true });
+  } else closeMenu(true);
 }
 
 const searchLinks = (q) =>
@@ -275,7 +357,6 @@ function updateFull() {
     c.classList.toggle('is-logo', !n.cover);
     c.style.setProperty('--h', String(hashHue(st.name)));
     c.innerHTML = cover ? `<img src="${esc(cover)}" alt="" referrerpolicy="no-referrer" />` : `<span class="initials">${esc(initials(st.name))}</span>`;
-    full.querySelector('.rf-bg').style.backgroundImage = cover ? `url("${cover.replace(/["\\]/g, '')}")` : '';
   }
   const tg = full.querySelector('[data-rf="toggle"]');
   tg.innerHTML = r.playing ? P.pause : ICON.play;
@@ -296,14 +377,7 @@ function updateFull() {
     : '';
   full.querySelector('input').value = String(fx().volume);
   full.querySelector('.rf-links').innerHTML = searchLinks(isSong ? `${n.artist} ${n.title}` : '') + (st.homepage && /^https?:\/\//.test(st.homepage) ? `<a class="btn small" href="#" data-ext="${esc(st.homepage)}">${_t('Az adó honlapja')}</a>` : '');
-  // (az éppen szóló szám nem „előtte szólt”)
-  const hist = r.history.filter((h, i) => i > 0 || h.text !== n.text);
-  full.querySelector('.rf-hist-list').innerHTML = hist.length
-    ? hist
-        .map((h) => `<div class="rf-h">${h.cover ? `<img src="${esc(h.cover)}" alt="" />` : '<span class="rf-h-ph">♪</span>'}<span><b>${esc(h.title)}</b><small>${esc(h.artist)} · ${fmtTime(h.t)}</small></span>
-          <a href="#" class="round small" data-ext="https://www.youtube.com/results?search_query=${encodeURIComponent(`${h.artist} ${h.title}`)}" title="${_t('Keresés a YouTube-on')}">${ICON.external}</a></div>`)
-        .join('')
-    : `<p class="muted small">${_t('Itt jelennek meg a rádióban elhangzott számok (ha az adó küldi a címüket).')}</p>`;
+  if (menuKind === 'hist') renderMenu();
   full.classList.toggle('is-playing', r.state === 'playing');
 }
 // az elalvás-időzítő hátralévő ideje percenként
@@ -316,7 +390,7 @@ export function radioKey(e) {
   if (!radioPlayer.active || player.active) return false;
   const k = e.key;
   const typing = e.target.matches?.('input:not([type=checkbox]):not([type=range]), textarea, select');
-  if (full && (k === 'Escape' || ((k === 'Backspace' || k === 'BrowserBack') && !typing))) return closeFull();
+  if (full && (k === 'Escape' || ((k === 'Backspace' || k === 'BrowserBack') && !typing))) return closeMenu(true) || closeFull();
   if (['MediaPlayPause', 'MediaPlay', 'MediaPause'].includes(k)) {
     if (k === 'MediaPlay') radioPlayer.resume();
     else if (k === 'MediaPause') radioPlayer.pause();

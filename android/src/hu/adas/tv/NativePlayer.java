@@ -91,6 +91,8 @@ class NativePlayer implements Player.Listener {
     player = new ExoPlayer.Builder(act, renderers).setMediaSourceFactory(new DefaultMediaSourceFactory(data, extractors)).build();
     player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true);
     player.addListener(this);
+    // (B26) az alkalmazás hangereje / némítása már az első hallható pillanattól
+    player.setVolume((float) Math.max(0, Math.min(1, o.optDouble("volume", 1))));
 
     // Kedvenc hang- és feliratnyelv (a profil beállítása)
     TrackSelectionParameters.Builder p = player.getTrackSelectionParameters().buildUpon();
@@ -100,6 +102,10 @@ class NativePlayer implements Player.Listener {
     if ("off".equals(text)) p.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true);
     else if (text.matches("^[a-z]{2}$")) p.setPreferredTextLanguage(text);
     else p.setPreferredTextLanguage(o.optString("uiLang", "hu")); // 'auto': a jelölt (alapértelmezett) felirat, ill. a felület nyelvű
+    // (B12) legnagyobb minőség: az adaptív adásnál a nagyobb felbontású változat nem választódik (ha mind
+    // nagyobb, a legkisebb – egyetlen minőségű adáson nem változtat)
+    int maxH = o.optInt("maxHeight", 0);
+    if (maxH > 0) p.setMaxVideoSize(Integer.MAX_VALUE, maxH);
     player.setTrackSelectionParameters(p.build());
 
     ensureSurface();
@@ -126,6 +132,14 @@ class NativePlayer implements Player.Listener {
 
   void seek(double sec) {
     if (player != null) player.seekTo((long) (sec * 1000));
+  }
+
+  void maxHeight(int h) {
+    if (player == null) return;
+    TrackSelectionParameters.Builder b = player.getTrackSelectionParameters().buildUpon();
+    if (h > 0) b.setMaxVideoSize(Integer.MAX_VALUE, h);
+    else b.clearVideoSizeConstraints();
+    player.setTrackSelectionParameters(b.build());
   }
 
   void volume(float v) {

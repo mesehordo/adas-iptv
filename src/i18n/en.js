@@ -2176,5 +2176,12 @@ export default {
  "az adó küldi": "sent by the station",
  "az adó nem küldi": "not sent by the station",
  "Gyakori akadás: a szerver vagy a kapcsolat lassú.": "Frequent stalls: the server or the connection is slow.",
- "A mért bitráta jóval kisebb a megadottnál – az adó kisebb minőségben sugároz, vagy a kapcsolat lassú.": "The measured bitrate is well below the declared one – the station broadcasts in lower quality, or the connection is slow."
+ "A mért bitráta jóval kisebb a megadottnál – az adó kisebb minőségben sugároz, vagy a kapcsolat lassú.": "The measured bitrate is well below the declared one – the station broadcasts in lower quality, or the connection is slow.",
+ "Ebből a mentési pontból {n} lista tartalma hiányzik ({names}). Ezek a visszaállítás után üresek lesznek. Így is visszaállítod?": "The content of {n} list(s) is missing from this restore point ({names}). They will be empty after restoring. Restore anyway?",
+ "Hangkép": "Visuals",
+ "Hangerő-kiegyenlítés, térhatás, retro rádió, átúsztatás": "Loudness levelling, stereo widening, retro radio, crossfade",
+ "Hangszín": "Tone",
+ "Elalvás": "Sleep",
+ "Átúsztatás adóváltáskor": "Crossfade when switching stations",
+ "{s} mp": "{s} s"
 };

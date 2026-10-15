@@ -501,7 +501,7 @@ export function drawVisualizer(canvas, getMode, { mini = false } = {}) {
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
     if (!w || !h) return;
-    if (canvas.width !== Math.round(w * dpr)) (canvas.width = Math.round(w * dpr)), (canvas.height = Math.round(h * dpr));
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) (canvas.width = Math.round(w * dpr)), (canvas.height = Math.round(h * dpr));
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, w, h);
     const an = radioPlayer.analyser;

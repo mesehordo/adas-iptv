@@ -13,6 +13,8 @@ import { catalog } from './catalog.js';
 
 import { _t } from './i18n.js';
 const TICK = 15;
+// (B09) ennél hosszabb kimaradás két ellenőrzés között (alvó gép, felfüggesztett felület) nem számít nézésnek
+const MAX_GAP = 5 * 60e3;
 const video = $('#video');
 const today = () => new Date().toDateString();
 export const LIMITS = [0, 30, 45, 60, 90, 120, 180, 240];
@@ -106,17 +108,46 @@ player.guard = async (ch) => {
   return true;
 };
 
-// Nézés közben: idő számlálása, figyelmeztetés, leállítás; műsorváltáskor a korhatár újra
+// Nézés közben: idő számlálása, figyelmeztetés, leállítás; műsorváltáskor a korhatár újra.
+// (B09) Nem az ablak láthatósága, hanem a tényleges lejátszás számít: háttérbe tett / kis méretű ablaknál és
+// kivetítéskor is fogy a keret, lejáratkor a kivetítés is leáll. A háttérben lassuló időzítő miatt a két
+// ellenőrzés között ténylegesen eltelt idő számít (nem fix 15 mp), és csak ha mindkét pillanatban ment az adás
+// ugyanabban a profilban – a szünet nem fogyaszt.
 let warned = '';
-setInterval(async () => {
-  const p = store.profile;
-  if (!p?.kids || !player.active || document.hidden) return;
+let since = 0; // az utolsó „megy az adás” ellenőrzés ideje (0: nem ment)
+let sinceProfile = '';
+let busy = false; // (egy nyitott PIN-kérés alatt nem indul újabb)
+const isPlaying = () =>
   // kivetítéskor a helyi lejátszó áll, de a vevőn megy az adás – az is nézésnek számít
-  const playing = player.castHooks?.active ? !player.castHooks.paused : player.engine?.started && !video.paused;
+  player.castHooks?.active ? (player.castHooks.playing ?? !player.castHooks.paused) : !!player.engine?.started && !video.paused;
+async function tick() {
+  const p = store.profile;
+  const now = Date.now();
+  const kid = !!p?.kids;
+  // az előző ellenőrzés óta eltelt idő nézés volt, ha akkor ment az adás (szünet / bezárás eseményénél is így
+  // a szünet előtti szakasz még beszámít)
+  const gap = kid && since && sinceProfile === p.id ? now - since : 0;
+  const playing = kid && player.active && isPlaying();
+  since = playing ? now : 0;
+  sinceProfile = p?.id || '';
+  if (!kid || busy || (!playing && !gap)) return;
+  busy = true;
+  try {
+    await enforce(p, gap > 0 && gap <= MAX_GAP ? gap / 1000 : 0, playing);
+  } finally {
+    busy = false;
+  }
+}
+async function enforce(p, sec, playing) {
+  if (p.dailyLimit && !playing) {
+    usage(p).sec += sec;
+    if (sec) store.save();
+    return;
+  }
   if (!playing) return;
   if (p.dailyLimit) {
-    usage(p).sec += TICK;
-    store.save();
+    usage(p).sec += sec;
+    if (sec) store.save();
     const left = minutesLeft(p);
     if (left <= 5 && left > 0 && warned !== today() + Math.ceil(left)) {
       warned = today() + Math.ceil(left);
@@ -126,6 +157,7 @@ setInterval(async () => {
       const ch = player.channel;
       player.close();
       toast(`${_t('{name}: mára elfogyott a nézési idő.', { name: p.name })}`, { timeout: 8000 });
+      since = 0;
       if (await askMore(p)) player.play(ch);
       return;
     }
@@ -134,9 +166,27 @@ setInterval(async () => {
   const cur = ch && overAge(p, ch);
   if (cur) {
     player.close();
+    since = 0;
     if (await askAge(p, ch, cur)) player.play(ch);
   }
-}, TICK * 1000);
+}
+setInterval(tick, TICK * 1000);
+// szünet / folytatás / ablakváltás / kivetítési állapotváltás pillanatában is (a szünet előtti rész még beszámít, a szünet már nem)
+video.addEventListener('pause', tick);
+video.addEventListener('play', tick);
+document.addEventListener('visibilitychange', tick);
+bus.on('player-closed', tick);
+bus.on('cast-state', tick);
+bus.on('profile', () => {
+  // (a váltás után már az új profil aktív: az utolsó szakasz a korábbi gyerekprofilhoz tartozik)
+  const gap = since ? Date.now() - since : 0;
+  const prev = sinceProfile && store.profiles.find((x) => x.id === sinceProfile);
+  if (prev?.kids && prev.dailyLimit && gap > 0 && gap <= MAX_GAP) {
+    usage(prev).sec += gap / 1000;
+    store.save();
+  }
+  since = 0;
+});
 
 /** Beállítások → Tartalom és gyerekek → Gyerekprofilok: napi keret és korhatár profilonként. */
 export function limitsHtml(profs) {

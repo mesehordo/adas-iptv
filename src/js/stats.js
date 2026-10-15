@@ -25,16 +25,19 @@ function record(ch, sec) {
   const dk = dayKey(now);
   s.days[dk] = (s.days[dk] || 0) + sec;
   s.hours[now.getHours()] += sec;
-  const key = ch.vod ? 'v:' + ch.vod.item.id : 'c:' + ch.id;
+  const key = ch.vod ? 'v:' + (ch.vod.item?.id ?? ch.vod.key) : 'c:' + ch.id;
   if (key !== lastKey) {
     lastKey = key;
     s.plays++;
   }
   if (ch.vod) {
     const it = ch.vod.item;
-    const v = (s.vod[it.id] ||= { t: 0, title: it.title, type: it.type, poster: it.poster || '' });
-    v.t += sec;
-    v.last = Date.now();
+    // (tétel nélküli lejátszás: csak a napi / órás összesítés)
+    if (it) {
+      const v = (s.vod[it.id] ||= { t: 0, title: it.title, type: it.type, poster: it.poster || '' });
+      v.t += sec;
+      v.last = Date.now();
+    }
   } else {
     s.ch[ch.id] = (s.ch[ch.id] || 0) + sec;
     const cats = ch.categories.length ? ch.categories : ['general'];
