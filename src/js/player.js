@@ -233,7 +233,10 @@ export const player = {
       const container = stream.url.split(/[?#]/)[0];
       // Android / Android TV: filmekhez a natív lejátszó (ExoPlayer) – AC3 / DTS hang, beágyazott felirat,
       // MKV; hiba esetén ugyanez a fájl a WebView saját lejátszójával.
-      const exo = !!(ch.vod && !noExo && !bridge && exoAvailable() && store.settings.mediaBridge !== false && !/\.(m3u8|mpd)$/i.test(container));
+      // (F01) „Natív lejátszó (ExoPlayer)” motorral élő tévé és HLS / DASH film is ezzel megy (hiba esetén a
+      // webes lejátszóval – lásd lent); az „Automatikus” mód egyelőre csak a fájlokat (MKV, MP4…) adja neki
+      const exoAll = mode === 'exo' && exoAvailable() && !noExo && !bridge;
+      const exo = exoAll || !!(ch.vod && !noExo && !bridge && exoAvailable() && store.settings.mediaBridge !== false && !/\.(m3u8|mpd)$/i.test(container));
       const canBridge = !exo && ch.vod && api.mediaProbe && !this.castHooks?.active && store.settings.mediaBridge !== false && !/\.(m3u8|mpd)$/i.test(container);
       const probeFirst = canBridge && !bridge && !/\.(mp4|m4v|webm|mp3|m4a|aac|ogg|opus|flac|wav)$/i.test(container);
       if (probeFirst) {

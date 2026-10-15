@@ -764,7 +764,7 @@ export function renderSettings(view) {
 
     <section class="set-section" id="engine" data-g="play"><h2>${_t('Lejátszómotor')} <button class="help-link" data-help="engines" title="${_t('Súgó')}">?</button></h2>
       <label class="setting"><span>${_t('<b>Lejátszómotor</b>')}<small>${_t('Automatikus: tévén a beépített lejátszó, máshol a hls.js. Ha egy adás nem indul, érdemes átváltani.')}</small></span>
-        <select data-set="playbackEngine">${[['auto', _t('Automatikus')], ['native', _t('Beépített lejátszó')], ['hlsjs', 'hls.js']]
+        <select data-set="playbackEngine">${[['auto', _t('Automatikus')], ['native', _t('Beépített lejátszó')], ['hlsjs', 'hls.js'], ...(exoAvailable() ? [['exo', _t('Natív lejátszó (ExoPlayer) – élő tévéhez is')]] : [])]
           .map(([v, l]) => `<option value="${v}" ${s.playbackEngine === v ? 'selected' : ''}>${l}</option>`)
           .join('')}</select></label>
       ${api.mediaProbe ? toggle('mediaBridge', _t('Lejátszási híd (FFmpeg) filmekhez'), _t('AC3 / DTS hang, a fájlba ágyazott feliratok (MKV, MP4), több hangsáv és régi videóformátumok lejátszása. Kikapcsolva a beépített lejátszó próbálja (néma lehet, felirat nélkül).')) + `<p class="muted small media-status">${_t('FFmpeg ellenőrzése…')}</p>` : ''}

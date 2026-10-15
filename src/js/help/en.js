@@ -256,6 +256,7 @@ ${go('#/settings?section=huinfo', 'Set favourite languages')}`,
 <tr><td><b>Built-in player</b></td><td>The system’s / TV’s own player. On TV this is the default for HLS, because there hls.js couldn’t reach many streams due to CORS restrictions.</td></tr>
 <tr><td><b>mpegts.js</b></td><td>MPEG-TS (<code>.ts</code>) and FLV streams.</td></tr>
 <tr><td><b>dash.js</b></td><td>DASH (<code>.mpd</code>) streams.</td></tr>
+<tr><td><b>Native player (ExoPlayer)</b></td><td>On Android: used automatically for films (MKV, MP4, AVI – AC3 / DTS audio, embedded subtitles); with the <i>Native player (ExoPlayer) – also for live TV</i> engine, live channels and HLS / DASH films use it too. Live streams start at the live point and can only be rewound as far as the provider allows. If it fails, the app retries with the web player.</td></tr>
 </table>
 <p>Settings → Playback → <b>Playback engine</b>: <i>Automatic</i> (recommended), <i>Built-in player</i> or <i>hls.js</i>. If an HLS stream doesn’t start with one, try the other. On TV the program does this by itself: if the built-in player can’t cope, it tries the same source with hls.js too.</p>`,
   },

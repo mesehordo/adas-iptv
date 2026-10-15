@@ -2187,5 +2187,6 @@ export default {
  "Adás adatai (D)": "Stream info (D)",
  "A kép a képben mód ezen az eszközön nem érhető el.": "Picture-in-picture is not available on this device.",
  "Kis ablak kilépéskor": "Small window when leaving",
- "Videó közben a Home gombra vagy másik alkalmazásra váltva a videó kis ablakban, más alkalmazások fölött látszik tovább (a lejátszó mini gombjával bármikor is indítható).": "While a video plays, pressing Home or switching to another app keeps the video visible in a small window above other apps (you can also start it any time with the player's mini button)."
+ "Videó közben a Home gombra vagy másik alkalmazásra váltva a videó kis ablakban, más alkalmazások fölött látszik tovább (a lejátszó mini gombjával bármikor is indítható).": "While a video plays, pressing Home or switching to another app keeps the video visible in a small window above other apps (you can also start it any time with the player's mini button).",
+ "Natív lejátszó (ExoPlayer) – élő tévéhez is": "Native player (ExoPlayer) – also for live TV"
 };

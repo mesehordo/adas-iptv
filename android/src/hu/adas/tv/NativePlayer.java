@@ -113,7 +113,9 @@ class NativePlayer implements Player.Listener {
     surface.setVisibility(View.VISIBLE);
     act.web.setBackgroundColor(Color.TRANSPARENT);
     active = true;
-    player.setMediaItem(MediaItem.fromUri(Uri.parse(url)), startMs);
+    // (F01) élő adás (HLS / DASH): az élő pontról indul – a 0-s kezdőpont a visszatekerhető ablak elejére vinne
+    if (startMs > 0) player.setMediaItem(MediaItem.fromUri(Uri.parse(url)), startMs);
+    else player.setMediaItem(MediaItem.fromUri(Uri.parse(url)));
     player.prepare();
     player.setPlayWhenReady(true);
     handler.removeCallbacks(tick);
@@ -220,7 +222,10 @@ class NativePlayer implements Player.Listener {
       JSONObject o = new JSONObject();
       o.put("type", "time");
       o.put("pos", player.getCurrentPosition() / 1000.0);
-      o.put("dur", dur == C.TIME_UNSET ? -1 : dur / 1000.0);
+      // (F01) élő adásnál nincs (állandó) hossz: a felület nem ígér tekerést, amit a szolgáltató nem ad
+      boolean live = player.isCurrentMediaItemLive();
+      o.put("live", live);
+      o.put("dur", live || dur == C.TIME_UNSET ? -1 : dur / 1000.0);
       o.put("buf", player.getBufferedPosition() / 1000.0);
       o.put("playing", player.isPlaying());
       o.put("pwr", player.getPlayWhenReady());

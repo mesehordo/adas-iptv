@@ -12,6 +12,9 @@ const out = path.join(root, '.android-tools', 'deps');
 const MEDIA3 = '1.6.1';
 const ROOTS = [
   `androidx.media3:media3-exoplayer:${MEDIA3}`,
+  // (F01) élő tévé és HLS / DASH VOD a natív lejátszóval – a DefaultMediaSourceFactory magától felismeri
+  `androidx.media3:media3-exoplayer-hls:${MEDIA3}`,
+  `androidx.media3:media3-exoplayer-dash:${MEDIA3}`,
   `org.jellyfin.media3:media3-ffmpeg-decoder:${MEDIA3}+2`, // AC3 / E-AC3 / DTS / TrueHD szoftveres dekódolás
 ];
 const REPOS = ['https://dl.google.com/dl/android/maven2', 'https://repo1.maven.org/maven2'];

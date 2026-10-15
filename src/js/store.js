@@ -162,7 +162,7 @@ const DEFAULT_SETTINGS = {
   epgRefreshHours: 12,
   homeCountry: 'HU',
   autoFallback: true,
-  playbackEngine: 'auto', // 'auto' | 'native' | 'hlsjs' – auto: TV-n a beépített lejátszó, máshol hls.js
+  playbackEngine: 'auto', // 'auto' | 'native' | 'hlsjs' | 'exo' (Android: natív lejátszó élő tévéhez is) – auto: TV-n a beépített lejátszó, máshol hls.js
   hideOffline: false,
   autoCheck: true,
   sportMenu: true, // Sport menüpont (a TV, VOD mellett) – Beállítások → Sport

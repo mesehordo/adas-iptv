@@ -256,6 +256,7 @@ ${go('#/settings?section=huinfo', 'Kedvenc nyelvek beállítása')}`,
 <tr><td><b>Beépített lejátszó</b></td><td>A rendszer / tévé saját lejátszója. Tévén ez az alapértelmezés HLS-hez, mert ott a hls.js a CORS-korlátozás miatt sok adást nem érne el.</td></tr>
 <tr><td><b>mpegts.js</b></td><td>MPEG-TS (<code>.ts</code>) és FLV adások.</td></tr>
 <tr><td><b>dash.js</b></td><td>DASH (<code>.mpd</code>) adások.</td></tr>
+<tr><td><b>Natív lejátszó (ExoPlayer)</b></td><td>Androidon: filmekhez (MKV, MP4, AVI – AC3 / DTS hang, beágyazott felirat) magától; a <i>Natív lejátszó (ExoPlayer) – élő tévéhez is</i> motorral az élő adások és a HLS / DASH filmek is ezzel mennek. Élő adásnál az élő pontról indul, és csak annyit lehet tekerni, amennyit a szolgáltató ad. Ha nem indul, a program magától a webes lejátszóval próbálja.</td></tr>
 </table>
 <p>Beállítások → Lejátszás → <b>Lejátszómotor</b>: <i>Automatikus</i> (ajánlott), <i>Beépített lejátszó</i> vagy <i>hls.js</i>. Ha egy HLS adás az egyikkel nem indul, érdemes a másikat kipróbálni. Tévén a program ezt magától is megteszi: ha a beépített lejátszó nem boldogul, ugyanazt a forrást a hls.js-sel is megpróbálja.</p>`,
   },

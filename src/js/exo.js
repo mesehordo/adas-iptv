@@ -95,7 +95,9 @@ export class ExoEngine {
       const durBefore = st.dur;
       st.pos = ev.pos;
       st.buf = ev.buf;
+      st.live = !!ev.live;
       if (ev.dur > 0) st.dur = ev.dur;
+      else if (ev.live) st.dur = NaN; // (élő adás: nincs hossz, nincs idősáv)
       st.playing = ev.playing;
       st.pwr = ev.pwr;
       if (st.seekingTo != null && Math.abs(ev.pos - st.seekingTo) < 1.5) {
