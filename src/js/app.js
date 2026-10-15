@@ -152,7 +152,17 @@ function route({ keepScroll = false } = {}) {
   // nélkül). Tévén is – ott eddig elveszett a fókusz, és minden karakter után újra ki kellett választani.
   const ae = document.activeElement;
   const keep = ae && view.contains(ae) && isTypingField(ae) && (ae.id || ae.name) ? { id: ae.id, name: ae.name, v: ae.value, s: ae.selectionStart, e: ae.selectionEnd } : null;
+  // (B03) a kijelölt kártya (csatorna, adó, film) azonosítója és hányadik előfordulása – ugyanaz a csatorna
+  // több sorban is szerepelhet; újrarajzolás után oda kerül vissza a fókusz, nem az oldal elejére
+  const cardSel = (el) =>
+    el.matches('.see-all') ? `a.see-all[href="${CSS.escape(el.getAttribute('href') || '')}"]` : el.dataset.id ? `.card[data-id="${CSS.escape(el.dataset.id)}"]` : el.dataset.rid ? `.card[data-rid="${CSS.escape(el.dataset.rid)}"]` : el.dataset.key ? `.card[data-key="${CSS.escape(el.dataset.key)}"]` : '';
+  const card = !keep && sameRoute && ae && view.contains(ae) ? ae.closest('.card, .see-all') : null;
+  const cardKeep = card && cardSel(card) ? { sel: cardSel(card), n: [...view.querySelectorAll(cardSel(card))].indexOf(card) } : null;
   fn(view, params);
+  if (cardKeep && !view.contains(document.activeElement)) {
+    const all = view.querySelectorAll(cardKeep.sel);
+    (all[cardKeep.n] || all[0])?.focus({ preventScroll: true });
+  }
   if (keep) {
     const n = keep.id ? view.querySelector('#' + CSS.escape(keep.id)) : view.querySelector(`[name="${CSS.escape(keep.name)}"]`);
     if (n && n !== document.activeElement && isTypingField(n)) {
@@ -444,7 +454,10 @@ document.addEventListener('focusin', (e) => {
   if (e.target.closest && !e.target.closest('#nav, #modal-root, #player')) lastContentFocus = e.target;
 });
 
-function moveFocus(dir) {
+// a kártyasorok és -rácsok tárolói (vízszintes lépés ezeken belül marad)
+const ROW_BOX = '.row-track, .grid, .rgrid, .vgrid, .fav-grid';
+
+function moveFocus(dir, { repeat = false } = {}) {
   const scope = scopeEl();
   const cur = document.activeElement;
   const list = candidates(scope);
@@ -476,6 +489,12 @@ function moveFocus(dir) {
     best = $('#nav .links a.active') || $('#nav .links a');
   } else if (rail && !curNav && (dir === 'up' || dir === 'down')) {
     best = pickDirection(cur, content, dir);
+  } else if ((dir === 'left' || dir === 'right') && cur.closest(ROW_BOX)) {
+    // (B03) sorban / rácsban vízszintesen csak a saját soron belül: a kijelölt (nagyított) kártya átfedheti a
+    // szomszéd sort, és a sor végén eddig oda ugorhatott – a sor végén a fókusz marad
+    const box = cur.closest(ROW_BOX);
+    best = pickDirectionIn(cur, content.filter((el) => box.contains(el)), dir, true);
+    if (!best) return;
   } else {
     // saját területen (tartalom / fejléc) bárhol; átlépni a másikba csak azonos sávban lehet
     best = pickDirection(cur, list.filter((el) => inNav(el) === curNav), dir) || pickDirectionIn(cur, list, dir, true);
@@ -484,7 +503,7 @@ function moveFocus(dir) {
   if (best?.closest?.('.set-tabs') && !cur.closest('.set-tabs')) best = best.closest('.set-tabs').querySelector('.tab.active') || best;
   if (best) {
     best.focus({ preventScroll: true });
-    best.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+    best.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: repeat ? 'auto' : 'smooth' });
   }
 }
 
@@ -661,8 +680,14 @@ document.addEventListener('keydown', (e) => {
   if (typing && (dir === 'left' || dir === 'right')) return;
   if (t.matches?.('select') || (t.matches?.('input[type=range]') && (dir === 'left' || dir === 'right'))) return;
   e.preventDefault();
-  moveFocus(dir);
+  if (e.repeat) {
+    const now = performance.now();
+    if (now - lastRepeatMove < 70) return;
+    lastRepeatMove = now;
+  }
+  moveFocus(dir, { repeat: e.repeat });
 });
+let lastRepeatMove = 0;
 
 // A „Most” csíkok frissítése percenként.
 setInterval(() => {
