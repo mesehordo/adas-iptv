@@ -380,8 +380,8 @@ let androidFs = () => {};
 // egyetlen (univerzális) APK – a frissítő ne cserélje a tévés kiadást mobilosra vagy fordítva
 function pickApk(assets) {
   const apks = assets.filter((x) => /\.apk$/i.test(x.name || ''));
-  const tv = (x) => /android-?tv|-tv\.apk$/i.test(x.name);
-  const mobile = (x) => /android-?mobile|-mobile\.apk$/i.test(x.name);
+  const tv = (x) => /(?:-android-?tv|-tv)\.apk$/i.test(x.name);
+  const mobile = (x) => /(?:-android-?mobile|-mobile)\.apk$/i.test(x.name);
   if (ANDROID_TV) return apks.find(tv) || apks.find((x) => !mobile(x)) || null;
   return apks.find(mobile) || apks.find((x) => !tv(x)) || null;
 }
