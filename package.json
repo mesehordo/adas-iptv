@@ -121,8 +121,11 @@
     },
     "msi": {
       "artifactName": "Adas-${version}.${ext}",
-      "runAfterFinish": false
+      "oneClick": false,
+      "runAfterFinish": false,
+      "additionalLightArgs": ["-cultures:hu-HU"]
     },
+    "msiProjectCreated": "build/msi-hook.js",
     "dmg": {
       "artifactName": "Adas-${version}-mac-${arch}.${ext}"
     },
