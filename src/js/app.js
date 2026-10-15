@@ -18,6 +18,7 @@ import './cast.js'; // kivetítés (Chromecast / DLNA)
 import { renderStats } from './stats.js';
 import { renderSport, sportMenuOn } from './sportpage.js';
 import { renderRadio, radioMenuOn } from './radiopage.js';
+import { radioPlayer } from './radioplayer.js';
 import { radioKey } from './radioui.js'; // a rádió mini-lejátszója és „Most szól” nézete
 import { radio } from './radio.js';
 import { autoCheckUpdate } from './update.js';
@@ -434,8 +435,31 @@ bus.on('save-state', (err) => {
   const why = /quota/i.test(String(err?.name || '') + String(err?.message || '')) ? _t('betelt a tárhely') : String(err?.message || err).slice(0, 120);
   toast(_t('Nem sikerült menteni a beállításokat ({x}). A legutóbbi módosítások újraindításkor elveszhetnek.', { x: why }), { action: _t('Újra'), onAction: () => store.flush(), timeout: 15000 });
 });
-// Android: a háttérlejátszás értesítésének „Leállítás” gombja
-window.__adasStopPlayback = () => player.active && player.close();
+// Android: a háttérlejátszás értesítésének „Leállítás” gombja (videó és rádió)
+window.__adasStopPlayback = () => {
+  if (player.active) player.close();
+  if (radioPlayer.active) radioPlayer.stop();
+};
+// (B37) az értesítés / a rendszer médiavezérlői (fülhallgató, Bluetooth, zárolt képernyő, tévé): play, pause,
+// next, prev – a rádióra, ha az szól, egyébként a videólejátszóra
+window.__adasMedia = (cmd) => {
+  if (radioPlayer.active && !player.active) {
+    if (cmd === 'play') radioPlayer.resume();
+    else if (cmd === 'pause') radioPlayer.pause();
+    else if (cmd === 'next') radioPlayer.step(1);
+    else if (cmd === 'prev') radioPlayer.step(-1);
+  } else if (player.active) {
+    if (cmd === 'play') mediaVideo.play().catch(() => {});
+    else if (cmd === 'pause') mediaVideo.pause();
+    else if (cmd === 'next' || cmd === 'prev') player.step(cmd === 'next' ? 1 : -1);
+  }
+};
+const mediaVideo = $('#video');
+// a lejátszás állapota a keretnek (a háttér-értesítés szünet / folytatás gombja ehhez igazodik)
+const reportMedia = () => api.setMediaState?.(radioPlayer.active && !player.active ? !radioPlayer.playing : mediaVideo.paused);
+mediaVideo.addEventListener('play', reportMedia);
+mediaVideo.addEventListener('pause', reportMedia);
+bus.on('radio-player', reportMedia);
 // Háttér-beállítás átadása a keretnek (háttérlejátszás; a kép a képben mód megszűnt)
 const sendBgPrefs = () => api.setBackgroundPrefs?.(false, !!store.settings.bgAudio);
 bus.on('settings', (k) => k === 'bgAudio' && sendBgPrefs());

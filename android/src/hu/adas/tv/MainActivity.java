@@ -175,6 +175,7 @@ public class MainActivity extends Activity {
     super.onResume();
     foreground = true;
     web.onResume();
+    PlaybackService.stop(this); // (előtérben nincs szükség a háttér-értesítésre)
   }
 
   /** Értesítésre kattintva, futó alkalmazásnál: a csatorna indul. */
@@ -192,12 +193,22 @@ public class MainActivity extends Activity {
   boolean bgAudio = false; // kilépve a háttérben szól tovább
   String nowPlaying = "";
 
-  /** A háttérlejátszás értesítésének „Leállítás” gombja. */
+  /** A háttérlejátszás értesítésének „Leállítás” gombja (videó és rádió). */
   void stopFromNotification() {
     runOnUiThread(() -> {
       web.evaluateJavascript("window.__adasStopPlayback&&window.__adasStopPlayback()", null);
       if (nativePlayer != null) nativePlayer.pause();
     });
+  }
+
+  /** Médiaparancs az értesítésről / a médiamunkamenetből: play, pause, next, prev (a felület hajtja végre). */
+  void mediaCommand(final String cmd) {
+    runOnUiThread(() -> web.evaluateJavascript("window.__adasMedia&&window.__adasMedia(" + JSONObject.quote(cmd) + ")", null));
+  }
+
+  /** Háttérbe menet a szolgáltatás indítása – még előtérben (B37: Android 12-től az onStop-ból tiltott). */
+  void startBackgroundPlayback() {
+    if (bgAudio && playing && !isFinishing() && !PlaybackService.running()) PlaybackService.start(this, nowPlaying);
   }
 
   @Override
@@ -211,9 +222,10 @@ public class MainActivity extends Activity {
     super.onStop();
     // a beállítások és a film pozíciójának azonnali mentése (a WebView nem mindig jelez a lapnak)
     web.evaluateJavascript("window.__adasFlush&&window.__adasFlush()", null);
-    // Háttérlejátszás bekapcsolva: szól tovább (értesítéssel); egyébként megáll.
+    // Háttérlejátszás bekapcsolva: szól tovább (értesítéssel – a szolgáltatás már az onPause-ban elindult);
+    // egyébként megáll.
     if (bgAudio && playing && !isFinishing()) {
-      PlaybackService.start(this, nowPlaying);
+      startBackgroundPlayback(); // (ha valamiért nem indult el – régebbi Androidon ez még megengedett)
       return;
     }
     web.evaluateJavascript("document.querySelectorAll('video').forEach(function(v){try{v.pause()}catch(e){}});window.__adasRadioPause&&window.__adasRadioPause()", null);
@@ -224,8 +236,10 @@ public class MainActivity extends Activity {
   protected void onPause() {
     super.onPause();
     foreground = false;
-    // háttérlejátszásnál a lap tovább fut
-    if (!(bgAudio && playing)) web.onPause();
+    // háttérlejátszásnál a lap tovább fut, és a szolgáltatás (értesítés, médiavezérlők) most indul – az
+    // alkalmazás ekkor még előtérben van; visszatéréskor (onResume) leáll
+    if (bgAudio && playing) startBackgroundPlayback();
+    else web.onPause();
   }
 
   @Override
@@ -424,6 +438,13 @@ public class MainActivity extends Activity {
     @JavascriptInterface
     public void setNowPlaying(String title) {
       nowPlaying = title == null ? "" : title;
+      PlaybackService.setState(nowPlaying, null);
+    }
+
+    /** A lejátszás szünetel-e (a háttér-értesítés és a médiamunkamenet állapota). */
+    @JavascriptInterface
+    public void setMediaState(boolean paused) {
+      PlaybackService.setState(null, paused);
     }
 
     /** A távirányító-lap állapota (most nézett adás, kedvencek) – a telefon ezt kéri le. */

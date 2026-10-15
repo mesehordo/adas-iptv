@@ -427,6 +427,12 @@ const androidApi = {
       window.AdasAndroid.setNowPlaying(String(title || ''));
     } catch {}
   },
+  // (B37) szünetel-e a lejátszás – a háttér-értesítés és a rendszer médiavezérlői ezt mutatják
+  setMediaState(paused) {
+    try {
+      window.AdasAndroid.setMediaState?.(!!paused);
+    } catch {}
+  },
   // a felület nyelve a keret értesítéseihez (a bezárt alkalmazás emlékeztetőjéhez is)
   setLang(l) {
     try {
