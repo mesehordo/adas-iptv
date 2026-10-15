@@ -284,6 +284,7 @@ public class MainActivity extends Activity {
   @Override
   protected void onDestroy() {
     PlaybackService.stop(this);
+    Updater.unregister(this);
     if (instance == this) instance = null;
     if (nativePlayer != null) nativePlayer.release();
     if (lanServer != null) {
@@ -530,6 +531,9 @@ public class MainActivity extends Activity {
           String out;
           if ("request".equals(method)) out = request(a).toString();
           else if ("probe".equals(method)) out = probeAll(a.getJSONArray("items")).toString();
+          // (F03) beépített frissítés: letöltés + ellenőrzés, majd telepítés a rendszer telepítőjével
+          else if ("updateDownload".equals(method)) out = Updater.download(MainActivity.this, a).toString();
+          else if ("updateInstall".equals(method)) out = JSONObject.quote(Updater.install(MainActivity.this, a.getString("file")));
           else if ("lanGet".equals(method)) out = lanGet(a.getJSONArray("urls"), a.optInt("timeout", 2500)).toString();
           else if ("lanIps".equals(method)) out = new JSONArray(LanServer.localIps()).toString();
           else if ("coverStats".equals(method)) out = covers.stats().toString();

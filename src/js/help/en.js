@@ -1465,7 +1465,7 @@ ${go('#/recordings', 'Recordings')}`,
 <li>Installation follows how the app was installed: installed with the installer (Setup), the new installer starts; installed with MSI, the new MSI; for the <b>portable</b> version you’ll find the downloaded file in the folder that opens (start it instead of the old one); on Linux the AppImage replaces itself.</li>
 <li><b>Update source</b>: empty means the official releases. You can give your own GitHub repository (<code>owner/repo</code>) or the address of a JSON file: <code>{ "version": "1.25.0", "url": "https://…/Adas-Setup-1.25.0.exe", "notes": "…" }</code>.</li>
 </ul>
-<div class="note">The Android version is updated by installing the new <code>.apk</code> downloaded from the GitHub release page (your settings are kept).</div>
+<div class="note">On <b>Android</b> you can update here too: <b>Download and install</b> downloads the new <code>.apk</code>, verifies it (the release checksum, the package name, its version and signature – a differently signed or older package is not installed), then Android asks you to confirm the installation. The first time, you need to allow Adás to install apps (the setting opens automatically). Profiles, lists and settings are kept. On a TV the TV build, on a phone the mobile build is downloaded if the release contains them separately.</div>
 ${go('#/settings?section=update', 'Updates')}`,
   },
 

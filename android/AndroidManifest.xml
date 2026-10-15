@@ -11,6 +11,8 @@
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
   <!-- háttérlejátszás (másik alkalmazásra váltáskor, ha be van kapcsolva) -->
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <!-- (F03) beépített frissítés: a letöltött új verzió telepítése (a felhasználó jóváhagyásával) -->
+  <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
   <!-- Android TV: nincs érintőképernyő, a Leanback indítóban is megjelenik -->
   <uses-feature android:name="android.software.leanback" android:required="false" />

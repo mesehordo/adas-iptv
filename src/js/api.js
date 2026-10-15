@@ -54,6 +54,7 @@ import { bytesToText } from './unzip.js';
 
 // Letöltött dokumentum (lista, műsorújság) felső mérete – kicsomagolva is (egy kicsi, de erősen tömörített
 import { _t } from './i18n.js';
+import { cmpVersion, isPrerelease } from './semver.js';
 // válasz se foglalhasson sokszoros memóriát).
 const MAX_DOC = 256 * 1024 * 1024;
 
@@ -375,11 +376,23 @@ function native(method, args = {}) {
 let androidProgress = () => {};
 let androidCheckRun = 0;
 let androidFs = () => {};
+// (F03) a kiadás APK-ja: a buildcélnak megfelelő (…-android-tv.apk / …-android-mobile.apk), ennek híján az
+// egyetlen (univerzális) APK – a frissítő ne cserélje a tévés kiadást mobilosra vagy fordítva
+function pickApk(assets) {
+  const apks = assets.filter((x) => /\.apk$/i.test(x.name || ''));
+  const tv = (x) => /android-?tv|-tv\.apk$/i.test(x.name);
+  const mobile = (x) => /android-?mobile|-mobile\.apk$/i.test(x.name);
+  if (ANDROID_TV) return apks.find(tv) || apks.find((x) => !mobile(x)) || null;
+  return apks.find(mobile) || apks.find((x) => !tv(x)) || null;
+}
+let androidOffered = null;
+
 const androidApi = {
   ...webApi,
   platform: ANDROID_TV ? 'androidtv' : 'android',
   caps: {
     // (B38) mini lejátszó: a rendszer kép a képben módja, ha az eszköz támogatja (egyébként a gomb sem látszik)
+    update: true,
     mini: (() => {
       try {
         return !!window.AdasAndroid?.pipAvailable?.();
@@ -402,6 +415,72 @@ const androidApi = {
     try {
       window.AdasAndroid.setVideoActive?.(!!on);
     } catch {}
+  },
+  // (F03) beépített frissítés: GitHub-kiadás vagy JSON-forrás → APK (SHA256SUMS.txt) → ellenőrzés → rendszertelepítő
+  async updateCheck(source) {
+    androidOffered = null;
+    source = String(source || '').trim();
+    if (!source) throw new Error(_t('Nincs beállítva frissítési forrás.'));
+    const current = window.AdasAndroid.version();
+    const getJson = async (url) => {
+      if (!/^https:\/\//i.test(url)) throw new Error(_t('A frissítési forrás csak https:// cím lehet.'));
+      const r = await native('request', { method: 'GET', url, headers: { Accept: 'application/json', 'User-Agent': 'Adas-Updater' }, body: '' });
+      if (r.status === 404) throw new Error(_t('A megadott forrásban nincs kiadás.'));
+      if (r.status < 200 || r.status >= 300) throw new Error(`HTTP ${r.status}`);
+      return JSON.parse(r.text);
+    };
+    let latest = '';
+    let notes = '';
+    let page = '';
+    let asset = null;
+    const gh = source.match(/^(?:https?:\/\/github\.com\/)?([\w.-]+)\/([\w.-]+?)(?:\.git)?\/?$/i);
+    if (gh && !/^https?:\/\/(?!github\.com)/i.test(source)) {
+      const rel = await getJson(`https://api.github.com/repos/${gh[1]}/${gh[2]}/releases/latest`);
+      latest = rel.tag_name;
+      notes = rel.body || '';
+      page = rel.html_url;
+      const a = pickApk(rel.assets || []);
+      if (a) {
+        const sums = (rel.assets || []).find((x) => /^sha256sums(\.txt)?$/i.test(x.name));
+        let sha256 = '';
+        if (sums) {
+          const r = await native('request', { method: 'GET', url: sums.browser_download_url, headers: { 'User-Agent': 'Adas-Updater' }, body: '' }).catch(() => null);
+          for (const line of String(r?.text || '').split(/\r?\n/)) {
+            const m = /^([0-9a-f]{64})\s+\*?(.+)$/i.exec(line.trim());
+            if (m && m[2].trim() === a.name) sha256 = m[1].toLowerCase();
+          }
+        }
+        asset = { name: a.name, url: a.browser_download_url, size: a.size || 0, sha256 };
+      }
+    } else if (/^https:\/\//i.test(source)) {
+      const j = await getJson(source);
+      latest = j.version;
+      notes = j.notes || '';
+      page = j.page || '';
+      const key = ANDROID_TV ? 'androidtv' : 'android';
+      const url = j.assets?.[key] || j.assets?.android || '';
+      const sha = String((typeof j.sha256 === 'object' ? j.sha256?.[key] || j.sha256?.android : '') || '').toLowerCase();
+      if (typeof url === 'string' && /^https:\/\//i.test(url)) asset = { name: decodeURIComponent(url.split('/').pop().split('?')[0]), url, size: 0, sha256: /^[0-9a-f]{64}$/.test(sha) ? sha : '' };
+    } else throw new Error(_t('A forrás „tulajdonos/tároló” (GitHub) vagy egy https:// cím lehet.'));
+    if (!latest) throw new Error(_t('A forrás nem adott meg verziószámot.'));
+    if (asset && !/^https:\/\//i.test(asset.url)) asset = null;
+    androidOffered = asset;
+    const newer = cmpVersion(latest, current) > 0 && (!isPrerelease(latest) || isPrerelease(current));
+    return { current, latest: String(latest).replace(/^v/i, ''), newer, notes, page, asset, portable: false, android: true };
+  },
+  async updateDownload(req) {
+    // (csak a legutóbb felkínált fájl – a felülettől kapott tetszőleges cím nem)
+    const a = androidOffered && req?.url === androidOffered.url ? androidOffered : null;
+    if (!a) throw new Error(_t('Előbb keress frissítést.'));
+    const r = await native('updateDownload', { url: a.url, sha256: a.sha256, name: a.name });
+    return r.file;
+  },
+  updateInstall: (file) => native('updateInstall', { file }),
+  onUpdateProgress(cb) {
+    window.__adasUpdateProgress = (p) => cb(p);
+  },
+  onUpdateStatus(cb) {
+    window.__adasUpdateStatus = (s) => cb(s);
   },
   fetchText: (url, opts) => cachedFetchText(url, opts, directDownload),
   request: (opts) => native('request', { method: opts.method || 'GET', url: opts.url, headers: opts.headers || {}, body: opts.body || '' }),

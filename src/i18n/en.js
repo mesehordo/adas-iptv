@@ -2188,5 +2188,18 @@ export default {
  "A kép a képben mód ezen az eszközön nem érhető el.": "Picture-in-picture is not available on this device.",
  "Kis ablak kilépéskor": "Small window when leaving",
  "Videó közben a Home gombra vagy másik alkalmazásra váltva a videó kis ablakban, más alkalmazások fölött látszik tovább (a lejátszó mini gombjával bármikor is indítható).": "While a video plays, pressing Home or switching to another app keeps the video visible in a small window above other apps (you can also start it any time with the player's mini button).",
- "Natív lejátszó (ExoPlayer) – élő tévéhez is": "Native player (ExoPlayer) – also for live TV"
+ "Natív lejátszó (ExoPlayer) – élő tévéhez is": "Native player (ExoPlayer) – also for live TV",
+ "A frissítés telepítése megszakítva – az Adás a mostani verzióval fut tovább.": "Update installation cancelled – Adás keeps running the current version.",
+ "A frissítés telepítése nem sikerült:": "The update could not be installed:",
+ "A letöltés kész és ellenőrizve. Telepíted most? Az Android rákérdez a telepítésre; a profilok, a listák és a beállítások megmaradnak.": "Download complete and verified. Install now? Android will ask you to confirm; your profiles, lists and settings are kept.",
+ "Engedélyezd az Adásnak az alkalmazások telepítését a megnyíló beállításban, majd nyomd meg újra a Telepítés gombot.": "Allow Adás to install apps in the settings that open, then press Install again.",
+ "A frissítés csak https:// címről tölthető le.": "Updates can only be downloaded from an https:// address.",
+ "Nincs elég szabad tárhely a frissítés letöltéséhez.": "Not enough free storage to download the update.",
+ "A letöltött fájl nem érvényes Android-csomag.": "The downloaded file is not a valid Android package.",
+ "A letöltött csomag nem az Adás frissítése.": "The downloaded package is not an Adás update.",
+ "A letöltött csomag nem újabb a telepítettnél.": "The downloaded package is not newer than the installed one.",
+ "A letöltött csomag aláírása eltér a telepítettétől – a frissítés megszakítva.": "The downloaded package is signed differently from the installed one – update cancelled.",
+ "A letöltött csomag aláírása nem ellenőrizhető.": "The signature of the downloaded package cannot be verified.",
+ "A letöltött frissítés már nem található – töltsd le újra.": "The downloaded update is no longer available – download it again.",
+ "Az alkalmazások telepítésének engedélyezése ezen az eszközön nem nyitható meg.": "The setting to allow installing apps cannot be opened on this device."
 };

@@ -1465,7 +1465,7 @@ ${go('#/recordings', 'Felvételek')}`,
 <li>A telepítés a telepítés módjához igazodik: telepítővel (Setup) telepítve az új telepítő indul, MSI-vel telepítve az új MSI, a <b>hordozható</b> változatnál a letöltött fájlt a megnyíló mappában találod (azt indítsd a régi helyett), Linuxon az AppImage magát cseréli le.</li>
 <li><b>Frissítési forrás</b>: üresen a hivatalos kiadások. Megadható saját GitHub-tároló (<code>tulajdonos/tároló</code>) vagy egy JSON-fájl címe: <code>{ "version": "1.25.0", "url": "https://…/Adas-Setup-1.25.0.exe", "notes": "…" }</code>.</li>
 </ul>
-<div class="note">Az Android-változatot a GitHub-kiadás oldaláról letöltött új <code>.apk</code> telepítésével lehet frissíteni (a beállításaid megmaradnak).</div>
+<div class="note"><b>Androidon</b> is itt frissíthetsz: a <b>Letöltés és telepítés</b> letölti az új <code>.apk</code>-t, ellenőrzi (a kiadás ellenőrző összege, a csomag azonosítója, a verziója és az aláírása – más aláírású vagy régebbi csomag nem települ), majd az Android rákérdez a telepítésre. Első alkalommal engedélyezni kell az Adásnak az alkalmazások telepítését (a beállítás magától megnyílik). A profilok, a listák és a beállítások megmaradnak. Tévén a tévés, telefonon a mobil kiadást tölti le, ha a kiadás külön tartalmazza őket.</div>
 ${go('#/settings?section=update', 'Frissítések')}`,
   },
 
