@@ -131,6 +131,17 @@ class RadioPlayer {
     return this.els[this.cur];
   }
   /** Szól-e a hangfeldolgozás (a tartalék elemen nem: ott nincs hangszínszabályzó és vizualizáció). */
+  /** (H11) a lejátszás által beállított szerverfejlécek visszavonása (a megtartandó szerver kivételével). */
+  clearHeaders(keep = '') {
+    this.hdrHosts ||= new Set();
+    if (!api.setStreamHeaders) return;
+    for (const h of [...this.hdrHosts]) {
+      if (h === keep) continue;
+      this.hdrHosts.delete(h);
+      Promise.resolve(api.setStreamHeaders(`http://${h}/`, null)).catch(() => {});
+    }
+  }
+
   get fxActive() {
     return !!this.ctx && this.cur !== PLAIN;
   }
@@ -329,15 +340,12 @@ class RadioPlayer {
       try {
         host = new URL(url).host;
       } catch {}
-      this.hdrHosts ||= new Set();
+      // (a korábbi lejátszás minden más szerverre beállított fejléce visszavonódik – ne kapja meg más kérés sem)
+      this.clearHeaders(hdr ? host : '');
       if (hdr && api.setStreamHeaders) {
         // (a szerver bejegyzése a beállítás előtt: egy közbeni gyors váltás így biztosan törli a fejléceket)
         if (host) this.hdrHosts.add(host);
         await Promise.resolve(api.setStreamHeaders(url, { ua: hdr.ua, referrer: hdr.referrer })).catch(() => {});
-      } else if (host && this.hdrHosts.has(host) && api.setStreamHeaders) {
-        // (egy korábbi adó ugyanerre a szerverre beállított fejlécei ne öröklődjenek)
-        await Promise.resolve(api.setStreamHeaders(url, null)).catch(() => {});
-        this.hdrHosts.delete(host);
       }
       if (seq !== this.seq) return;
       // (amelyik cím CORS-módban egyszer már nem indult, az legközelebb rögtön a tartalék elemen szól)
@@ -519,6 +527,7 @@ class RadioPlayer {
     this.detach(0);
     this.detach(1);
     this.detach(PLAIN);
+    this.clearHeaders(); // (szünetnél / leállításkor a fejlécek is visszavonódnak)
     if (NATIVE_RADIO) {
       this.nWait?.finish(false);
       window.AdasAndroid.radioStop();
