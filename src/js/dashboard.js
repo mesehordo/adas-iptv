@@ -1115,6 +1115,18 @@ const radioRerender = debounce(() => {
   if (box && !editing) renderAll(box, RADIO_UNITS);
 }, 250);
 ['radio-player', 'radio-favs', 'radio', 'epg'].forEach((ev) => bus.on(ev, radioRerender));
+// a rádió mini-lejátszója megjelenésekor / eltűnésekor (alatta helyet kap – #view padding) a rács újraméreteződik:
+// a lejátszó minden fölött, teljesen látszik, és nem takarja a csempék alját (a főoldal nem lóg le)
+let radioOnWas = false;
+bus.on('radio-player', () => {
+  const on = !!radioPlayer.active;
+  if (on === radioOnWas) return;
+  radioOnWas = on;
+  setTimeout(() => {
+    const box = document.querySelector('#view .dash');
+    if (box) fitDash(box);
+  }, 0);
+});
 /** Rádiós egység gombja: indítás / szünet / léptetés. → kezelte-e */
 function radioClick(e) {
   const c = e.target.closest('[data-rctl]')?.dataset.rctl;
