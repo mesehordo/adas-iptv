@@ -480,7 +480,9 @@ const reportMediaActive = () => {
   mediaActiveWas = on;
   api.setMediaActive?.(on);
 };
-['player-opened', 'player-closed', 'radio-player'].forEach((ev) => bus.on(ev, () => setTimeout(reportMediaActive, 0)));
+// (azonnal, késleltetés nélkül: mindkét lejátszó az esemény előtt frissíti az állapotát – így egy közben zajló
+// képernyőzárás már az új értéket látja)
+['player-opened', 'player-closed', 'radio-player'].forEach((ev) => bus.on(ev, reportMediaActive));
 bus.on('player-closed', () => api.setVideoActive?.(false));
 // Háttér-beállítások átadása a keretnek: kilépéskor kis ablak (videó) / háttérlejátszás (csak hang) – külön
 const sendBgPrefs = () => api.setBackgroundPrefs?.(store.settings.autoPip === true, !!store.settings.bgAudio);

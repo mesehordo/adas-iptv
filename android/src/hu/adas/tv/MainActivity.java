@@ -638,8 +638,9 @@ public class MainActivity extends Activity {
     /** Van-e betöltött adás (szünetelve is): amíg igen, ott az értesítés (mi szól, szünet / folytatás, leállítás). */
     @JavascriptInterface
     public void setMediaActive(final boolean on) {
+      // (az állapot azonnal látszik – egy épp zajló onPause / onStop már az újat olvassa; a szolgáltatás a UI-szálon)
+      mediaActive = on;
       runOnUiThread(() -> {
-        mediaActive = on;
         // (előtérszolgáltatás csak előtérből indítható – a háttérből érkező jelzést az onPause / onStop kezeli)
         if (on) {
           if (foreground) PlaybackService.start(MainActivity.this, nowPlaying);
