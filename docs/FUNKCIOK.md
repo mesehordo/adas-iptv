@@ -36,6 +36,12 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
+**macOS-javítás, műsorújság, Újrakezdés (1.28.4)**
+- **macOS**: a Mac-kiadások eddig el sem indultak (aláíratlan alkalmazás – „sérült, nem nyitható meg”); most ad-hoc aláírást kapnak. Az első indításkor egyszeri jóváhagyás kell (jobb klikk → Megnyitás, ill. macOS 15-től Adatvédelem és biztonság → Megnyitás mindenképp).
+- **Műsorújság**: a források kiegészítik egymást – ahol a magasabb prioritású forrás műsora véget ér (pl. csak a tegnapi napot adja), a következő pótolja. Javítva a „Nincs műsoradat” több magyar csatornán (Nick Jr., Minimax, Spektrum Home, TV2…).
+- **Újrakezdés**: Beállítások → Profilok és mentés → *Újrakezdés…* – minden adat törlődik, és az Adás úgy indul, mintha most telepítetted volna (a felvett videók megmaradnak). Minden változatban: asztali gépen újraindul, Androidon / Android TV-n a rendszer törli az alkalmazás adatait.
+- **Főoldal**: a rádió mini-lejátszója a főoldalon is teljesen látszik, nem takarja a csempéket.
+- **Súgó**: ha a telefon nem kapcsolódik a távirányítóhoz – hálózat, cím, tűzfal, és a port megnyitása Linuxon disztribúciónként.
 **Hibajavítások, rádiós csempék a főoldalon (1.28.3)**
 - **Kereső**: a találatok sorrendje TV-csatornák, műsorok, VOD, rádió; fülekkel egy fajtára szűrhető (darabszámmal), a rádióadók is a találatok között vannak, a VOD-lista kereséskor betöltődik.
 - **Főoldal – rádiós egységek**: *Rádió – most szól*, *Kedvenc rádiók*, *Most a rádióban* (műsorújság), *Népszerű hazai rádiók*, és a *Rádiózás* kész elrendezés.
