@@ -486,29 +486,29 @@ async function recStart({ url, dir, name, until, audio }) {
   const rec = { proc: null, file, out, started: Date.now(), until: until || 0, restarts: 0, err: '' };
   recordings.set(id, rec);
   const MAX_RESTARTS = 60;
-  let ended = false;
-  // (egyszeri lezárás: rendes vég, végleges hiba vagy írási hiba is ide fut – egyetlen rec-ended értesítéssel)
+  let ended = false; // a lezárás elindult (rendes vég, végleges hiba vagy írási hiba)
+  let notified = false;
+  let endError = ''; // (a lezárás közben érkező írási hiba is ide kerül – az értesítés ezzel megy)
+  // Egyetlen rec-ended értesítés, a fájl tényleges bezárásakor ('close' – hibánál is jön, autoDestroy)
+  const notify = () => {
+    if (notified) return;
+    notified = true;
+    let size = 0;
+    try {
+      size = fs.statSync(file).size;
+    } catch {}
+    opts.emit('rec-ended', { id, file, size, restarts: rec.restarts, error: endError });
+  };
+  out.once('close', notify);
   const finish = (error) => {
+    if (error && !endError) endError = error;
     if (ended) return;
     ended = true;
     clearTimeout(rec.timer);
     clearTimeout(rec.retry);
     recordings.delete(id);
-    if (out.destroyed || out.errored) {
-      let size = 0;
-      try {
-        size = fs.statSync(file).size;
-      } catch {}
-      opts.emit('rec-ended', { id, file, size, restarts: rec.restarts, error });
-      return;
-    }
-    out.end(() => {
-      let size = 0;
-      try {
-        size = fs.statSync(file).size;
-      } catch {}
-      opts.emit('rec-ended', { id, file, size, restarts: rec.restarts, error });
-    });
+    if (out.destroyed || out.closed) notify();
+    else out.end();
   };
   // (H01) írási hiba (betelt lemez, jogosultság, eltűnt külső meghajtó): a kezeletlen stream-hiba a főfolyamatot
   // leállítaná – helyette az FFmpeg leáll, a felvétel hibával véget ér, újrapróbálás nincs

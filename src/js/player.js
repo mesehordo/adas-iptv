@@ -1381,6 +1381,8 @@ export async function startPreview(container, ch) {
   try {
     await eng.load(stream, { muted: true, lite: true });
     if (preview?.v !== v) return;
+    // (H22) a betöltés alatt gyerekprofilra váltott: az előnézet nem jelenhet meg
+    if (store.profile?.kids) return void stopPreview();
     store.setHealth(stream.url, true);
     v.classList.add('show');
     container.classList.add('has-video');
@@ -1406,6 +1408,8 @@ function sleepPreview() {
   p.container.addEventListener('focusin', wake);
 }
 document.addEventListener('visibilitychange', () => document.hidden && sleepPreview());
+// (H22) profilváltáskor a futó vagy betöltés alatti előnézet leáll (az új profil szabályai szerint indulhat újra)
+bus.on('profile', () => stopPreview());
 export function stopPreview() {
   if (!preview) return;
   const { v, eng, timer } = preview;

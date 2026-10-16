@@ -320,7 +320,7 @@ export function cleanProfile(p) {
     for (const [k, x] of Object.entries(v)) {
       if (n >= max) break;
       const y = fn(x);
-      if (y) (out[k.slice(0, 500)] = y), n++;
+      if (y !== null && y !== undefined) (out[k.slice(0, 500)] = y), n++;
     }
     return out;
   };
@@ -334,7 +334,9 @@ export function cleanProfile(p) {
     if (p[k] != null) p[k] = (Array.isArray(p[k]) ? p[k] : []).filter((r) => obj(r) && typeof r.key === 'string').map((r) => ({ ...r, key: r.key.slice(0, 100), on: r.on !== false }));
   if (p.kidsAllow != null) {
     const ka = obj(p.kidsAllow) ? p.kidsAllow : {};
-    p.kidsAllow = { ch: objMap(ka.ch, (x) => (x ? true : null)), vod: objMap(ka.vod, (x) => (x ? true : null)) };
+    // (a kifejezett tiltás – false – is megmarad; nem logikai érték – pl. a "false" szöveg – nem engedély)
+    const bool = (x) => (typeof x === 'boolean' ? x : null);
+    p.kidsAllow = { ch: objMap(ka.ch, bool), vod: objMap(ka.vod, bool) };
   }
   if (p.usage != null) p.usage = obj(p.usage) && typeof p.usage.day === 'string' ? { day: p.usage.day.slice(0, 20), sec: Math.max(0, num(p.usage.sec)), extra: Math.max(0, num(p.usage.extra)) } : null;
   for (const k of ['dailyLimit', 'maxAge']) if (p[k] != null) p[k] = Math.max(0, Math.min(k === 'maxAge' ? 18 : 24 * 60, Math.round(num(p[k]))));
