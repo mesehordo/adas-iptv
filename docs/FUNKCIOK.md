@@ -34,83 +34,7 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 ## Funkciók verziónként
 
-A legújabb változások elöl; a régebbi kiadások (1.3–1.6) a lista elején.
-
-**Saját médiatár / NAS (1.6)**
-- Külön *Saját* részleg a saját filmeknek és sorozatoknak: a NAS (vagy bármely) mappában – almappákkal
-  együtt – automatikusan keletkező .m3u / .m3u8 lejátszólistákból. Forrás lehet megosztott mappa
-  (`\\NAS\Media`, `Z:\`, `/mnt/nas`; asztali változat) vagy a NAS webes címe (http könyvtárlista; tévén is).
-- Minden talált lejátszólista külön, ki-be kapcsolható lista; az újakat 10 percenként magától észreveszi.
-- Relatív és helyi útvonalak feloldása, kiadási fájlnevek tisztítása (cím + év), magyar információk,
-  borító a Wikidatából / TMDB-ből, OpenSubtitles-feliratok és a videó melletti .srt automatikus betöltése.
-
-**Magyar információk és feliratok (1.5)**
-- Filmek, sorozatok és tévécsatornák magyar címe, leírása, műfaja, rendezője, szereplői, országa a
-  Wikidatából / Wikipédiából (kulcs nélkül), vagy saját TMDB-kulccsal a TMDB-ből (értékeléssel).
-- Filmekhez és sorozatokhoz magyar és angol felirat az OpenSubtitles-ről (ingyenes fiók + API-kulcs kell),
-  helyi .srt / .vtt fájl (ráhúzással is), időeltolás, betűméret, automatikus keresés.
-
-**Filmek és sorozatok (1.4)**
-- Külön oldal (fejléc: *Filmek és sorozatok*) M3U / M3U8 listákból betöltött filmekkel és sorozatokkal:
-  Folytatás sor, Sorozatok, csoportonkénti / műfajonkénti sorok, rácsnézet szűrővel és kereséssel.
-- Film vagy sorozat? A címből ismeri fel (S01E02, 1x02, Season/Episode, „5. rész”, 第5集…; egy fájlban
-  sorszámozott címek → sorozat; évszám a cím végén → film). Részletek a súgóban.
-- Saját film/sorozat listák külön (Beállítások → Filmek és sorozatok – listák): cím, fájl, beillesztés,
-  vagy egy teljes GitHub-tárhely. Beépített: Orphaned Films, Közkincs filmek (OnlineM3U).
-- Lejátszás tekerhető idősávval, ±10 mp, folytatás onnan, ahol abbahagytad (profilonként), sorozatnál
-  automatikus következő rész.
-
-**Csatornalisták (1.3)**
-- Beépített, ki-be kapcsolható listák: iptv-org, Free-TV, **Magyar TV adók** (válogatott, szabadon fogható magyar
-  adások – `lists/hu.m3u`, kiadás nélkül is frissíthető), Pluto TV, Samsung TV Plus, Plex, FreeCast Hub,
-  DragonHall TV. Több bekapcsolt lista esetén az azonos csatornák egy csatornává olvadnak (tvg-id, majd
-  név + ország, majd egyértelmű név alapján); a listák adásai egymás tartalék forrásai lesznek. A listák
-  saját műsorújsága is betöltődik.
-- A nem elérhető csatornák kártyája szürke, OFFLINE vagy ADÁSSZÜNET jelzéssel, a név alatt felirattal.
-- 11 választható rajzolt profilkép (vagy betűs avatar).
-
-**Felület**
-- TV oldal Csatornák és Felvételek füllel; vízszintesen görgethető sorok: Legutóbb nézett,
-  Kedvenceid, Most a TV-ben, hazai csatornák, kategóriák, országok
-- Rámutatásra kinagyuló kártyák: lejátszás, kedvenc, részletek, az éppen futó és a következő műsor
-- Böngészés kategória, ország, nyelv, minőség és állapot szerint
-- Keresés csatornanévre, országra, kategóriára, hálózatra **és műsorcímre** (Ctrl+F vagy `/`)
-
-**Csatornaadatok és műsorújság**
-- Adatlap minden csatornához: ország, nyelv, kategória, hálózat, tulajdonos, indulás, weboldal, időzóna, adásforrások
-- Műsorújság XMLTV-forrásokból, a csatornákhoz automatikusan párosítva; napi bontás az adatlapon
-- Idővonalas műsorújság-rács (Kedvencek / hazai / minden csatorna, tegnaptól +3 napig)
-- Emlékeztető műsorkezdésre (rendszerértesítés + „Nézem” gomb)
-
-**Lejátszás**
-- HLS (hls.js), MPEG-TS/FLV (mpegts.js), DASH (dash.js)
-- Az adások által kért `User-Agent` / `Referer` fejlécek beállítása (`#EXTVLCOPT`, `http-referrer`)
-- Automatikus tartalék forrás, ha egy adás nem indul el vagy megakad
-- Csatornaváltás ↑/↓ billentyűvel, csatornaszám beírása (0–9), csatornalista-panel
-- Minőség-, hangsáv- és forrásválasztás, mindig felül lévő mini lejátszó, egyenként elrejthető lejátszógombok
-- Elalvási időzítő (lágy elhalkulással, akár a műsor végén)
-- A képernyő nem alszik el lejátszás közben; médiabillentyűk
-
-**Megbízhatóság**
-- Háttérben ellenőrzi a megjelenő csatornák adásait (zöld pötty = működik, piros = nem elérhető)
-- Teljes ellenőrzés egy gombnyomásra, a hibás csatornák elrejthetők
-
-**Kényelem**
-- Kedvencek (húzással rendezhetők, ez adja a csatornaszámokat), előzmények, utolsó csatorna folytatása
-- Saját M3U listák URL-ről vagy fájlból, saját XMLTV műsorújság-források
-- Profilok („Ki nézi?”), gyerekprofil csak gyerek-, családi, animációs és oktatási csatornákkal
-- Felnőtt tartalom alapból rejtve
-- Mentés és visszaállítás fájlba (beállítások, profilok, kedvencek, emlékeztetők)
-- Teljes billentyűzetes / távirányítós vezérlés (nyilak, Enter, Esc / Backspace)
-
-**Rádió**
-- Új menüpont a TV után: **élő rádióadók a világból**, a TV oldal mintájára sorokban (Legutóbb hallgatott, Kedvenc rádiók, a hazai ország adói, Műfajok, Népszerű a világban, Országok), böngészés kereséssel és szűrőkkel (ország, műfaj, minőség, működés). Mindenhol a működő adók elöl.
-- Források (mind kikapcsolható): **Radio Browser** (közösségi adatbázis, a lejátszást jelzi is nekik), **Verified Radio Streams** (kipróbált adások), **IPRD** (országonkénti válogatás). Az ugyanazon adó több forrásból egy kártya, a címei tartalékként egymás után próbálódnak. Saját M3U rádiólista webcímről (listánként beállítható frissítéssel) és `radio` fajtájú `.adaspack` csomag.
-- **Mini-lejátszó** alul (adó, most szól, kis spektrum, előző / szünet / következő, kedvenc, hangerő) és **Most szól** nézet: a szám címe és előadója az adás ICY-metaadatából (`icy.js`, Androidon `MainActivity.icyTitle`), borító az iTunes-keresőből, *Előtte szólt* lista, keresés a YouTube-on / Spotify-on, az adó honlapja.
-- **Hangzás** (Web Audio, asztalon és Androidon): hangszínszabályzó előbeállítások, hangerő-kiegyenlítés, térhatás, retro rádió (középhullámú készülék), átúsztatás adóváltáskor; **vizualizáció**: spektrum, hullám, tükör, hullámhegyek; **elalvás-időzítő** elhalkulással. LG webOS-en effektek nélkül szól.
-- **Műsorújság** a tévés felületével (Kedvencek / hazai / minden adó, napok, idővonal, most műsoron): a rádióadók is részt vesznek a műsorújság párosításában (a magyar közszolgálati adók az epgshare01-forrás „MR1-Kossuth” stb. nevével is); a most futó műsor a kártyán és a Most szól nézetben is.
-- **Felvétel** (asztali): azonnal a ● gombbal vagy a műsorújságból ütemezve; a hang változatlanul MP3 / AAC fájlba (más kódolásnál AAC-be alakítva), vágható; a Rádió oldal **Felvételek** fülén. **Kedvencek** fül sorba rendezéssel.
-- Kedvenc adók a Kedvencek oldalon is; billentyűk: szóköz / médiagomb, CH+ / CH−. Videó indításakor a rádió elhallgat. Beállítások → **Rádió**: a menüpont kikapcsolható (gyerekprofilban nem látszik).
+A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
 **Hibajavítások, rádiós csempék a főoldalon (1.28.3)**
 - **Kereső**: a találatok sorrendje TV-csatornák, műsorok, VOD, rádió; fülekkel egy fajtára szűrhető (darabszámmal), a rádióadók is a találatok között vannak, a VOD-lista kereséskor betöltődik.
@@ -118,6 +42,7 @@ A legújabb változások elöl; a régebbi kiadások (1.3–1.6) a lista elején
 - **Rádió Androidon**: natív lejátszó (ExoPlayer) – a „Csatlakozás…”-on ragadó vagy el nem induló adások javítva; a lejátszólistának látszó címek feloldása időkorláttal (minden platformon).
 - **Menü**: a kikapcsolt Sport (és Rádió) menüpont telefonos elrendezésben is eltűnik.
 - **Távirányító**: a virtuális egér (karika) a rádió teljes képernyős nézetén is látszik; Linuxon a QR-kódba nem kerül virtuális vagy VPN-hálózati kártya címe, több cím közül választható, tűzfal-tipp.
+
 **Rádió, androidos funkciók, javítások (1.28)**
 - **Rádió**: felvétel és műsorújság a tévés felülettel, kedvencek fül, a *Most szól* nézet fekvő képernyőn egy képernyőre fér (borító | adatok | hangkép, alul kezelősáv, a beállítások rövid menügombokból: Hangkép, Hangzás, Hangszín, Elalvás, Előtte szólt, Adás adatai – D), a háttér a téma háttere; **OFFLINE** / **🌐 GEO-KORLÁT** jelölés és háttérellenőrzés, mint a tévénél; **Adás adatai** (formátum, megadott és mért bitráta, puffer, akadás); a Japán (és más ország) szűrés teljes listát ad.
 - **Magyar TV adók**: új beépített lista a szabadon fogható magyar adásokkal.
@@ -126,6 +51,7 @@ A legújabb változások elöl; a régebbi kiadások (1.3–1.6) a lista elején
 - **Telefonos távirányító**: új Rádió fül (adóváltás, kedvenc, felvétel, hangerő, elalvás, hangkép, keresés), új gombok (kedvenc, felvétel, mini, kivetítés), ugrás a Rádióra, a rádió-műsorújságra és a Sportra.
 - **Windows-telepítő**: tiszta telepítés és az adatok törlése (Setup: kérdéssel; MSI: jelölőnégyzettel, ablakos magyar telepítővel); az MSI a végén nem indítja el az Adást (az első profil névmezője így nem maradt írhatatlan).
 - **Javítások** a javítási feladatlistából (B01–B38): első profil (Enter, visszalépés), kereső fókusza, távirányítós navigáció, mentési pontok a listatartalommal, gyerekprofil nézési ideje kivetítéskor, legnagyobb minőség minden motorra, beállításmentés, EPG-feldolgozás és -frissítés, feliratok, frissítő, sportnaptár időzónái, kivetítés, emlékeztetők és több más.
+
 **Tartós borítótár, elérhetők elöl mindenhol (1.27)**
 - **Borítóképek tára**: asztali gépen a VOD-borítók a felhasználói adatmappa `covers` mappájába kerülnek (`adasimg://` – `covers.js`), Androidon minden kép (borító, csatornalogó) a `files/covers` mappába (`Covers.java`; eddig a WebView a proxyn átadott képeket nem tárolta, mindent újra letöltött). Legközelebb onnan jönnek, hálózat nélkül is; korlát: asztalon 1 GB, Androidon 512 MB (fölötte a legrégebben látottak törlődnek). Méret és ürítés: Beállítások → VOD és médiatár.
 - **Az elérhető csatornák elöl mindenhol**, ahol a program dönti el a sorrendet: keresés (és a telefonos távirányító keresése), a TV oldal sorai, műsorújság, böngészés (név / ország szerinti rendezésben is), több adás egyszerre. A saját sorrend marad (Kedvencek, Legutóbb nézett, csatornaszámok).
@@ -315,6 +241,82 @@ A legújabb változások elöl; a régebbi kiadások (1.3–1.6) a lista elején
 - Nézési statisztika profilonként (napok, napszakok, csatornák, kategóriák, filmek)
 - Beállítások átvitele a tévére a helyi hálózaton egy 4 jegyű kóddal, vagy webcímről
 - Frissítés-ellenőrzés és telepítés (GitHub-kiadás vagy JSON-cím)
+
+**Saját médiatár / NAS (1.6)**
+- Külön *Saját* részleg a saját filmeknek és sorozatoknak: a NAS (vagy bármely) mappában – almappákkal
+  együtt – automatikusan keletkező .m3u / .m3u8 lejátszólistákból. Forrás lehet megosztott mappa
+  (`\\NAS\Media`, `Z:\`, `/mnt/nas`; asztali változat) vagy a NAS webes címe (http könyvtárlista; tévén is).
+- Minden talált lejátszólista külön, ki-be kapcsolható lista; az újakat 10 percenként magától észreveszi.
+- Relatív és helyi útvonalak feloldása, kiadási fájlnevek tisztítása (cím + év), magyar információk,
+  borító a Wikidatából / TMDB-ből, OpenSubtitles-feliratok és a videó melletti .srt automatikus betöltése.
+
+**Magyar információk és feliratok (1.5)**
+- Filmek, sorozatok és tévécsatornák magyar címe, leírása, műfaja, rendezője, szereplői, országa a
+  Wikidatából / Wikipédiából (kulcs nélkül), vagy saját TMDB-kulccsal a TMDB-ből (értékeléssel).
+- Filmekhez és sorozatokhoz magyar és angol felirat az OpenSubtitles-ről (ingyenes fiók + API-kulcs kell),
+  helyi .srt / .vtt fájl (ráhúzással is), időeltolás, betűméret, automatikus keresés.
+
+**Filmek és sorozatok (1.4)**
+- Külön oldal (fejléc: *Filmek és sorozatok*) M3U / M3U8 listákból betöltött filmekkel és sorozatokkal:
+  Folytatás sor, Sorozatok, csoportonkénti / műfajonkénti sorok, rácsnézet szűrővel és kereséssel.
+- Film vagy sorozat? A címből ismeri fel (S01E02, 1x02, Season/Episode, „5. rész”, 第5集…; egy fájlban
+  sorszámozott címek → sorozat; évszám a cím végén → film). Részletek a súgóban.
+- Saját film/sorozat listák külön (Beállítások → Filmek és sorozatok – listák): cím, fájl, beillesztés,
+  vagy egy teljes GitHub-tárhely. Beépített: Orphaned Films, Közkincs filmek (OnlineM3U).
+- Lejátszás tekerhető idősávval, ±10 mp, folytatás onnan, ahol abbahagytad (profilonként), sorozatnál
+  automatikus következő rész.
+
+**Csatornalisták (1.3)**
+- Beépített, ki-be kapcsolható listák: iptv-org, Free-TV, **Magyar TV adók** (válogatott, szabadon fogható magyar
+  adások – `lists/hu.m3u`, kiadás nélkül is frissíthető), Pluto TV, Samsung TV Plus, Plex, FreeCast Hub,
+  DragonHall TV. Több bekapcsolt lista esetén az azonos csatornák egy csatornává olvadnak (tvg-id, majd
+  név + ország, majd egyértelmű név alapján); a listák adásai egymás tartalék forrásai lesznek. A listák
+  saját műsorújsága is betöltődik.
+- A nem elérhető csatornák kártyája szürke, OFFLINE vagy ADÁSSZÜNET jelzéssel, a név alatt felirattal.
+- 11 választható rajzolt profilkép (vagy betűs avatar).
+
+**Felület**
+- TV oldal Csatornák és Felvételek füllel; vízszintesen görgethető sorok: Legutóbb nézett,
+  Kedvenceid, Most a TV-ben, hazai csatornák, kategóriák, országok
+- Rámutatásra kinagyuló kártyák: lejátszás, kedvenc, részletek, az éppen futó és a következő műsor
+- Böngészés kategória, ország, nyelv, minőség és állapot szerint
+- Keresés csatornanévre, országra, kategóriára, hálózatra **és műsorcímre** (Ctrl+F vagy `/`)
+
+**Csatornaadatok és műsorújság**
+- Adatlap minden csatornához: ország, nyelv, kategória, hálózat, tulajdonos, indulás, weboldal, időzóna, adásforrások
+- Műsorújság XMLTV-forrásokból, a csatornákhoz automatikusan párosítva; napi bontás az adatlapon
+- Idővonalas műsorújság-rács (Kedvencek / hazai / minden csatorna, tegnaptól +3 napig)
+- Emlékeztető műsorkezdésre (rendszerértesítés + „Nézem” gomb)
+
+**Lejátszás**
+- HLS (hls.js), MPEG-TS/FLV (mpegts.js), DASH (dash.js)
+- Az adások által kért `User-Agent` / `Referer` fejlécek beállítása (`#EXTVLCOPT`, `http-referrer`)
+- Automatikus tartalék forrás, ha egy adás nem indul el vagy megakad
+- Csatornaváltás ↑/↓ billentyűvel, csatornaszám beírása (0–9), csatornalista-panel
+- Minőség-, hangsáv- és forrásválasztás, mindig felül lévő mini lejátszó, egyenként elrejthető lejátszógombok
+- Elalvási időzítő (lágy elhalkulással, akár a műsor végén)
+- A képernyő nem alszik el lejátszás közben; médiabillentyűk
+
+**Megbízhatóság**
+- Háttérben ellenőrzi a megjelenő csatornák adásait (zöld pötty = működik, piros = nem elérhető)
+- Teljes ellenőrzés egy gombnyomásra, a hibás csatornák elrejthetők
+
+**Kényelem**
+- Kedvencek (húzással rendezhetők, ez adja a csatornaszámokat), előzmények, utolsó csatorna folytatása
+- Saját M3U listák URL-ről vagy fájlból, saját XMLTV műsorújság-források
+- Profilok („Ki nézi?”), gyerekprofil csak gyerek-, családi, animációs és oktatási csatornákkal
+- Felnőtt tartalom alapból rejtve
+- Mentés és visszaállítás fájlba (beállítások, profilok, kedvencek, emlékeztetők)
+- Teljes billentyűzetes / távirányítós vezérlés (nyilak, Enter, Esc / Backspace)
+
+**Rádió**
+- Új menüpont a TV után: **élő rádióadók a világból**, a TV oldal mintájára sorokban (Legutóbb hallgatott, Kedvenc rádiók, a hazai ország adói, Műfajok, Népszerű a világban, Országok), böngészés kereséssel és szűrőkkel (ország, műfaj, minőség, működés). Mindenhol a működő adók elöl.
+- Források (mind kikapcsolható): **Radio Browser** (közösségi adatbázis, a lejátszást jelzi is nekik), **Verified Radio Streams** (kipróbált adások), **IPRD** (országonkénti válogatás). Az ugyanazon adó több forrásból egy kártya, a címei tartalékként egymás után próbálódnak. Saját M3U rádiólista webcímről (listánként beállítható frissítéssel) és `radio` fajtájú `.adaspack` csomag.
+- **Mini-lejátszó** alul (adó, most szól, kis spektrum, előző / szünet / következő, kedvenc, hangerő) és **Most szól** nézet: a szám címe és előadója az adás ICY-metaadatából (`icy.js`, Androidon `MainActivity.icyTitle`), borító az iTunes-keresőből, *Előtte szólt* lista, keresés a YouTube-on / Spotify-on, az adó honlapja.
+- **Hangzás** (Web Audio, asztalon és Androidon): hangszínszabályzó előbeállítások, hangerő-kiegyenlítés, térhatás, retro rádió (középhullámú készülék), átúsztatás adóváltáskor; **vizualizáció**: spektrum, hullám, tükör, hullámhegyek; **elalvás-időzítő** elhalkulással. LG webOS-en effektek nélkül szól.
+- **Műsorújság** a tévés felületével (Kedvencek / hazai / minden adó, napok, idővonal, most műsoron): a rádióadók is részt vesznek a műsorújság párosításában (a magyar közszolgálati adók az epgshare01-forrás „MR1-Kossuth” stb. nevével is); a most futó műsor a kártyán és a Most szól nézetben is.
+- **Felvétel** (asztali): azonnal a ● gombbal vagy a műsorújságból ütemezve; a hang változatlanul MP3 / AAC fájlba (más kódolásnál AAC-be alakítva), vágható; a Rádió oldal **Felvételek** fülén. **Kedvencek** fül sorba rendezéssel.
+- Kedvenc adók a Kedvencek oldalon is; billentyűk: szóköz / médiagomb, CH+ / CH−. Videó indításakor a rádió elhallgat. Beállítások → **Rádió**: a menüpont kikapcsolható (gyerekprofilban nem látszik).
 
 ## Csatornalisták, saját csatornák
 
