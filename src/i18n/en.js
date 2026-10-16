@@ -2263,5 +2263,9 @@ export default {
  "Mindent törlök": "Delete everything",
  "Az újrakezdés nem sikerült:": "Starting over failed:",
  "Az adatbázis nem törölhető": "The database could not be deleted",
- "Az adatbázist egy másik megnyitott Adás-lap használja – zárd be, és próbáld újra.": "Another open Adás tab is using the database – close it and try again."
+ "Az adatbázist egy másik megnyitott Adás-lap használja – zárd be, és próbáld újra.": "Another open Adás tab is using the database – close it and try again.",
+ "Az újrakezdés nem fejeződött be": "Starting over did not finish",
+ "Néhány fájl nem törölhető (talán egy másik program használja): {list}": "Some files could not be deleted (perhaps another program is using them): {list}",
+ "Az Adás most a megmaradt adatokkal indul. A mappát kézzel is törölheted: {dir}": "Adás now starts with the remaining data. You can also delete the folder manually: {dir}",
+ "Zárd be a többi programot, majd próbáld újra.": "Close other programs, then try again."
 };

@@ -29,6 +29,15 @@ if (process.env.ADAS_DATA_DIR) app.setPath('userData', path.resolve(process.env.
 // törlődik, még mielőtt a Chromium megnyitná (beállítások, profilok, listák, gyorsítótár, borítók, saját témák,
 // a lap tárhelye). Az előző folyamat épp kilép: a még lezáratlan fájlokat néhányszor újrapróbálja.
 const RESET_MARK = '.adas-reset';
+const RESET_TRIES = 3; // ennyi sikertelen kör után az Adás figyelmeztetéssel elindul (ne zárja ki végleg a felhasználót)
+let resetFailed = null; // { rest, tries } – a törlés nem fejeződött be: ablak helyett üzenet (app.whenReady)
+/** Újraindítás az indítási kapcsolókkal (pl. Linuxon --no-sandbox), a rejtett indítás nélkül; hordozható Windows-változatnál
+ * és AppImage-nél az eredeti fájl (nem az ideiglenes kibontás). */
+function relaunchSelf() {
+  const execPath = process.env.PORTABLE_EXECUTABLE_FILE || process.env.APPIMAGE;
+  const args = process.argv.slice(1).filter((a) => a !== '--hidden');
+  app.relaunch(execPath ? { execPath, args } : { args });
+}
 // A jelölő csak akkor törlődik, ha minden más eltűnt – egy makacs fájl esetén a következő indítás újra próbálja.
 try {
   const dir = app.getPath('userData');
@@ -39,13 +48,21 @@ try {
       if (round) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 500); // (a kilépő példány még zárhat fájlt)
       for (const e of left()) {
         try {
-          fs.rmSync(path.join(dir, e), { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+          fs.rmSync(path.join(dir, e), { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
         } catch {}
       }
     }
     const rest = left();
     if (!rest.length) fs.rmSync(path.join(dir, RESET_MARK), { force: true });
-    else console.warn('Újrakezdés: nem törölhető, a következő indításkor újra:', rest.join(', '));
+    else {
+      // a jelölő számolja a sikertelen köröket (tartalma: „időbélyeg kör”)
+      const mark = path.join(dir, RESET_MARK);
+      const tries = (Number(String(fs.readFileSync(mark, 'utf8')).split(' ')[1]) || 0) + 1;
+      console.warn(`Újrakezdés (${tries}. kör): nem törölhető:`, rest.join(', '));
+      if (tries >= RESET_TRIES) fs.rmSync(mark, { force: true });
+      else fs.writeFileSync(mark, `${Date.now()} ${tries}`);
+      resetFailed = { rest, tries };
+    }
   }
 } catch (err) {
   console.warn('Újrakezdés:', err);
@@ -916,14 +933,10 @@ ipcMain.handle('factory-reset', async () => {
     await session.defaultSession.clearCache();
   } catch {}
   fs.mkdirSync(dataDir(), { recursive: true });
-  fs.writeFileSync(path.join(dataDir(), RESET_MARK), String(Date.now()));
+  fs.writeFileSync(path.join(dataDir(), RESET_MARK), `${Date.now()} 0`);
   quitting = true;
   // (hordozható Windows-változat és AppImage: az eredeti fájlt kell újraindítani, nem az ideiglenes kibontást)
-  // (az indítási kapcsolók megmaradnak – pl. Linuxon a --no-sandbox, fejlesztéskor az alkalmazás mappája –, csak a
-  // rejtett indítás nem)
-  const execPath = process.env.PORTABLE_EXECUTABLE_FILE || process.env.APPIMAGE;
-  const args = process.argv.slice(1).filter((a) => a !== '--hidden');
-  app.relaunch(execPath ? { execPath, args } : { args });
+  relaunchSelf();
   setTimeout(() => app.exit(0), 100);
   return true;
 });
@@ -1162,6 +1175,28 @@ ipcMain.handle('covers-stats', () => covers.stats());
 ipcMain.handle('covers-clear', () => covers.clear());
 
 app.whenReady().then(() => {
+  // (Újrakezdés) a törlés nem fejeződött be: a megmaradt régi adatokkal nem indul „tisztaként” – újrapróbálás vagy
+  // kilépés; a megengedett körök után figyelmeztetéssel elindul
+  if (resetFailed) {
+    const last = resetFailed.tries >= RESET_TRIES;
+    const r = dialog.showMessageBoxSync({
+      type: 'warning',
+      title: 'Adás',
+      message: _t('Az újrakezdés nem fejeződött be'),
+      detail:
+        _t('Néhány fájl nem törölhető (talán egy másik program használja): {list}', { list: resetFailed.rest.slice(0, 6).join(', ') }) +
+        '\n\n' +
+        (last ? _t('Az Adás most a megmaradt adatokkal indul. A mappát kézzel is törölheted: {dir}', { dir: dataDir() }) : _t('Zárd be a többi programot, majd próbáld újra.')),
+      buttons: last ? [_t('Rendben')] : [_t('Újrapróbálás'), _t('Kilépés')],
+      defaultId: 0,
+      cancelId: last ? 0 : 1,
+    });
+    if (!last) {
+      if (r === 0) relaunchSelf();
+      app.exit(0);
+      return;
+    }
+  }
   covers.install(protocol, net, dataDir());
   // macOS-en a menüsor nélkül a Cmd+C / Cmd+V / Cmd+Q sem működne: ott egy minimális menü kell.
   Menu.setApplicationMenu(
