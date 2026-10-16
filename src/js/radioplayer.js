@@ -325,7 +325,19 @@ class RadioPlayer {
       // (H11) a lista által megadott fejlécek (User-Agent, Referer) – asztalon a fejléc-beállító, Androidon a natív lejátszó
       const hdr = st.headers?.[raw] || null;
       this.reqHeaders = hdr;
-      if (hdr && api.setStreamHeaders) await api.setStreamHeaders(url, { ua: hdr.ua, referrer: hdr.referrer }).catch(() => {});
+      let host = '';
+      try {
+        host = new URL(url).host;
+      } catch {}
+      this.hdrHosts ||= new Set();
+      if (hdr && api.setStreamHeaders) {
+        await Promise.resolve(api.setStreamHeaders(url, { ua: hdr.ua, referrer: hdr.referrer })).catch(() => {});
+        if (host) this.hdrHosts.add(host);
+      } else if (host && this.hdrHosts.has(host) && api.setStreamHeaders) {
+        // (egy korábbi adó ugyanerre a szerverre beállított fejlécei ne öröklődjenek)
+        await Promise.resolve(api.setStreamHeaders(url, null)).catch(() => {});
+        this.hdrHosts.delete(host);
+      }
       if (seq !== this.seq) return;
       // (amelyik cím CORS-módban egyszer már nem indult, az legközelebb rögtön a tartalék elemen szól)
       const noCors = this.ctx && this.noCors.has(url);

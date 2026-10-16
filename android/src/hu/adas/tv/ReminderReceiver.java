@@ -110,10 +110,10 @@ public class ReminderReceiver extends BroadcastReceiver {
     if (Build.VERSION.SDK_INT < 26) b.setPriority(Notification.PRIORITY_HIGH).setDefaults(Notification.DEFAULT_ALL);
     try {
       nm.notify(9000 + n, b.build());
+      markDelivered(ctx, channelId + "|" + start); // (csak a ténylegesen megjelent értesítés számít kézbesítettnek)
     } catch (SecurityException ignored) {
-      // nincs értesítési engedély
+      // nincs értesítési engedély – az emlékeztető függőben marad, az alkalmazás jelzi
     }
-    markDelivered(ctx, channelId + "|" + start);
   }
 
   /** (H20) A rendszer által kézbesített emlékeztető – az alkalmazás megnyitásakor ne jelezze újra (legfeljebb 100). */

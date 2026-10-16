@@ -27,6 +27,7 @@ const sportWatchCount = () => watchList().filter((w) => w.on !== false).length;
 import { requireAdult, requireAdultAlways, hasPin, choosePin, setPin } from './pin.js';
 import { renderTransfer, importData, attachDocs, stageDocs, dropDocs } from './transfer.js';
 import { dropUnreferenced } from './snapshot.js';
+import { v1BackupDocKeys } from './backup.js';
 import { renderRecordings } from './recorder.js';
 import { renderRemoteSettings } from './remote.js';
 import { renderBackups } from './backup.js';
@@ -1063,7 +1064,10 @@ export function renderSettings(view) {
           throw err;
         }
         // (H24) a már nem hivatkozott régi listadokumentumok törlése (a mentési pontoké marad)
-        await Promise.resolve(dropUnreferenced(oldSettings, data.settings)).catch(() => {});
+        // (a régi – v1 – mentési pontok dokumentumai is maradnak; ha a mentéstár nem olvasható, nincs takarítás)
+        await v1BackupDocKeys()
+          .then((keep) => dropUnreferenced(oldSettings, data.settings, keep))
+          .catch(() => {});
         location.reload();
       } catch (err) {
         toast(`${_t('Nem sikerült beolvasni a mentést:')} ` + err.message);
