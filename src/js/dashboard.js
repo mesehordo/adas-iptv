@@ -983,7 +983,10 @@ const rLogo = (st, cls = '') =>
 const homeRadioCC = () => (store.settings.homeCountry === 'UK' ? 'GB' : store.settings.homeCountry) || 'HU';
 /** Az egységek adója: betöltött adó, a kedvencek / előzmények mentett adatai, ill. a dashboard saját listája. */
 const radioLists = new Map(); // egység → a kártyáin látható adók (a léptetéshez is)
-function radioStation(id) {
+function radioStation(id, unit) {
+  // (ugyanaz az adó több egységben is lehet: a kattintott egység listája – a léptetés is abban marad)
+  const own = radioLists.get(unit)?.find((s) => s.id === id);
+  if (own) return { st: own, list: radioLists.get(unit) };
   for (const list of radioLists.values()) {
     const st = list.find((s) => s.id === id);
     if (st) return { st, list };
@@ -1121,7 +1124,7 @@ function radioClick(e) {
   if (!id) return false;
   // (a szóló adóra kattintva szünet / folytatás)
   if (radioPlayer.station?.id === id) return radioPlayer.toggle(), true;
-  const hit = radioStation(id);
+  const hit = radioStation(id, e.target.closest('.dcard')?.dataset.unit);
   if (hit) radioPlayer.play(hit.st, hit.list);
   return true;
 }
@@ -1146,7 +1149,13 @@ export const PRESETS = {
   radio: { name: _t('Rádiózás'), cfg: { cols: 3, rows: 2, units: [U('radio', 2), U('radiofavs', 1, 2), U('radioguide'), U('radiotop')] } },
 };
 const KIDS_PRESETS = { alap: { name: _t('Alap'), cfg: DEFAULT_KIDS }, este: PRESETS.este, egyszeru: PRESETS.egyszeru };
-const presets = () => (store.profile.kids ? KIDS_PRESETS : PRESETS);
+const presets = () => {
+  if (store.profile.kids) return KIDS_PRESETS;
+  // (kikapcsolt Rádió menüpontnál a rádiós sablon üres főoldalt adna)
+  if (radioMenuOn()) return PRESETS;
+  const { radio: _r, ...rest } = PRESETS;
+  return rest;
+};
 /** Napszak szerinti váltásnál: reggel 5–10 óráig a reggeli, 18 órától az esti elrendezés. */
 const dayPart = (h = new Date().getHours()) => (h >= 5 && h < 10 ? 'reggel' : h >= 18 ? 'este' : '');
 
@@ -1157,13 +1166,17 @@ function dashCfg() {
   // importált profilból is csak korlátos egész számok kerülhetnek a HTML-be
   const int = (v, [lo, hi]) => Math.min(hi, Math.max(lo, Math.round(Number(v)) || lo));
   const cols = int(c.cols, LIMITS.cols), rows = int(c.rows, LIMITS.rows);
-  return {
-    cols,
-    rows,
-    units: c.units
-      .filter((u) => u && Object.prototype.hasOwnProperty.call(UNITS, u.id) && allowed(u.id))
-      .map((u) => ({ id: u.id, w: int(u.w, [1, cols]), h: int(u.h, [1, rows]) })),
-  };
+  const units = c.units
+    .filter((u) => u && Object.prototype.hasOwnProperty.call(UNITS, u.id) && allowed(u.id))
+    .map((u) => ({ id: u.id, w: int(u.w, [1, cols]), h: int(u.h, [1, rows]) }));
+  // ha a mentett elrendezés minden egysége kiesett (pl. csak rádiós egységek, és a Rádió menüpont kikapcsolva):
+  // üres főoldal helyett az alap elrendezés
+  if (!units.length && c.units.length && !editing) return dashCfgOf(p.kids ? DEFAULT_KIDS : DEFAULT_DASH, int);
+  return { cols, rows, units };
+}
+function dashCfgOf(c, int) {
+  const cols = int(c.cols, LIMITS.cols), rows = int(c.rows, LIMITS.rows);
+  return { cols, rows, units: c.units.filter((u) => allowed(u.id)).map((u) => ({ ...u, w: int(u.w, [1, cols]), h: int(u.h, [1, rows]) })) };
 }
 
 /** Első-szabad-hely elhelyezés; a nem férő egységek `fail`-t kapnak. */
