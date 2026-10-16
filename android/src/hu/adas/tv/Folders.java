@@ -167,7 +167,10 @@ final class Folders {
         if (name == null) continue;
         String low = name.toLowerCase(Locale.ROOT);
         Uri du = DocumentsContract.buildDocumentUriUsingTree(tree, c.getString(0));
-        if (!image && low.startsWith(lowBase) && low.matches(".*\\.(srt|vtt|ass|ssa|sub)$") && subs.length() < 12) {
+        // (H16) csak a pontos alapnév vagy az utána ponttal kezdődő jelölők (Film.hu.srt – a „Film 2.hu.srt” egy másik
+        // videóé); (H17) csak a feldolgozható formátumok: SRT és VTT (az ASS / SSA / SUB-ot a közös feldolgozó nem érti)
+        boolean mine = low.startsWith(lowBase) && (low.length() == lowBase.length() + 4 || (low.length() > lowBase.length() && low.charAt(lowBase.length()) == '.'));
+        if (!image && mine && low.matches(".*\\.(srt|vtt)$") && subs.length() < 12) {
           byte[] b = readBytes(ctx, du, 2 * 1024 * 1024);
           if (b == null) continue;
           JSONObject s = new JSONObject();

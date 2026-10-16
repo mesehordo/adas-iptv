@@ -843,7 +843,14 @@ ipcMain.handle('sidecar-subs', async (_e, videoPath) => {
   try {
     const dir = path.dirname(videoPath);
     const base = path.basename(videoPath).replace(/\.[^.]+$/, '').toLowerCase();
-    const files = (await fs.promises.readdir(dir)).filter((n) => SUB_EXT.test(n) && n.toLowerCase().startsWith(base)).slice(0, 8);
+    // (H16) csak a pontos alapnév (Film.srt) vagy az utána ponttal kezdődő jelölők (Film.hu.srt) – a Film 2.hu.srt egy
+    // másik videóé; a pontos egyezés áll elöl, a többi névsorban
+    const mine = (n) => {
+      const low = n.toLowerCase();
+      return SUB_EXT.test(n) && low.startsWith(base) && (low.length === base.length + 4 || low[base.length] === '.');
+    };
+    const exact = (n) => n.toLowerCase().replace(SUB_EXT, '') === base;
+    const files = (await fs.promises.readdir(dir)).filter(mine).sort((x, y) => exact(y) - exact(x) || x.localeCompare(y)).slice(0, 8);
     const out = [];
     for (const n of files) {
       const buf = await readSmallFile(path.join(dir, n), 5 * 1024 * 1024);
