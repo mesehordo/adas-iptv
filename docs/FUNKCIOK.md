@@ -36,6 +36,12 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
+**Hibajavítások egy külső kódellenőrzés alapján (1.28.6)**
+- **Feliratok**: a már egyszer letöltött felirat nem töltődik le újra (filmenként tárolva – az OpenSubtitles napi kerete nem fogy el ugyanarra); régi keresés / letöltés nem írja felül az újat; a videó melletti felirat pontos névpárosítással.
+- **Felvétel**: írási hiba (betelt lemez, eltűnt meghajtó) nem dönti le az alkalmazást; egyszerre induló felvételek külön fájlt kapnak; dupla indítás ellen védett; ütemezett felvétel összeomlás után is folytatódik; a vágás hibája után a felvétel nem tűnik el.
+- **Biztonság és profilok**: gyerekprofilban nincs élő főoldali előnézet (a szülői korlátok nem kerülhetők meg); a hibás mentésből betöltött profil nem okoz futási hibát; a profilimport csak sikeres mentés után jelez sikert.
+- **Rádió**: megszakadt adásnál újracsatlakozás; gyors adóváltás, elalvás-időzítő, lista-fejlécek és offline mentett listák javítva.
+- **Műsorújság és egyéb**: elavult forrás jelölése, a források pontos összefésülése; kivetítés: pozíció mentése és folytatása, médiagombok; Android: emlékeztetők, frissítés letöltése; statisztika, letöltési korlát és több kisebb javítás.
 **Android: lejátszás zárolt képernyőnél, értesítés (1.28.5)**
 - **Lezárt képernyő**: a rádió mindig tovább szól (másik alkalmazásra váltáskor is), a TV és a VOD hangja a képernyő lezárásakor is; másik alkalmazásra váltáskor a videónál továbbra is a Háttérlejátszás beállítás dönt.
 - **Értesítés lejátszás közben**: amíg van betöltött adás (szünetelve is), az értesítési sávon és a zárolt képernyőn látszik, mi szól (TV: csatorna és a most futó műsor, rádió: adó és szám), lejátszás / szünet és leállítás gombbal. Android 13-tól az első lejátszáskor engedélyt kér.
