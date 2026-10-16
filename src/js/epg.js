@@ -109,7 +109,16 @@ function fillGaps(have, rows) {
   const extra = rows.filter((r) => sp(r) <= first || st(r) >= last);
   if (!extra.length) return have;
   const conv = !!have[PROGS];
-  const out = [...have, ...(conv ? extra.map((r) => (Array.isArray(r) ? toProg(r) : r)) : extra)].sort((a, b) => st(a) - st(b));
+  const add = new Set(conv ? extra.map((r) => (Array.isArray(r) ? toProg(r) : r)) : extra);
+  const all = [...have, ...add].sort((a, b) => st(a) - st(b));
+  // a pótló sorok egymással is átfedhetnek (a forrásban): ami az előző megtartott sor vége előtt kezdődik, kimarad –
+  // így az epg.now() nem egy átfedő, később kezdődő sort ad. A magasabb prioritású forrás sorai érintetlenek.
+  const out = [];
+  for (const r of all) {
+    const prev = out[out.length - 1];
+    if (add.has(r) && prev && st(r) < sp(prev)) continue;
+    out.push(r);
+  }
   if (conv) out[PROGS] = true;
   return out;
 }
