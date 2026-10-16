@@ -885,7 +885,7 @@ ${go('#/settings', 'Open Settings')}`,
     id: 'backup',
     cat: 'personal',
     title: 'Backup, restore, cache',
-    keywords: 'backup restore copy export import cache clear move',
+    keywords: 'backup restore copy export import cache clear move start over factory reset delete everything clean start',
     body: `
 <h2>Save to file</h2>
 <p>Settings → Profiles and backup → <b>Save to file</b>: writes the settings, all profiles with favourites, history, reminders, style and order, as well as your own lists and channels, into a <code>.json</code> file. That way you can take everything to another computer.</p>
@@ -904,6 +904,14 @@ ${go('#/settings', 'Open Settings')}`,
 </table>
 <h2>Clear cache</h2>
 <p>Deletes the downloaded lists, TV guide and processed catalogue – everything is downloaded fresh at the next start. Useful if something got “stuck”. It doesn’t touch your settings and profiles.</p>
+<h2>Start over (everything back to defaults)</h2>
+<p>Settings → Profiles and backup → <b>Start over…</b>: <b>all of Adás’s data is deleted</b> – profiles, settings, favourites, your own lists and channels, history, reminders, your own themes, covers and the cache – and it starts as if you had just installed it (with the first-run screen, everything back to its original defaults). Starting with the system is turned off too.</p>
+<ul>
+<li>If there is an adult PIN, it asks for it first (even from your own, unlocked profile), then for a confirmation.</li>
+<li>On a computer Adás restarts by itself. On Android the system deletes the app’s data and Adás closes – open it again.</li>
+<li><b>Your recordings are kept</b> (the files in your Videos folder are yours, not app data).</li>
+</ul>
+<div class="tip">This cannot be undone – if you might want to return to your current setup, save it to a file first (<b>Save to file</b>).</div>
 <div class="note">On TV, saving to a file isn’t available – <i>Sync between devices</i> works there. On Android, saving uses the system’s file saver (e.g. to the Downloads folder or Google Drive).</div>`,
   },
 

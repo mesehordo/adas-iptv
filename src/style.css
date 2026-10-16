@@ -1604,6 +1604,8 @@ body.rc-nav .tile:focus, body.rc-nav .see-all:focus { transform: scale(1.06); z-
 
 /* Keresés: szűrő fülek (TV-csatornák, műsorok, VOD, rádió), a szakaszok egymás alatt */
 .search-tabs { margin: 0 0 14px; flex-wrap: wrap; }
+/* Beállítások → Profilok és mentés: Újrakezdés */
+.reset-box { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
 .search-tabs .tab[disabled] { opacity: 0.4; cursor: default; }
 .search-page > section { margin: 8px 0 18px; }
 /* távirányító: a QR-kódba kerülő cím választható */

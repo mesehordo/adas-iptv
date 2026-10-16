@@ -107,6 +107,24 @@ async function cachedFetchText(url, { maxAgeHours = 24, force = false } = {}, do
   }
 }
 
+/** Újrakezdés a lap tárhelyén (böngésző, tévé): az IndexedDB és a localStorage törlése, majd újratöltés. */
+async function webFactoryReset() {
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+  } catch {}
+  await new Promise((resolve) => {
+    try {
+      const q = indexedDB.deleteDatabase('adas');
+      q.onsuccess = q.onerror = q.onblocked = () => resolve();
+    } catch {
+      resolve();
+    }
+  });
+  location.reload();
+  return true;
+}
+
 async function directDownload(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -163,6 +181,7 @@ const webApi = {
     localStorage.setItem('adas-store', JSON.stringify(data));
   },
   clearCache: idbClear,
+  factoryReset: webFactoryReset,
   async saveFile(name, text) {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
@@ -388,6 +407,8 @@ function pickApk(assets) {
 let androidOffered = null;
 
 const androidApi = {
+  // (Újrakezdés: a rendszer törli az alkalmazás adatait, és bezárja – ha nem sikerül, a lap tárhelye törlődik)
+  factoryReset: async () => (window.AdasAndroid?.factoryReset?.() ? true : webFactoryReset()),
   ...webApi,
   platform: ANDROID_TV ? 'androidtv' : 'android',
   caps: {

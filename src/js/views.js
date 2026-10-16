@@ -24,7 +24,7 @@ import { watchList } from './sports.js';
 import { radioFavsSection, radioSearchSection, radioSearchCount, startRadioSearch } from './radiopage.js';
 import { renderRadioSettings } from './radiosettings.js';
 const sportWatchCount = () => watchList().filter((w) => w.on !== false).length;
-import { requireAdult, hasPin, choosePin, setPin } from './pin.js';
+import { requireAdult, requireAdultAlways, hasPin, choosePin, setPin } from './pin.js';
 import { renderTransfer, importData, attachDocs, stageDocs, dropDocs } from './transfer.js';
 import { renderRecordings } from './recorder.js';
 import { renderRemoteSettings } from './remote.js';
@@ -891,6 +891,8 @@ export function renderSettings(view) {
       <button class="btn" data-act="clear-cache">${_t('Gyorsítótár törlése')}</button></div>
       <p class="muted">${_t('A mentés tartalmazza a beállításokat, a profilokat, a kedvenceket, az előzményeket és az emlékeztetőket.')}</p>
       <div id="autobackup"></div>
+      ${api.factoryReset ? `<div class="setting reset-box"><span>${_t('<b>Újrakezdés</b>')}<small>${_t('Minden adat törlődik – profilok, beállítások, kedvencek, listák, előzmények, emlékeztetők, saját témák, gyorsítótár –, és az Adás úgy indul, mintha most telepítetted volna, minden az eredeti alapértékén. A felvett videók megmaradnak. Előtte érdemes menteni fájlba.')}</small></span>
+        <button class="btn danger" data-act="factory-reset">${_t('Újrakezdés…')}</button></div>` : ''}
     </section>
 
     ${IS_TV
@@ -1073,6 +1075,22 @@ export function renderSettings(view) {
         await importData(data, f.name, { profilesOnly: true });
       } catch (err) {
         toast(`${_t('Nem sikerült beolvasni a mentést:')} ` + err.message);
+      }
+    } else if (act === 'factory-reset') {
+      // (teljes törlés: felnőtt PIN – ha van –, majd kifejezett megerősítés)
+      if (!(await requireAdultAlways(_t('Az újrakezdéshez')))) return;
+      const ok = await confirmDialog(
+        _t('Biztosan újrakezded? Minden profil, beállítás, kedvenc, lista, előzmény és emlékeztető végleg törlődik, és az Adás az első indítás képernyőjével indul újra. Ez nem vonható vissza.') + (IS_ANDROID ? ' ' + _t('Androidon az alkalmazás ezután bezárul – nyisd meg újra.') : ''),
+        { ok: _t('Mindent törlök'), danger: true }
+      );
+      if (!ok) return;
+      store.frozen = true; // (a memóriában lévő régi állapot többé nem íródik vissza)
+      toast(_t('Újrakezdés…'));
+      try {
+        await api.factoryReset();
+      } catch (err) {
+        store.frozen = false;
+        toast(`${_t('Az újrakezdés nem sikerült:')} ${err.message || err}`);
       }
     } else if (act === 'clear-cache') {
       await api.clearCache();

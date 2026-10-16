@@ -25,6 +25,21 @@ const storeFile = () => path.join(dataDir(), 'store.json');
 // Külön adatmappa (pl. hordozható használathoz vagy teszteléshez): ADAS_DATA_DIR=/út/vonal
 if (process.env.ADAS_DATA_DIR) app.setPath('userData', path.resolve(process.env.ADAS_DATA_DIR));
 
+// Újrakezdés (Beállítások → Profilok és mentés): az előző futás jelölőfájlt hagyott – az adatmappa teljes tartalma
+// törlődik, még mielőtt a Chromium megnyitná (beállítások, profilok, listák, gyorsítótár, borítók, saját témák,
+// a lap tárhelye). Az előző folyamat épp kilép: a még lezáratlan fájlokat néhányszor újrapróbálja.
+const RESET_MARK = '.adas-reset';
+try {
+  const dir = app.getPath('userData');
+  if (fs.existsSync(path.join(dir, RESET_MARK))) {
+    for (const e of fs.readdirSync(dir)) {
+      try {
+        fs.rmSync(path.join(dir, e), { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+      } catch {}
+    }
+  }
+} catch {}
+
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 }
@@ -876,6 +891,30 @@ ipcMain.handle('packs-scan', async () => {
 ipcMain.handle('packs-dir', () => {
   fs.mkdirSync(packsDir(), { recursive: true });
   return shell.openPath(packsDir());
+});
+
+// Újrakezdés: minden adat törlése, mintha most telepítették volna. Az automatikus indítás kikapcsol, a jelölőfájl
+// után az alkalmazás újraindul – az induló példány törli az adatmappát (a futó Chromium-fájlok ekkor már szabadok).
+// A felvett videók (a Videók mappában) megmaradnak: azok a felhasználó fájljai.
+ipcMain.handle('factory-reset', async () => {
+  try {
+    setStartWithSystem(false);
+  } catch {}
+  try {
+    await session.defaultSession.clearStorageData();
+    await session.defaultSession.clearCache();
+  } catch {}
+  fs.mkdirSync(dataDir(), { recursive: true });
+  fs.writeFileSync(path.join(dataDir(), RESET_MARK), String(Date.now()));
+  quitting = true;
+  // (hordozható Windows-változat és AppImage: az eredeti fájlt kell újraindítani, nem az ideiglenes kibontást)
+  // (az indítási kapcsolók megmaradnak – pl. Linuxon a --no-sandbox, fejlesztéskor az alkalmazás mappája –, csak a
+  // rejtett indítás nem)
+  const execPath = process.env.PORTABLE_EXECUTABLE_FILE || process.env.APPIMAGE;
+  const args = process.argv.slice(1).filter((a) => a !== '--hidden');
+  app.relaunch(execPath ? { execPath, args } : { args });
+  setTimeout(() => app.exit(0), 100);
+  return true;
 });
 
 ipcMain.handle('clear-cache', () => {

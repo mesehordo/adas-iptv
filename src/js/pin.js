@@ -139,6 +139,12 @@ export async function unlockProfile(p) {
 }
 
 /** Felnőtt jóváhagyás kérése (pl. gyerekprofilból a beállításokhoz). */
+/** Mint a requireAdult, de a feloldott felnőtt profilból is kéri a PIN-t (pl. a teljes törléshez). */
+export async function requireAdultAlways(reason) {
+  if (!adultPins().length) return true;
+  return askPin({ title: _t('Szülői jóváhagyás'), text: `${_t('{reason} Add meg egy felnőtt profil PIN-kódját.', { reason })}`, accept: adultPins() });
+}
+
 export async function requireAdult(reason) {
   if (!adultGuardNeeded()) return true;
   return askPin({ title: _t('Szülői jóváhagyás'), text: `${_t('{reason} Add meg egy felnőtt profil PIN-kódját.', { reason })}`, accept: adultPins() });

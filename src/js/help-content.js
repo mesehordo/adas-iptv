@@ -885,7 +885,7 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
     id: 'backup',
     cat: 'personal',
     title: 'Mentés, visszaállítás, gyorsítótár',
-    keywords: 'mentés visszaállítás biztonsági másolat export import gyorsítótár törlés költözés',
+    keywords: 'mentés visszaállítás biztonsági másolat export import gyorsítótár törlés költözés újrakezdés gyári alapállapot minden törlése tiszta indítás',
     body: `
 <h2>Mentés fájlba</h2>
 <p>Beállítások → Profilok és mentés → <b>Mentés fájlba</b>: egy <code>.json</code> fájlba írja a beállításokat, az összes profilt a kedvencekkel, előzményekkel, emlékeztetőkkel, stílussal és sorrenddel, valamint a saját listákat és csatornákat. Így másik gépre is átviheted az egészet.</p>
@@ -904,6 +904,14 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
 </table>
 <h2>Gyorsítótár törlése</h2>
 <p>Törli a letöltött listákat, műsorújságot és a feldolgozott katalógust – a következő indításkor minden frissen letöltődik. Akkor hasznos, ha valami „beragadt”. A beállításaidat és profiljaidat nem érinti.</p>
+<h2>Újrakezdés (mindent az alapértékre)</h2>
+<p>Beállítások → Profilok és mentés → <b>Újrakezdés…</b>: az Adás <b>minden adata törlődik</b> – profilok, beállítások, kedvencek, saját listák és csatornák, előzmények, emlékeztetők, saját témák, borítók és a gyorsítótár –, és úgy indul, mintha most telepítetted volna (az első indítás képernyőjével, minden az eredeti alapértékén). Az indítás a rendszerrel is kikapcsol.</p>
+<ul>
+<li>Ha van felnőtt PIN-kód, előbb azt kéri (a saját, feloldott profilodból is), majd egy megerősítést.</li>
+<li>Asztali gépen az Adás magától újraindul. Androidon a rendszer törli az alkalmazás adatait, és az Adás bezárul – nyisd meg újra.</li>
+<li>A <b>felvett videók megmaradnak</b> (a Videók mappában lévő fájlok a tieid, nem az alkalmazás adatai).</li>
+</ul>
+<div class="tip">Nem vonható vissza – ha később visszatérnél a mostani állapothoz, előtte mentsd el fájlba (<b>Mentés fájlba</b>).</div>
 <div class="note">Tévén a fájlba mentés nem érhető el – ott a <i>Szinkronizálás eszközök között</i> működik. Androidon a mentés a rendszer fájlmentőjével (pl. a Letöltések mappába vagy a Google Drive-ra) történik.</div>`,
   },
 

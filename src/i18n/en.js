@@ -2253,5 +2253,13 @@ export default {
  "Népszerű hazai rádiók": "Popular local radio",
  "Nincs elérhető hazai adó.": "No local stations available.",
  "Rádiózás": "Radio listening",
- "Súgó: kapcsolódás, tűzfal": "Help: connecting, firewall"
+ "Súgó: kapcsolódás, tűzfal": "Help: connecting, firewall",
+ "<b>Újrakezdés</b>": "<b>Start over</b>",
+ "Minden adat törlődik – profilok, beállítások, kedvencek, listák, előzmények, emlékeztetők, saját témák, gyorsítótár –, és az Adás úgy indul, mintha most telepítetted volna, minden az eredeti alapértékén. A felvett videók megmaradnak. Előtte érdemes menteni fájlba.": "Everything is deleted – profiles, settings, favourites, lists, history, reminders, your own themes, cache – and Adás starts as if you had just installed it, with everything back to its original defaults. Your recordings are kept. It is worth saving to a file first.",
+ "Újrakezdés…": "Start over…",
+ "Az újrakezdéshez": "To start over,",
+ "Biztosan újrakezded? Minden profil, beállítás, kedvenc, lista, előzmény és emlékeztető végleg törlődik, és az Adás az első indítás képernyőjével indul újra. Ez nem vonható vissza.": "Start over? Every profile, setting, favourite, list, history entry and reminder is permanently deleted, and Adás restarts with the first-run screen. This cannot be undone.",
+ "Androidon az alkalmazás ezután bezárul – nyisd meg újra.": "On Android the app then closes – open it again.",
+ "Mindent törlök": "Delete everything",
+ "Az újrakezdés nem sikerült:": "Starting over failed:"
 };
