@@ -185,13 +185,16 @@ export function loadRadioCountry(cc) {
   if (radio.loading.has(cc)) return radio.loading.get(cc);
   const g = gen;
   const p = (async () => {
+    // (H09) betöltöttnek csak akkor számít, ha legalább egy forrás válaszolt (üres válasz is lehet) – ha mind hibázott
+    // (pl. nincs hálózat), a következő megnyitás újra próbálja
+    const FAIL = Symbol('fail');
     const jobs = [];
-    if (sourceOn('rb')) jobs.push(loadRbCountry(cc, g).catch((e) => live(g) && (radio.errors.rb = String(e.message || e))));
-    if (sourceOn('verified')) jobs.push(loadVerified(cc, g).catch(() => 0)); // (nem minden országhoz van fájl)
-    if (sourceOn('iprd')) jobs.push(loadIprd(cc, g).catch(() => 0));
-    await Promise.all(jobs);
+    if (sourceOn('rb')) jobs.push(loadRbCountry(cc, g).catch((e) => (live(g) && (radio.errors.rb = String(e.message || e)), FAIL)));
+    if (sourceOn('verified')) jobs.push(loadVerified(cc, g).catch(() => FAIL)); // (nem minden országhoz van fájl)
+    if (sourceOn('iprd')) jobs.push(loadIprd(cc, g).catch(() => FAIL));
+    const res = await Promise.all(jobs);
     if (!live(g)) return;
-    radio.loaded.add(cc);
+    if (!res.length || res.some((r) => r !== FAIL)) radio.loaded.add(cc);
     radio.loading.delete(cc);
     bus.emit('radio');
   })();

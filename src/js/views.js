@@ -863,7 +863,7 @@ export function renderSettings(view) {
       <ul class="src-list">${[...s.epgSources.map((src, i) => ({ ...src, name: epgSourceName(src), i })), ...(s.useEmbeddedEpg ? (catalog.tvgUrls || []).map((url) => ({ url, name: `${_t('Lejátszólista műsorújsága:')} ` + url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 50), embedded: true, enabled: true })) : [])]
         .map((src) => {
           const st = epg.status[src.url];
-          const info = !src.enabled ? _t('kikapcsolva') : !st ? _t('nincs betöltve') : st.ok ? `${_t('{x} csatorna párosítva / {channels} · {programs} műsor', { x: st.matched ?? 0, channels: st.channels, programs: st.programs })}` : `${_t('hiba: {error}', { error: st.error })}${st.stale ? ' · ' + _t('a korábbi műsor látszik ({x} csatorna)', { x: st.matched }) : ''}`;
+          const info = !src.enabled ? _t('kikapcsolva') : !st ? _t('nincs betöltve') : st.ok ? `${_t('{x} csatorna párosítva / {channels} · {programs} műsor', { x: st.matched ?? 0, channels: st.channels, programs: st.programs })}${st.stale ? ' · ' + _t('elavult – a forrás most nem érhető el, a korábban letöltött műsor látszik') : ''}` : `${_t('hiba: {error}', { error: st.error })}${st.stale ? ' · ' + _t('a korábbi műsor látszik ({x} csatorna)', { x: st.matched }) : ''}`;
           return `<li><input type="checkbox" class="switch" ${src.embedded ? 'data-set="useEmbeddedEpg" checked' : `data-epg-toggle="${src.i}" ${src.enabled ? 'checked' : ''}`} />
             <span><b>${esc(src.name)}</b><small>${esc(info)}</small></span>
             ${!src.embedded && !BUILTIN_EPG.some((b) => b.url === src.url) ? `<button class="btn small" data-epg-del="${src.i}">${_t('Törlés')}</button>` : ''}</li>`;

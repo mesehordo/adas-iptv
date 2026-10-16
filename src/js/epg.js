@@ -20,7 +20,7 @@ let reloadAfter = false; // betöltés közben újabb kérés érkezett
 let reloadForce = false;
 // (B24) csatorna → a forrás címe, amelyből a mostani műsora jött: egy forrás sikertelen frissítésekor a
 // korábbi, még használható műsorai ebből maradnak meg (a már meglévő adatra hivatkozva, másolás nélkül)
-let sourceOf = new Map();
+let bySource = new Map(); // (H36) forrás címe → (csatorna → az onnan felhasznált nyers sorok)
 const pending = new Map();
 const onWorkerMessage = (e) => {
   const p = pending.get(e.data.id);
@@ -88,7 +88,10 @@ async function parse(data) {
 /** Letöltés (gyorsítótárral): ahol lehet, bájtként. */
 const fetchSource = (url, opts) =>
   // (a bájtos út csak http(s); a helyi – file:// – forrás a szöveges úton megy)
-  api.fetchBytes && /^https?:\/\//i.test(url) ? api.fetchBytes(url, opts).then((r) => ({ data: r.bytes, cachedAt: r.cachedAt })) : api.fetchText(url, opts).then((r) => ({ data: r.text, cachedAt: r.cachedAt }));
+  // (H05) stale: a hálózat most nem érhető el, a régi gyorsítótár jött – a státusz ezt jelzi, nem „friss” betöltést
+  api.fetchBytes && /^https?:\/\//i.test(url)
+    ? api.fetchBytes(url, opts).then((r) => ({ data: r.bytes, cachedAt: r.cachedAt, stale: !!r.stale }))
+    : api.fetchText(url, opts).then((r) => ({ data: r.text, cachedAt: r.cachedAt, stale: !!r.stale }));
 
 /** Program: { start, stop, title, desc, category, subtitle, episode, age (korhatár, 0 = nincs adat) } */
 const toProg = (r) => ({ start: r[0], stop: r[1], title: r[2] || _t('Műsor'), desc: r[3], category: r[4], subtitle: r[5], episode: r[6], age: r[7] || 0 });
@@ -251,14 +254,17 @@ export const epg = {
         const n = i++;
         const src = sources[n];
         try {
-          const { data, cachedAt } = await fetchSource(src.url, { maxAgeHours: store.settings.epgRefreshHours, force });
+          const { data, cachedAt, stale } = await fetchSource(src.url, { maxAgeHours: store.settings.epgRefreshHours, force });
           parsed[n] = await parse(data);
+          parsed[n].stale = stale;
           this.status[src.url] = {
             ok: true,
             channels: parsed[n].nChannels,
             programs: parsed[n].count,
             at: cachedAt,
-            okAt: Date.now(),
+            // (régi gyorsítótárnál az utolsó friss betöltés ideje marad – az adat elavultként látszik)
+            okAt: stale ? this.status[src.url]?.okAt || cachedAt : Date.now(),
+            ...(stale ? { stale: true, error: _t('a forrás most nem érhető el') } : {}),
           };
         } catch (err) {
           // (az utolsó próbálkozás és az utolsó sikeres betöltés ideje külön)
@@ -270,40 +276,38 @@ export const epg = {
     await Promise.all([run(), run(), run()]);
     // Párosítás a lista sorrendjében: a korábbi forrás élvez elsőbbséget. A sikertelen forrás korábbi, még
     // használható műsorai megmaradnak (elavultként jelölve); a kikapcsolt / törölt forrásé nem (nincs a listában).
+    // (H36) forrásonként, csatornánként a ténylegesen felhasznált (nyers) sorok – egy sikertelen forrás korábbi adata
+    // csak a saját sorait adja vissza, a kikapcsolt / törölt forrásé eltűnik, egy forrás új adata a régit felülírja
     const result = new Map();
-    const nextSource = new Map();
+    const nextBySource = new Map();
     sources.forEach((src, n) => {
       let matched = 0;
-      if (parsed[n]) {
-        for (const [chId, rows] of parsed[n].matched) {
-          const have = result.get(chId);
-          if (have?.length) {
-            // a korábbi (magasabb prioritású) forrás műsorai maradnak; ahol azok véget érnek vagy később kezdődnek,
-            // ez a forrás pótolja – egy csak a tegnapi napot adó forrás mellett is van mai műsor
-            const filled = fillGaps(have, rows);
-            if (filled !== have) result.set(chId, filled);
-            continue;
-          }
-          result.set(chId, rows);
-          nextSource.set(chId, src.url);
-          matched++;
+      const fresh = parsed[n];
+      const rowsOf = fresh ? fresh.matched : bySource.get(src.url) || new Map();
+      const used = new Map();
+      for (const [chId, rows] of rowsOf) {
+        if (!rows?.length) continue;
+        const have = result.get(chId);
+        if (have?.length) {
+          // a korábbi (magasabb prioritású) forrás műsorai maradnak; ahol azok véget érnek vagy később kezdődnek,
+          // ez a forrás pótolja – egy csak a tegnapi napot adó forrás mellett is van mai műsor
+          const filled = fillGaps(have, rows);
+          if (filled !== have) result.set(chId, filled), used.set(chId, rows);
+          continue;
         }
-        this.status[src.url].matched = matched;
-        return;
-      }
-      for (const [chId, url] of sourceOf) {
-        if (url !== src.url || result.has(chId) || !this.byChannel.has(chId)) continue;
-        result.set(chId, this.byChannel.get(chId));
-        nextSource.set(chId, url);
+        result.set(chId, rows);
+        used.set(chId, rows);
         matched++;
       }
-      if (matched) Object.assign(this.status[src.url], { stale: true, matched });
+      if (used.size) nextBySource.set(src.url, used);
+      if (fresh) this.status[src.url].matched = matched;
+      else if (matched) Object.assign(this.status[src.url], { stale: true, matched });
     });
     this.byChannel = result;
-    sourceOf = nextSource;
+    bySource = nextBySource;
     this.lastAttempt = Date.now();
-    // (teljes kudarcnál a „frissítve” időpont nem lesz friss)
-    if (parsed.some(Boolean)) this.loadedAt = Date.now();
+    // (teljes kudarcnál – és ha csak régi gyorsítótár jött – a „frissítve” időpont nem lesz friss)
+    if (parsed.some((x) => x && !x.stale)) this.loadedAt = Date.now();
   },
 };
 

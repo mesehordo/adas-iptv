@@ -113,6 +113,8 @@ class RadioPlayer {
       if (audioFxAvailable && i < PLAIN) a.crossOrigin = 'anonymous';
     });
     this.hls = [null, null, null];
+    this.detachTimers = [0, 0, 0]; // (H03) elemenkénti késleltetett takarítás
+    this.lateOff = [null, null, null]; // (H12) a szóló elem tartós hibafigyelőjének leválasztása
     this.noCors = new Set(); // címek, amelyek csak CORS nélkül indulnak
     this.nId = 0; // a natív lejátszó indításainak sorszáma (a késői események szűréséhez)
     this.nWait = null; // a folyamatban lévő natív indítás
@@ -137,6 +139,7 @@ class RadioPlayer {
   startNative(url, seq) {
     // (egy még függő korábbi indítás lezárul – különben az azt váró play() ciklus örökre várna)
     this.nWait?.finish(false);
+    this.nMetaPending = ''; // (H35) egy korábbi indítás címe nem szivároghat át az újhoz
     return new Promise((resolve) => {
       const id = ++this.nId;
       const finish = (ok) => {
@@ -153,6 +156,8 @@ class RadioPlayer {
   }
   onNative(e) {
     if (e.id !== this.nId) return; // (egy korábbi indítás késői eseménye)
+    // (H35) a szám címe az indulás befejezése előtt is megjöhet: megjegyezzük, sikeres induláskor megjelenik
+    if (e.meta !== undefined && this.nWait) return void (this.nMetaPending = String(e.meta).trim());
     if (this.nWait) {
       if (e.st === 'playing') this.nWait.finish(true);
       else if (e.st === 'error' || e.st === 'ended') this.nWait.finish(false);
@@ -356,6 +361,11 @@ class RadioPlayer {
         this.mediaSession();
         this.startMeta();
         this.emit();
+        if (NATIVE_RADIO && this.nMetaPending) {
+          const t = this.nMetaPending;
+          this.nMetaPending = '';
+          this.setNowText(t, seq);
+        }
         return;
       }
     }
@@ -372,6 +382,7 @@ class RadioPlayer {
       const next = plain ? PLAIN : this.cur === 0 ? 1 : 0;
       const el = this.els[next];
       const old = this.els[this.cur];
+      clearTimeout(this.detachTimers[next]);
       this.detach(next);
       let done = false;
       const finish = (ok) => {
@@ -400,8 +411,11 @@ class RadioPlayer {
         } else if (this.ctx && next !== PLAIN) this.srcGain[next].gain.value = 1;
         const prev = this.cur;
         this.cur = next;
-        if (fade) setTimeout(() => this.cur !== prev && this.detach(prev), x * 1000 + 300);
+        // (H03) az elemhez kötött takarítás: ha az elem közben új adóhoz kell (gyors A→B→C váltás), az újrafelhasználás
+        // törli – a régi időzítő nem bonthatja le az új adó forrását
+        if (fade) this.detachTimers[prev] = setTimeout(() => this.cur !== prev && this.detach(prev), x * 1000 + 300);
         else if (prev !== next) this.detach(prev);
+        this.watchLate(next, seq);
         resolve(true);
       };
       const onOk = () => finish(true);
@@ -421,7 +435,48 @@ class RadioPlayer {
     });
   }
 
+  /**
+   * (H12) A már szóló adás későbbi hibája (megszakadt kapcsolat, a forrás vége, végzetes HLS-hiba): újracsatlakozás –
+   * percenként legfeljebb háromszor, a tartalék címekkel együtt –, utána hibaállapot. Csak a még aktuális indítás és
+   * elem hibája számít (egy régi adó késői hibája nem zavarja az újat).
+   */
+  watchLate(i, seq) {
+    this.lateOff[i]?.();
+    const el = this.els[i];
+    const h = this.hls[i];
+    const onLate = () => {
+      if (seq !== this.seq || this.cur !== i || this.state !== 'playing') return;
+      this.streamLost();
+    };
+    const onHls = (_e, d) => d?.fatal && onLate();
+    el.addEventListener('error', onLate);
+    el.addEventListener('ended', onLate);
+    h?.on(window.Hls.Events.ERROR, onHls);
+    this.lateOff[i] = () => {
+      el.removeEventListener('error', onLate);
+      el.removeEventListener('ended', onLate);
+      h?.off?.(window.Hls.Events.ERROR, onHls);
+      this.lateOff[i] = null;
+    };
+  }
+  streamLost() {
+    const now = Date.now();
+    this.lostAt = (this.lostAt || []).filter((t) => now - t < 60e3);
+    if (this.lostAt.length < 3) {
+      this.lostAt.push(now);
+      this.play(this.station);
+      return;
+    }
+    ++this.seq;
+    this.detach(this.cur);
+    this.state = 'error';
+    this.error = _t('Az adás többször megszakadt – próbáld újra később.');
+    api.setPlaying?.(false);
+    this.emit();
+  }
+
   detach(i) {
+    this.lateOff[i]?.(); // (a forrás eltávolítása ne számítson az adás hibájának)
     const el = this.els[i];
     try {
       el.pause();
@@ -481,11 +536,17 @@ class RadioPlayer {
   setSleep(min) {
     clearTimeout(this.sleepTimer);
     clearInterval(this.sleepFade);
+    // (H26) az elhalkulás közben kikapcsolt vagy későbbre állított időzítő: a beállított hangerő visszaáll
+    if (this.sleepFading) {
+      this.sleepFading = false;
+      this.applyFx();
+    }
     this.sleepAt = min > 0 ? Date.now() + min * 60e3 : 0;
     if (!min) return this.emit();
     this.sleepTimer = setTimeout(() => {
       const start = fx().volume;
       let k = 20;
+      this.sleepFading = true;
       this.sleepFade = setInterval(() => {
         k--;
         if (NATIVE_RADIO) window.AdasAndroid.radioVolume((start * k) / 20);
@@ -493,6 +554,7 @@ class RadioPlayer {
         else this.el.volume = (start * k) / 20;
         if (k <= 0) {
           clearInterval(this.sleepFade);
+          this.sleepFading = false;
           this.stop();
           this.applyFx();
         }

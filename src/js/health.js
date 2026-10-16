@@ -35,6 +35,17 @@ bus.on('player-opened', () => {
   playing = true;
   if (running && !fullScan) api.cancelCheck?.();
 });
+// (H21) kikapcsoláskor a sorban álló háttér-ellenőrzések és időzítők törlődnek, a futó kör megszakad (a kézi teljes
+// ellenőrzés – scanAll – ettől független)
+bus.on('settings', (k) => {
+  if (k !== 'autoCheck' || store.settings.autoCheck) return;
+  clearTimeout(timer);
+  clearTimeout(retryTimer);
+  retryTimer = null;
+  retries = 0;
+  queue.clear();
+  if (running && !fullScan) api.cancelCheck?.();
+});
 bus.on('player-closed', () => {
   playing = false;
   clearTimeout(timer);
@@ -50,11 +61,12 @@ const MAX_RETRIES = 3;
 /** A sorban álló források ellenőrzése 60-as adagokban (lejátszás közben szünetel). */
 async function pump() {
   // (függő újrapróbálásnál nem: a késleltetés megmarad, a sorbaállítás nem meríti ki idő előtt a keretet)
-  if (running || retryTimer !== null || !queue.size || playing) return;
+  // (H21) a háttér-ellenőrzés a kikapcsolása után már nem indul (a sorbaállításkori ellenőrzés nem elég)
+  if (running || retryTimer !== null || !queue.size || playing || !store.settings.autoCheck) return;
   running = true;
   let batch = [];
   try {
-    while (queue.size && !playing) {
+    while (queue.size && !playing && store.settings.autoCheck) {
       batch = [...queue.values()].slice(0, 60);
       batch.forEach((s) => queue.delete(s.url));
       const { results, cancelled } = await api.checkStreams(batch.map((s) => ({ url: s.url, ua: s.ua, referrer: s.referrer })));
