@@ -10,6 +10,8 @@ import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.PowerManager;
+import android.app.KeyguardManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -208,6 +210,17 @@ public class MainActivity extends Activity {
   // Háttérlejátszás (a kép a képben mód megszűnt)
   // -------------------------------------------------------------------------------------------
   static MainActivity instance;
+  // van-e betöltött adás (csatorna, film, rádióadó – szünetelve is): addig látszik a lejátszás értesítése
+  volatile boolean mediaActive = false;
+
+  /** Android 13+: az értesítéshez engedély kell – az első lejátszáskor egyszer rákérdez. */
+  void askNotifyOnce() {
+    if (Build.VERSION.SDK_INT < 33 || checkSelfPermission("android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED) return;
+    android.content.SharedPreferences sp = getSharedPreferences("adas", MODE_PRIVATE);
+    if (sp.getBoolean("askedNotify", false)) return;
+    sp.edit().putBoolean("askedNotify", true).apply();
+    requestPermissions(new String[] {"android.permission.POST_NOTIFICATIONS"}, 3);
+  }
   // (a JavaScript-híd más szálon írja, a UI-szál olvassa – volatile)
   volatile boolean bgAudio = false; // kilépve a háttérben szól tovább
   volatile boolean autoPip = false; // (B38) videó közben kilépve kis ablakban (más alkalmazások fölött) látszik tovább
@@ -266,13 +279,34 @@ public class MainActivity extends Activity {
 
   /** Háttérbe menet a szolgáltatás indítása – még előtérben (B37: Android 12-től az onStop-ból tiltott). */
   void startBackgroundPlayback() {
-    if (bgAudio && playing && !isFinishing() && !PlaybackService.running()) PlaybackService.start(this, nowPlaying);
+    if (mediaActive && !isFinishing() && !PlaybackService.running()) PlaybackService.start(this, nowPlaying);
+  }
+
+  /** Ki van-e kapcsolva / zárolva a képernyő (a lezárás is onPause → onStop, mint a másik alkalmazásra váltás). */
+  boolean screenOff() {
+    try {
+      PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+      KeyguardManager km = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+      return (pm != null && !pm.isInteractive()) || (km != null && km.isKeyguardLocked());
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  /**
+   * Szóljon-e tovább a lejátszás, amikor az Adás nem látszik: a rádió mindig (mint egy zenelejátszó); a videó
+   * (TV, VOD) a képernyő lezárásakor mindig, másik alkalmazásra váltáskor a „Háttérlejátszás” beállítás szerint.
+   */
+  boolean keepPlaying() {
+    return mediaActive && !isFinishing() && (!videoActive || bgAudio || screenOff());
   }
 
   @Override
   protected void onStart() {
     super.onStart();
-    PlaybackService.stop(this);
+    // (a lejátszás közbeni értesítés előtérben is megmarad – csak akkor áll le, ha semmi sem szól)
+    if (!mediaActive) PlaybackService.stop(this);
+    else PlaybackService.start(this, nowPlaying); // (pl. szüneteltetett videó: az értesítés visszajön)
   }
 
   @Override
@@ -280,12 +314,13 @@ public class MainActivity extends Activity {
     super.onStop();
     // a beállítások és a film pozíciójának azonnali mentése (a WebView nem mindig jelez a lapnak)
     web.evaluateJavascript("window.__adasFlush&&window.__adasFlush()", null);
-    // Háttérlejátszás bekapcsolva: szól tovább (értesítéssel – a szolgáltatás már az onPause-ban elindult);
+    // Szól tovább (rádió; képernyőzár; bekapcsolt háttérlejátszás) – értesítéssel, a szolgáltatás már fut;
     // egyébként megáll.
-    if (bgAudio && playing && !isFinishing()) {
+    if (keepPlaying()) {
       startBackgroundPlayback(); // (ha valamiért nem indult el – régebbi Androidon ez még megengedett)
       return;
     }
+    PlaybackService.stop(this);
     // (a kis ablak bezárása is ide fut: a lejátszás megáll – nincs kettős vagy láthatatlan hang)
     web.evaluateJavascript("document.querySelectorAll('video').forEach(function(v){try{v.pause()}catch(e){}});window.__adasRadioPause&&window.__adasRadioPause()", null);
     if (nativePlayer != null) nativePlayer.pause();
@@ -298,7 +333,7 @@ public class MainActivity extends Activity {
     // háttérlejátszásnál a lap tovább fut, és a szolgáltatás (értesítés, médiavezérlők) most indul – az
     // alkalmazás ekkor még előtérben van; visszatéréskor (onResume) leáll
     if (inPip()) return; // kis ablakban a lap tovább fut (látható), értesítés sem kell
-    if (bgAudio && playing) startBackgroundPlayback();
+    if (keepPlaying()) startBackgroundPlayback();
     else web.onPause();
   }
 
@@ -535,6 +570,8 @@ public class MainActivity extends Activity {
         playing = on;
         if (on) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        // (az első lejátszáskor az értesítési engedély – Android 13+; maga az értesítés a setMediaActive szerint)
+        if (on) askNotifyOnce();
         immersive(on || tv);
         if (!on && !tv) setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
       });
@@ -596,6 +633,19 @@ public class MainActivity extends Activity {
     public void setNowPlaying(String title) {
       nowPlaying = title == null ? "" : title;
       PlaybackService.setState(nowPlaying, null);
+    }
+
+    /** Van-e betöltött adás (szünetelve is): amíg igen, ott az értesítés (mi szól, szünet / folytatás, leállítás). */
+    @JavascriptInterface
+    public void setMediaActive(final boolean on) {
+      // (az állapot azonnal látszik – egy épp zajló onPause / onStop már az újat olvassa; a szolgáltatás a UI-szálon)
+      mediaActive = on;
+      runOnUiThread(() -> {
+        // (előtérszolgáltatás csak előtérből indítható – a háttérből érkező jelzést az onPause / onStop kezeli)
+        if (on) {
+          if (foreground) PlaybackService.start(MainActivity.this, nowPlaying);
+        } else PlaybackService.stop(MainActivity.this);
+      });
     }
 
     /** A lejátszás szünetel-e (a háttér-értesítés és a médiamunkamenet állapota). */

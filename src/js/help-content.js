@@ -1048,9 +1048,11 @@ https://…/sport/playlist.m3u8</pre>
 <li>Telefonon alul ikonos menüsáv; lejátszáskor a kép teljes képernyős, elforgatva fekvő módban is nézhető. Az első koppintás a vezérlőket hozza elő.</li>
 <li>Tévén: <b>OK</b> = lejátszás, <b>hosszan nyomott OK</b> egy csatornán = adatlap (kedvenc, emlékeztető, források), <b>Vissza</b> = vissza (a főoldalon kilépés). Ha a távirányítón van színes gomb, CH+/CH− vagy ◀◀ / ▶▶, azok ugyanúgy működnek, mint az LG változatban.</li>
 </ul>
-<h2>Háttérlejátszás</h2>
+<h2>Háttérlejátszás és értesítés</h2>
 <ul>
-<li><b>Háttérlejátszás (csak hang)</b>: Beállítások → Lejátszás → <i>Háttérlejátszás</i>. Bekapcsolva másik alkalmazásra váltva az adás hangja tovább szól; egy értesítés jelzi, onnan szüneteltetheted, folytathatod, visszatérhetsz vagy leállíthatod (a fülhallgató és a Bluetooth-eszköz gombjai is működnek). Kikapcsolva (alapból) kilépéskor a lejátszás megáll.</li>
+<li><b>Értesítés lejátszás közben</b>: amíg szól valami (csatorna, film, rádióadó – szünetelve is), az értesítési sávon és a zárolt képernyőn ott van, mi szól (tévén a csatorna és a most futó műsor, rádión az adó és a szám), lejátszás / szünet és leállítás gombbal; a fülhallgató és a Bluetooth-eszköz gombjai is működnek. Koppintásra az Adás előjön. (Android 13-tól az első lejátszáskor engedélyt kér az értesítéshez.)</li>
+<li><b>A rádió mindig tovább szól</b> – a képernyő lezárásakor és másik alkalmazásra váltáskor is, mint egy zenelejátszó.</li>
+<li><b>Videó (TV, VOD)</b>: a képernyő lezárásakor a hang mindig tovább szól. Másik alkalmazásra váltáskor a beállítás dönt: Beállítások → Lejátszás → <i>Háttérlejátszás (csak hang)</i> bekapcsolva a hang tovább szól, kikapcsolva (alapból) a videó megáll.</li>
 <li><b>Mini lejátszó más alkalmazások fölött</b>: a lejátszó mini gombja a videót kis ablakba teszi (a rendszer kép a képben módja – Android 8-tól, ha az eszköz támogatja; ha nem, a gomb nem látszik). Beállítások → Lejátszás → <i>Kis ablak kilépéskor</i>: videó közben a Home gombra vagy másik alkalmazásra váltva magától is kis ablakba kerül. A kis ablak bezárásakor a lejátszás megáll.</li>
 </ul>
 <div class="note">Androidon is van kivetítés (telefonról / tabletről), éjszakai hang (a natív lejátszóval, Android 9-től) és beépített frissítés (${t('update', 'Frissítések')}). A beállítások kóddal szinkronizálhatók a számítógéppel és a többi Android-eszközzel, mindkét irányba (${t('transfer', 'Szinkronizálás eszközök között')}), és a telefon távirányítóként is használható (${t('remote', 'Távirányító telefonról')}). Az új verzió az alkalmazásban is letölthető és telepíthető – a beállítások megmaradnak.</div>`,
