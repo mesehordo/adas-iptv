@@ -110,8 +110,33 @@ public class ReminderReceiver extends BroadcastReceiver {
     if (Build.VERSION.SDK_INT < 26) b.setPriority(Notification.PRIORITY_HIGH).setDefaults(Notification.DEFAULT_ALL);
     try {
       nm.notify(9000 + n, b.build());
+      // (csak a ténylegesen megjelenő értesítés számít kézbesítettnek: letiltott alkalmazás- vagy csatorna-értesítésnél
+      // az Android kivétel nélkül eldobja – akkor az emlékeztető függőben marad, az alkalmazás jelzi)
+      boolean shown = Build.VERSION.SDK_INT < 24 || nm.areNotificationsEnabled();
+      if (shown && Build.VERSION.SDK_INT >= 26) {
+        NotificationChannel nc = nm.getNotificationChannel(CHANNEL);
+        shown = nc != null && nc.getImportance() != NotificationManager.IMPORTANCE_NONE;
+      }
+      if (shown) markDelivered(ctx, channelId + "|" + start);
     } catch (SecurityException ignored) {
-      // nincs értesítési engedély
+      // nincs értesítési engedély – az emlékeztető függőben marad, az alkalmazás jelzi
     }
+  }
+
+  /** (H20) A rendszer által kézbesített emlékeztető – az alkalmazás megnyitásakor ne jelezze újra (legfeljebb 100). */
+  static synchronized void markDelivered(Context ctx, String key) {
+    SharedPreferences prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    java.util.Set<String> set = new java.util.HashSet<>(prefs.getStringSet("delivered", new java.util.HashSet<>()));
+    set.add(key);
+    while (set.size() > 100) set.remove(set.iterator().next());
+    prefs.edit().putStringSet("delivered", set).apply();
+  }
+
+  /** A kézbesítettek átadása a felületnek (és törlése). → JSON-tömb: ["csatorna|kezdés", …] */
+  static synchronized String takeDelivered(Context ctx) {
+    SharedPreferences prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    java.util.Set<String> set = prefs.getStringSet("delivered", new java.util.HashSet<>());
+    prefs.edit().remove("delivered").apply();
+    return new JSONArray(set).toString();
   }
 }

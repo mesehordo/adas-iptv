@@ -592,6 +592,12 @@ public class MainActivity extends Activity {
       }
     }
 
+    /** (H20) A rendszer által (a háttérben) már kézbesített emlékeztetők: ["csatorna|kezdés", …] (egyszer adja vissza). */
+    @JavascriptInterface
+    public String takeDeliveredReminders() {
+      return ReminderReceiver.takeDelivered(MainActivity.this);
+    }
+
     /** Az értesítésről indított alkalmazás csatornája (egyszer adja vissza). */
     @JavascriptInterface
     public String takeLaunchChannel() {

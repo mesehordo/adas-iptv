@@ -8,7 +8,8 @@ import { esc, toast, errText, bus } from './util.js';
 import { api } from './api.js';
 import { store, cleanProfile, validateImport } from './store.js';
 import { confirmDialog } from './components.js';
-import { attachDocs, stageDocs, dropDocs } from './snapshot.js';
+import { attachDocs, stageDocs, dropDocs, dropUnreferenced } from './snapshot.js';
+import { v1BackupDocKeys } from './backup.js';
 
 import { _t } from './i18n.js';
 const SECRET_KEYS = ['osApiKey', 'osUser', 'osPass', 'osToken', 'subdlKey', 'tmdbKey', 'omdbKey', 'tsdbKey', 'remoteKey'];
@@ -63,6 +64,11 @@ async function applyData(data, source, { profilesOnly = false } = {}) {
     await dropDocs(staged.written);
     throw err;
   }
+  // (H24) a régi beállítás által hivatkozott, az újból hiányzó listadokumentumok törlése (a mentési pontoké marad)
+  // (a régi – v1 – mentési pontok dokumentumai is maradnak; ha a mentéstár nem olvasható, nincs takarítás)
+  await v1BackupDocKeys()
+    .then((keep) => dropUnreferenced(cur.settings, settings, keep))
+    .catch(() => {});
   toast(_t('Beállítások átvéve – újraindítás…'));
   setTimeout(() => location.reload(), 800);
   return true;
@@ -85,13 +91,20 @@ async function mergeProfiles(data, source) {
     { ok: _t('Átvétel') }
   );
   if (!ok) return false;
+  // (H23) sikert csak a tartós mentés után jelez; ha az írás nem sikerül, a korábbi profilok visszaállnak
+  const before = store.profiles.slice();
   for (const p of incoming) {
     const i = store.profiles.findIndex((x) => x.id === p.id);
     // a beérkező profil mezői típus szerint rendbe téve (a HTML-sablonokba ne kerülhessen jelölőkód)
     if (i >= 0) store.profiles[i] = cleanProfile({ ...store.profiles[i], ...p });
     else store.profiles.push(cleanProfile({ ...p }));
   }
-  store.flush();
+  try {
+    await store.persist();
+  } catch (err) {
+    store.profiles = before;
+    throw new Error(`${_t('A profilok nem menthetők – az átvétel elmaradt:')} ${err?.message || err}`);
+  }
   bus.emit('profile');
   toast(`${_t('{length} profil átvéve', { length: incoming.length })}`);
   return true;

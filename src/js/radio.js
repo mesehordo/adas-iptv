@@ -85,6 +85,10 @@ function add(raw, g = gen) {
     radio.byId.set(id, st);
   }
   if (!st.urls.includes(url)) st.urls.push(url);
+  // (H11) címenkénti fejlécek (csak ha a lista megadta)
+  const ua = typeof raw.ua === 'string' ? raw.ua.slice(0, 300) : '';
+  const referrer = httpUrl(raw.referrer) || '';
+  if (ua || referrer) (st.headers ||= {})[url] = { ua, referrer };
   // (a lista „[Geo-blocked]” / Ⓖ jelölése: csak „korlátozott lehet” – innen még kipróbálható)
   if (raw.geo && !(st.geoUrls ||= []).includes(url)) st.geoUrls.push(url);
   if (!st.logo && httpUrl(raw.logo)) st.logo = httpUrl(raw.logo);
@@ -167,10 +171,26 @@ async function loadCustom(g) {
   for (const l of radioLists()) {
     if (!live(g)) return n;
     try {
-      const text = l.url ? (await api.fetchText(l.url, { maxAgeHours: refreshHoursOf('radio', l) })).text : l.textKey ? (await api.docGet?.(l.textKey))?.text || '' : l.text || '';
+      // (H10) a csomag mentett szövege tartalék: ha a webcím most nem érhető el (és gyorsítótár sincs), azt mutatja
+      const saved = async () => (l.textKey ? (await api.docGet?.(l.textKey))?.text || '' : l.text || '');
+      let text = '';
+      let fromSaved = false;
+      if (l.url) {
+        try {
+          text = (await api.fetchText(l.url, { maxAgeHours: refreshHoursOf('radio', l) })).text;
+        } catch (err) {
+          text = await saved();
+          if (!text) throw err;
+          fromSaved = true;
+        }
+      } else text = await saved();
+      // (H11) a lista adásonkénti HTTP-fejlécei (User-Agent, Referer) az adóval együtt megmaradnak
       for (const e of parseM3U(text).entries)
-        if (add({ src: 'list:' + l.id, name: e.name || e.title, url: e.url, logo: e.logo, country: (e.country || '').slice(0, 2), tags: String(e.group || '').split(/[;,]/), geo: e.labels?.includes('Geo-blocked') }, g)) n++;
-      if (live(g)) delete radio.errors['list:' + l.id];
+        if (add({ src: 'list:' + l.id, name: e.name || e.title, url: e.url, logo: e.logo, country: (e.country || '').slice(0, 2), tags: String(e.group || '').split(/[;,]/), geo: e.labels?.includes('Geo-blocked'), ua: e.ua, referrer: e.referrer }, g)) n++;
+      if (live(g)) {
+        if (fromSaved) radio.errors['list:' + l.id] = _t('a webcím most nem érhető el – a mentett lista látszik');
+        else delete radio.errors['list:' + l.id];
+      }
     } catch (err) {
       if (live(g)) radio.errors['list:' + l.id] = String(err.message || err);
     }
@@ -315,7 +335,13 @@ export const radioOfGenre = (g, list = [...radio.byId.values()]) => list.filter(
 // ---------------------------------------------------------------------------
 /** Az adó tárolható adatai (kedvencek, előzmények, ütemezett felvétel). */
 export const radioSnapshot = (st) => snap(st);
-const snap = (st) => ({ id: st.id, name: st.name, logo: st.logo, url: st.url, urls: st.urls.slice(0, 6), country: st.country, tags: st.tags.slice(0, 8), codec: st.codec, bitrate: st.bitrate, homepage: st.homepage, rbId: st.rbId, genres: (st.genres || []).slice(0, 4) });
+const snap = (st) => ({ id: st.id, name: st.name, logo: st.logo, url: st.url, urls: st.urls.slice(0, 6), country: st.country, tags: st.tags.slice(0, 8), codec: st.codec, bitrate: st.bitrate, homepage: st.homepage, rbId: st.rbId, genres: (st.genres || []).slice(0, 4), ...headersOf(st) });
+/** (H11) a mentett adó fejlécei – csak a megtartott címekhez */
+const headersOf = (st) => {
+  const h = {};
+  for (const u of st.urls.slice(0, 6)) if (st.headers?.[u]) h[u] = st.headers[u];
+  return Object.keys(h).length ? { headers: h } : {};
+};
 /** A tárolt (profil) tételből teljes adó: a betöltött adatokkal, ha van ilyen. */
 export function stationFrom(x) {
   const live = radio.byId.get(x.id);

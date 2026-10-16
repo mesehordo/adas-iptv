@@ -28,6 +28,15 @@ async function list() {
   return v.items;
 }
 
+/**
+ * A régi (v1) mentési pontok által a közös tárból olvasott dokumentumkulcsok – egy import utáni takarítás ezeket
+ * nem törölheti. Olvashatatlan mentéstárnál hibát ad (akkor a takarítás elmarad).
+ */
+export async function v1BackupDocKeys() {
+  const items = await list();
+  return items.filter((it) => !it.docs && it.data?.settings).flatMap((it) => referencedDocKeys(it.data.settings).map((r) => r.key));
+}
+
 // (B05) A mentési pont a beállítások mellett a külön tárolt listadokumentumok tartalmát is megőrzi (fájlból
 // felvett VOD-listák, kiegészítő csomagok). A tartalom tartalom szerinti kulccsal, egyszer tárolódik
 // („bkdoc:<ujjlenyomat>”) – a 7 napi pont nem hétszer tárolja ugyanazt a nagy listát –, a pont csak hivatkozik

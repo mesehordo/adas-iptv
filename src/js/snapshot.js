@@ -62,8 +62,8 @@ export const dropDocs = (keys) => Promise.all((keys || []).map((k) => Promise.re
  * Sikeres csere után a régi beállítások által hivatkozott, de az újakban már nem szereplő dokumentumok törlése
  * (a stageDocs új kulcsokra írt – a régi példányok különben örökre a tárban maradnának).
  */
-export function dropUnreferenced(oldSettings, newSettings) {
-  const keep = new Set(referencedDocKeys(newSettings).map((r) => r.key));
+export function dropUnreferenced(oldSettings, newSettings, alsoKeep = []) {
+  const keep = new Set([...referencedDocKeys(newSettings).map((r) => r.key), ...alsoKeep]);
   return dropDocs(referencedDocKeys(oldSettings).map((r) => r.key).filter((k) => !keep.has(k)));
 }
 

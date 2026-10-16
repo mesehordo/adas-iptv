@@ -453,6 +453,10 @@ window.__adasMedia = (cmd) => {
     else if (cmd === 'pause') radioPlayer.pause();
     else if (cmd === 'next') radioPlayer.step(1);
     else if (cmd === 'prev') radioPlayer.step(-1);
+  } else if (player.active && player.castHooks?.active) {
+    // (H34) kivetítés közben a vevő a lejátszó: a szünet / folytatás oda megy, nem a helyi (álló) videóra
+    if (cmd === 'play' || cmd === 'pause') player.castHooks.setPaused(cmd === 'pause');
+    else if (cmd === 'next' || cmd === 'prev') player.step(cmd === 'next' ? 1 : -1);
   } else if (player.active) {
     if (cmd === 'play') mediaVideo.play().catch(() => {});
     else if (cmd === 'pause') mediaVideo.pause();
@@ -461,10 +465,12 @@ window.__adasMedia = (cmd) => {
 };
 const mediaVideo = $('#video');
 // a lejátszás állapota a keretnek (a háttér-értesítés szünet / folytatás gombja ehhez igazodik)
-const reportMedia = () => api.setMediaState?.(radioPlayer.active && !player.active ? !radioPlayer.playing : mediaVideo.paused);
+const reportMedia = () =>
+  api.setMediaState?.(radioPlayer.active && !player.active ? !radioPlayer.playing : player.castHooks?.active ? player.castHooks.paused : mediaVideo.paused);
 mediaVideo.addEventListener('play', reportMedia);
 mediaVideo.addEventListener('pause', reportMedia);
 bus.on('radio-player', reportMedia);
+bus.on('cast-state', reportMedia); // (H34) kivetítéskor a rendszer a vevő állapotát mutatja
 // (B38) Android kis ablak (kép a képben): csak a videó látszik; a vezérlők, a fejléc és a lap rejtve
 window.__adasPip = (on) => {
   document.body.classList.toggle('pip', !!on);

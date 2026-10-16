@@ -295,6 +295,10 @@ export function cleanProfile(p) {
       .map((x) => ({
         id: str(x.id, 200), name: str(x.name, 120), logo: web(x.logo), url: web(x.url), urls: (Array.isArray(x.urls) ? x.urls : []).map(web).filter(Boolean).slice(0, 6),
         country: str(x.country, 2), tags: (Array.isArray(x.tags) ? x.tags : []).map((t) => str(t, 40)).slice(0, 8), codec: str(x.codec, 10), bitrate: num(x.bitrate), homepage: web(x.homepage), rbId: str(x.rbId, 60),
+        // (H11) címenkénti HTTP-fejlécek (csak a megtartott címekhez, szövegként)
+        ...(x.headers && typeof x.headers === 'object'
+          ? { headers: Object.fromEntries(Object.entries(x.headers).filter(([u, h]) => web(u) && h && typeof h === 'object').slice(0, 6).map(([u, h]) => [web(u), { ua: str(h.ua, 300), referrer: web(h.referrer) }])) }
+          : {}),
       }));
   p.reminders = (Array.isArray(p.reminders) ? p.reminders : [])
     .filter((r) => r && typeof r === 'object' && Number.isFinite(Number(r.start)))
@@ -438,6 +442,12 @@ export const store = {
   flush() {
     if (this.profiles.length && !this.frozen) return writeStore(this.serialize()).catch(() => {});
     return Promise.resolve();
+  },
+
+  /** (H23) Azonnali mentés, amelynek hibája a hívóhoz jut (pl. import: sikert csak a tartós írás után jelezhet). */
+  persist() {
+    if (this.frozen) return Promise.reject(new Error(_t('A mentés most nem lehetséges.')));
+    return writeStore(this.serialize());
   },
 
   /** A legutóbbi mentés hibája (null, ha rendben van). */

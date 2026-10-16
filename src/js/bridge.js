@@ -165,7 +165,9 @@ export class MediaBridge {
   }
 
   async append(buf, gen) {
-    for (let attempt = 0; attempt < 3; attempt++) {
+    // (H08) a blokk a sikeres hozzáadásig megmarad: megtelt puffernél a lejátszott részt eldobjuk, ill. várunk, hogy a
+    // lejátszás haladjon (szünetnél is); korlátos próbálkozás után kezelhető hiba (onFail) – nem csendes adatvesztés
+    for (let attempt = 0; attempt < 15; attempt++) {
       await this.idle();
       if (gen !== this.gen) return;
       try {
@@ -176,12 +178,14 @@ export class MediaBridge {
         if (err.name !== 'QuotaExceededError') throw err;
         // Megtelt a puffer: a már lejátszott részt eldobjuk
         const cut = this.video.currentTime - 10;
-        if (cut > 0) {
+        const b = this.sb.buffered;
+        if (cut > 0 && b.length && b.start(0) < cut) {
           this.sb.remove(0, cut);
           await this.idle();
         } else await new Promise((r) => setTimeout(r, 1000));
       }
     }
+    if (gen === this.gen) throw new Error(_t('A lejátszási puffer megtelt.'));
   }
 
   /** Egy folyam letöltése a megadott időponttól. */

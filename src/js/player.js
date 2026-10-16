@@ -116,8 +116,13 @@ export const player = {
 
   async play(ch, { context = null, stream = null } = {}) {
     if (!ch) return;
+    // (H27) az indítási kérés generációja és profilja már a belépéskor rögzül: egy (pl. PIN-re) várakozó régi
+    // kérés későbbi jóváhagyása nem veheti vissza a közben elindult újabb csatornát, és profilváltás után sem indul
+    const req = (this.playReq = (this.playReq || 0) + 1);
+    const profileId = store.profile?.id;
     // gyerekprofil: napi nézési idő, korhatár (watchtime.js)
     if (this.guard && !(await this.guard(ch))) return;
+    if (req !== this.playReq || store.profile?.id !== profileId) return;
     stopPreview();
     this.hideNextUp();
     if (context) this.context = context;
@@ -453,6 +458,7 @@ export const player = {
   },
 
   close() {
+    this.playReq = (this.playReq || 0) + 1; // (H27) a függő indítási kérés is érvénytelen
     if (!this.active) return;
     this.op = (this.op || 0) + 1; // (B27: a függő indítás érvénytelen)
     stopStreamInfo(video);

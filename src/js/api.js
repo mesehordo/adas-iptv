@@ -572,6 +572,13 @@ const androidApi = {
     } catch {}
   },
   // (B37) szünetel-e a lejátszás – a háttér-értesítés és a rendszer médiavezérlői ezt mutatják
+  takeDeliveredReminders() {
+    try {
+      return JSON.parse(window.AdasAndroid?.takeDeliveredReminders?.() || '[]');
+    } catch {
+      return [];
+    }
+  },
   setMediaActive(on) {
     if (window.AdasAndroid?.setMediaActive) window.AdasAndroid.setMediaActive(!!on);
   },

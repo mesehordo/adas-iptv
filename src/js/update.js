@@ -16,6 +16,10 @@ if (api.onUpdateStatus)
     else if (s.state === 'error') toast(`${_t('A frissítés telepítése nem sikerült:')} ${s.message || ''}`, { timeout: 10000 });
   });
 
+// (H13) a már letöltött és ellenőrzött csomag: egy engedélykérés utáni újabb „Telepítés” nem tölti le újra
+let readyFile = null; // { asset, file }
+const assetKey = (a) => (typeof a === 'string' ? a : JSON.stringify(a));
+
 async function downloadAndInstall(info, out) {
   if (!info.asset) {
     if (info.page) api.openExternal(info.page);
@@ -24,12 +28,22 @@ async function downloadAndInstall(info, out) {
   const bar = out?.querySelector('.progress i');
   progressCb = (p) => bar && (bar.style.width = (p * 100).toFixed(1) + '%');
   try {
-    toast(`${_t('Az új verzió ({latest}) letöltése…', { latest: info.latest })}`);
-    const file = await api.updateDownload(info.asset);
+    let file = readyFile?.asset === assetKey(info.asset) ? readyFile.file : null;
+    if (!file) {
+      toast(`${_t('Az új verzió ({latest}) letöltése…', { latest: info.latest })}`);
+      file = await api.updateDownload(info.asset);
+      readyFile = { asset: assetKey(info.asset), file };
+    }
     if (info.android) {
       // Android: a rendszer telepítője kér jóváhagyást; a profilok, listák és beállítások megmaradnak
       if (!(await confirmDialog(_t('A letöltés kész és ellenőrizve. Telepíted most? Az Android rákérdez a telepítésre; a profilok, a listák és a beállítások megmaradnak.'), { ok: _t('Telepítés most'), cancel: _t('Később') }))) return;
-      const r = await api.updateInstall(file);
+      let r;
+      try {
+        r = await api.updateInstall(file);
+      } catch (err) {
+        readyFile = null; // (pl. a fájl közben eltűnt: a következő próba újra letölti)
+        throw err;
+      }
       if (r === 'permission') toast(_t('Engedélyezd az Adásnak az alkalmazások telepítését a megnyíló beállításban, majd nyomd meg újra a Telepítés gombot.'), { timeout: 12000 });
       return;
     }

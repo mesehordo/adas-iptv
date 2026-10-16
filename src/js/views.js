@@ -26,6 +26,8 @@ import { renderRadioSettings } from './radiosettings.js';
 const sportWatchCount = () => watchList().filter((w) => w.on !== false).length;
 import { requireAdult, requireAdultAlways, hasPin, choosePin, setPin } from './pin.js';
 import { renderTransfer, importData, attachDocs, stageDocs, dropDocs } from './transfer.js';
+import { dropUnreferenced } from './snapshot.js';
+import { v1BackupDocKeys } from './backup.js';
 import { renderRecordings } from './recorder.js';
 import { renderRemoteSettings } from './remote.js';
 import { renderBackups } from './backup.js';
@@ -1053,6 +1055,7 @@ export function renderSettings(view) {
       try {
         const data = validateImport(JSON.parse(f.text)); // (B32: hibás szerkezetnél semmi sem módosul)
         if (!(await confirmDialog(_t('A visszaállítás felülírja a jelenlegi beállításokat és profilokat. Folytatod?'), { ok: _t('Visszaállítás'), danger: true }))) return;
+        const oldSettings = store.settings;
         const staged = await stageDocs(data);
         try {
           await store.replaceAll({ ...data, health: store.health });
@@ -1060,6 +1063,11 @@ export function renderSettings(view) {
           await dropDocs(staged.written); // (a régi listák és dokumentumok érintetlenek)
           throw err;
         }
+        // (H24) a már nem hivatkozott régi listadokumentumok törlése (a mentési pontoké marad)
+        // (a régi – v1 – mentési pontok dokumentumai is maradnak; ha a mentéstár nem olvasható, nincs takarítás)
+        await v1BackupDocKeys()
+          .then((keep) => dropUnreferenced(oldSettings, data.settings, keep))
+          .catch(() => {});
         location.reload();
       } catch (err) {
         toast(`${_t('Nem sikerült beolvasni a mentést:')} ` + err.message);

@@ -43,9 +43,15 @@ class RadioNative implements Player.Listener {
       send("st", "error");
       return;
     }
+    // (H11) a lista által megadott User-Agent / Referer
+    String ua = o.optString("ua");
+    String ref = o.optString("referrer");
+    java.util.Map<String, String> props = new java.util.HashMap<>();
+    if (ref.startsWith("http://") || ref.startsWith("https://")) props.put("Referer", ref);
     DefaultHttpDataSource.Factory http =
         new DefaultHttpDataSource.Factory()
-            .setUserAgent(MainActivity.CHROME_UA)
+            .setUserAgent(ua.isEmpty() ? MainActivity.CHROME_UA : ua)
+            .setDefaultRequestProperties(props)
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(12000)
             .setReadTimeoutMs(20000);

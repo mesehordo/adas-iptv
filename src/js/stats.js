@@ -49,11 +49,20 @@ function record(ch, sec) {
   store.save();
 }
 
+// (H19) a kivetítés a vevőn akkor is nézés, ha az ablak rejtett / kis méretű (a helyi videó rejtett lapon nem számít);
+// az eltelt idő időbélyegből – a rejtett lapon a böngésző ritkítja az időzítőt –, alvás után legfeljebb 2 perc
+let lastTickAt = Date.now();
 setInterval(() => {
+  const now = Date.now();
+  const gap = Math.min(Math.max((now - lastTickAt) / 1000, 0), 120);
+  lastTickAt = now;
   const ch = player.channel;
-  if (!player.active || !ch || document.hidden) return;
-  const playing = player.castHooks?.active ? !player.castHooks.paused : player.engine?.started && !video.paused;
-  if (playing) record(ch, TICK);
+  if (!player.active || !ch) return;
+  const cast = !!player.castHooks?.active;
+  if (!cast && document.hidden) return;
+  // (a vevőn: csak ha ténylegesen megy – szünet, betöltés, leállt vevő nem)
+  const playing = cast ? player.castHooks.playing : player.engine?.started && !video.paused;
+  if (playing && gap > 0) record(ch, Math.round(gap));
 }, TICK * 1000);
 bus.on('player-closed', () => (lastKey = ''));
 
