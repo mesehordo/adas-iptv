@@ -2252,5 +2252,6 @@ export default {
  "utána: {title}": "next: {title}",
  "Népszerű hazai rádiók": "Popular local radio",
  "Nincs elérhető hazai adó.": "No local stations available.",
- "Rádiózás": "Radio listening"
+ "Rádiózás": "Radio listening",
+ "Más Linux-rendszereken: Súgó": "Other Linux systems: Help"
 };

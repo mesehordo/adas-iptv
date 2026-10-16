@@ -1398,7 +1398,7 @@ ${go('#/settings?section=transfer', 'Sync between devices')}`,
     id: 'remote',
     cat: 'personal',
     title: 'Remote control from your phone',
-    keywords: 'remote phone mobile browser control pin qr code network channel switch volume touchpad search',
+    keywords: 'remote phone mobile browser control pin qr code network channel switch volume touchpad search firewall port linux ufw firewalld cannot connect',
     body: `
 <p>The desktop app and the Android (TV) version can also be controlled from your phone – or any device’s browser – on the same (home) network:</p>
 <ol>
@@ -1412,6 +1412,26 @@ ${go('#/settings?section=transfer', 'Sync between devices')}`,
 <tr><td><b>📻 Radio</b></td><td>The station and song now playing; previous / pause / next station, favourite, record, its own volume, the <i>Now playing</i> view, switching the visuals, sleep timer (15 / 30 / 60 / 90 minutes), turn off; station search (in the local and the online database), favourite and recently played stations – one tap starts them. While the radio plays, the Control tab’s pause, CH and volume buttons control the radio too. (Not in a kids profile.)</td></tr>
 <tr><td><b>☰ More</b></td><td>Jump to any page (TV, TV guide, Favourites, VOD, Recordings, Browse, Help); <b>send text</b> (types into the selected field with the phone’s keyboard, or starts a search); Stream info, sleep timer.</td></tr>
 </table>
+<h2>If the phone can’t connect</h2>
+<p>If the phone’s browser says it <i>can’t connect</i> (or loads for a long time, then fails), the phone can’t reach the computer at all. Check, in order:</p>
+<ol>
+<li><b>Same network?</b> The phone and the computer must be on the same Wi-Fi / home network – not the guest network, and no VPN on the phone. Some routers also block it with “client isolation” (AP isolation).</li>
+<li><b>Right address?</b> If several addresses are shown in the settings, click the one on the same network as the phone (e.g. both <code>192.168.1.…</code>) – the QR code is made for it. Virtual (Docker, VirtualBox) and VPN adapters are listed last.</li>
+<li><b>Does the firewall allow it?</b> On Windows the firewall asks at first launch – allow it on <i>private networks</i>. On Linux you have to open the remote’s port in the firewall yourself. The port is usually <b>47800</b> (if taken, the next free one up to 47829) – the exact number is at the end of the address shown in the settings.</li>
+</ol>
+<h3>Opening the port on Linux</h3>
+<p>To see which firewall is running: <code>sudo ufw status</code> (ufw) or <code>sudo firewall-cmd --state</code> (firewalld). If neither is active and no other firewall is set up, the firewall is probably not the problem.</p>
+<p><b>Ubuntu, Kubuntu, Xubuntu, Linux Mint, Pop!_OS, Zorin OS, elementary OS, Debian (with ufw)</b></p>
+<pre class="code">sudo ufw allow 47800/tcp</pre>
+<p><b>Fedora, RHEL, CentOS Stream, AlmaLinux, Rocky Linux, openSUSE, Nobara (firewalld)</b></p>
+<pre class="code">sudo firewall-cmd --permanent --add-port=47800/tcp
+sudo firewall-cmd --reload</pre>
+<p><b>Arch Linux, Manjaro, EndeavourOS</b> – usually no firewall by default. If you installed ufw or firewalld, use one of the commands above; with plain nftables:</p>
+<pre class="code">sudo nft add rule inet filter input tcp dport 47800 accept</pre>
+<p><b>Debian / other systems, iptables</b></p>
+<pre class="code">sudo iptables -I INPUT -p tcp --dport 47800 -j ACCEPT</pre>
+<p><b>With a graphical tool:</b> Ubuntu, Mint: <i>Firewall Configuration</i> (gufw) → Add rule → TCP 47800; Fedora, openSUSE: <i>Firewall</i> (firewall-config, or YaST → Firewall) → Ports → 47800/tcp.</p>
+<div class="tip">The nft and iptables rules only last until a reboot – to keep them, add them to the system firewall configuration (e.g. <code>/etc/nftables.conf</code>). If the settings show a different port (e.g. 47801), use that one in the commands.</div>
 <div class="note">The PIN and the QR code’s key can be regenerated at any time (New PIN) – an old phone then has to scan the QR code again (or type the new PIN). With a wrong PIN the controller doesn’t work; after many wrong attempts from one device, that device is locked out for 10 minutes (other phones keep working meanwhile).</div>
 ${go('#/settings?section=remote', 'Remote from phone')}`,
   },
