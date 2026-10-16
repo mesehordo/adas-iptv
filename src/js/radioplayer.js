@@ -46,6 +46,7 @@ export const VIS_MODES = [
 const AC = window.AudioContext || window.webkitAudioContext;
 /** Működik-e itt a hangfeldolgozás (effektek, vizualizáció)? */
 export const audioFxAvailable = !!AC && (!!window.api || IS_ANDROID);
+const PLAIN = 2; // a tartalék (CORS és hangfeldolgozás nélküli) audioelem sorszáma
 const PLAYLIST_RX = /\.(pls|m3u|asx|xspf)(\?|$)/i;
 const START_TIMEOUT = 15000;
 
@@ -94,14 +95,18 @@ class RadioPlayer {
     this.now = { text: '', artist: '', title: '', cover: '' };
     this.history = []; // [{ t, text, artist, title, cover }]
     this.sleepAt = 0;
-    this.els = [new Audio(), new Audio()];
+    // 0, 1: a hangfeldolgozáson át szóló elemek (átúsztatás); 2: tartalék, CORS nélkül és hangfeldolgozás nélkül –
+    // ha egy adás CORS-módban nem indul (pl. Androidon a WebView nem a proxyn át kéri, vagy a szerver elutasítja),
+    // így is megszólal (hangszínszabályzó és vizualizáció nélkül)
+    this.els = [new Audio(), new Audio(), new Audio()];
     this.cur = 0;
-    for (const a of this.els) {
+    this.els.forEach((a, i) => {
       a.preload = 'none';
       // CORS-módban töltve a hangfeldolgozás hozzáfér az adáshoz (különben elnémulna)
-      if (audioFxAvailable) a.crossOrigin = 'anonymous';
-    }
-    this.hls = [null, null];
+      if (audioFxAvailable && i < PLAIN) a.crossOrigin = 'anonymous';
+    });
+    this.hls = [null, null, null];
+    this.noCors = new Set(); // címek, amelyek csak CORS nélkül indulnak
     this.ctx = null;
     this.analyser = null;
     this.seq = 0;
@@ -111,6 +116,10 @@ class RadioPlayer {
 
   get el() {
     return this.els[this.cur];
+  }
+  /** Szól-e a hangfeldolgozás (a tartalék elemen nem: ott nincs hangszínszabályzó és vizualizáció). */
+  get fxActive() {
+    return !!this.ctx && this.cur !== PLAIN;
   }
   get active() {
     return !!this.station;
@@ -124,7 +133,7 @@ class RadioPlayer {
     if (this.ctx || !audioFxAvailable) return;
     try {
       const c = (this.ctx = new AC());
-      this.srcGain = this.els.map((el) => {
+      this.srcGain = this.els.slice(0, PLAIN).map((el) => {
         const s = c.createMediaElementSource(el);
         const g = c.createGain();
         g.gain.value = 0;
@@ -207,7 +216,7 @@ class RadioPlayer {
   /** A hangzás beállításainak alkalmazása (a lánc újrakötése). */
   applyFx() {
     const f = fx();
-    for (const el of this.els) el.volume = audioFxAvailable && this.ctx ? 1 : f.volume;
+    this.els.forEach((el, i) => (el.volume = audioFxAvailable && this.ctx && i !== PLAIN ? 1 : f.volume));
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
     this.master.gain.setTargetAtTime(f.volume, t, 0.05);
@@ -252,8 +261,18 @@ class RadioPlayer {
       if (seq !== this.seq) return;
       const url = await resolveStream(raw);
       if (seq !== this.seq) return;
-      const ok = await this.start(url, seq);
+      // (amelyik cím CORS-módban egyszer már nem indult, az legközelebb rögtön a tartalék elemen szól)
+      const noCors = this.ctx && this.noCors.has(url);
+      let ok = await this.start(url, seq, noCors);
       if (seq !== this.seq) return;
+      if (!ok && this.ctx && !noCors) {
+        ok = await this.start(url, seq, true);
+        if (seq !== this.seq) return;
+        if (ok) {
+          this.noCors.add(url);
+          if (this.noCors.size > 200) this.noCors.delete(this.noCors.values().next().value);
+        }
+      }
       store.setHealth(raw, ok, 'play');
       if (!ok && api.checkStreams && api.caps?.health) {
         // (a lejátszó nem adja meg a HTTP-választ: a háttérben futó próba dönti el, hogy a szerver elutasította-e
@@ -291,9 +310,9 @@ class RadioPlayer {
   }
 
   /** Egy cím indítása a másik audioelemen, átúsztatással. → sikerült-e */
-  start(url, seq) {
+  start(url, seq, plain = false) {
     return new Promise((resolve) => {
-      const next = 1 - this.cur;
+      const next = plain ? PLAIN : this.cur === 0 ? 1 : 0;
       const el = this.els[next];
       const old = this.els[this.cur];
       this.detach(next);
@@ -310,7 +329,8 @@ class RadioPlayer {
         }
         // átúsztatás: az új felerősödik, a régi elhalkul, majd megáll
         const x = Math.max(0, fx().xfade);
-        if (this.ctx) {
+        const fade = this.ctx && next !== PLAIN && this.cur !== PLAIN;
+        if (fade) {
           const t = this.ctx.currentTime;
           const gNew = this.srcGain[next].gain;
           const gOld = this.srcGain[this.cur].gain;
@@ -320,11 +340,11 @@ class RadioPlayer {
           gOld.cancelScheduledValues(t);
           gOld.setValueAtTime(gOld.value, t);
           gOld.linearRampToValueAtTime(0, t + Math.max(0.05, x));
-        }
+        } else if (this.ctx && next !== PLAIN) this.srcGain[next].gain.value = 1;
         const prev = this.cur;
         this.cur = next;
-        setTimeout(() => this.cur !== prev && this.detach(prev), x * 1000 + 300);
-        if (!this.ctx) this.detach(prev);
+        if (fade) setTimeout(() => this.cur !== prev && this.detach(prev), x * 1000 + 300);
+        else if (prev !== next) this.detach(prev);
         resolve(true);
       };
       const onOk = () => finish(true);
@@ -332,7 +352,7 @@ class RadioPlayer {
       const timer = setTimeout(() => finish(false), START_TIMEOUT);
       el.addEventListener('playing', onOk);
       el.addEventListener('error', onErr);
-      if (this.ctx) this.srcGain[next].gain.value = old.paused || !old.src ? 1 : 0;
+      if (this.ctx && next !== PLAIN) this.srcGain[next].gain.value = old.paused || !old.src || this.cur === PLAIN ? 1 : 0;
       if (/\.m3u8(\?|$)/i.test(url) && window.Hls?.isSupported() && !el.canPlayType('application/vnd.apple.mpegurl')) {
         const h = new window.Hls({ lowLatencyMode: false });
         h.on(window.Hls.Events.ERROR, (_e, d) => d.fatal && onErr());
@@ -355,7 +375,7 @@ class RadioPlayer {
     try {
       el.load();
     } catch {}
-    if (this.ctx) this.srcGain[i].gain.value = 0;
+    if (this.ctx && i !== PLAIN) this.srcGain[i].gain.value = 0;
   }
 
   toggle() {
@@ -368,6 +388,7 @@ class RadioPlayer {
     ++this.seq; // (a folyamatban lévő indítás érvényét veszti)
     this.detach(0);
     this.detach(1);
+    this.detach(PLAIN);
     this.state = 'paused';
     clearInterval(this.metaTimer);
     api.setPlaying?.(false);
@@ -406,7 +427,7 @@ class RadioPlayer {
       let k = 20;
       this.sleepFade = setInterval(() => {
         k--;
-        if (this.ctx) this.master.gain.value = (start * k) / 20;
+        if (this.fxActive) this.master.gain.value = (start * k) / 20;
         else this.el.volume = (start * k) / 20;
         if (k <= 0) {
           clearInterval(this.sleepFade);
@@ -513,7 +534,7 @@ export function drawVisualizer(canvas, getMode, { mini = false } = {}) {
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, w, h);
     const an = radioPlayer.analyser;
-    const live = an && radioPlayer.state === 'playing';
+    const live = an && radioPlayer.fxActive && radioPlayer.state === 'playing';
     if (live) {
       an.getByteFrequencyData(freq);
       an.getByteTimeDomainData(wave);
