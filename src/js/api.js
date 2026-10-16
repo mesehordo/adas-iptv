@@ -252,7 +252,7 @@ const webApi = {
     } catch {}
   },
   async appInfo() {
-    return { version: '1.28.5', dataDir: _t('böngésző tárhely'), platform: 'web' };
+    return { version: '1.28.6', dataDir: _t('böngésző tárhely'), platform: 'web' };
   },
   exit() {},
 };
@@ -357,7 +357,7 @@ const tvApi = {
   },
   notifyPermission() {},
   async appInfo() {
-    return { version: '1.28.5', dataDir: _t('TV tárhely'), platform: 'LG webOS' };
+    return { version: '1.28.6', dataDir: _t('TV tárhely'), platform: 'LG webOS' };
   },
   exit() {
     try {
