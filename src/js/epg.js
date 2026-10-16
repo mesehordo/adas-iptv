@@ -95,6 +95,24 @@ const toProg = (r) => ({ start: r[0], stop: r[1], title: r[2] || _t('Műsor'), d
 // A háttérszál tömböket ad; a műsor-objektumok csatornánként, az első használatkor jönnek létre
 // (több százezer objektum egyszerre a felületet másodpercekre megakasztotta).
 const PROGS = Symbol('progs');
+/**
+ * Egy csatorna műsorai két forrásból: a `have` (magasabb prioritású) sorai maradnak, a `rows`-ból csak az kerül
+ * hozzá, ami a `have` első műsora előtt véget ér, vagy az utolsó vége után kezdődik. A `have` lehet nyers
+ * (tömbös) vagy már átalakított (objektumos) lista – az eredmény ugyanolyan fajta, időrendben. → új lista, vagy
+ * változás nélkül maga a `have`.
+ */
+function fillGaps(have, rows) {
+  const st = (r) => (Array.isArray(r) ? r[0] : r.start);
+  const sp = (r) => (Array.isArray(r) ? r[1] : r.stop);
+  const first = st(have[0]);
+  const last = sp(have[have.length - 1]);
+  const extra = rows.filter((r) => sp(r) <= first || st(r) >= last);
+  if (!extra.length) return have;
+  const conv = !!have[PROGS];
+  const out = [...have, ...(conv ? extra.map((r) => (Array.isArray(r) ? toProg(r) : r)) : extra)].sort((a, b) => st(a) - st(b));
+  if (conv) out[PROGS] = true;
+  return out;
+}
 /** Egy csatorna műsorai objektumként (az első híváskor alakítjuk át és cseréljük a térképben). */
 function progsOf(map, id) {
   const v = map.get(id);
@@ -249,7 +267,14 @@ export const epg = {
       let matched = 0;
       if (parsed[n]) {
         for (const [chId, rows] of parsed[n].matched) {
-          if (result.has(chId)) continue; // az elsőként betöltött (magasabb prioritású) forrás nyer
+          const have = result.get(chId);
+          if (have?.length) {
+            // a korábbi (magasabb prioritású) forrás műsorai maradnak; ahol azok véget érnek vagy később kezdődnek,
+            // ez a forrás pótolja – egy csak a tegnapi napot adó forrás mellett is van mai műsor
+            const filled = fillGaps(have, rows);
+            if (filled !== have) result.set(chId, filled);
+            continue;
+          }
           result.set(chId, rows);
           nextSource.set(chId, src.url);
           matched++;

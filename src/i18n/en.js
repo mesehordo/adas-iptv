@@ -2253,5 +2253,5 @@ export default {
  "Népszerű hazai rádiók": "Popular local radio",
  "Nincs elérhető hazai adó.": "No local stations available.",
  "Rádiózás": "Radio listening",
- "Más Linux-rendszereken: Súgó": "Other Linux systems: Help"
+ "Súgó: kapcsolódás, tűzfal": "Help: connecting, firewall"
 };
