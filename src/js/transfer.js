@@ -85,13 +85,20 @@ async function mergeProfiles(data, source) {
     { ok: _t('Átvétel') }
   );
   if (!ok) return false;
+  // (H23) sikert csak a tartós mentés után jelez; ha az írás nem sikerül, a korábbi profilok visszaállnak
+  const before = store.profiles.slice();
   for (const p of incoming) {
     const i = store.profiles.findIndex((x) => x.id === p.id);
     // a beérkező profil mezői típus szerint rendbe téve (a HTML-sablonokba ne kerülhessen jelölőkód)
     if (i >= 0) store.profiles[i] = cleanProfile({ ...store.profiles[i], ...p });
     else store.profiles.push(cleanProfile({ ...p }));
   }
-  store.flush();
+  try {
+    await store.persist();
+  } catch (err) {
+    store.profiles = before;
+    throw new Error(`${_t('A profilok nem menthetők – az átvétel elmaradt:')} ${err?.message || err}`);
+  }
   bus.emit('profile');
   toast(`${_t('{length} profil átvéve', { length: incoming.length })}`);
   return true;

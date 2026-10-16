@@ -729,13 +729,14 @@ ipcMain.handle('http-request', async (_e, { method = 'GET', url, headers = {}, b
       return { status: r.status, text: r.body.toString('utf8') };
     }
     const res = await net.fetch(url, opts);
+    // (H18) a válasz darabonként, korláttal olvasva – a túl nagy válasz a határnál megszakad, nem olvasódik végig a
+    // memóriába (a szöveges válasz is: API-válasz, felirat)
+    const buf = await readLimited(res, 20e6).catch((err) => {
+      throw /túl nagy|too large/i.test(err.message) ? new Error(_t('A fájl túl nagy.')) : err;
+    });
     // bájtként (pl. ZIP-be csomagolt vagy nem UTF-8 kódolású felirat): a megjelenítő dekódolja
-    if (binary) {
-      const buf = Buffer.from(await res.arrayBuffer());
-      if (buf.length > 20e6) throw new Error(_t('A fájl túl nagy.'));
-      return { status: res.status, bytes: buf };
-    }
-    return { status: res.status, text: await res.text() };
+    if (binary) return { status: res.status, bytes: buf };
+    return { status: res.status, text: buf.toString('utf8') };
   } finally {
     clearTimeout(t);
   }

@@ -2275,5 +2275,7 @@ export default {
  "elavult – a forrás most nem érhető el, a korábban letöltött műsor látszik": "out of date – the source is not reachable right now, the previously downloaded guide is shown",
  "A felvétel már indul.": "The recording is already starting.",
  "az előnézet nem indult": "the preview did not start",
- "nem érkezett adat": "no data arrived"
+ "nem érkezett adat": "no data arrived",
+ "A mentés most nem lehetséges.": "Saving is not possible right now.",
+ "A profilok nem menthetők – az átvétel elmaradt:": "The profiles cannot be saved – nothing was imported:"
 };

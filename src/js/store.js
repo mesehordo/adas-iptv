@@ -440,6 +440,12 @@ export const store = {
     return Promise.resolve();
   },
 
+  /** (H23) Azonnali mentés, amelynek hibája a hívóhoz jut (pl. import: sikert csak a tartós írás után jelezhet). */
+  persist() {
+    if (this.frozen) return Promise.reject(new Error(_t('A mentés most nem lehetséges.')));
+    return writeStore(this.serialize());
+  },
+
   /** A legutóbbi mentés hibája (null, ha rendben van). */
   saveError: null,
 
