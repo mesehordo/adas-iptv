@@ -1208,6 +1208,8 @@ body.mini .p-ts { display: none; }
     font-size: 10px !important; letter-spacing: 0 !important; text-transform: none !important; color: var(--muted);
   }
   body #nav .links a::before, body #nav .links a::after { content: none !important; }
+  /* (a kikapcsolt menüpont – pl. Sport, Rádió – a fenti display: flex !important ellenére se látsszon) */
+  body #nav .links a[hidden] { display: none !important; }
   body #nav .links a.active { color: var(--accent); }
   body #nav .links .nav-ico { display: block !important; font-size: 22px; }
   body #nav .links .lbl { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 1 !important; }

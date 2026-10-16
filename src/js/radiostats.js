@@ -3,7 +3,7 @@
 // késleltetés, metaadat, hálózat – másodpercenként frissítve, amíg a menü nyitva van.
 import { esc, fmtNum } from './util.js';
 import { _t } from './i18n.js';
-import { radioPlayer, audioFxAvailable } from './radioplayer.js';
+import { radioPlayer, audioFxAvailable, NATIVE_RADIO } from './radioplayer.js';
 
 const kbit = (bps) => (bps > 0 ? `${_t('{round} kbit/s', { round: Math.round(bps / 1e3) })}` : '–');
 const sec = (s) => (Number.isFinite(s) ? `${_t('{toFixed} mp', { toFixed: fmtNum(s, 1) })}` : '–');
@@ -25,7 +25,7 @@ export function startRadioStats() {
   meter = null;
   if (bound) return;
   bound = true;
-  for (const el of radioPlayer.els) {
+  for (const el of [...radioPlayer.els, radioPlayer.nativeEvents]) {
     el.addEventListener('waiting', onWaiting);
     el.addEventListener('playing', onPlaying);
   }
@@ -34,7 +34,7 @@ export function startRadioStats() {
 export function stopRadioStats() {
   if (!bound) return;
   bound = false;
-  for (const el of radioPlayer.els) {
+  for (const el of [...radioPlayer.els, radioPlayer.nativeEvents]) {
     el.removeEventListener('waiting', onWaiting);
     el.removeEventListener('playing', onPlaying);
   }
@@ -56,17 +56,27 @@ export function radioStatsHtml() {
     const u = new URL(confirmed);
     host = `${u.protocol === 'https:' ? '🔒 ' : ''}${u.host}`;
   } catch {}
-  add(_t('Lejátszó'), esc(hls ? 'hls.js (HLS)' : _t('Beépített hanglejátszó')));
+  // (Android: natív lejátszó – a formátumot, a bitrátát és a puffert ő adja)
+  let nat = null;
+  if (NATIVE_RADIO) {
+    try {
+      nat = JSON.parse(window.AdasAndroid.radioInfo() || '{}');
+    } catch {
+      nat = {};
+    }
+  }
+  add(_t('Lejátszó'), esc(nat ? _t('Natív lejátszó (ExoPlayer)') : hls ? 'hls.js (HLS)' : _t('Beépített hanglejátszó')));
   add(_t('Kiszolgáló'), esc(host || '–'));
   const idx = confirmed ? st.urls.indexOf(r.rawUrl) : -1;
   if (confirmed && (st.urls.length > 1 || r.rawUrl !== r.url))
     add(_t('Forrás'), esc([`${idx + 1} / ${st.urls.length}`, r.rawUrl !== r.url ? _t('lejátszólistából feloldva') : ''].filter(Boolean).join(' · ')));
   // formátum: a HLS-szint, ill. az adatbázis szerinti kodek és bitráta
   const lvl = hls?.levels?.[hls.currentLevel >= 0 ? hls.currentLevel : hls.loadLevel];
-  const codec = lvl?.audioCodec || st.codec || '';
+  const codec = nat?.codecs || nat?.mime?.replace(/^audio\//, '') || lvl?.audioCodec || st.codec || '';
   add(_t('Formátum'), esc(codec || '–'));
-  const declared = lvl?.bitrate || (st.bitrate ? st.bitrate * 1000 : 0);
+  const declared = nat?.bitrate || lvl?.bitrate || (st.bitrate ? st.bitrate * 1000 : 0);
   add(_t('Bitráta (megadott)'), kbit(declared));
+  if (nat?.rate) add(_t('Mintavétel'), esc(`${fmtNum(nat.rate / 1000, 1)} kHz${nat.ch ? ` · ${nat.ch === 1 ? _t('mono') : nat.ch === 2 ? _t('sztereó') : nat.ch + ' ' + _t('csatorna')}` : ''}`));
   // mért bitráta: a dekódolt bájtok növekedéséből (Chromium), legalább 3 mp mérés után
   const bytes = el.webkitAudioDecodedByteCount;
   const now = performance.now();
@@ -78,8 +88,8 @@ export function radioStatsHtml() {
   // puffer: a lejátszási pozíciót tartalmazó tartomány
   const b = el.buffered;
   const t = el.currentTime;
-  let ahead = 0;
-  for (let i = 0; i < b.length; i++) if (b.start(i) <= t + 0.1 && b.end(i) >= t) ahead = b.end(i) - t;
+  let ahead = nat ? Number(nat.buffer) || 0 : 0;
+  if (!nat) for (let i = 0; i < b.length; i++) if (b.start(i) <= t + 0.1 && b.end(i) >= t) ahead = b.end(i) - t;
   add(_t('Puffer (előre)'), sec(ahead), ahead < 1.5 && r.state === 'playing');
   const stallMs = stalls.ms + (stalls.since ? performance.now() - stalls.since : 0);
   add(_t('Akadás (a panel nyitása óta)'), `${_t('{n} alkalom · {sec}', { n: stalls.n, sec: sec(stallMs / 1000) })}`, stalls.n > 0);

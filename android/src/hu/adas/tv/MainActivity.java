@@ -95,6 +95,7 @@ public class MainActivity extends Activity {
 
   WebView web;
   NativePlayer nativePlayer;
+  RadioNative radioNative; // a rádió natív lejátszója
   boolean tv;
   /** Előtérben van-e (az emlékeztető ilyenkor az alkalmazáson belül szól, nem a rendszer). */
   static volatile boolean foreground;
@@ -131,6 +132,7 @@ public class MainActivity extends Activity {
     root.addView(web, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
     setContentView(root);
     nativePlayer = new NativePlayer(this, root);
+    radioNative = new RadioNative(this);
     WebSettings s = web.getSettings();
     s.setJavaScriptEnabled(true);
     s.setDomStorageEnabled(true);
@@ -306,6 +308,7 @@ public class MainActivity extends Activity {
     Updater.unregister(this);
     if (instance == this) instance = null;
     if (nativePlayer != null) nativePlayer.release();
+    if (radioNative != null) radioNative.release();
     if (lanServer != null) {
       lanServer.shareStop();
       lanServer.rcStop();
@@ -453,6 +456,41 @@ public class MainActivity extends Activity {
     @JavascriptInterface
     public void exoStop() {
       runOnUiThread(() -> nativePlayer.stop());
+    }
+
+    // --- rádió: natív lejátszás (RadioNative)
+    @JavascriptInterface
+    public void radioPlay(final String json) {
+      runOnUiThread(() -> {
+        try {
+          radioNative.play(new JSONObject(json));
+        } catch (Exception e) {
+          radioNative.send("st", "error");
+        }
+      });
+    }
+
+    @JavascriptInterface
+    public void radioStop() {
+      runOnUiThread(() -> radioNative.stop());
+    }
+
+    @JavascriptInterface
+    public void radioVolume(final double v) {
+      runOnUiThread(() -> radioNative.volume(v));
+    }
+
+    @JavascriptInterface
+    public String radioInfo() {
+      // (az ExoPlayer csak a saját – fő – szálán kérdezhető: az eredményt megvárjuk)
+      java.util.concurrent.FutureTask<String> t = new java.util.concurrent.FutureTask<>(() -> radioNative.info());
+      runOnUiThread(t);
+      try {
+        return t.get(2, java.util.concurrent.TimeUnit.SECONDS);
+      } catch (Exception e) {
+        t.cancel(false);
+        return "{}";
+      }
     }
 
     /** Videó megnyitása külső lejátszóban (pl. VLC, MX Player, Kodi) – AC3 hanghoz, beágyazott felirathoz. */

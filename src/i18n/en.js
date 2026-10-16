@@ -2233,5 +2233,10 @@ export default {
  "{n} találat": "{n} results",
  "Mind": "All",
  "TV-csatornák": "TV channels",
- "Keresés a Rádió oldalon ›": "Search on the Radio page ›"
+ "Keresés a Rádió oldalon ›": "Search on the Radio page ›",
+ "Mintavétel": "Sample rate",
+ "mono": "mono",
+ "sztereó": "stereo",
+ "csatorna": "channels",
+ "Az adás többször megszakadt – próbáld újra később.": "The stream dropped several times – try again later."
 };
