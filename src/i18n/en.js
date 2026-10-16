@@ -2252,5 +2252,20 @@ export default {
  "utána: {title}": "next: {title}",
  "Népszerű hazai rádiók": "Popular local radio",
  "Nincs elérhető hazai adó.": "No local stations available.",
- "Rádiózás": "Radio listening"
+ "Rádiózás": "Radio listening",
+ "Súgó: kapcsolódás, tűzfal": "Help: connecting, firewall",
+ "<b>Újrakezdés</b>": "<b>Start over</b>",
+ "Minden adat törlődik – profilok, beállítások, kedvencek, listák, előzmények, emlékeztetők, saját témák, gyorsítótár –, és az Adás úgy indul, mintha most telepítetted volna, minden az eredeti alapértékén. A felvett videók megmaradnak. Előtte érdemes menteni fájlba.": "Everything is deleted – profiles, settings, favourites, lists, history, reminders, your own themes, cache – and Adás starts as if you had just installed it, with everything back to its original defaults. Your recordings are kept. It is worth saving to a file first.",
+ "Újrakezdés…": "Start over…",
+ "Az újrakezdéshez": "To start over,",
+ "Biztosan újrakezded? Minden profil, beállítás, kedvenc, lista, előzmény és emlékeztető végleg törlődik, és az Adás az első indítás képernyőjével indul újra. Ez nem vonható vissza.": "Start over? Every profile, setting, favourite, list, history entry and reminder is permanently deleted, and Adás restarts with the first-run screen. This cannot be undone.",
+ "Androidon az alkalmazás ezután bezárul – nyisd meg újra.": "On Android the app then closes – open it again.",
+ "Mindent törlök": "Delete everything",
+ "Az újrakezdés nem sikerült:": "Starting over failed:",
+ "Az adatbázis nem törölhető": "The database could not be deleted",
+ "Az adatbázist egy másik megnyitott Adás-lap használja – zárd be, és próbáld újra.": "Another open Adás tab is using the database – close it and try again.",
+ "Az újrakezdés nem fejeződött be": "Starting over did not finish",
+ "Néhány fájl nem törölhető (talán egy másik program használja): {list}": "Some files could not be deleted (perhaps another program is using them): {list}",
+ "Az Adás most a megmaradt adatokkal indul. A mappát kézzel is törölheted: {dir}": "Adás now starts with the remaining data. You can also delete the folder manually: {dir}",
+ "Zárd be a többi programot, majd próbáld újra.": "Close other programs, then try again."
 };

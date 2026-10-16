@@ -107,6 +107,28 @@ async function cachedFetchText(url, { maxAgeHours = 24, force = false } = {}, do
   }
 }
 
+/** Újrakezdés a lap tárhelyén (böngésző, tévé): az IndexedDB és a localStorage törlése, majd újratöltés. */
+async function webFactoryReset() {
+  // (a saját kapcsolat lezárása nélkül a törlés „blokkolt” maradna)
+  try {
+    (await dbPromise)?.close();
+  } catch {}
+  dbPromise = null;
+  await new Promise((resolve, reject) => {
+    const q = indexedDB.deleteDatabase('adas');
+    q.onsuccess = () => resolve();
+    q.onerror = () => reject(q.error || new Error(_t('Az adatbázis nem törölhető')));
+    // (egy másik, nyitva maradt lap tartja: a hívó hibát kap, a lap nem töltődik újra a régi adatokkal)
+    q.onblocked = () => reject(new Error(_t('Az adatbázist egy másik megnyitott Adás-lap használja – zárd be, és próbáld újra.')));
+  });
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+  } catch {}
+  location.reload();
+  return true;
+}
+
 async function directDownload(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -163,6 +185,7 @@ const webApi = {
     localStorage.setItem('adas-store', JSON.stringify(data));
   },
   clearCache: idbClear,
+  factoryReset: webFactoryReset,
   async saveFile(name, text) {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
@@ -389,6 +412,9 @@ let androidOffered = null;
 
 const androidApi = {
   ...webApi,
+  // (Újrakezdés: a rendszer törli az alkalmazás összes adatát, és bezárja – a ...webApi után, hogy az ne írja felül;
+  // ha a natív törlés nem indul el, a lap tárhelye törlődik)
+  factoryReset: async () => (window.AdasAndroid?.factoryReset?.() ? true : webFactoryReset()),
   platform: ANDROID_TV ? 'androidtv' : 'android',
   caps: {
     // (B38) mini lejátszó: a rendszer kép a képben módja, ha az eszköz támogatja (egyébként a gomb sem látszik)

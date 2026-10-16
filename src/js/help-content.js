@@ -885,7 +885,7 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
     id: 'backup',
     cat: 'personal',
     title: 'Mentés, visszaállítás, gyorsítótár',
-    keywords: 'mentés visszaállítás biztonsági másolat export import gyorsítótár törlés költözés',
+    keywords: 'mentés visszaállítás biztonsági másolat export import gyorsítótár törlés költözés újrakezdés gyári alapállapot minden törlése tiszta indítás',
     body: `
 <h2>Mentés fájlba</h2>
 <p>Beállítások → Profilok és mentés → <b>Mentés fájlba</b>: egy <code>.json</code> fájlba írja a beállításokat, az összes profilt a kedvencekkel, előzményekkel, emlékeztetőkkel, stílussal és sorrenddel, valamint a saját listákat és csatornákat. Így másik gépre is átviheted az egészet.</p>
@@ -904,6 +904,14 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
 </table>
 <h2>Gyorsítótár törlése</h2>
 <p>Törli a letöltött listákat, műsorújságot és a feldolgozott katalógust – a következő indításkor minden frissen letöltődik. Akkor hasznos, ha valami „beragadt”. A beállításaidat és profiljaidat nem érinti.</p>
+<h2>Újrakezdés (mindent az alapértékre)</h2>
+<p>Beállítások → Profilok és mentés → <b>Újrakezdés…</b>: az Adás <b>minden adata törlődik</b> – profilok, beállítások, kedvencek, saját listák és csatornák, előzmények, emlékeztetők, saját témák, borítók és a gyorsítótár –, és úgy indul, mintha most telepítetted volna (az első indítás képernyőjével, minden az eredeti alapértékén). Az indítás a rendszerrel is kikapcsol.</p>
+<ul>
+<li>Ha van felnőtt PIN-kód, előbb azt kéri (a saját, feloldott profilodból is), majd egy megerősítést.</li>
+<li>Asztali gépen az Adás magától újraindul. Androidon a rendszer törli az alkalmazás adatait, és az Adás bezárul – nyisd meg újra.</li>
+<li>A <b>felvett videók megmaradnak</b> (a Videók mappában lévő fájlok a tieid, nem az alkalmazás adatai).</li>
+</ul>
+<div class="tip">Nem vonható vissza – ha később visszatérnél a mostani állapothoz, előtte mentsd el fájlba (<b>Mentés fájlba</b>).</div>
 <div class="note">Tévén a fájlba mentés nem érhető el – ott a <i>Szinkronizálás eszközök között</i> működik. Androidon a mentés a rendszer fájlmentőjével (pl. a Letöltések mappába vagy a Google Drive-ra) történik.</div>`,
   },
 
@@ -1398,7 +1406,7 @@ ${go('#/settings?section=transfer', 'Szinkronizálás eszközök között')}`,
     id: 'remote',
     cat: 'personal',
     title: 'Távirányító telefonról',
-    keywords: 'távirányító telefon mobil böngésző vezérlés pin qr kód hálózat csatornaváltás hangerő érintőpad keresés',
+    keywords: 'távirányító telefon mobil böngésző vezérlés pin qr kód hálózat csatornaváltás hangerő érintőpad keresés tűzfal port linux ufw firewalld kapcsolódás sikertelen',
     body: `
 <p>Az asztali alkalmazás és az Android (TV) változat a telefonodról – vagy bármelyik eszköz böngészőjéből – is vezérelhető ugyanazon a (otthoni) hálózaton:</p>
 <ol>
@@ -1412,6 +1420,26 @@ ${go('#/settings?section=transfer', 'Szinkronizálás eszközök között')}`,
 <tr><td><b>📻 Rádió</b></td><td>A most szóló adó és szám; előző / szünet / következő adó, kedvenc, felvétel, saját hangerő, a <i>Most szól</i> nézet, a hangkép váltása, elalvás-időzítő (15 / 30 / 60 / 90 perc), kikapcsolás; adókereső (a helyi és az online adatbázisban), kedvenc és legutóbb hallgatott rádiók – egy érintéssel indulnak. Rádiózás közben a Vezérlő fül szünet, CH és hangerő gombja is a rádióra hat. (Gyerekprofilban nincs.)</td></tr>
 <tr><td><b>☰ Továbbiak</b></td><td>Ugrás bármelyik oldalra (TV, Műsorújság, Kedvencek, VOD, Felvételek, Böngészés, Súgó); <b>szöveg küldése</b> (a telefon billentyűzetével a kijelölt mezőbe gépel, vagy keresést indít); Adás adatai, elalvási időzítő.</td></tr>
 </table>
+<h2>Ha a telefon nem kapcsolódik</h2>
+<p>Ha a telefon böngészője azt írja, hogy <i>„a kapcsolódás sikertelen”</i> (vagy sokáig tölt, majd hibát ad), a telefon el sem éri a gépet. Sorban nézd meg:</p>
+<ol>
+<li><b>Ugyanaz a hálózat?</b> A telefon és a gép legyen ugyanazon a Wi-Fin / otthoni hálózaton – ne a vendéghálózaton, és a telefonon ne fusson VPN. Egyes routereken a „kliensek elkülönítése” (AP isolation) is tiltja.</li>
+<li><b>Jó cím?</b> Ha a beállításoknál több cím látszik, kattints arra, amelyik a telefonéval egy hálózaton van (pl. mindkettő <code>192.168.1.…</code>) – a QR-kód ahhoz készül. A virtuális (Docker, VirtualBox) és a VPN-kártyák címe hátra kerül.</li>
+<li><b>A tűzfal engedi?</b> Windowson az első indításkor a tűzfal rákérdez – engedélyezd a <i>magánhálózaton</i>. Linuxon a tűzfalat kézzel kell megnyitni a távirányító portjára. A port általában <b>47800</b> (ha foglalt, a következő szabad 47829-ig) – a pontos szám a beállításoknál látszó cím végén áll.</li>
+</ol>
+<h3>A port megnyitása Linuxon</h3>
+<p>Hogy melyik tűzfal fut: <code>sudo ufw status</code> (ufw), ill. <code>sudo firewall-cmd --state</code> (firewalld). Ha egyik sem, és nincs más tűzfal beállítva, valószínűleg nem a tűzfal a gond.</p>
+<p><b>Ubuntu, Kubuntu, Xubuntu, Linux Mint, Pop!_OS, Zorin OS, elementary OS, Debian (ufw-vel)</b></p>
+<pre class="code">sudo ufw allow 47800/tcp</pre>
+<p><b>Fedora, RHEL, CentOS Stream, AlmaLinux, Rocky Linux, openSUSE, Nobara (firewalld)</b></p>
+<pre class="code">sudo firewall-cmd --permanent --add-port=47800/tcp
+sudo firewall-cmd --reload</pre>
+<p><b>Arch Linux, Manjaro, EndeavourOS</b> – alapból általában nincs tűzfal. Ha ufw-t vagy firewalld-t telepítettél, a fenti parancsok valamelyike; tiszta nftables-nél:</p>
+<pre class="code">sudo nft add rule inet filter input tcp dport 47800 accept</pre>
+<p><b>Debian / más rendszer, iptables</b></p>
+<pre class="code">sudo iptables -I INPUT -p tcp --dport 47800 -j ACCEPT</pre>
+<p><b>Grafikus felülettel:</b> Ubuntu, Mint: <i>Tűzfal beállítása</i> (gufw) → Szabály hozzáadása → TCP 47800; Fedora, openSUSE: <i>Tűzfal</i> (firewall-config, ill. YaST → Tűzfal) → Portok → 47800/tcp.</p>
+<div class="tip">Az nft és az iptables szabálya csak újraindításig él – tartósan a rendszer tűzfalbeállításában (pl. <code>/etc/nftables.conf</code>) kell rögzíteni. Ha a beállításoknál más port áll (pl. 47801), a parancsokban azt írd.</div>
 <div class="note">A PIN-t és a QR-kód kulcsát bármikor újra lehet generálni (Új PIN) – a régi telefonnak újra be kell olvasnia a QR-kódot (vagy be kell írnia az új PIN-t). Rossz PIN-nel a vezérlő nem működik; egy eszközről sok hibás próbálkozás után az az eszköz 10 percre kizáródik (a többi telefon közben is működik).</div>
 ${go('#/settings?section=remote', 'Távirányító telefonról')}`,
   },

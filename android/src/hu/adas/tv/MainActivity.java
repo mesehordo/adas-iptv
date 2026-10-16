@@ -419,6 +419,18 @@ public class MainActivity extends Activity {
     }
 
     /** (F05) Éjszakai hang a natív lejátszóhoz (Android 9+). */
+    /** Újrakezdés: az alkalmazás minden adata törlődik (a rendszer bezárja az alkalmazást). → elindult-e */
+    @JavascriptInterface
+    public boolean factoryReset() {
+      try {
+        PlaybackService.stop(MainActivity.this);
+        android.app.ActivityManager am = (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
+        return am != null && am.clearApplicationUserData();
+      } catch (Exception e) {
+        return false;
+      }
+    }
+
     @JavascriptInterface
     public boolean nightAvailable() {
       return NightAudio.available();
