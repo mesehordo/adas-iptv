@@ -135,6 +135,8 @@ class RadioPlayer {
 
   // ------------------------------------------------------------------- natív lejátszás (Android)
   startNative(url, seq) {
+    // (egy még függő korábbi indítás lezárul – különben az azt váró play() ciklus örökre várna)
+    this.nWait?.finish(false);
     return new Promise((resolve) => {
       const id = ++this.nId;
       const finish = (ok) => {

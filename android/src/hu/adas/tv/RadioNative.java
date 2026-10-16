@@ -36,6 +36,13 @@ class RadioNative implements Player.Listener {
     release();
     id = o.optInt("id");
     wasPlaying = false;
+    // csak internetes (http / https) adás – a híd más sémájú címet (file:, content: …) nem nyit meg
+    Uri uri = Uri.parse(o.optString("url"));
+    String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(java.util.Locale.ROOT);
+    if (!scheme.equals("http") && !scheme.equals("https")) {
+      send("st", "error");
+      return;
+    }
     DefaultHttpDataSource.Factory http =
         new DefaultHttpDataSource.Factory()
             .setUserAgent(MainActivity.CHROME_UA)
@@ -47,7 +54,7 @@ class RadioNative implements Player.Listener {
     player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), true);
     player.setVolume(clamp(o.optDouble("volume", 1)));
     player.addListener(this);
-    player.setMediaItem(MediaItem.fromUri(Uri.parse(o.optString("url"))));
+    player.setMediaItem(MediaItem.fromUri(uri));
     player.prepare();
     player.setPlayWhenReady(true);
   }
