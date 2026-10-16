@@ -464,21 +464,44 @@ async function recStart({ url, dir, name, until, audio }) {
   const safe = String(name || 'felvetel').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) || 'felvetel';
   const aOut = AUDIO_OUT[audio] || null;
   const ext = aOut ? aOut.ext : '.ts';
-  let file = path.join(dir, `${safe}${ext}`);
-  for (let i = 2; fs.existsSync(file); i++) file = path.join(dir, `${safe} (${i})${ext}`);
+  // (H32) a szabad név lefoglalása kizárólagos létrehozással („wx”): az ellenőrzés és a megnyitás között egy másik,
+  // egyszerre induló felvétel nem kaphatja ugyanazt a fájlt
+  let file = '';
+  let fd = -1;
+  for (let i = 1; fd < 0; i++) {
+    if (i > 9999) throw new Error(_t('Nem sikerült fájlnevet foglalni a felvételnek.'));
+    file = path.join(dir, i === 1 ? `${safe}${ext}` : `${safe} (${i})${ext}`);
+    try {
+      fd = fs.openSync(file, 'wx');
+    } catch (err) {
+      if (err.code !== 'EEXIST') throw err;
+    }
+  }
   const hlsOpts = /\.m3u8?(\?|$)/i.test(url) ? ['-max_reload', '1000', '-m3u8_hold_counters', '1000'] : [];
   // Újraindításkor a kimenet ideje az addig eltelt idővel folytatódik (különben az összefűzött fájlban az idő visszaugrana)
   // (élő HLS-nél újraindításkor a legfrissebb résztől folytatjuk – különben a korábbi részek ismétlődnének)
   const argsFor = (offset) => ['-hide_banner', '-nostdin', '-loglevel', 'error', ...headerArgs(url), ...hlsOpts, ...(offset > 0 && hlsOpts.length ? ['-live_start_index', '-1'] : []), '-i', inputOf(url), ...(aOut ? aOut.args : ['-c', 'copy', ...(offset > 0 ? ['-output_ts_offset', offset.toFixed(1)] : []), '-f', 'mpegts']), 'pipe:1'];
   const id = String(++recSeq);
-  const out = fs.createWriteStream(file, { flags: 'a' });
+  const out = fs.createWriteStream(file, { fd, flags: 'a' });
   const rec = { proc: null, file, out, started: Date.now(), until: until || 0, restarts: 0, err: '' };
   recordings.set(id, rec);
   const MAX_RESTARTS = 60;
+  let ended = false;
+  // (egyszeri lezárás: rendes vég, végleges hiba vagy írási hiba is ide fut – egyetlen rec-ended értesítéssel)
   const finish = (error) => {
+    if (ended) return;
+    ended = true;
     clearTimeout(rec.timer);
     clearTimeout(rec.retry);
     recordings.delete(id);
+    if (out.destroyed || out.errored) {
+      let size = 0;
+      try {
+        size = fs.statSync(file).size;
+      } catch {}
+      opts.emit('rec-ended', { id, file, size, restarts: rec.restarts, error });
+      return;
+    }
     out.end(() => {
       let size = 0;
       try {
@@ -487,7 +510,18 @@ async function recStart({ url, dir, name, until, audio }) {
       opts.emit('rec-ended', { id, file, size, restarts: rec.restarts, error });
     });
   };
+  // (H01) írási hiba (betelt lemez, jogosultság, eltűnt külső meghajtó): a kezeletlen stream-hiba a főfolyamatot
+  // leállítaná – helyette az FFmpeg leáll, a felvétel hibával véget ér, újrapróbálás nincs
+  out.on('error', (err) => {
+    rec.stopping = true;
+    try {
+      rec.proc?.stdout.unpipe(out);
+      rec.proc?.kill();
+    } catch {}
+    finish(_t('A felvétel nem írható a lemezre: {msg}', { msg: err.code || err.message }));
+  });
   const run = () => {
+    if (ended) return;
     const proc = spawn(FF, argsFor(rec.restarts ? (Date.now() - rec.started) / 1000 : 0), { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
     rec.proc = proc;
     rec.err = '';

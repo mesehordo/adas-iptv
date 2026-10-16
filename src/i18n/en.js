@@ -2268,5 +2268,7 @@ export default {
  "Néhány fájl nem törölhető (talán egy másik program használja): {list}": "Some files could not be deleted (perhaps another program is using them): {list}",
  "Az Adás most a megmaradt adatokkal indul. A mappát kézzel is törölheted: {dir}": "Adás now starts with the remaining data. You can also delete the folder manually: {dir}",
  "Zárd be a többi programot, majd próbáld újra.": "Close other programs, then try again.",
- "Videó közben másik alkalmazásra váltva az adás hangja tovább szól (értesítéssel, onnan leállítható). A rádió és a képernyő lezárása után a videó hangja mindig tovább szól.": "When you switch to another app during a video, its sound keeps playing (with a notification you can stop it from). The radio, and video sound after locking the screen, always keep playing."
+ "Videó közben másik alkalmazásra váltva az adás hangja tovább szól (értesítéssel, onnan leállítható). A rádió és a képernyő lezárása után a videó hangja mindig tovább szól.": "When you switch to another app during a video, its sound keeps playing (with a notification you can stop it from). The radio, and video sound after locking the screen, always keep playing.",
+ "Nem sikerült fájlnevet foglalni a felvételnek.": "Could not reserve a file name for the recording.",
+ "A felvétel nem írható a lemezre: {msg}": "The recording cannot be written to disk: {msg}"
 };
