@@ -1370,6 +1370,9 @@ const PREVIEW_MAX_MS = 60e3;
 export async function startPreview(container, ch) {
   stopPreview();
   if (!store.settings.heroPreview || player.active || document.hidden) return;
+  // (H22) gyerekprofilban nincs élő előnézet: az a lejátszó szülői ellenőrzését (napi keret, műsor-korhatár) és
+  // a nézési idő számolását megkerülné – ott a logó marad, a lejátszás a rendes (ellenőrzött) úton indul
+  if (store.profile?.kids) return;
   const v = html('<video class="hero-video" muted playsinline></video>');
   container.append(v);
   const eng = new Engine(v);
