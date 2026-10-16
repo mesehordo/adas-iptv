@@ -516,10 +516,14 @@ ${go('#/settings?section=huinfo', 'Beállítások')}`,
 <tr><td><b>Fedezd fel</b></td><td>Egy véletlenszerűen választott, épp műsoron lévő (nem kedvenc) csatorna – <i>Másikat</i> gombbal újat kérhetsz.</td></tr>
 <tr><td><b>Nap és levegő</b></td><td>Napkelte, napnyugta, a nappal hossza, UV-index és légminőség az időjárás településén (Open-Meteo).</td></tr>
 <tr><td><b>Jegyzet</b></td><td>Saját jegyzet (profilonként), magától mentődik.</td></tr>
+<tr><td><b>Rádió – most szól</b></td><td>A szóló adó (borító vagy logó, a most szóló szám) szünet és előző / következő adó gombbal; ha épp nem szól semmi, az utoljára hallgatott adó a <i>Hallgatás</i> gombbal.</td></tr>
+<tr><td><b>Kedvenc rádiók</b></td><td>A kedvenc adók logói – egy kattintással szólnak; a szóló adó kiemelve.</td></tr>
+<tr><td><b>Most a rádióban</b></td><td>A műsorújsággal rendelkező adók (pl. Kossuth, Petőfi, Bartók) épp futó műsora a következővel, elöl a kedvencek.</td></tr>
+<tr><td><b>Népszerű hazai rádiók</b></td><td>A hazai ország legnépszerűbb, működő adói, műfajjal és bitrátával (széles kártyán két oszlopban).</td></tr>
 </table>
 <p>Ezek az egységek alapból nincsenek a főoldalon: Testreszabás → <b>Hozzáadás</b>.</p>
 <h2>Kész elrendezések, napszak szerint</h2>
-<p>A Testreszabás eszköztárán a <b>Kész elrendezés</b> gombokkal egy kattintással betölthető: Alap, Reggeli (időjárás, hírek, óra, árfolyam), Esti tévézés (műsor, ma este, folytatás), Sport, Hírek és tőzsde, Egyszerű. A <b>Napszak szerint váltson</b> kapcsolóval reggel 5–10 óra között a Reggeli, 18 órától az Esti tévézés elrendezés jelenik meg, napközben a saját.</p>
+<p>A Testreszabás eszköztárán a <b>Kész elrendezés</b> gombokkal egy kattintással betölthető: Alap, Reggeli (időjárás, hírek, óra, árfolyam), Esti tévézés (műsor, ma este, folytatás), Sport, Hírek és tőzsde, Egyszerű, Rádiózás (most szól, kedvenc rádiók, most a rádióban, népszerű hazai rádiók). A rádiós egységek gyerekprofilban és kikapcsolt Rádió menüpontnál nem választhatók. A <b>Napszak szerint váltson</b> kapcsolóval reggel 5–10 óra között a Reggeli, 18 órától az Esti tévézés elrendezés jelenik meg, napközben a saját.</p>
 <p>Az <b>Utoljára nézett csatorna</b> kártyáján néhány másodperc után a csatorna némított élő képe indul (asztali gépen és Androidon, ha az Előnézet be van kapcsolva).</p>
 <p>A csatornák sorai a <b>TV</b> oldalra kerültek (a menüben a Főoldal után). ${t('home', 'A TV oldal')}</p>
 ${go('#/settings?section=dashboard', 'A főoldal beállításai')}`,

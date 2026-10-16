@@ -516,10 +516,14 @@ ${go('#/settings?section=huinfo', 'Settings')}`,
 <tr><td><b>Discover</b></td><td>A randomly chosen (non-favourite) channel that’s on air right now – ask for a new one with <i>Another</i>.</td></tr>
 <tr><td><b>Sun and air</b></td><td>Sunrise, sunset, day length, UV index and air quality at the weather’s place (Open-Meteo).</td></tr>
 <tr><td><b>Note</b></td><td>Your own note (per profile), saved automatically.</td></tr>
+<tr><td><b>Radio – now playing</b></td><td>The station playing (cover or logo, the track on now) with pause and previous / next station buttons; when nothing is playing, the last station you listened to with a <i>Listen</i> button.</td></tr>
+<tr><td><b>Favourite stations</b></td><td>The logos of your favourite stations – one click to listen; the station playing is highlighted.</td></tr>
+<tr><td><b>On the radio now</b></td><td>What’s on now (and next) on stations with a programme guide (e.g. Kossuth, Petőfi, Bartók), favourites first.</td></tr>
+<tr><td><b>Popular local radio</b></td><td>The most popular working stations of your home country, with genre and bitrate (in two columns on a wide card).</td></tr>
 </table>
 <p>Some units aren’t on the home page by default: Customise → <b>Add</b>.</p>
 <h2>Ready-made layouts, by time of day</h2>
-<p>With the <b>Ready-made layout</b> buttons on the Customise toolbar you can load with one click: Default, Morning (weather, news, clock, exchange rates), Evening TV (programmes, tonight, continue), Sport, News and markets, Simple. With the <b>Switch by time of day</b> switch, the Morning layout appears between 5 and 10 am, Evening TV from 6 pm, and your own layout during the day.</p>
+<p>With the <b>Ready-made layout</b> buttons on the Customise toolbar you can load with one click: Default, Morning (weather, news, clock, exchange rates), Evening TV (programmes, tonight, continue), Sport, News and markets, Simple, Radio listening (now playing, favourite stations, on the radio now, popular local radio). The radio units are not available in kids profiles or when the Radio menu item is turned off. With the <b>Switch by time of day</b> switch, the Morning layout appears between 5 and 10 am, Evening TV from 6 pm, and your own layout during the day.</p>
 <p>On the <b>Last watched channel</b> card, the channel’s muted live picture starts after a few seconds (on desktop and Android, if Live preview is on).</p>
 <p>The channel rows moved to the <b>TV</b> page (after Home in the menu). ${t('home', 'The TV page')}</p>
 ${go('#/settings?section=dashboard', 'Home page settings')}`,
