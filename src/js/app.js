@@ -215,7 +215,9 @@ bus.on('profile', applyRadioMenu);
 bus.on('radio', debounce(() => {
   const { name, params } = parseHash();
   if (name === 'radio' && params.get('tab') !== 'browse' && !player.active && radio.ready) route({ keepScroll: true });
+  else if (name === 'search' && !player.active && radio.ready) route({ keepScroll: true });
 }, 400));
+bus.on('radio-search', () => parseHash().name === 'search' && !player.active && route({ keepScroll: true }));
 bus.on('radio-favs', () => parseHash().name === 'favorites' && !player.active && route({ keepScroll: true }));
 bus.on('profile-theme', () => leaveHome());
 bus.on('settings', (k) => ['hideOffline', 'showAdult', 'homeCountry'].includes(k) && parseHash().name !== 'settings' && rerender());
@@ -243,8 +245,11 @@ searchInput.addEventListener(
   'input',
   debounce(() => {
     const q = searchInput.value.trim();
-    const target = q ? '#/search?q=' + encodeURIComponent(q) : '#/home';
-    if (parseHash().name === 'search') location.replace(target);
+    // (a Keresés oldalon választott szűrő – TV, műsor, VOD, rádió – gépelés közben megmarad)
+    const { name, params } = parseHash();
+    const only = name === 'search' ? params.get('t') || '' : '';
+    const target = q ? '#/search?q=' + encodeURIComponent(q) + (only ? '&t=' + only : '') : '#/home';
+    if (name === 'search') location.replace(target);
     else location.hash = target;
   }, 250)
 );

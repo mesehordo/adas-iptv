@@ -497,7 +497,7 @@ export default {
  "TV": "TV",
  "VOD – filmek, sorozatok, saját médiatár": "VOD – films, series, own media library",
  "Keresés (Ctrl+F)": "Search (Ctrl+F)",
- "Csatorna, ország, műsor…": "Channel, country, programme…",
+ "Csatorna, műsor, film, rádió…": "Channel, programme, film, radio…",
  "Súgó (F1)": "Help (F1)",
  "Vissza (Esc)": "Back (Esc)",
  "Gyerekprofilok – mit nézhetnek?": "Kids profiles – what can they watch?",
@@ -2225,5 +2225,18 @@ export default {
  "⚽ Sport": "⚽ Sport",
  "Nincs kedvenc rádió.": "No favourite radio stations.",
  "Elalvás-időzítő kikapcsolva": "Sleep timer off",
- "Már nyitva van egy mappaválasztó.": "A folder picker is already open."
+ "Már nyitva van egy mappaválasztó.": "A folder picker is already open.",
+ "Ez legyen a QR-kódban": "Use this one in the QR code",
+ "Ha a telefon nem éri el, válaszd a másik címet – a QR-kód ahhoz készül.": "If the phone can't reach it, pick the other address – the QR code is made for it.",
+ "Ha a telefon böngészője szerint „a kapcsolódás sikertelen”: a gép tűzfala tilthatja – engedélyezd a {port}-as TCP-portot (pl. Linuxon: sudo ufw allow {port}/tcp).": "If the phone's browser says it can't connect, the computer's firewall may be blocking it – allow TCP port {port} (e.g. on Linux: sudo ufw allow {port}/tcp).",
+ "Írd be egy csatorna, műsor, film vagy rádióadó nevét.": "Type the name of a channel, programme, film or radio station.",
+ "{n} találat": "{n} results",
+ "Mind": "All",
+ "TV-csatornák": "TV channels",
+ "Keresés a Rádió oldalon ›": "Search on the Radio page ›",
+ "Mintavétel": "Sample rate",
+ "mono": "mono",
+ "sztereó": "stereo",
+ "csatorna": "channels",
+ "Az adás többször megszakadt – próbáld újra később.": "The stream dropped several times – try again later."
 };

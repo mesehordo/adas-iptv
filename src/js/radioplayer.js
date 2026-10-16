@@ -45,15 +45,23 @@ export const VIS_MODES = [
 
 const AC = window.AudioContext || window.webkitAudioContext;
 /** Működik-e itt a hangfeldolgozás (effektek, vizualizáció)? */
-export const audioFxAvailable = !!AC && (!!window.api || IS_ANDROID);
+/** Androidon a rádió natív lejátszóval (ExoPlayer) szól – a WebView audioeleme sok adónál nem indult el. */
+export const NATIVE_RADIO = IS_ANDROID && typeof window.AdasAndroid?.radioPlay === 'function';
+export const audioFxAvailable = !!AC && !NATIVE_RADIO && (!!window.api || IS_ANDROID);
+const PLAIN = 2; // a tartalék (CORS és hangfeldolgozás nélküli) audioelem sorszáma
 const PLAYLIST_RX = /\.(pls|m3u|asx|xspf)(\?|$)/i;
 const START_TIMEOUT = 15000;
+const RESOLVE_TIMEOUT = 8000; // a lejátszólista (.pls / .m3u…) letöltésének felső ideje
 
 /** Lejátszólista-cím (.pls / .m3u / .asx) → az első adás címe. */
 export async function resolveStream(url) {
   if (!PLAYLIST_RX.test(url) || /\.m3u8(\?|$)/i.test(url)) return url;
   try {
-    const { text } = await api.fetchText(url, { maxAgeHours: 24 });
+    let timer = 0;
+    const { text } = await Promise.race([
+      api.fetchText(url, { maxAgeHours: 24 }),
+      new Promise((_, reject) => (timer = setTimeout(() => reject(new Error('timeout')), RESOLVE_TIMEOUT))),
+    ]).finally(() => clearTimeout(timer));
     const m = /^\s*(?:File\d+=)?(https?:\/\/[^\s"<]+)/im.exec(text) || /<ref[^>]+href="(https?:\/\/[^"]+)"/i.exec(text) || /<location>(https?:\/\/[^<]+)<\/location>/i.exec(text);
     return m ? m[1].trim() : url;
   } catch {
@@ -94,14 +102,22 @@ class RadioPlayer {
     this.now = { text: '', artist: '', title: '', cover: '' };
     this.history = []; // [{ t, text, artist, title, cover }]
     this.sleepAt = 0;
-    this.els = [new Audio(), new Audio()];
+    // 0, 1: a hangfeldolgozáson át szóló elemek (átúsztatás); 2: tartalék, CORS nélkül és hangfeldolgozás nélkül –
+    // ha egy adás CORS-módban nem indul (pl. Androidon a WebView nem a proxyn át kéri, vagy a szerver elutasítja),
+    // így is megszólal (hangszínszabályzó és vizualizáció nélkül)
+    this.els = [new Audio(), new Audio(), new Audio()];
     this.cur = 0;
-    for (const a of this.els) {
+    this.els.forEach((a, i) => {
       a.preload = 'none';
       // CORS-módban töltve a hangfeldolgozás hozzáfér az adáshoz (különben elnémulna)
-      if (audioFxAvailable) a.crossOrigin = 'anonymous';
-    }
-    this.hls = [null, null];
+      if (audioFxAvailable && i < PLAIN) a.crossOrigin = 'anonymous';
+    });
+    this.hls = [null, null, null];
+    this.noCors = new Set(); // címek, amelyek csak CORS nélkül indulnak
+    this.nId = 0; // a natív lejátszó indításainak sorszáma (a késői események szűréséhez)
+    this.nWait = null; // a folyamatban lévő natív indítás
+    this.nativeEvents = new EventTarget(); // natív lejátszás: akadás ('waiting') és folytatás ('playing') – radiostats.js
+    if (NATIVE_RADIO) window.__adasRadio = (e) => this.onNative(e || {});
     this.ctx = null;
     this.analyser = null;
     this.seq = 0;
@@ -111,6 +127,54 @@ class RadioPlayer {
 
   get el() {
     return this.els[this.cur];
+  }
+  /** Szól-e a hangfeldolgozás (a tartalék elemen nem: ott nincs hangszínszabályzó és vizualizáció). */
+  get fxActive() {
+    return !!this.ctx && this.cur !== PLAIN;
+  }
+
+  // ------------------------------------------------------------------- natív lejátszás (Android)
+  startNative(url, seq) {
+    // (egy még függő korábbi indítás lezárul – különben az azt váró play() ciklus örökre várna)
+    this.nWait?.finish(false);
+    return new Promise((resolve) => {
+      const id = ++this.nId;
+      const finish = (ok) => {
+        if (this.nWait?.id !== id) return;
+        clearTimeout(this.nWait.timer);
+        this.nWait = null;
+        const good = ok && seq === this.seq;
+        if (!good && id === this.nId) window.AdasAndroid.radioStop();
+        resolve(good);
+      };
+      this.nWait = { id, finish, timer: setTimeout(() => finish(false), START_TIMEOUT) };
+      window.AdasAndroid.radioPlay(JSON.stringify({ id, url, volume: fx().volume }));
+    });
+  }
+  onNative(e) {
+    if (e.id !== this.nId) return; // (egy korábbi indítás késői eseménye)
+    if (this.nWait) {
+      if (e.st === 'playing') this.nWait.finish(true);
+      else if (e.st === 'error' || e.st === 'ended') this.nWait.finish(false);
+      return;
+    }
+    if (e.meta !== undefined) return void this.setNowText(String(e.meta).trim(), this.seq);
+    if (e.st === 'buffering' || e.st === 'playing') this.nativeEvents.dispatchEvent(new Event(e.st === 'buffering' ? 'waiting' : 'playing'));
+    // lejátszás közben megszakadt adás: újraindítás (a tartalék címekkel együtt), mint a kezdéskor – percenként
+    // legfeljebb háromszor (egy újra és újra azonnal megszakadó adás ne pörögjön a végtelenségig)
+    if ((e.st === 'error' || e.st === 'ended') && this.station && this.state === 'playing') {
+      const now = Date.now();
+      this.nRetry = (this.nRetry || []).filter((t) => now - t < 60e3);
+      if (this.nRetry.length < 3) {
+        this.nRetry.push(now);
+        this.play(this.station);
+      } else {
+        this.state = 'error';
+        this.error = _t('Az adás többször megszakadt – próbáld újra később.');
+        window.AdasAndroid.radioStop();
+        this.emit();
+      }
+    }
   }
   get active() {
     return !!this.station;
@@ -124,7 +188,7 @@ class RadioPlayer {
     if (this.ctx || !audioFxAvailable) return;
     try {
       const c = (this.ctx = new AC());
-      this.srcGain = this.els.map((el) => {
+      this.srcGain = this.els.slice(0, PLAIN).map((el) => {
         const s = c.createMediaElementSource(el);
         const g = c.createGain();
         g.gain.value = 0;
@@ -207,7 +271,8 @@ class RadioPlayer {
   /** A hangzás beállításainak alkalmazása (a lánc újrakötése). */
   applyFx() {
     const f = fx();
-    for (const el of this.els) el.volume = audioFxAvailable && this.ctx ? 1 : f.volume;
+    this.els.forEach((el, i) => (el.volume = audioFxAvailable && this.ctx && i !== PLAIN ? 1 : f.volume));
+    if (NATIVE_RADIO) window.AdasAndroid.radioVolume(f.volume);
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
     this.master.gain.setTargetAtTime(f.volume, t, 0.05);
@@ -252,8 +317,18 @@ class RadioPlayer {
       if (seq !== this.seq) return;
       const url = await resolveStream(raw);
       if (seq !== this.seq) return;
-      const ok = await this.start(url, seq);
+      // (amelyik cím CORS-módban egyszer már nem indult, az legközelebb rögtön a tartalék elemen szól)
+      const noCors = this.ctx && this.noCors.has(url);
+      let ok = await this.start(url, seq, noCors);
       if (seq !== this.seq) return;
+      if (!ok && this.ctx && !noCors) {
+        ok = await this.start(url, seq, true);
+        if (seq !== this.seq) return;
+        if (ok) {
+          this.noCors.add(url);
+          if (this.noCors.size > 200) this.noCors.delete(this.noCors.values().next().value);
+        }
+      }
       store.setHealth(raw, ok, 'play');
       if (!ok && api.checkStreams && api.caps?.health) {
         // (a lejátszó nem adja meg a HTTP-választ: a háttérben futó próba dönti el, hogy a szerver elutasította-e
@@ -291,9 +366,10 @@ class RadioPlayer {
   }
 
   /** Egy cím indítása a másik audioelemen, átúsztatással. → sikerült-e */
-  start(url, seq) {
+  start(url, seq, plain = false) {
+    if (NATIVE_RADIO) return this.startNative(url, seq);
     return new Promise((resolve) => {
-      const next = 1 - this.cur;
+      const next = plain ? PLAIN : this.cur === 0 ? 1 : 0;
       const el = this.els[next];
       const old = this.els[this.cur];
       this.detach(next);
@@ -310,7 +386,8 @@ class RadioPlayer {
         }
         // átúsztatás: az új felerősödik, a régi elhalkul, majd megáll
         const x = Math.max(0, fx().xfade);
-        if (this.ctx) {
+        const fade = this.ctx && next !== PLAIN && this.cur !== PLAIN;
+        if (fade) {
           const t = this.ctx.currentTime;
           const gNew = this.srcGain[next].gain;
           const gOld = this.srcGain[this.cur].gain;
@@ -320,11 +397,11 @@ class RadioPlayer {
           gOld.cancelScheduledValues(t);
           gOld.setValueAtTime(gOld.value, t);
           gOld.linearRampToValueAtTime(0, t + Math.max(0.05, x));
-        }
+        } else if (this.ctx && next !== PLAIN) this.srcGain[next].gain.value = 1;
         const prev = this.cur;
         this.cur = next;
-        setTimeout(() => this.cur !== prev && this.detach(prev), x * 1000 + 300);
-        if (!this.ctx) this.detach(prev);
+        if (fade) setTimeout(() => this.cur !== prev && this.detach(prev), x * 1000 + 300);
+        else if (prev !== next) this.detach(prev);
         resolve(true);
       };
       const onOk = () => finish(true);
@@ -332,7 +409,7 @@ class RadioPlayer {
       const timer = setTimeout(() => finish(false), START_TIMEOUT);
       el.addEventListener('playing', onOk);
       el.addEventListener('error', onErr);
-      if (this.ctx) this.srcGain[next].gain.value = old.paused || !old.src ? 1 : 0;
+      if (this.ctx && next !== PLAIN) this.srcGain[next].gain.value = old.paused || !old.src || this.cur === PLAIN ? 1 : 0;
       if (/\.m3u8(\?|$)/i.test(url) && window.Hls?.isSupported() && !el.canPlayType('application/vnd.apple.mpegurl')) {
         const h = new window.Hls({ lowLatencyMode: false });
         h.on(window.Hls.Events.ERROR, (_e, d) => d.fatal && onErr());
@@ -355,7 +432,7 @@ class RadioPlayer {
     try {
       el.load();
     } catch {}
-    if (this.ctx) this.srcGain[i].gain.value = 0;
+    if (this.ctx && i !== PLAIN) this.srcGain[i].gain.value = 0;
   }
 
   toggle() {
@@ -368,6 +445,11 @@ class RadioPlayer {
     ++this.seq; // (a folyamatban lévő indítás érvényét veszti)
     this.detach(0);
     this.detach(1);
+    this.detach(PLAIN);
+    if (NATIVE_RADIO) {
+      this.nWait?.finish(false);
+      window.AdasAndroid.radioStop();
+    }
     this.state = 'paused';
     clearInterval(this.metaTimer);
     api.setPlaying?.(false);
@@ -406,7 +488,8 @@ class RadioPlayer {
       let k = 20;
       this.sleepFade = setInterval(() => {
         k--;
-        if (this.ctx) this.master.gain.value = (start * k) / 20;
+        if (NATIVE_RADIO) window.AdasAndroid.radioVolume((start * k) / 20);
+        else if (this.fxActive) this.master.gain.value = (start * k) / 20;
         else this.el.volume = (start * k) / 20;
         if (k <= 0) {
           clearInterval(this.sleepFade);
@@ -421,7 +504,7 @@ class RadioPlayer {
   // ------------------------------------------------------------------- most szól
   startMeta() {
     clearInterval(this.metaTimer);
-    if (!api.icyTitle) return;
+    if (NATIVE_RADIO || !api.icyTitle) return; // (natív lejátszásnál a címet a lejátszó adja – onNative)
     const seq = this.seq;
     const poll = async () => {
       if (seq !== this.seq || this.state !== 'playing') return;
@@ -429,25 +512,30 @@ class RadioPlayer {
       try {
         t = String((await api.icyTitle(this.url, this.station.country)) || '').trim();
       } catch {}
-      if (seq !== this.seq || !t || t === this.now.text) return;
-      // (a csak az adó nevét vagy szlogenjét ismétlő cím nem szám – nem kerül az előzmények közé)
-      const { artist, title } = splitTitle(t);
-      const same = t.toLowerCase() === this.station.name.toLowerCase();
-      this.now = { text: t, artist, title, cover: '' };
-      if (!same && artist) this.history = [{ t: Date.now(), text: t, artist, title, cover: '' }, ...this.history.filter((h) => h.text !== t)].slice(0, 30);
-      api.setNowPlaying?.(`${this.station.name} – ${t}`);
-      this.mediaSession();
-      this.emit('meta');
-      const cover = await findCover(artist, title);
-      if (seq === this.seq && this.now.text === t && cover) {
-        this.now.cover = cover;
-        if (this.history[0]?.text === t) this.history[0].cover = cover;
-        this.mediaSession();
-        this.emit('meta');
-      }
+      await this.setNowText(t, seq);
     };
     poll();
     this.metaTimer = setInterval(poll, 20000);
+  }
+
+  /** A most szóló szám címe (ICY): kijelzés, előzmények, borító. */
+  async setNowText(t, seq) {
+    if (seq !== this.seq || !this.station || !t || t === this.now.text) return;
+    // (a csak az adó nevét vagy szlogenjét ismétlő cím nem szám – nem kerül az előzmények közé)
+    const { artist, title } = splitTitle(t);
+    const same = t.toLowerCase() === this.station.name.toLowerCase();
+    this.now = { text: t, artist, title, cover: '' };
+    if (!same && artist) this.history = [{ t: Date.now(), text: t, artist, title, cover: '' }, ...this.history.filter((h) => h.text !== t)].slice(0, 30);
+    api.setNowPlaying?.(`${this.station.name} – ${t}`);
+    this.mediaSession();
+    this.emit('meta');
+    const cover = await findCover(artist, title);
+    if (seq === this.seq && this.now.text === t && cover) {
+      this.now.cover = cover;
+      if (this.history[0]?.text === t) this.history[0].cover = cover;
+      this.mediaSession();
+      this.emit('meta');
+    }
   }
 
   mediaSession() {
@@ -513,7 +601,7 @@ export function drawVisualizer(canvas, getMode, { mini = false } = {}) {
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, w, h);
     const an = radioPlayer.analyser;
-    const live = an && radioPlayer.state === 'playing';
+    const live = an && radioPlayer.fxActive && radioPlayer.state === 'playing';
     if (live) {
       an.getByteFrequencyData(freq);
       an.getByteTimeDomainData(wave);

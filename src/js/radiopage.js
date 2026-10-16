@@ -783,6 +783,52 @@ function renderBrowse(view, params) {
 const genreCache = new Map(); // műfaj → a világ népszerű adói (Radio Browser)
 
 /** A Kedvencek oldal „Rádiók” sora (üresen egy rövid tipp). */
+// A Keresés oldal rádiós találatai: a betöltött adók közül, és ha ott kevés van, a Radio Browserből is (név
+// szerint; kifejezésenként egyszer kérdezve – az újrarajzolás nem kérdez újra).
+const onlineHits = new Map(); // kifejezés → adók (vagy a folyamatban lévő kérés)
+export function radioSearchCount(q) {
+  if (!radioMenuOn()) return 0;
+  const seen = new Set(radioSearch(q).map((s) => s.id));
+  const extra = (Array.isArray(onlineHits.get(q)) ? onlineHits.get(q) : []).filter((s) => !seen.has(s.id));
+  return seen.size + extra.length;
+}
+/**
+ * A Keresés oldal rádiós keresése – a választott fültől függetlenül (a Rádió fül darabszámához is): a betöltött
+ * adók, és ha ott kevés a találat, a Radio Browser. Az online kérés csak a gépelés szünetében indul (egy közös
+ * időzítővel – a részleges kifejezések nem indítanak külön-külön kérést).
+ */
+let onlineTimer = 0;
+export function startRadioSearch(q) {
+  if (!radioMenuOn()) return;
+  if (!radio.ready) loadRadio(); // (a betöltés végén a Keresés oldal újrarajzolódik – app.js)
+  clearTimeout(onlineTimer);
+  if (onlineHits.has(q) || q.trim().length < 2 || radioSearch(q).length >= 12) return;
+  onlineTimer = setTimeout(() => {
+    if (onlineHits.has(q)) return;
+    onlineHits.set(q, 'pending');
+    searchRadioOnline(q)
+      .then((r) => onlineHits.set(q, r))
+      .catch(() => onlineHits.set(q, []))
+      .finally(() => {
+        if (onlineHits.size > 30) onlineHits.delete(onlineHits.keys().next().value);
+        if (document.body.dataset.route === 'search') bus.emit('radio-search');
+      });
+  }, 700);
+}
+export function radioSearchSection(q, { limit = 18 } = {}) {
+  if (!radioMenuOn()) return null;
+  const local = radioSearch(q);
+  const known = onlineHits.get(q);
+  const seen = new Set(local.map((s) => s.id));
+  const list = [...local, ...(Array.isArray(known) ? known.filter((s) => !seen.has(s.id)) : [])];
+  if (!list.length) return null;
+  const box = html(`<section class="sc-radio"><h2 class="section-title">${_t('Rádió')} <a class="btn small" href="#/radio?tab=browse&amp;q=${encodeURIComponent(q)}">${_t('Keresés a Rádió oldalon ›')}</a></h2></section>`);
+  const grid = html(`<div class="rbox">${gridHtml(list, { limit })}</div>`);
+  bindMore(grid, () => list);
+  box.append(grid);
+  return box;
+}
+
 export function radioFavsSection() {
   if (!radioMenuOn()) return null;
   const favs = radioFavs();

@@ -666,6 +666,7 @@ export async function openRemoteDialog() {
 // ---------------------------------------------------------------------------
 // Beállítások → Távirányító és billentyűk → Távirányító telefonról
 // ---------------------------------------------------------------------------
+let qrPick = 0; // a QR-kódba kerülő cím sorszáma (több hálózati cím esetén választható)
 export function renderRemoteSettings(box) {
   if (!canRemote || !box) return box?.remove();
   const s = store.settings;
@@ -680,21 +681,29 @@ export function renderRemoteSettings(box) {
                 <div class="rc-qr" title="${_t('Olvasd be a telefon kamerájával')}">${(() => {
                   if (!urls.length) return ''; // nincs hálózati cím: üres QR-t nem rajzolunk
                   try {
-                    return qrSvg(`${urls[0]}#k=${s.remoteKey}`, { px: 5 });
+                    return qrSvg(`${urls[Math.min(qrPick, urls.length - 1)]}#k=${s.remoteKey}`, { px: 5 });
                   } catch {
                     return '';
                   }
                 })()}</div>
                 <div class="rc-text">
                   <div>${_t('<b>Olvasd be a QR-kódot a telefon kamerájával</b> – a lap megnyílik, és egy titkos kulcsot is megkap (ez a legbiztonságosabb, semmit nem kell begépelni).')}</div>
-                  ${urls.length ? `<div class="muted small">${_t('Vagy nyisd meg a telefon böngészőjében:')}</div>${urls.map((u) => `<code class="rc-url">${esc(u)}</code>`).join('')}` : `<div class="warn small">${_t('⚠ Nem található hálózati cím – csatlakozz egy (otthoni) hálózathoz, majd kapcsold ki és be a távirányítót.')}</div>`}
+                  ${urls.length ? `<div class="muted small">${_t('Vagy nyisd meg a telefon böngészőjében:')}</div>${urls.map((u, i) => (urls.length > 1 ? `<button class="rc-url ${i === Math.min(qrPick, urls.length - 1) ? 'on' : ''}" data-rcip="${i}" title="${_t('Ez legyen a QR-kódban')}">${esc(u)}</button>` : `<code class="rc-url">${esc(u)}</code>`)).join('')}${urls.length > 1 ? `<div class="muted small">${_t('Ha a telefon nem éri el, válaszd a másik címet – a QR-kód ahhoz készül.')}</div>` : ''}` : `<div class="warn small">${_t('⚠ Nem található hálózati cím – csatlakozz egy (otthoni) hálózathoz, majd kapcsold ki és be a távirányítót.')}</div>`}
                   <div>${_t('PIN:')} <span class="share-code rc-pin">${esc(s.remotePin)}</span></div>
                   <div class="muted small">${_t('Tipp: a telefonon tedd ki a lapot a kezdőképernyőre, így alkalmazásként indul. Első alkalommal a Windows tűzfal engedélyt kérhet. Ha több cím látszik, azt válaszd, amelyik a telefonéval egy hálózaton van (a QR-kód az elsőt tartalmazza).')}</div>
+                  ${api.platform === 'desktop' && !/Windows/i.test(navigator.userAgent) ? `<div class="muted small">${_t('Ha a telefon böngészője szerint „a kapcsolódás sikertelen”: a gép tűzfala tilthatja – engedélyezd a {port}-as TCP-portot (pl. Linuxon: sudo ufw allow {port}/tcp).', { port: info.port })}</div>` : ''}
                   <div class="inline"><button class="btn small" data-rc="pin">${_t('Új PIN')}</button></div>
                 </div></div>`
             : `<p class="muted small">${_t('Indítás…')}</p>`
           : ''}`;
   };
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-rcip]');
+    if (!b) return;
+    qrPick = Number(b.dataset.rcip) || 0;
+    draw();
+    box.querySelector(`[data-rcip="${qrPick}"]`)?.focus();
+  });
   box.onchange = async (e) => {
     if (e.target.dataset.rc !== 'on') return;
     e.stopPropagation();

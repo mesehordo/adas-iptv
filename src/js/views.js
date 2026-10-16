@@ -21,7 +21,7 @@ import { exoAvailable } from './exo.js';
 import { renderKidsSettings } from './kidsui.js';
 import { renderDashSettings } from './dashboard.js';
 import { watchList } from './sports.js';
-import { radioFavsSection } from './radiopage.js';
+import { radioFavsSection, radioSearchSection, radioSearchCount, startRadioSearch } from './radiopage.js';
 import { renderRadioSettings } from './radiosettings.js';
 const sportWatchCount = () => watchList().filter((w) => w.on !== false).length;
 import { requireAdult, hasPin, choosePin, setPin } from './pin.js';
@@ -463,7 +463,7 @@ export function renderSearch(view, params) {
   const q = params.get('q') || '';
   const tokens = norm(q).split(/\s+/).filter(Boolean);
   if (!tokens.length) {
-    view.innerHTML = `<div class="page">${emptyState(_t('Keresés'), _t('Írd be egy csatorna, ország, kategória vagy műsor nevét.'))}</div>`;
+    view.innerHTML = `<div class="page">${emptyState(_t('Keresés'), _t('Írd be egy csatorna, műsor, film vagy rádióadó nevét.'))}</div>`;
     return;
   }
   // (a keresés maga is az elérhetőket teszi előre – catalog.search)
@@ -473,27 +473,40 @@ export function renderSearch(view, params) {
     epg.searchPrograms(tokens).filter((x) => vis.has(x.channelId)),
     (x) => homeRank(catalog.byId.get(x.channelId))
   );
+  // (a filmek / sorozatok listája csak később töltődik be – kereséskor azonnal; a végén újrarajzol: app.js)
+  if (!vod.ready && !vod.loading) loadVod().catch(() => {});
   const vodHits = searchVod(q);
-  const tvAny = chans.length || progs.length;
-  // Két hasáb: tévé (csatornák, alattuk a műsorok) és VOD. Fekvő, széles képernyőn egymás mellett;
-  // Androidon mindig egymás alatt, elöl a tévécsatornákkal.
+  startRadioSearch(q); // (minden fülön: a Rádió fül darabszáma az online találatokkal együtt)
+  // Szűrő: minden találat, vagy csak egy fajta (ott a teljes lista)
+  const counts = { tv: chans.length, prog: progs.length, vod: vodHits.length, radio: radioSearchCount(q) };
+  let only = params.get('t') || '';
+  if (!(only in counts)) only = '';
+  const show = (k) => !only || only === k;
+  const radioBox = show('radio') ? radioSearchSection(q, { limit: only ? 120 : 18 }) : null;
+  const total = counts.tv + counts.prog + counts.vod + counts.radio;
+  const tab = (k, label) =>
+    `<button class="tab ${only === k ? 'active' : ''}" data-st="${k}" ${k && !counts[k] ? 'disabled' : ''}>${label}${k ? ` <span class="muted">${counts[k]}</span>` : ''}</button>`;
+  const allLink = (n, href) => (only || n <= 18 ? '' : `<a class="btn small" href="${href}">${_t('Összes ({length})', { length: n })}</a>`);
   view.innerHTML = `<div class="page search-page">
-    <div class="page-head"><h1>${_t('Találatok: „{esc}”', { esc: esc(q) })}</h1><span class="muted">${_t('{length} csatorna', { length: chans.length })}${progs.length ? `${_t(', {length} műsor', { length: progs.length })}` : ''}${vodHits.length ? `${_t(', {length} film / sorozat', { length: vodHits.length })}` : ''}</span></div>
-    <div class="search-cols ${IS_ANDROID ? 'stack' : ''} ${tvAny && vodHits.length ? '' : 'one'}">
-      ${tvAny
-          ? `<section class="sc-tv">
-        ${chans.length ? `<h2 class="section-title">${_t('Csatornák')} <a class="btn small" href="#/browse?q=${encodeURIComponent(q)}">${_t('Szűrés ország, nyelv, kategória szerint ›')}</a></h2><div class="sc-chans"></div>` : ''}
-        ${progs.length ? `<h2 class="section-title">${_t('Műsorok')}</h2><div class="prog-results"></div>` : ''}
-      </section>`
-          : ''}
-      ${vodHits.length ? `<section class="sc-vod"><h2 class="section-title">${_t('VOD – filmek és sorozatok')} <a class="btn small" href="#/vod?type=all&amp;q=${encodeURIComponent(q)}">${_t('Összes ({length})', { length: vodHits.length })}</a></h2><div class="vgrid vod-search">${vodHits.slice(0, 18).map(vcardHtml).join('')}</div></section>` : ''}
-    </div>
+    <div class="page-head"><h1>${_t('Találatok: „{esc}”', { esc: esc(q) })}</h1><span class="muted">${_t('{n} találat', { n: total })}</span></div>
+    <div class="tabs search-tabs">${tab('', _t('Mind'))}${tab('tv', _t('TV-csatornák'))}${tab('prog', _t('Műsorok'))}${tab('vod', _t('VOD'))}${tab('radio', _t('Rádió'))}</div>
+    ${show('tv') && chans.length ? `<section class="sc-tv"><h2 class="section-title">${_t('TV-csatornák')} <a class="btn small" href="#/browse?q=${encodeURIComponent(q)}">${_t('Szűrés ország, nyelv, kategória szerint ›')}</a></h2><div class="sc-chans"></div></section>` : ''}
+    ${show('prog') && progs.length ? `<section class="sc-prog"><h2 class="section-title">${_t('Műsorok')}</h2><div class="prog-results"></div></section>` : ''}
+    ${show('vod') && vodHits.length ? `<section class="sc-vod"><h2 class="section-title">${_t('VOD – filmek és sorozatok')} ${allLink(vodHits.length, `#/vod?type=all&amp;q=${encodeURIComponent(q)}`)}</h2><div class="vgrid vod-search">${vodHits.slice(0, only ? 160 : 18).map(vcardHtml).join('')}</div></section>` : ''}
   </div>`;
   const page = $('.page', view);
-  if (progs.length) {
+  $('.search-tabs', view).onclick = (e) => {
+    const b = e.target.closest('[data-st]');
+    if (!b || b.disabled) return;
+    const k = b.dataset.st;
+    location.replace(`#/search?q=${encodeURIComponent(q)}${k ? '&t=' + k : ''}`);
+    requestAnimationFrame(() => $(`.search-tabs [data-st="${k}"]`, view)?.focus());
+  };
+  if (show('prog') && progs.length) {
     const t = Date.now();
     const box = $('.prog-results', view);
-    box.innerHTML = progs
+    const list = only ? progs : progs.slice(0, 12);
+    box.innerHTML = list
       .map(({ channelId, prog }, i) => {
         const ch = catalog.byId.get(channelId);
         const live = prog.start <= t && prog.stop > t;
@@ -503,15 +516,18 @@ export function renderSearch(view, params) {
         </button>`;
       })
       .join('');
+    if (list.length < progs.length) box.insertAdjacentHTML('afterend', `<div class="rmore"><button class="btn" data-st-more="prog">${_t('Továbbiak ({n})', { n: progs.length - list.length })}</button></div>`);
+    $('[data-st-more]', view)?.addEventListener('click', () => location.replace(`#/search?q=${encodeURIComponent(q)}&t=prog`));
     box.onclick = (e) => {
       const b = e.target.closest('[data-i]');
       if (!b) return;
-      const { channelId, prog } = progs[Number(b.dataset.i)];
+      const { channelId, prog } = list[Number(b.dataset.i)];
       openProgram(catalog.byId.get(channelId), prog);
     };
   }
-  if (chans.length) $('.sc-chans', view).append(gridEl(chans, { title: `${_t('Keresés: {q}', { q })}` }));
-  else if (!progs.length && !vodHits.length) page.append(html(`<div>${emptyState(_t('Nincs találat'), _t('Próbálj rövidebb vagy más kifejezést.'))}</div>`));
+  if (radioBox) page.append(radioBox);
+  if (show('tv') && chans.length) $('.sc-chans', view).append(gridEl(chans, { title: `${_t('Keresés: {q}', { q })}` }));
+  if (!total || (only && !counts[only])) page.append(html(`<div>${emptyState(_t('Nincs találat'), _t('Próbálj rövidebb vagy más kifejezést.'))}</div>`));
 }
 
 // ===========================================================================

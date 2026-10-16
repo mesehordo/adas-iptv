@@ -51,7 +51,9 @@ const castForget = (id) => castPins.set(String(id || ''), '');
 // ---------------------------------------------------------------------------
 // Hálózati címek
 // ---------------------------------------------------------------------------
-const VIRTUAL_NIC = /virtualbox|vmware|vethernet|hyper-v|docker|wsl|vboxnet|virbr|tailscale|zerotier|loopback/i;
+const VIRTUAL_NIC = /virtualbox|vmware|vethernet|hyper-v|docker|wsl|vboxnet|virbr|tailscale|zerotier|loopback|^veth|^br-|^lxcbr|^lxdbr|^incusbr|^cni|^flannel|^podman|^cali|^vmnet|^tun\d|^tap\d|^wg\d|^utun|^ppp\d|^zt/i;
+// (a valódi kártyák között a vezetékes és a Wi-Fi áll elöl – Linux: eth / en… / wl…, macOS: en…)
+const LAN_NIC = /^(eth|en|wl|wlan)/i;
 
 function localIPv4s() {
   const real = [];
@@ -60,7 +62,9 @@ function localIPv4s() {
     for (const a of list || []) {
       if ((a.family === 'IPv4' || a.family === 4) && !a.internal && !a.address.startsWith('169.254.')) {
         // 192.168.56.x: a VirtualBox gazdagép-hálózatának alapértelmezett címe (a kártya neve gyakran csak „Ethernet 2”).
-        (VIRTUAL_NIC.test(name) || a.address.startsWith('192.168.56.') ? virtual : real).push(a.address);
+        if (VIRTUAL_NIC.test(name) || a.address.startsWith('192.168.56.')) virtual.push(a.address);
+        else if (LAN_NIC.test(name)) real.unshift(a.address);
+        else real.push(a.address);
       }
     }
   }
@@ -513,6 +517,7 @@ async function proxyUrl(target, deviceHost) {
 // ---------------------------------------------------------------------------
 // Beállítások átadása
 // ---------------------------------------------------------------------------
+// (a 172.16–31.x a Docker / Podman hálózatoké is szokott lenni – a végére kerül)
 const ipRank = (ip) => (ip.startsWith('192.168.') ? 0 : ip.startsWith('10.') ? 1 : /^172\.(1[6-9]|2\d|3[01])\./.test(ip) ? 2 : 3);
 const sortedIPs = () => localIPv4s().sort((a, b) => ipRank(a) - ipRank(b));
 
