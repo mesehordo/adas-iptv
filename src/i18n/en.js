@@ -2238,5 +2238,19 @@ export default {
  "mono": "mono",
  "sztereó": "stereo",
  "csatorna": "channels",
- "Az adás többször megszakadt – próbáld újra később.": "The stream dropped several times – try again later."
+ "Az adás többször megszakadt – próbáld újra később.": "The stream dropped several times – try again later.",
+ "Rádió – most szól": "Radio – now playing",
+ "Rádió ›": "Radio ›",
+ "Még nem hallgattál rádiót.": "You haven't listened to the radio yet.",
+ "Utoljára hallgatott": "Last listened",
+ "Előző adó": "Previous station",
+ "Következő adó": "Next station",
+ "Kedvencek ›": "Favourites ›",
+ "Nincs kedvenc rádióadód. Egy adó kártyáján a + gombbal teheted ide.": "You have no favourite radio stations. Add one with the + button on a station card.",
+ "Most a rádióban": "On the radio now",
+ "Most egyik adónál sincs műsoradat.": "No programme data for any station right now.",
+ "utána: {title}": "next: {title}",
+ "Népszerű hazai rádiók": "Popular local radio",
+ "Nincs elérhető hazai adó.": "No local stations available.",
+ "Rádiózás": "Radio listening"
 };

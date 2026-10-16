@@ -1,6 +1,6 @@
 // Főoldal (irányítópult): időjárás, a kedvenc csatornák műsora, RSS-hírek, „Ma este a tévében”,
 // TV- és VOD-folytatás. Két oszlop × négy sor (telefonon, álló helyzetben egymás alatt).
-import { esc, html, hashHue, fmtTime, fmtDay, toast, debounce, fmtNum } from './util.js';
+import { esc, html, hashHue, fmtTime, fmtDay, toast, debounce, fmtNum, bus, initials } from './util.js';
 import { api, IS_TV, coverSrc } from './api.js';
 import { store } from './store.js';
 import { epg } from './epg.js';
@@ -11,6 +11,9 @@ import { minutesLeft as watchLeft } from './watchtime.js';
 import { canRemote, openRemoteDialog } from './remote.js';
 import { watchList, loadSportEvents, sportEventsCached, sportStale, eventRowHtml } from './sports.js';
 import { sportMenuOn } from './sportpage.js';
+import { radio, radioFavs, radioRecent, radioPopular, radioAvailability, genreName, loadRadio } from './radio.js';
+import { radioPlayer } from './radioplayer.js';
+import { radioMenuOn } from './radiopage.js';
 import { vod, own, continueItems, playVod, loadVod, vodLists, findItem, displayTitle } from './vod.js';
 
 // ---------------------------------------------------------------------------
@@ -971,13 +974,166 @@ document.addEventListener(
 );
 
 // ---------------------------------------------------------------------------
+// Rádiós egységek: most szól, kedvenc adók, most a rádióban (műsorújság), népszerű hazai adók.
+// Gyerekprofilban és kikapcsolt Rádió menüpontnál nem választhatók (allowed).
+// ---------------------------------------------------------------------------
+const PAUSE_ICO = '<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
+const rLogo = (st, cls = '') =>
+  `<span class="d-rlogo ${cls}" style="--h:${hashHue(st.name)}">${st.logo ? `<img class="rlogo" src="${esc(st.logo)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : ''}<span class="initials">${esc(initials(st.name))}</span></span>`;
+const homeRadioCC = () => (store.settings.homeCountry === 'UK' ? 'GB' : store.settings.homeCountry) || 'HU';
+/** Az egységek adója: betöltött adó, a kedvencek / előzmények mentett adatai, ill. a dashboard saját listája. */
+const radioLists = new Map(); // egység → a kártyáin látható adók (a léptetéshez is)
+function radioStation(id) {
+  for (const list of radioLists.values()) {
+    const st = list.find((s) => s.id === id);
+    if (st) return { st, list };
+  }
+  const st = radio.byId.get(id) || [...radioFavs(), ...radioRecent()].find((s) => s.id === id);
+  return st ? { st, list: [st] } : null;
+}
+// a hazai adók és a rádió-műsorújság a rádióadók betöltése után jelenik meg
+const needRadio = (unit) => {
+  if (!radio.ready) loadRadio().then(rerenderUnit(unit), () => {});
+};
+const isOn = (st) => radioPlayer.station?.id === st.id && radioPlayer.playing;
+
+Object.assign(UNITS, {
+  radio: {
+    title: _t('Rádió – most szól'),
+    link: ['#/radio', _t('Rádió ›')],
+    mobile: 230,
+    kids: false,
+    radio: true,
+    render(b, { w, h }) {
+      const P = radioPlayer;
+      const st = P.station || radioRecent()[0];
+      if (!st) return note(`${_t('Még nem hallgattál rádiót.')} <a href="#/radio">${_t('Rádiók')}</a>`);
+      radioLists.set('radio', P.station ? (P.list?.length ? P.list : [st]) : radioRecent());
+      const live = !!P.station;
+      const playing = live && P.playing;
+      const wide = w >= 300 && w / h > 1.2;
+      const logoPx = Math.max(0, Math.min(wide ? h - 8 : h - 120, wide ? w * 0.4 : w - 16, 220));
+      const now = live && P.now?.text ? P.now : null;
+      const state = !live ? _t('Utoljára hallgatott') : P.state === 'loading' ? _t('Csatlakozás…') : P.state === 'error' ? P.error : P.state === 'paused' ? _t('Szünetel') : '';
+      return `<div class="d-radio ${wide ? 'wide' : ''}">
+        ${logoPx >= 48 ? `<button class="d-radio-art" data-radio="${esc(st.id)}" title="${esc(st.name)}" style="--h:${hashHue(st.name)};width:${Math.floor(logoPx)}px;height:${Math.floor(logoPx)}px">${now?.cover ? `<img src="${esc(now.cover)}" alt="" referrerpolicy="no-referrer" />` : rLogo(st, 'big')}</button>` : ''}
+        <div class="d-radio-txt">
+          <b class="d-last-name">${esc(st.name)}</b>
+          ${now ? `<span class="d-now">${playing ? `<span class="now-label">${_t('MOST')}</span> ` : ''}${esc(now.artist ? `${now.artist} – ${now.title}` : now.text)}</span>` : ''}
+          ${state ? `<small class="muted">${esc(state)}</small>` : ''}
+          <div class="d-radio-ctl">
+            ${live && P.list?.length > 1 ? `<button class="btn small icon" data-rctl="prev" title="${_t('Előző adó')}" aria-label="${_t('Előző adó')}">${ICON.left}</button>` : ''}
+            <button class="btn primary small" data-rctl="${playing ? 'pause' : 'play'}" data-radio="${esc(st.id)}">${playing ? `${PAUSE_ICO} ${_t('Szünet')}` : _t('{play} Hallgatás', { play: ICON.play })}</button>
+            ${live && P.list?.length > 1 ? `<button class="btn small icon" data-rctl="next" title="${_t('Következő adó')}" aria-label="${_t('Következő adó')}">${ICON.right}</button>` : ''}
+          </div>
+        </div>
+      </div>`;
+    },
+  },
+  radiofavs: {
+    title: _t('Kedvenc rádiók'),
+    link: ['#/radio?tab=favs', _t('Kedvencek ›')],
+    mobile: 260,
+    kids: false,
+    radio: true,
+    render(b, { w, h }) {
+      const list = radioFavs();
+      radioLists.set('radiofavs', list);
+      if (!list.length) return note(`${_t('Nincs kedvenc rádióadód. Egy adó kártyáján a + gombbal teheted ide.')} <a href="#/radio">${_t('Rádiók')}</a>`);
+      const gap = 8;
+      const cols = Math.max(1, Math.floor((w + gap) / (96 + gap)));
+      const rows = Math.max(1, Math.floor((h + gap) / (78 + gap)));
+      const cap = cols * rows;
+      const shown = list.length > cap ? list.slice(0, cap - 1) : list;
+      const th = Math.min(130, Math.floor((h - gap * (rows - 1)) / rows));
+      return `<ul class="d-favs" style="grid-template-columns:repeat(${cols}, minmax(0, 1fr));grid-auto-rows:${th}px">${shown
+        .map((st) => `<li><button class="d-fav d-rfav ${isOn(st) ? 'on' : ''}" data-radio="${esc(st.id)}" title="${esc(st.name)}" style="--h:${hashHue(st.name)}"><span class="d-fav-logo">${rLogo(st)}</span><small>${isOn(st) ? `♪ ${esc(st.name)}` : esc(st.name)}</small></button></li>`)
+        .join('')}${list.length > shown.length ? `<li><a class="d-fav more" href="#/radio?tab=favs">+${list.length - shown.length}</a></li>` : ''}</ul>`;
+    },
+  },
+  radioguide: {
+    title: _t('Most a rádióban'),
+    link: ['#/radio?tab=guide', _t('Műsorújság ›')],
+    mobile: 260,
+    kids: false,
+    radio: true,
+    render(b, { w, h }) {
+      needRadio('radioguide');
+      if (!epg.byChannel?.size) return note(_t('A műsorújság betöltése…'));
+      const t = Date.now();
+      // a műsorújsággal rendelkező adók: elöl a kedvencek és a legutóbb hallgatottak, majd a hazaiak
+      const favIds = new Set([...radioFavs(), ...radioRecent()].map((s) => s.id));
+      const seen = new Set();
+      const list = [...radioFavs(), ...radioRecent(), ...radio.byId.values()]
+        .filter((s) => !seen.has(s.id) && seen.add(s.id) && epg.has(s.id))
+        .map((s) => ({ st: radio.byId.get(s.id) || s, now: epg.now(s.id, t) }))
+        .filter((x) => x.now?.cur)
+        .sort((a, b) => (favIds.has(b.st.id) ? 1 : 0) - (favIds.has(a.st.id) ? 1 : 0));
+      radioLists.set('radioguide', list.map((x) => x.st));
+      if (!list.length) return note(radio.ready ? _t('Most egyik adónál sincs műsoradat.') : _t('Az adók betöltése…'));
+      const desc = w >= 320;
+      return `<ul class="d-tonight d-trim">${list
+        .slice(0, fit(h, 46))
+        .map(({ st, now }) => `<li><button class="d-row" data-radio="${esc(st.id)}" title="${esc(st.name)}">
+            ${rLogo(st, 'sm')}
+            <span class="d-txt"><b>${esc(now.cur.title)}</b><small class="muted">${esc(st.name)} · ${fmtTime(now.cur.start)}–${fmtTime(now.cur.stop)}${desc && now.next ? ` · ${_t('utána: {title}', { title: esc(now.next.title) })}` : ''}</small><span class="bar"><i style="width:${(now.progress * 100).toFixed(1)}%"></i></span></span>
+          </button></li>`)
+        .join('')}</ul>`;
+    },
+  },
+  radiotop: {
+    title: _t('Népszerű hazai rádiók'),
+    link: ['#/radio', _t('Rádió ›')],
+    mobile: 280,
+    kids: false,
+    radio: true,
+    render(b, { w, h }) {
+      needRadio('radiotop');
+      const cc = homeRadioCC();
+      const list = radioPopular([...radio.byId.values()].filter((s) => s.country === cc && radioAvailability(s) > 0)).slice(0, 40);
+      radioLists.set('radiotop', list);
+      if (!list.length) return note(radio.ready ? _t('Nincs elérhető hazai adó.') : _t('Az adók betöltése…'));
+      const two = w >= 420;
+      const n = fit(h, 54) * (two ? 2 : 1); // (egy sor: logó + két sor szöveg, kb. 54 px)
+      return `<ul class="d-rtop ${two ? 'two' : ''}">${list
+        .slice(0, n)
+        .map((st, i) => `<li><button class="d-row ${isOn(st) ? 'on' : ''}" data-radio="${esc(st.id)}" title="${esc(st.name)}">
+            <span class="d-rank muted">${i + 1}</span>${rLogo(st, 'sm')}
+            <span class="d-txt"><b>${isOn(st) ? '♪ ' : ''}${esc(st.name)}</b><small class="muted">${esc([(st.genres || []).slice(0, 2).map(genreName).join(', '), st.bitrate ? `${st.bitrate} kbps` : ''].filter(Boolean).join(' · '))}</small></span>
+          </button></li>`)
+        .join('')}</ul>`;
+    },
+  },
+});
+const RADIO_UNITS = ['radio', 'radiofavs', 'radioguide', 'radiotop'];
+// a rádió állapota, a kedvencek, a betöltött adók és a műsorújság változásakor a rádiós egységek frissülnek
+const radioRerender = debounce(() => {
+  const box = document.querySelector('#view .dash');
+  if (box && !editing) renderAll(box, RADIO_UNITS);
+}, 250);
+['radio-player', 'radio-favs', 'radio', 'epg'].forEach((ev) => bus.on(ev, radioRerender));
+/** Rádiós egység gombja: indítás / szünet / léptetés. → kezelte-e */
+function radioClick(e) {
+  const c = e.target.closest('[data-rctl]')?.dataset.rctl;
+  if (c === 'prev' || c === 'next') return radioPlayer.step(c === 'next' ? 1 : -1), true;
+  if (c === 'pause') return radioPlayer.pause(), true;
+  const id = e.target.closest('[data-radio]')?.dataset.radio;
+  if (!id) return false;
+  // (a szóló adóra kattintva szünet / folytatás)
+  if (radioPlayer.station?.id === id) return radioPlayer.toggle(), true;
+  const hit = radioStation(id);
+  if (hit) radioPlayer.play(hit.st, hit.list);
+  return true;
+}
+
+// ---------------------------------------------------------------------------
 // Elrendezés: oszlopok × sorok rácsa, az egységek sorrendje és mérete profilonként.
 // Az egységek mindig az első szabad helyre kerülnek; ami nem fér el, azt a szerkesztő nem engedi.
 // ---------------------------------------------------------------------------
 const DEFAULT_DASH = { cols: 4, rows: 2, units: [{ id: 'weather', w: 1, h: 1 }, { id: 'epg', w: 2, h: 1 }, { id: 'rss', w: 1, h: 2 }, { id: 'tonight', w: 1, h: 1 }, { id: 'tv', w: 1, h: 1 }, { id: 'vod', w: 1, h: 1 }] };
 const DEFAULT_KIDS = { cols: 3, rows: 2, units: [{ id: 'weather', w: 1, h: 1 }, { id: 'epg', w: 2, h: 1 }, { id: 'tonight', w: 1, h: 1 }, { id: 'tv', w: 1, h: 1 }, { id: 'vod', w: 1, h: 1 }] };
 const LIMITS = { cols: [1, 5], rows: [1, 4] };
-const allowed = (id) => UNITS[id] && !(store.profile.kids && UNITS[id].kids === false);
+const allowed = (id) => UNITS[id] && !(store.profile.kids && UNITS[id].kids === false) && !(UNITS[id].radio && !radioMenuOn());
 const U = (id, w = 1, h = 1) => ({ id, w, h });
 /** Kész elrendezések (a testreszabásnál betölthetők; napszak szerinti váltásnál a reggeli és az esti). */
 export const PRESETS = {
@@ -987,6 +1143,7 @@ export const PRESETS = {
   sport: { name: _t('Sport'), cfg: { cols: 3, rows: 2, units: [U('sport', 2, 2), U('tonight'), U('rss')] } },
   hirek: { name: _t('Hírek és tőzsde'), cfg: { cols: 4, rows: 2, units: [U('rss', 2, 2), U('weather'), U('clock'), U('fx'), U('epg')] } },
   egyszeru: { name: _t('Egyszerű'), cfg: { cols: 2, rows: 1, units: [U('tv'), U('weather')] } },
+  radio: { name: _t('Rádiózás'), cfg: { cols: 3, rows: 2, units: [U('radio', 2), U('radiofavs', 1, 2), U('radioguide'), U('radiotop')] } },
 };
 const KIDS_PRESETS = { alap: { name: _t('Alap'), cfg: DEFAULT_KIDS }, este: PRESETS.este, egyszeru: PRESETS.egyszeru };
 const presets = () => (store.profile.kids ? KIDS_PRESETS : PRESETS);
@@ -1198,6 +1355,7 @@ export function renderDashboard(view) {
       if (e.target.closest('.dc-body, .dc-link')) e.preventDefault();
       return;
     }
+    if (radioClick(e)) return;
     const pl = e.target.closest('[data-play]');
     const pr = e.target.closest('[data-prog]');
     const rm = e.target.closest('[data-rem]');
