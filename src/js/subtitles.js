@@ -143,6 +143,7 @@ let pickSeq = 0;
 // (B28) lejátszási munkamenet: minden indulás / bezárás újat kezd – a régi film késve érkező feliratlistája nem
 // írhatja felül az újét (ugyanazon film újraindítása is külön munkamenet)
 let session = 0;
+let searchSeq = 0; // (H06) a kézi feliratkeresések sorszáma
 
 export function clearSubs(video) {
   pickSeq++;
@@ -471,13 +472,54 @@ async function downloadText(fileId) {
   return r.text;
 }
 
+// A kiválasztott online felirat szövege filmenként (részenként) tartósan megmarad: újranyitáskor onnan töltődik, nem
+// tölti le újra – az OpenSubtitles napi letöltési kerete (pl. 5 db) így nem fogy el ugyanarra a feliratra
+const subId = (res) => `${res.src || 'os'}:${res.fileId ?? JSON.stringify(res.fe ?? res.sdl ?? res.release ?? '')}`;
+const subDocKey = (vodKey) => {
+  let h = 5381;
+  for (let i = 0; i < vodKey.length; i++) h = ((h * 33) ^ vodKey.charCodeAt(i)) >>> 0;
+  return `subtext:${h.toString(36)}${vodKey.length.toString(36)}`;
+};
+async function cachedSubText(vodKey, res) {
+  if (!api.docGet) return '';
+  try {
+    const d = await api.docGet(subDocKey(vodKey));
+    return d && d.vod === vodKey && d.id === subId(res) && typeof d.text === 'string' ? d.text : '';
+  } catch {
+    return '';
+  }
+}
+function saveSubText(vodKey, res, text) {
+  if (!api.docSet || !text) return;
+  Promise.resolve(api.docSet(subDocKey(vodKey), { vod: vodKey, id: subId(res), text: String(text).slice(0, 3e6), at: Date.now() })).catch(() => {});
+}
+export function forgetSubText(vodKey) {
+  if (api.docSet && vodKey) Promise.resolve(api.docSet(subDocKey(vodKey), null)).catch(() => {});
+}
+
 async function useResult(video, ch, res) {
   const pick = ++pickSeq;
-  const text = res.src === 'fe' ? await feDownload(res) : res.src === 'sdl' ? await sdlDownload(res) : await downloadText(res.fileId);
+  const vodKey = ch.vod?.key || '';
+  // (a már egyszer letöltött felirat a tárból jön – nincs új letöltés)
+  const saved = vodKey ? await cachedSubText(vodKey, res) : '';
+  if (pick !== pickSeq || player.channel !== ch) return;
+  const fresh = !saved;
+  const text = saved || (res.src === 'fe' ? await feDownload(res) : res.src === 'sdl' ? await sdlDownload(res) : await downloadText(res.fileId));
   // a letöltés közben másik videóra válthattak, kikapcsolták vagy másikat választottak: ez már nem érvényes
   if (pick !== pickSeq || player.channel !== ch) return;
-  const cues = parseSubs(text);
+  let cues = parseSubs(text);
+  let isFresh = fresh;
+  let finalText = text;
+  if (!cues.length && !fresh) {
+    // a tárolt szöveg sérült: törlés, majd új letöltés (különben minden újranyitás ugyanazzal hibázna)
+    forgetSubText(vodKey);
+    finalText = res.src === 'fe' ? await feDownload(res) : res.src === 'sdl' ? await sdlDownload(res) : await downloadText(res.fileId);
+    if (pick !== pickSeq || player.channel !== ch) return;
+    cues = parseSubs(finalText);
+    isFresh = true;
+  }
   if (!cues.length) throw new Error(_t('A feliratfájl üres vagy nem értelmezhető.'));
+  if (isFresh && vodKey) saveSubText(vodKey, res, finalText);
   const label = `${languageName(res.lang)} – ${res.release}`;
   apply(video, cues, label);
   // Megjegyezzük ehhez a filmhez / részhez.
@@ -591,9 +633,13 @@ player.subsHooks = {
       }
       if (state.sidecars.length) {
         // a beállított nyelv, utána a többi feliratnyelv, végül az első fájl
-        const sc = [subsLangPref(), ...SUB_LANGS].map((l) => state.sidecars.find((x) => fileIsLang(l)(x.name))).find(Boolean) || state.sidecars[0];
-        applyText(video, sc.text, sc.name);
-        return;
+        // (H17) ha egy jelölt nem értelmezhető, a következőt próbálja (nem áll meg az első hibás fájlnál)
+        const first = [subsLangPref(), ...SUB_LANGS].map((l) => state.sidecars.find((x) => fileIsLang(l)(x.name))).find(Boolean);
+        const sc = [...new Set([first, ...state.sidecars].filter(Boolean))].find((x) => parseSubs(x.text).length);
+        if (sc) {
+          applyText(video, sc.text, sc.name);
+          return;
+        }
       }
       const s = store.settings;
       if (s.subsAuto && (feOn() || sdlKey() || (s.osApiKey && s.osUser))) {
@@ -734,6 +780,7 @@ player.subsHooks = {
           clearSubs(video);
           eng.setTextTrack('');
           if (isVod && store.profile.vodSubs) delete store.profile.vodSubs[ch.vod.key];
+          if (isVod) forgetSubText(ch.vod.key);
           store.save();
           draw();
         } else if (a === 'embedded') {
@@ -742,12 +789,18 @@ player.subsHooks = {
           eng.setTextTrack(b.dataset.id);
           draw();
         } else if (a === 'search') {
+          // (H06) a kérés a munkamenethez, a filmhez és a kereséshez kötött: egy késve érkező régi találatlista (pl.
+          // filmváltás után) nem írja felül az újat, és a „keresés…” állapotot sem oldja fel
+          const my = session;
+          const mySearch = ++searchSeq;
+          const live = () => my === session && mySearch === searchSeq && player.channel === ch;
           state.busy = true;
           state.results = null;
           draw();
           // egy gomb: a beállított nyelv találatai elöl, utána a másik nyelvéi
           const pref = subsLangPref();
           const parts = await Promise.allSettled([pref, ...SUB_LANGS.filter((l) => l !== pref)].map((l) => searchSubs(ch, l)));
+          if (!live()) return;
           if (parts.every((p) => p.status === 'rejected')) throw parts[0].reason;
           const list = parts.flatMap((p) => (p.status === 'fulfilled' ? p.value : []));
           state.results = { lang: pref, list };
@@ -771,8 +824,12 @@ player.subsHooks = {
           await useResult(video, ch, x);
           menu.hidden = true;
         } else if (a === 'file') {
+          // (H07) a fájlválasztás is új választás: egy függő online letöltés már nem írhatja felül; a fájlválasztó
+          // bezárása után csak akkor alkalmazza, ha közben nem váltottak filmet / választást
+          const pick = ++pickSeq;
+          const my = session;
           const f = await api.openFile([{ name: _t('Felirat'), extensions: ['srt', 'vtt', 'txt'] }]);
-          if (!f) return;
+          if (!f || pick !== pickSeq || my !== session || player.channel !== ch) return;
           const cues = parseSubs(f.text);
           if (!cues.length) return toast(_t('A fájl nem tartalmaz feliratot.'));
           eng.setTextTrack('');

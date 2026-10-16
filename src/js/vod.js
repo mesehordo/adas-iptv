@@ -847,7 +847,7 @@ function loadLib(lib, { force = false } = {}) {
       const loaded = await Promise.all(
         lists.map(async (pl) => {
           try {
-            return { pl, entries: await (lib === own ? loadOwnList(pl) : loadList(pl, force)) };
+            return { pl, entries: await (lib === own ? loadOwnList(pl, force) : loadList(pl, force)) };
           } catch (err) {
             lib.errors[pl.id] = String(err.message || err);
             return { pl, entries: [] };
@@ -2007,8 +2007,9 @@ export function ownLists() {
   return own.files.filter((f) => st[f.key] !== false).map((f) => ({ id: f.key, name: f.name, loc: f.loc, kind: f.kind, base: f.base, mtime: f.mtime }));
 }
 
-async function loadOwnList(pl) {
-  const text = pl.kind === 'folder' ? await api.readTextFile(pl.loc) : (await api.fetchText(pl.loc, { maxAgeHours: 0.03 })).text;
+async function loadOwnList(pl, force = false) {
+  // (H25) a kézi újraolvasás (force) a hálózati listafájlt is frissen tölti le – nem a ~2 perces gyorsítótárból
+  const text = pl.kind === 'folder' ? await api.readTextFile(pl.loc) : (await api.fetchText(pl.loc, { maxAgeHours: 0.03, force })).text;
   const parsed = parseM3U(text);
   // A lejátszólista maga egy videó (pl. HLS kimenet) → egyetlen film a fájl nevével.
   if (parsed.isStream) return [{ title: pl.name, name: pl.name, url: pl.base, logo: '', group: '', duration: 0, fileHint: '' }];
