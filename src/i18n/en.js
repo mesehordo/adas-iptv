@@ -2261,5 +2261,7 @@ export default {
  "Biztosan újrakezded? Minden profil, beállítás, kedvenc, lista, előzmény és emlékeztető végleg törlődik, és az Adás az első indítás képernyőjével indul újra. Ez nem vonható vissza.": "Start over? Every profile, setting, favourite, list, history entry and reminder is permanently deleted, and Adás restarts with the first-run screen. This cannot be undone.",
  "Androidon az alkalmazás ezután bezárul – nyisd meg újra.": "On Android the app then closes – open it again.",
  "Mindent törlök": "Delete everything",
- "Az újrakezdés nem sikerült:": "Starting over failed:"
+ "Az újrakezdés nem sikerült:": "Starting over failed:",
+ "Az adatbázis nem törölhető": "The database could not be deleted",
+ "Az adatbázist egy másik megnyitott Adás-lap használja – zárd be, és próbáld újra.": "Another open Adás tab is using the database – close it and try again."
 };

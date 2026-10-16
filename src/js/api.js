@@ -109,18 +109,22 @@ async function cachedFetchText(url, { maxAgeHours = 24, force = false } = {}, do
 
 /** Újrakezdés a lap tárhelyén (böngésző, tévé): az IndexedDB és a localStorage törlése, majd újratöltés. */
 async function webFactoryReset() {
+  // (a saját kapcsolat lezárása nélkül a törlés „blokkolt” maradna)
+  try {
+    (await dbPromise)?.close();
+  } catch {}
+  dbPromise = null;
+  await new Promise((resolve, reject) => {
+    const q = indexedDB.deleteDatabase('adas');
+    q.onsuccess = () => resolve();
+    q.onerror = () => reject(q.error || new Error(_t('Az adatbázis nem törölhető')));
+    // (egy másik, nyitva maradt lap tartja: a hívó hibát kap, a lap nem töltődik újra a régi adatokkal)
+    q.onblocked = () => reject(new Error(_t('Az adatbázist egy másik megnyitott Adás-lap használja – zárd be, és próbáld újra.')));
+  });
   try {
     localStorage.clear();
     sessionStorage.clear();
   } catch {}
-  await new Promise((resolve) => {
-    try {
-      const q = indexedDB.deleteDatabase('adas');
-      q.onsuccess = q.onerror = q.onblocked = () => resolve();
-    } catch {
-      resolve();
-    }
-  });
   location.reload();
   return true;
 }
@@ -407,9 +411,10 @@ function pickApk(assets) {
 let androidOffered = null;
 
 const androidApi = {
-  // (Újrakezdés: a rendszer törli az alkalmazás adatait, és bezárja – ha nem sikerül, a lap tárhelye törlődik)
-  factoryReset: async () => (window.AdasAndroid?.factoryReset?.() ? true : webFactoryReset()),
   ...webApi,
+  // (Újrakezdés: a rendszer törli az alkalmazás összes adatát, és bezárja – a ...webApi után, hogy az ne írja felül;
+  // ha a natív törlés nem indul el, a lap tárhelye törlődik)
+  factoryReset: async () => (window.AdasAndroid?.factoryReset?.() ? true : webFactoryReset()),
   platform: ANDROID_TV ? 'androidtv' : 'android',
   caps: {
     // (B38) mini lejátszó: a rendszer kép a képben módja, ha az eszköz támogatja (egyébként a gomb sem látszik)

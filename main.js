@@ -29,16 +29,27 @@ if (process.env.ADAS_DATA_DIR) app.setPath('userData', path.resolve(process.env.
 // törlődik, még mielőtt a Chromium megnyitná (beállítások, profilok, listák, gyorsítótár, borítók, saját témák,
 // a lap tárhelye). Az előző folyamat épp kilép: a még lezáratlan fájlokat néhányszor újrapróbálja.
 const RESET_MARK = '.adas-reset';
+// A jelölő csak akkor törlődik, ha minden más eltűnt – egy makacs fájl esetén a következő indítás újra próbálja.
 try {
   const dir = app.getPath('userData');
   if (fs.existsSync(path.join(dir, RESET_MARK))) {
-    for (const e of fs.readdirSync(dir)) {
-      try {
-        fs.rmSync(path.join(dir, e), { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
-      } catch {}
+    const KEEP = /^(lockfile|Singleton)/; // (az épp induló példány zárolása)
+    const left = () => fs.readdirSync(dir).filter((e) => e !== RESET_MARK && !KEEP.test(e));
+    for (let round = 0; round < 4 && left().length; round++) {
+      if (round) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 500); // (a kilépő példány még zárhat fájlt)
+      for (const e of left()) {
+        try {
+          fs.rmSync(path.join(dir, e), { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+        } catch {}
+      }
     }
+    const rest = left();
+    if (!rest.length) fs.rmSync(path.join(dir, RESET_MARK), { force: true });
+    else console.warn('Újrakezdés: nem törölhető, a következő indításkor újra:', rest.join(', '));
   }
-} catch {}
+} catch (err) {
+  console.warn('Újrakezdés:', err);
+}
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
