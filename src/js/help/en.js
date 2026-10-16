@@ -34,7 +34,7 @@ export const ARTICLES = [
 <tr><td><b>Browse</b> (under TV)</td><td>All TV channels, filtered by category, country, language and quality. ${t('browse', 'Details')}</td></tr>
 <tr><td><b>VOD</b></td><td>Films and series: online lists and your own media library, in rows sorted by unified genres. ${t('vod-lists', 'Details')}</td></tr>
 <tr><td><b>Favourites</b></td><td>Your marked channels – their order gives the channel numbers – and below them your favourite films and series (details page → ☆ Favourite). ${t('favorites', 'Details')}</td></tr>
-<tr><td><b>Search</b> (magnifier)</td><td>Search channels and programmes. ${t('search', 'Details')}</td></tr>
+<tr><td><b>Search</b> (magnifier)</td><td>Search channels, programmes, films / series and radio stations. ${t('search', 'Details')}</td></tr>
 <tr><td><b>Bell</b></td><td>Your programme reminders. ${t('reminders', 'Details')}</td></tr>
 <tr><td><b>Profile picture</b></td><td>Switch profile, refresh the channel list, add a channel, help, settings.</td></tr>
 </table>
@@ -569,8 +569,10 @@ ${go('#/settings?section=dashboard', 'Home page settings')}`,
 <ul>
 <li>the channel’s name and other names (e.g. “BBC” also finds “BBC World News”),</li>
 <li>the country (<i>German</i>, <i>Germany</i> or <i>DE</i>), the category (<i>sport</i>, <i>news</i>), the network (<i>Pluto TV</i>), the name of your own list,</li>
-<li><b>programme titles</b> in the next 48 hours (if there is a TV guide) – these appear separately, under a “Programmes” heading; programmes on now show a NOW badge.</li>
+<li><b>programme titles</b> in the next 48 hours (if there is a TV guide) – these appear separately, under a “Programmes” heading; programmes on now show a NOW badge,</li>
+<li><b>films and series</b> (VOD and your own media library) and <b>radio stations</b> (the loaded stations, plus Radio Browser when there are few hits).</li>
 </ul>
+<p>Results come in this order: <b>TV channels, programmes, VOD, radio</b>. Use the tabs at the top (<i>All · TV channels · Programmes · VOD · Radio</i>, with the number of hits) to show just one kind – with the full list. The chosen tab stays while you type.</p>
 <h2>Tips</h2>
 <ul>
 <li>Accents and upper/lower case don’t matter: “cafe” = “Café”.</li>

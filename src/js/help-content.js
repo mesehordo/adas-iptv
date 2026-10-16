@@ -34,7 +34,7 @@ export const ARTICLES = [
 <tr><td><b>Böngészés</b> (a TV alatt)</td><td>Az összes tévécsatorna kategória, ország, nyelv és minőség szerint szűrve. ${t('browse', 'Részletek')}</td></tr>
 <tr><td><b>VOD</b></td><td>Filmek és sorozatok: online listák és a saját médiatár, egységes műfajok szerint rendezett sorokkal. ${t('vod-lists', 'Részletek')}</td></tr>
 <tr><td><b>Kedvencek</b></td><td>A megjelölt csatornáid – a sorrendjük adja a csatornaszámokat –, alattuk a kedvenc filmjeid és sorozataid (adatlap → ☆ Kedvenc). ${t('favorites', 'Részletek')}</td></tr>
-<tr><td><b>Keresés</b> (nagyító)</td><td>Csatornák és műsorok keresése. ${t('search', 'Részletek')}</td></tr>
+<tr><td><b>Keresés</b> (nagyító)</td><td>Csatornák, műsorok, filmek / sorozatok és rádióadók keresése. ${t('search', 'Részletek')}</td></tr>
 <tr><td><b>Csengő</b></td><td>A beállított műsor-emlékeztetők. ${t('reminders', 'Részletek')}</td></tr>
 <tr><td><b>Profilkép</b></td><td>Profilváltás, csatornalista frissítése, csatorna hozzáadása, súgó, beállítások.</td></tr>
 </table>
@@ -562,15 +562,17 @@ ${go('#/settings?section=dashboard', 'A főoldal beállításai')}`,
     id: 'search',
     cat: 'find',
     title: 'Keresés',
-    keywords: 'keresés kereső találat műsor cím ékezet',
+    keywords: 'keresés kereső találat műsor cím ékezet vod film sorozat rádió szűrő',
     body: `
 <p>Kattints a fejléc nagyítójára, vagy nyomd meg a <kbd>/</kbd> vagy <kbd>Ctrl</kbd>+<kbd>F</kbd> billentyűt (tévén a sárga gombot), és kezdj gépelni – a találatok azonnal megjelennek.</p>
 <h2>Mire keres?</h2>
 <ul>
 <li>a csatorna nevére és más neveire (pl. „Duna” megtalálja a „Duna World”-öt is),</li>
 <li>az országra (<i>német</i>, <i>Németország</i> vagy <i>DE</i>), a kategóriára (<i>sport</i>, <i>hírek</i>), a hálózatra (<i>Pluto TV</i>), a saját lista nevére,</li>
-<li><b>műsorcímekre</b> a következő 48 órában (ha van műsorújság) – ezek külön, „Műsorok” cím alatt jelennek meg; a futó műsorokat MOST jelzés mutatja.</li>
+<li><b>műsorcímekre</b> a következő 48 órában (ha van műsorújság) – ezek külön, „Műsorok” cím alatt jelennek meg; a futó műsorokat MOST jelzés mutatja,</li>
+<li><b>filmekre és sorozatokra</b> (VOD és a saját médiatár) és <b>rádióadókra</b> (a betöltött adók, kevés találatnál a Radio Browser is).</li>
 </ul>
+<p>A találatok sorrendje: <b>TV-csatornák, műsorok, VOD, rádió</b>. A fenti fülekkel (<i>Mind · TV-csatornák · Műsorok · VOD · Rádió</i>, mellettük a találatok száma) egy fajtára szűrhetsz – ott a teljes lista látszik. A választott fül gépelés közben megmarad.</p>
 <h2>Tippek</h2>
 <ul>
 <li>Az ékezetek és a kis-/nagybetűk nem számítanak: „hirado” = „Híradó”.</li>
