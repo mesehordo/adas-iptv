@@ -5,7 +5,7 @@
 // megmaradnak; a frissítő a telepített célnak megfelelő APK-t választja). Cél nélkül univerzális csomag.
 //
 // Kell hozzá: JDK 17 és Android SDK (platforms;android-34, build-tools;34.0.0). Alapból a
-// .android-tools mappában keresi (lásd README), vagy a JAVA_HOME / ANDROID_HOME változókban.
+// .android-tools mappában keresi (lásd docs/FEJLESZTES.md), vagy a JAVA_HOME / ANDROID_HOME változókban.
 //
 // Lépések: webes csomag (webbundle.mjs) → aapt2 compile/link → javac → d8 → dex az APK-ba
 // → zipalign → apksigner. A kulcs (android/keystore) első futáskor készül el; őrizd meg,
@@ -30,7 +30,7 @@ const jbin = (name) => path.join(JAVA_HOME, 'bin', name + (win ? '.exe' : ''));
 
 for (const [what, p] of [['JDK', jbin('javac')], ['android.jar', ANDROID_JAR], ['build-tools', exe(BT, 'aapt2')]]) {
   if (!fs.existsSync(p)) {
-    console.error(`Hiányzik: ${what} (${p}). Lásd a README Android részét.`);
+    console.error(`Hiányzik: ${what} (${p}). Lásd a docs/FEJLESZTES.md Android részét.`);
     process.exit(1);
   }
 }
