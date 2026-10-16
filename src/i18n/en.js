@@ -2272,5 +2272,8 @@ export default {
  "Nem sikerült fájlnevet foglalni a felvételnek.": "Could not reserve a file name for the recording.",
  "A felvétel nem írható a lemezre: {msg}": "The recording cannot be written to disk: {msg}",
  "a forrás most nem érhető el": "the source is not reachable right now",
- "elavult – a forrás most nem érhető el, a korábban letöltött műsor látszik": "out of date – the source is not reachable right now, the previously downloaded guide is shown"
+ "elavult – a forrás most nem érhető el, a korábban letöltött műsor látszik": "out of date – the source is not reachable right now, the previously downloaded guide is shown",
+ "A felvétel már indul.": "The recording is already starting.",
+ "az előnézet nem indult": "the preview did not start",
+ "nem érkezett adat": "no data arrived"
 };

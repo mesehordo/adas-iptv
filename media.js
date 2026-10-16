@@ -640,7 +640,22 @@ async function recTrim(p, start, end) {
     }
     throw e;
   });
-  await fs.promises.rename(tmp, p); // a rename felülírja a régi vágott változatot (nincs fájl nélküli pillanat)
+  // a rename felülírja a régi vágott változatot (nincs fájl nélküli pillanat). (H33) Ha maga a csere bukik el: az
+  // ideiglenes fájl törlődik, első vágásnál az eredeti visszakerül a helyére (különben eltűnne a listából); korábban
+  // vágott felvételnél a régi vágott változat érintetlen marad
+  try {
+    await fs.promises.rename(tmp, p);
+  } catch (e) {
+    await fs.promises.rm(tmp, { force: true }).catch(() => {});
+    if (!fs.existsSync(p)) {
+      try {
+        await fs.promises.rename(orig, p);
+      } catch (e2) {
+        throw new Error(`${e.message} – az eredeti a(z) ${orig} helyen maradt (${e2.message})`);
+      }
+    }
+    throw e;
+  }
   forgetFile(p);
   return { ok: true, size: (await fs.promises.stat(p)).size };
 }

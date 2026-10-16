@@ -33,7 +33,23 @@ function trimRecMeta(meta) {
   if (keys.length > 500) for (const k of keys.slice(0, keys.length - 500)) delete meta[k];
 }
 
-async function startRec(ch, { title, until = 0, sched = null, progStart = 0, progStop = 0 } = {}) {
+// (H31) az indulás alatt álló felvételek (adóazonosító): a futó felvétel csak az aszinkron indulás után kerül az
+// active-ba – addig egy második kérés ugyanarra az adóra nem indíthat újabb felvételt
+const starting = new Set();
+/** Egy felvétel indítása adónként egyszerre egyszer: a második kérés hibát kap, a sikertelen indulás feloldja. */
+async function once(chId, fn) {
+  if (starting.has(chId) || recordingOf(chId)) throw new Error(_t('A felvétel már indul.'));
+  starting.add(chId);
+  try {
+    return await fn();
+  } finally {
+    starting.delete(chId);
+  }
+}
+const startRec = (ch, o) => once(ch.id, () => startRecNow(ch, o));
+const startRadioRec = (st, o) => once(st.id, () => startRadioRecNow(st, o));
+
+async function startRecNow(ch, { title, until = 0, sched = null, progStart = 0, progStop = 0 } = {}) {
   const stream = player.channel?.id === ch.id && player.stream ? player.stream : orderedStreams(ch)[0];
   if (!stream) throw new Error(_t('A csatornának nincs forrása.'));
   await api.setStreamHeaders?.(stream.url, { ua: stream.ua, referrer: stream.referrer });
@@ -56,7 +72,7 @@ async function startRec(ch, { title, until = 0, sched = null, progStart = 0, pro
 // Rádió: a hang MP3 / AAC fájlba (az adás kódolása szerint; más kódolásnál AAC-be alakítva)
 // ---------------------------------------------------------------------------
 const audioOut = (st) => (/mp3|mpeg/i.test(st.codec || '') ? 'mp3' : /aac/i.test(st.codec || '') ? 'aac' : 'enc');
-async function startRadioRec(st, { title, until = 0, sched = null, progStart = 0, progStop = 0 } = {}) {
+async function startRadioRecNow(st, { title, until = 0, sched = null, progStart = 0, progStop = 0 } = {}) {
   // ami most szól, annak a működő címe; egyébként az első (a lejátszólista-címet feloldva)
   const url = radioPlayer.station?.id === st.id && radioPlayer.url ? radioPlayer.url : await resolveStream(st.urls[0] || '');
   if (!url) throw new Error(_t('A csatornának nincs forrása.'));
@@ -77,6 +93,7 @@ async function startRadioRec(st, { title, until = 0, sched = null, progStart = 0
 /** Rádió ● gomb: az adó felvétele be / ki (a cím a műsorújságból, ennek híján „élő adás”). */
 export async function toggleRadioRecording(st) {
   if (!st || !canRecord) return;
+  if (starting.has(st.id)) return void toast(_t('A felvétel már indul.'));
   const id = recordingOf(st.id);
   if (id) {
     await api.recStop(id);
@@ -121,6 +138,7 @@ const schedName = (s) => catalog.byId.get(s.chId)?.name || s.radio?.name || s.ch
 export async function toggleRecording() {
   const ch = player.channel;
   if (!ch || ch.vod || !canRecord) return;
+  if (starting.has(ch.id)) return void toast(_t('A felvétel már indul.'));
   const id = recordingOf(ch.id);
   if (id) {
     await api.recStop(id);
@@ -138,11 +156,22 @@ export async function toggleRecording() {
 }
 
 /** Egy ütemezett felvétel indítása (ha még nem indult). */
+// (H04) a futó felvétel azonosítója a beállításokkal lemezre kerül: egy előző futásból (pl. összeomlás után) maradt
+// azonosító nem akadályozhatja a még tartó műsor felvételét – a munkamenet-jelölés alapján elavultnak számít
+const SESSION = Math.random().toString(36).slice(2, 10);
+const staleStart = (s) => !!s.startedId && s.startedSession !== SESSION;
+function clearStale(list) {
+  let n = 0;
+  for (const s of list) if (staleStart(s)) (s.startedId = null), (s.startedSession = null), n++;
+  return n;
+}
 function startScheduled(s) {
+  if (staleStart(s)) (s.startedId = null), (s.startedSession = null);
   if (s.startedId) return;
   const ch = s.radio ? stationFrom(s.radio) : catalog.byId.get(s.chId);
   if (!ch) return;
   s.startedId = 'pending';
+  s.startedSession = SESSION;
   const opts = { title: s.title, until: s.stop + recPost() * 60e3, sched: s.id, progStart: s.start, progStop: s.stop };
   (s.radio ? startRadioRec(ch, opts) : startRec(ch, opts))
     .then((id) => {
@@ -161,7 +190,7 @@ function tick() {
   const now = Date.now();
   const list = schedule();
   const keep = list.filter((s) => s.stop + (recPost() + 3) * 60e3 > now);
-  if (keep.length !== list.length) {
+  if (clearStale(keep) || keep.length !== list.length) {
     store.settings.recSchedule = keep;
     store.save();
   }
@@ -170,6 +199,7 @@ function tick() {
 
 /** Az indítási idők átadása a főfolyamat időzítőjének. */
 function syncSchedule() {
+  clearStale(schedule());
   api.recSchedule?.(schedule().filter((s) => !s.startedId).map((s) => ({ id: s.id, at: s.start - recPre() * 60e3 })));
 }
 
@@ -463,11 +493,25 @@ export async function openTrimEditor(f, onDone) {
     const pinfo = await probeMedia(url);
     if (!pinfo || pinfo.error || !(pinfo.duration > 0)) throw new Error(pinfo?.error || _t('a fájl hossza nem állapítható meg'));
     if (!el.isConnected) return;
-    bridge = new MediaBridge(video, url, pinfo, { onFail: (err) => toast(`${_t('Az előnézet nem indult:')} ` + (err.message || err)) });
+    let bridgeErr = null;
+    bridge = new MediaBridge(video, url, pinfo, {
+      onFail: (err) => {
+        bridgeErr = err || new Error(_t('az előnézet nem indult'));
+        toast(`${_t('Az előnézet nem indult:')} ` + (err?.message || err));
+      },
+    });
     await bridge.open();
-    // az első adat érkezése: ettől számítjuk az időt (a felvétel ideje nem nulláról indul)
-    await new Promise((r) => {
-      const chk = () => (video.buffered.length ? r() : setTimeout(chk, 100));
+    // az első adat érkezése: ettől számítjuk az időt (a felvétel ideje nem nulláról indul) – (H30) véges várakozás:
+    // a vágó bezárásakor, a híd hibájánál és 20 mp után leáll (nem fut tovább a háttérben)
+    await new Promise((resolve, reject) => {
+      const t0 = Date.now();
+      const chk = () => {
+        if (!el.isConnected) return reject(new Error('bezárva'));
+        if (bridgeErr) return reject(bridgeErr);
+        if (video.buffered.length) return resolve();
+        if (Date.now() - t0 > 20e3) return reject(new Error(_t('nem érkezett adat')));
+        setTimeout(chk, 100);
+      };
       chk();
     });
     base = video.buffered.start(0);
@@ -475,6 +519,7 @@ export async function openTrimEditor(f, onDone) {
     ready(pinfo.duration);
     seek(tin);
   } catch (err) {
+    if (!el.isConnected) return; // (bezárt vágó: nincs mit kiírni)
     $('.tr-wait').innerHTML = `<p class="warn small">${_t('Az előnézet nem tölthető be ({esc}). Az időpontokat így is megadhatod.', { esc: esc(err.message || err) })}</p>`;
     const d = Number((await probeMedia(url))?.duration) || 0;
     if (d) ready(d);
