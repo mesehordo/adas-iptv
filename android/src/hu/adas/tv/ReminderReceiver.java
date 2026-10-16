@@ -110,7 +110,14 @@ public class ReminderReceiver extends BroadcastReceiver {
     if (Build.VERSION.SDK_INT < 26) b.setPriority(Notification.PRIORITY_HIGH).setDefaults(Notification.DEFAULT_ALL);
     try {
       nm.notify(9000 + n, b.build());
-      markDelivered(ctx, channelId + "|" + start); // (csak a ténylegesen megjelent értesítés számít kézbesítettnek)
+      // (csak a ténylegesen megjelenő értesítés számít kézbesítettnek: letiltott alkalmazás- vagy csatorna-értesítésnél
+      // az Android kivétel nélkül eldobja – akkor az emlékeztető függőben marad, az alkalmazás jelzi)
+      boolean shown = Build.VERSION.SDK_INT < 24 || nm.areNotificationsEnabled();
+      if (shown && Build.VERSION.SDK_INT >= 26) {
+        NotificationChannel nc = nm.getNotificationChannel(CHANNEL);
+        shown = nc != null && nc.getImportance() != NotificationManager.IMPORTANCE_NONE;
+      }
+      if (shown) markDelivered(ctx, channelId + "|" + start);
     } catch (SecurityException ignored) {
       // nincs értesítési engedély – az emlékeztető függőben marad, az alkalmazás jelzi
     }

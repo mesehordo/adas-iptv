@@ -331,8 +331,9 @@ class RadioPlayer {
       } catch {}
       this.hdrHosts ||= new Set();
       if (hdr && api.setStreamHeaders) {
-        await Promise.resolve(api.setStreamHeaders(url, { ua: hdr.ua, referrer: hdr.referrer })).catch(() => {});
+        // (a szerver bejegyzése a beállítás előtt: egy közbeni gyors váltás így biztosan törli a fejléceket)
         if (host) this.hdrHosts.add(host);
+        await Promise.resolve(api.setStreamHeaders(url, { ua: hdr.ua, referrer: hdr.referrer })).catch(() => {});
       } else if (host && this.hdrHosts.has(host) && api.setStreamHeaders) {
         // (egy korábbi adó ugyanerre a szerverre beállított fejlécei ne öröklődjenek)
         await Promise.resolve(api.setStreamHeaders(url, null)).catch(() => {});
