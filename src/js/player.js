@@ -1370,6 +1370,9 @@ const PREVIEW_MAX_MS = 60e3;
 export async function startPreview(container, ch) {
   stopPreview();
   if (!store.settings.heroPreview || player.active || document.hidden) return;
+  // (H22) gyerekprofilban nincs élő előnézet: az a lejátszó szülői ellenőrzését (napi keret, műsor-korhatár) és
+  // a nézési idő számolását megkerülné – ott a logó marad, a lejátszás a rendes (ellenőrzött) úton indul
+  if (store.profile?.kids) return;
   const v = html('<video class="hero-video" muted playsinline></video>');
   container.append(v);
   const eng = new Engine(v);
@@ -1378,6 +1381,8 @@ export async function startPreview(container, ch) {
   try {
     await eng.load(stream, { muted: true, lite: true });
     if (preview?.v !== v) return;
+    // (H22) a betöltés alatt gyerekprofilra váltott: az előnézet nem jelenhet meg
+    if (store.profile?.kids) return void stopPreview();
     store.setHealth(stream.url, true);
     v.classList.add('show');
     container.classList.add('has-video');
@@ -1403,6 +1408,8 @@ function sleepPreview() {
   p.container.addEventListener('focusin', wake);
 }
 document.addEventListener('visibilitychange', () => document.hidden && sleepPreview());
+// (H22) profilváltáskor a futó vagy betöltés alatti előnézet leáll (az új profil szabályai szerint indulhat újra)
+bus.on('profile', () => stopPreview());
 export function stopPreview() {
   if (!preview) return;
   const { v, eng, timer } = preview;

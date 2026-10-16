@@ -309,6 +309,39 @@ export function cleanProfile(p) {
         if (v && typeof v === 'object') vod[k] = { t: num(v.t), title: str(v.title, 300), type: str(v.type, 20), poster: str(v.poster, 2000), last: num(v.last) };
     p.stats = { since: num(s.since, Date.now()), days: numMap(s.days), hours, ch: numMap(s.ch), vod, cat: numMap(s.cat), plays: Math.max(0, Math.round(num(s.plays))) };
   } else if (p.stats != null) p.stats = null; // nem használható érték: a statisztika újrakezdődik
+  // (H02) a többi használt mező is: rossz alakú érték helyett biztonságos alapérték (különben az elfogadott import
+  // után futási hiba jönne – pl. vodProgress: "x" → a pozíciómentés, watchlist: {} → a lista, rows: [null] → a TV oldal)
+  const obj = (v) => v && typeof v === 'object' && !Array.isArray(v);
+  const ids = (v, max = 2000) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string').map((x) => x.slice(0, 500)).slice(0, max) : []);
+  const objMap = (v, fn, max = 5000) => {
+    const out = {};
+    if (!obj(v)) return out;
+    let n = 0;
+    for (const [k, x] of Object.entries(v)) {
+      if (n >= max) break;
+      const y = fn(x);
+      if (y !== null && y !== undefined) (out[k.slice(0, 500)] = y), n++;
+    }
+    return out;
+  };
+  for (const k of ['watchlist', 'vodFavs']) if (p[k] != null) p[k] = ids(p[k]);
+  if (p.vodProgress != null)
+    p.vodProgress = objMap(p.vodProgress, (x) => (obj(x) ? { ...x, p: num(x.p), d: num(x.d), t: num(x.t), done: !!x.done, ...(x.last != null ? { last: str(x.last, 500) } : {}) } : null));
+  if (p.vodSubs != null) p.vodSubs = objMap(p.vodSubs, (x) => (obj(x) ? x : null));
+  if (p.seriesReminders != null)
+    p.seriesReminders = (Array.isArray(p.seriesReminders) ? p.seriesReminders : []).filter((x) => obj(x) && typeof x.channelId === 'string' && typeof x.key === 'string').slice(0, 500);
+  for (const k of ['rows', 'vodRows'])
+    if (p[k] != null) p[k] = (Array.isArray(p[k]) ? p[k] : []).filter((r) => obj(r) && typeof r.key === 'string').map((r) => ({ ...r, key: r.key.slice(0, 100), on: r.on !== false }));
+  if (p.kidsAllow != null) {
+    const ka = obj(p.kidsAllow) ? p.kidsAllow : {};
+    // (a kifejezett tiltás – false – is megmarad; nem logikai érték – pl. a "false" szöveg – nem engedély)
+    const bool = (x) => (typeof x === 'boolean' ? x : null);
+    p.kidsAllow = { ch: objMap(ka.ch, bool), vod: objMap(ka.vod, bool) };
+  }
+  if (p.usage != null) p.usage = obj(p.usage) && typeof p.usage.day === 'string' ? { day: p.usage.day.slice(0, 20), sec: Math.max(0, num(p.usage.sec)), extra: Math.max(0, num(p.usage.extra)) } : null;
+  for (const k of ['dailyLimit', 'maxAge']) if (p[k] != null) p[k] = Math.max(0, Math.min(k === 'maxAge' ? 18 : 24 * 60, Math.round(num(p[k]))));
+  for (const k of ['statsOff', 'nightAudio', 'dashAuto']) if (p[k] != null) p[k] = !!p[k];
+  for (const [k, max] of [['prefAudio', 20], ['prefSubs', 20], ['lastChannel', 500], ['theme', 100], ['dashNote', 5000]]) if (p[k] != null) p[k] = str(p[k], max);
   if (p.dash != null) {
     const d = p.dash;
     p.dash = d && typeof d === 'object' && Array.isArray(d.units)
