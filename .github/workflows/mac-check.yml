@@ -1,0 +1,54 @@
+# macOS-csomag ellenőrzése: ha a Mac-csomagolást érintő fájl változik, egy macOS-gépen elkészül az alkalmazás
+# (x64 és arm64, DMG / ZIP nélkül), lefut az ad-hoc aláírás (build/mac-adhoc.js), és a codesign ellenőrzi.
+# Így egy indíthatatlan (aláíratlan, lezáratlan) Mac-csomag már a PR-ben kiderül, nem csak a kiadáskor.
+name: macOS-csomag ellenőrzése
+
+on:
+  pull_request:
+    paths:
+      - 'build/mac-adhoc.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tools/fetch-ffmpeg.mjs'
+      - '.github/workflows/mac-check.yml'
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mac-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mac:
+    name: macOS (aláírás)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: FFmpeg (lejátszási híd)
+        run: npm run ffmpeg -- darwin-x64 darwin-arm64
+      - name: Csomagolás (aláírással, telepítőfájl nélkül)
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --mac dir --x64 --arm64 --publish never
+      - name: Aláírás ellenőrzése
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          apps=(dist/mac*/*.app)
+          [ ${#apps[@]} -ge 2 ] || { echo "Hiányzó alkalmazás: ${apps[*]:-nincs}"; exit 1; }
+          for a in "${apps[@]}"; do
+            echo "== $a"
+            codesign --verify --deep --strict --verbose=2 "$a"
+            codesign --display --verbose=2 "$a" 2>&1 | grep -E 'Signature|Identifier|Sealed'
+            file "$a/Contents/MacOS/"*
+          done

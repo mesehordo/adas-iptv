@@ -42,6 +42,8 @@ A legfrissebb kiadás: **[Releases → Latest](https://github.com/mesehordo/adas
 - **[Fejlesztőknek](docs/FEJLESZTES.md)** – futtatás forrásból, build, felépítés
 - **Súgó** – a programban: <kbd>F1</kbd>
 
+**macOS, első indítás:** az Adás nincs az Apple-nél hitelesítve, ezért a rendszer első alkalommal figyelmeztet. Húzd az Adást az *Alkalmazások* mappába, majd a Finderben **jobb klikk → Megnyitás → Megnyitás**. macOS 15-től: indítsd el egyszer, majd *Rendszerbeállítások → Adatvédelem és biztonság →* **Megnyitás mindenképp**. Ezt csak egyszer kell megtenni.
+
 A letöltések ellenőrzéséhez: `SHA256SUMS.txt` a kiadás mellett.
 
 Az adásokat a csatornák saját szerverei szolgáltatják (az [iptv-org](https://github.com/iptv-org/iptv) és más
@@ -75,6 +77,8 @@ Latest release: **[Releases → Latest](https://github.com/mesehordo/adas-iptv/r
 - **[Features and changes](docs/FUNKCIOK.md)** – what it does, version by version *(in Hungarian)*
 - **[For developers](docs/FEJLESZTES.md)** – run from source, build, architecture *(in Hungarian)*
 - **Help** – inside the app: <kbd>F1</kbd> (Hungarian and English)
+
+**macOS, first launch:** Adás is not notarized by Apple, so macOS warns you the first time. Drag Adás to *Applications*, then in Finder **right-click → Open → Open**. On macOS 15 and later: launch it once, then *System Settings → Privacy & Security →* **Open Anyway**. You only need to do this once.
 
 To verify downloads: `SHA256SUMS.txt` next to the release.
 

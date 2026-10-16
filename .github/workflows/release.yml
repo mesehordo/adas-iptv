@@ -101,7 +101,7 @@ jobs:
       - name: Fordítás
         env:
           SCRIPT: ${{ matrix.script }}
-          # macOS: nincs aláíró tanúsítvány – ne keressen (az arm64-es változat ad-hoc aláírást kap)
+          # macOS: nincs aláíró tanúsítvány – ne keressen; az ad-hoc aláírást a build/mac-adhoc.js (afterPack) adja
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         shell: bash
         run: npm run "$SCRIPT" -- --publish never

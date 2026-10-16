@@ -38,6 +38,7 @@
   "build": {
     "appId": "hu.adas.tv",
     "productName": "Adás",
+    "afterPack": "build/mac-adhoc.js",
     "files": [
       "main.js",
       "preload.js",
