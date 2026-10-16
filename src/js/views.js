@@ -21,7 +21,7 @@ import { exoAvailable } from './exo.js';
 import { renderKidsSettings } from './kidsui.js';
 import { renderDashSettings } from './dashboard.js';
 import { watchList } from './sports.js';
-import { radioFavsSection, radioSearchSection, radioSearchCount } from './radiopage.js';
+import { radioFavsSection, radioSearchSection, radioSearchCount, startRadioSearch } from './radiopage.js';
 import { renderRadioSettings } from './radiosettings.js';
 const sportWatchCount = () => watchList().filter((w) => w.on !== false).length;
 import { requireAdult, hasPin, choosePin, setPin } from './pin.js';
@@ -476,13 +476,13 @@ export function renderSearch(view, params) {
   // (a filmek / sorozatok listája csak később töltődik be – kereséskor azonnal; a végén újrarajzol: app.js)
   if (!vod.ready && !vod.loading) loadVod().catch(() => {});
   const vodHits = searchVod(q);
+  startRadioSearch(q); // (minden fülön: a Rádió fül darabszáma az online találatokkal együtt)
   // Szűrő: minden találat, vagy csak egy fajta (ott a teljes lista)
   const counts = { tv: chans.length, prog: progs.length, vod: vodHits.length, radio: radioSearchCount(q) };
   let only = params.get('t') || '';
   if (!(only in counts)) only = '';
   const show = (k) => !only || only === k;
   const radioBox = show('radio') ? radioSearchSection(q, { limit: only ? 120 : 18 }) : null;
-  counts.radio = radioSearchCount(q); // (az online találatok is)
   const total = counts.tv + counts.prog + counts.vod + counts.radio;
   const tab = (k, label) =>
     `<button class="tab ${only === k ? 'active' : ''}" data-st="${k}" ${k && !counts[k] ? 'disabled' : ''}>${label}${k ? ` <span class="muted">${counts[k]}</span>` : ''}</button>`;

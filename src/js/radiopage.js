@@ -792,12 +792,19 @@ export function radioSearchCount(q) {
   const extra = (Array.isArray(onlineHits.get(q)) ? onlineHits.get(q) : []).filter((s) => !seen.has(s.id));
   return seen.size + extra.length;
 }
-export function radioSearchSection(q, { limit = 18 } = {}) {
-  if (!radioMenuOn()) return null;
+/**
+ * A Keresés oldal rádiós keresése – a választott fültől függetlenül (a Rádió fül darabszámához is): a betöltött
+ * adók, és ha ott kevés a találat, a Radio Browser. Az online kérés csak a gépelés szünetében indul (egy közös
+ * időzítővel – a részleges kifejezések nem indítanak külön-külön kérést).
+ */
+let onlineTimer = 0;
+export function startRadioSearch(q) {
+  if (!radioMenuOn()) return;
   if (!radio.ready) loadRadio(); // (a betöltés végén a Keresés oldal újrarajzolódik – app.js)
-  const local = radioSearch(q);
-  const known = onlineHits.get(q);
-  if (!known && local.length < 12 && q.trim().length >= 2) {
+  clearTimeout(onlineTimer);
+  if (onlineHits.has(q) || q.trim().length < 2 || radioSearch(q).length >= 12) return;
+  onlineTimer = setTimeout(() => {
+    if (onlineHits.has(q)) return;
     onlineHits.set(q, 'pending');
     searchRadioOnline(q)
       .then((r) => onlineHits.set(q, r))
@@ -806,7 +813,12 @@ export function radioSearchSection(q, { limit = 18 } = {}) {
         if (onlineHits.size > 30) onlineHits.delete(onlineHits.keys().next().value);
         if (document.body.dataset.route === 'search') bus.emit('radio-search');
       });
-  }
+  }, 700);
+}
+export function radioSearchSection(q, { limit = 18 } = {}) {
+  if (!radioMenuOn()) return null;
+  const local = radioSearch(q);
+  const known = onlineHits.get(q);
   const seen = new Set(local.map((s) => s.id));
   const list = [...local, ...(Array.isArray(known) ? known.filter((s) => !seen.has(s.id)) : [])];
   if (!list.length) return null;
