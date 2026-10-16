@@ -507,9 +507,19 @@ async function useResult(video, ch, res) {
   const text = saved || (res.src === 'fe' ? await feDownload(res) : res.src === 'sdl' ? await sdlDownload(res) : await downloadText(res.fileId));
   // a letöltés közben másik videóra válthattak, kikapcsolták vagy másikat választottak: ez már nem érvényes
   if (pick !== pickSeq || player.channel !== ch) return;
-  const cues = parseSubs(text);
+  let cues = parseSubs(text);
+  let isFresh = fresh;
+  let finalText = text;
+  if (!cues.length && !fresh) {
+    // a tárolt szöveg sérült: törlés, majd új letöltés (különben minden újranyitás ugyanazzal hibázna)
+    forgetSubText(vodKey);
+    finalText = res.src === 'fe' ? await feDownload(res) : res.src === 'sdl' ? await sdlDownload(res) : await downloadText(res.fileId);
+    if (pick !== pickSeq || player.channel !== ch) return;
+    cues = parseSubs(finalText);
+    isFresh = true;
+  }
   if (!cues.length) throw new Error(_t('A feliratfájl üres vagy nem értelmezhető.'));
-  if (fresh && vodKey) saveSubText(vodKey, res, text);
+  if (isFresh && vodKey) saveSubText(vodKey, res, finalText);
   const label = `${languageName(res.lang)} – ${res.release}`;
   apply(video, cues, label);
   // Megjegyezzük ehhez a filmhez / részhez.

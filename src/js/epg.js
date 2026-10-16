@@ -90,8 +90,8 @@ const fetchSource = (url, opts) =>
   // (a bájtos út csak http(s); a helyi – file:// – forrás a szöveges úton megy)
   // (H05) stale: a hálózat most nem érhető el, a régi gyorsítótár jött – a státusz ezt jelzi, nem „friss” betöltést
   api.fetchBytes && /^https?:\/\//i.test(url)
-    ? api.fetchBytes(url, opts).then((r) => ({ data: r.bytes, cachedAt: r.cachedAt, stale: !!r.stale }))
-    : api.fetchText(url, opts).then((r) => ({ data: r.text, cachedAt: r.cachedAt, stale: !!r.stale }));
+    ? api.fetchBytes(url, opts).then((r) => ({ data: r.bytes, cachedAt: r.cachedAt, stale: !!r.stale, fromCache: !!r.fromCache }))
+    : api.fetchText(url, opts).then((r) => ({ data: r.text, cachedAt: r.cachedAt, stale: !!r.stale, fromCache: !!r.fromCache }));
 
 /** Program: { start, stop, title, desc, category, subtitle, episode, age (korhatár, 0 = nincs adat) } */
 const toProg = (r) => ({ start: r[0], stop: r[1], title: r[2] || _t('Műsor'), desc: r[3], category: r[4], subtitle: r[5], episode: r[6], age: r[7] || 0 });
@@ -254,7 +254,7 @@ export const epg = {
         const n = i++;
         const src = sources[n];
         try {
-          const { data, cachedAt, stale } = await fetchSource(src.url, { maxAgeHours: store.settings.epgRefreshHours, force });
+          const { data, cachedAt, stale, fromCache } = await fetchSource(src.url, { maxAgeHours: store.settings.epgRefreshHours, force });
           parsed[n] = await parse(data);
           parsed[n].stale = stale;
           this.status[src.url] = {
@@ -263,7 +263,8 @@ export const epg = {
             programs: parsed[n].count,
             at: cachedAt,
             // (régi gyorsítótárnál az utolsó friss betöltés ideje marad – az adat elavultként látszik)
-            okAt: stale ? this.status[src.url]?.okAt || cachedAt : Date.now(),
+            // (friss gyorsítótár-találatnál a tényleges letöltés ideje)
+            okAt: stale ? this.status[src.url]?.okAt || cachedAt : fromCache ? cachedAt : Date.now(),
             ...(stale ? { stale: true, error: _t('a forrás most nem érhető el') } : {}),
           };
         } catch (err) {

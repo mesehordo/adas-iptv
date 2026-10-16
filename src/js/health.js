@@ -17,6 +17,7 @@ function applyProbe(url, ok) {
 const queue = new Map(); // url -> stream
 let running = false;
 let fullScan = null; // { done, total }
+let scanWaiting = false; // a kézi teljes vizsgálat a futó háttérkör végére vár
 let timer = null;
 
 api.onCheckProgress(({ done, total, partial }) => {
@@ -44,7 +45,8 @@ bus.on('settings', (k) => {
   retryTimer = null;
   retries = 0;
   queue.clear();
-  if (running && !fullScan) api.cancelCheck?.();
+  // (a futó háttérkör megszakad – akkor is, ha egy kézi teljes vizsgálat éppen rá vár)
+  if (running && (!fullScan || scanWaiting)) api.cancelCheck?.();
 });
 bus.on('player-closed', () => {
   playing = false;
@@ -70,6 +72,11 @@ async function pump() {
       batch = [...queue.values()].slice(0, 60);
       batch.forEach((s) => queue.delete(s.url));
       const { results, cancelled } = await api.checkStreams(batch.map((s) => ({ url: s.url, ua: s.ua, referrer: s.referrer })));
+      // (H21) a kör közben kikapcsolták: a törölt sort nem tölti vissza, és az állapotot sem módosítja
+      if (!store.settings.autoCheck && !fullScan) {
+        batch = [];
+        return;
+      }
       // a kör ellenőrizetlen tételei visszakerülnek a sorba (megszakításnál, és ha a natív próba csak
       // részben sikerült – az Android / webOS ilyenkor is cancelled: false-szal tér vissza)
       const unchecked = batch.filter((s) => !(s.url in results));
@@ -127,8 +134,13 @@ export const health = {
     const list = channels.flatMap((ch) => ch.streams).map((s) => ({ url: s.url, ua: s.ua, referrer: s.referrer }));
     fullScan = { done: 0, total: list.length };
     bus.emit('scan-progress', { ...fullScan });
-    // Ha éppen fut egy háttérellenőrzés, megvárjuk.
-    while (running) await new Promise((r) => setTimeout(r, 200));
+    // Ha éppen fut egy háttérellenőrzés, megvárjuk (közben a kikapcsolás azt is megszakíthatja – scanWaiting).
+    scanWaiting = true;
+    try {
+      while (running) await new Promise((r) => setTimeout(r, 200));
+    } finally {
+      scanWaiting = false;
+    }
     running = true;
     let results = {};
     let cancelled = false;
