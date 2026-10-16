@@ -306,7 +306,6 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - Szülői felügyelet: profilonkénti PIN-kód; gyerekprofilból csak felnőtt PIN-nel lehet kilépni, beállítani
 - *Folytatás* sor a főoldalon: félbehagyott filmek és részek minden listából és a saját médiatárból
 - Élő adás megállítása és visszatekerése a pufferből (kb. 30 percig), *Ugrás élőbe*
-- Több adás egyszerre (2 vagy 4 ablak; tévén 2), a kijelölt szól
 - Kivetítés Chromecastra és DLNA-tévére (asztali): a gép továbbítja az adást, így a fejléces / CORS nélküli adások is mennek
 - Éjszakai hang: hangos részek tompítása, párbeszéd kiemelése (asztali)
 - Nézési statisztika profilonként (napok, napszakok, csatornák, kategóriák, filmek)
@@ -467,7 +466,6 @@ csomagot tölti le. A buildcél a natív rétegtől jut el a felülethez (`AdasA
 | M / F / N / S | Némítás / teljes képernyő / mini lejátszó / kedvenc |
 | Shift+← / Shift+→, End | Élő adás: 30 mp vissza / előre, ugrás élőbe |
 | C | Hang és felirat |
-| V | Több adás egyszerre |
 
 ## Felépítés
 
