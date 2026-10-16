@@ -114,6 +114,14 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - **Felvétel** (asztali): azonnal a ● gombbal vagy a műsorújságból ütemezve; a hang változatlanul MP3 / AAC fájlba (más kódolásnál AAC-be alakítva), vágható; a Rádió oldal **Felvételek** fülén. **Kedvencek** fül sorba rendezéssel.
 - Kedvenc adók a Kedvencek oldalon is; billentyűk: szóköz / médiagomb, CH+ / CH−. Videó indításakor a rádió elhallgat. Beállítások → **Rádió**: a menüpont kikapcsolható (gyerekprofilban nem látszik).
 
+**Rádió, androidos funkciók, javítások (1.28)**
+- **Rádió**: felvétel és műsorújság a tévés felülettel, kedvencek fül, a *Most szól* nézet fekvő képernyőn egy képernyőre fér (borító | adatok | hangkép, alul kezelősáv, a beállítások rövid menügombokból: Hangkép, Hangzás, Hangszín, Elalvás, Előtte szólt, Adás adatai – D), a háttér a téma háttere; **OFFLINE** / **🌐 GEO-KORLÁT** jelölés és háttérellenőrzés, mint a tévénél; **Adás adatai** (formátum, megadott és mért bitráta, puffer, akadás); a Japán (és más ország) szűrés teljes listát ad.
+- **Magyar TV adók**: új beépített lista a szabadon fogható magyar adásokkal.
+- **A „több adás egyszerre” nézet megszűnt** minden platformon.
+- **Android**: háttérlejátszás médiavezérlőkkel (értesítés, fülhallgató, Bluetooth, zárolt képernyő), mini lejátszó más alkalmazások fölött (kép a képben), natív lejátszó (ExoPlayer) élő tévéhez és HLS / DASH-hez is választható, helyi / USB-mappák a saját médiatárhoz, beépített frissítés (ellenőrzött aláírással, a rendszer telepítőjével), kivetítés telefonról (Chromecast, DLNA – Google-szolgáltatások nélkül), éjszakai hang (Android 9-től), külön mobil és tévés kiadás (`…-android-mobile.apk` / `…-android-tv.apk`).
+- **Telefonos távirányító**: új Rádió fül (adóváltás, kedvenc, felvétel, hangerő, elalvás, hangkép, keresés), új gombok (kedvenc, felvétel, mini, kivetítés), ugrás a Rádióra, a rádió-műsorújságra és a Sportra.
+- **Windows-telepítő**: tiszta telepítés és az adatok törlése (Setup: kérdéssel; MSI: jelölőnégyzettel, ablakos magyar telepítővel); az MSI a végén nem indítja el az Adást (az első profil névmezője így nem maradt írhatatlan).
+- **Javítások** a javítási feladatlistából (B01–B38): első profil (Enter, visszalépés), kereső fókusza, távirányítós navigáció, mentési pontok a listatartalommal, gyerekprofil nézési ideje kivetítéskor, legnagyobb minőség minden motorra, beállításmentés, EPG-feldolgozás és -frissítés, feliratok, frissítő, sportnaptár időzónái, kivetítés, emlékeztetők és több más.
 **Tartós borítótár, elérhetők elöl mindenhol (1.27)**
 - **Borítóképek tára**: asztali gépen a VOD-borítók a felhasználói adatmappa `covers` mappájába kerülnek (`adasimg://` – `covers.js`), Androidon minden kép (borító, csatornalogó) a `files/covers` mappába (`Covers.java`; eddig a WebView a proxyn átadott képeket nem tárolta, mindent újra letöltött). Legközelebb onnan jönnek, hálózat nélkül is; korlát: asztalon 1 GB, Androidon 512 MB (fölötte a legrégebben látottak törlődnek). Méret és ürítés: Beállítások → VOD és médiatár.
 - **Az elérhető csatornák elöl mindenhol**, ahol a program dönti el a sorrendet: keresés (és a telefonos távirányító keresése), a TV oldal sorai, műsorújság, böngészés (név / ország szerinti rendezésben is), több adás egyszerre. A saját sorrend marad (Kedvencek, Legutóbb nézett, csatornaszámok).
@@ -298,7 +306,6 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 - Szülői felügyelet: profilonkénti PIN-kód; gyerekprofilból csak felnőtt PIN-nel lehet kilépni, beállítani
 - *Folytatás* sor a főoldalon: félbehagyott filmek és részek minden listából és a saját médiatárból
 - Élő adás megállítása és visszatekerése a pufferből (kb. 30 percig), *Ugrás élőbe*
-- Több adás egyszerre (2 vagy 4 ablak; tévén 2), a kijelölt szól
 - Kivetítés Chromecastra és DLNA-tévére (asztali): a gép továbbítja az adást, így a fejléces / CORS nélküli adások is mennek
 - Éjszakai hang: hangos részek tompítása, párbeszéd kiemelése (asztali)
 - Nézési statisztika profilonként (napok, napszakok, csatornák, kategóriák, filmek)
@@ -459,7 +466,6 @@ csomagot tölti le. A buildcél a natív rétegtől jut el a felülethez (`AdasA
 | M / F / N / S | Némítás / teljes képernyő / mini lejátszó / kedvenc |
 | Shift+← / Shift+→, End | Élő adás: 30 mp vissza / előre, ugrás élőbe |
 | C | Hang és felirat |
-| V | Több adás egyszerre |
 
 ## Felépítés
 
