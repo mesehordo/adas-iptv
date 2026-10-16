@@ -104,6 +104,11 @@ bus.on('reminders', () => {
 export function checkReminders() {
   const now = Date.now();
   let changed = false;
+  // (H20) amit a rendszer a háttérben már kézbesített, az itt nem szól újra
+  const delivered = new Set(api.takeDeliveredReminders?.() || []);
+  if (delivered.size)
+    for (const r of store.profile.reminders)
+      if (!r.notified && delivered.has(`${r.channelId}|${r.start}`)) (r.notified = true), (changed = true);
   for (const r of store.profile.reminders) {
     const ch = catalog.byId.get(r.channelId);
     if (!ch || r.stop < now) continue;
@@ -143,7 +148,8 @@ export function scheduleNative() {
   if (!api.scheduleReminders) return;
   const now = Date.now();
   const list = (store.profile?.reminders || [])
-    .filter((r) => r.start - leadMs() > now - 60000 && r.stop > now)
+    // (H20) a már jelzett emlékeztető nem ütemeződik újra (különben háttérbe kerülve még egyszer szólna)
+    .filter((r) => !r.notified && r.start - leadMs() > now - 60000 && r.stop > now)
     .slice(0, 60)
     .map((r) => {
       const ch = catalog.byId.get(r.channelId);

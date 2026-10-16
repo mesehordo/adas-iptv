@@ -151,7 +151,7 @@ class RadioPlayer {
         resolve(good);
       };
       this.nWait = { id, finish, timer: setTimeout(() => finish(false), START_TIMEOUT) };
-      window.AdasAndroid.radioPlay(JSON.stringify({ id, url, volume: fx().volume }));
+      window.AdasAndroid.radioPlay(JSON.stringify({ id, url, volume: fx().volume, ua: this.reqHeaders?.ua || '', referrer: this.reqHeaders?.referrer || '' }));
     });
   }
   onNative(e) {
@@ -321,6 +321,11 @@ class RadioPlayer {
     for (const raw of st.urls) {
       if (seq !== this.seq) return;
       const url = await resolveStream(raw);
+      if (seq !== this.seq) return;
+      // (H11) a lista által megadott fejlécek (User-Agent, Referer) – asztalon a fejléc-beállító, Androidon a natív lejátszó
+      const hdr = st.headers?.[raw] || null;
+      this.reqHeaders = hdr;
+      if (hdr && api.setStreamHeaders) await api.setStreamHeaders(url, { ua: hdr.ua, referrer: hdr.referrer }).catch(() => {});
       if (seq !== this.seq) return;
       // (amelyik cím CORS-módban egyszer már nem indult, az legközelebb rögtön a tartalék elemen szól)
       const noCors = this.ctx && this.noCors.has(url);

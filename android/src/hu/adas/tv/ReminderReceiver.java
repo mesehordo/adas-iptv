@@ -113,5 +113,23 @@ public class ReminderReceiver extends BroadcastReceiver {
     } catch (SecurityException ignored) {
       // nincs értesítési engedély
     }
+    markDelivered(ctx, channelId + "|" + start);
+  }
+
+  /** (H20) A rendszer által kézbesített emlékeztető – az alkalmazás megnyitásakor ne jelezze újra (legfeljebb 100). */
+  static synchronized void markDelivered(Context ctx, String key) {
+    SharedPreferences prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    java.util.Set<String> set = new java.util.HashSet<>(prefs.getStringSet("delivered", new java.util.HashSet<>()));
+    set.add(key);
+    while (set.size() > 100) set.remove(set.iterator().next());
+    prefs.edit().putStringSet("delivered", set).apply();
+  }
+
+  /** A kézbesítettek átadása a felületnek (és törlése). → JSON-tömb: ["csatorna|kezdés", …] */
+  static synchronized String takeDelivered(Context ctx) {
+    SharedPreferences prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    java.util.Set<String> set = prefs.getStringSet("delivered", new java.util.HashSet<>());
+    prefs.edit().remove("delivered").apply();
+    return new JSONArray(set).toString();
   }
 }

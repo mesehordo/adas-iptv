@@ -8,7 +8,17 @@ import { openModal, confirmDialog } from './components.js';
 import { epg } from './epg.js';
 
 import { _t } from './i18n.js';
-const state = { device: null, status: '', paused: false, devices: [], scanning: false };
+// gen: a kivetített tartalom munkamenete (minden új tartalom újat kezd – H15 / H29); dur / durKey: a film helyben ismert
+// hossza (a vevők nem küldik) a folytatási pont mentéséhez (H28)
+const state = { device: null, status: '', paused: false, devices: [], scanning: false, gen: 0, seekTimer: 0, time: 0, dur: 0, durKey: '', savedAt: 0 };
+/** (H28) A kivetített film pozíciója a profil folytatási adataiba (kivetítés közben is, nem csak a helyi lejátszásnál). */
+function saveCastProgress(force = false) {
+  const ch = player.channel;
+  if (!ch?.vod || !(state.time > 0) || ch.vod.key !== state.durKey) return;
+  if (!force && Date.now() - state.savedAt < 15e3) return;
+  state.savedAt = Date.now();
+  player.vodHooks?.progress(ch, state.time, state.dur);
+}
 const root = $('#player');
 const video = $('#video');
 
@@ -121,6 +131,9 @@ async function startCast(dev) {
   state.paused = false;
   // A film onnan folytatódik a tévén, ahol itt tartott.
   if (player.channel.vod && !prev && player.engine.started && isFinite(video.duration)) player.resumeAt = video.currentTime;
+  // (a film helyben ismert hossza – a vevő nem küldi; a folytatási ponthoz kell)
+  state.dur = player.channel.vod && isFinite(video.duration) ? video.duration : 0;
+  state.durKey = player.channel.vod?.key || '';
   drawOverlay();
   player.renderControls();
   player.tried = new Set();
@@ -130,6 +143,9 @@ async function startCast(dev) {
 /** Kivetítés vége; resume: a gépen folytatódjon-e a lejátszás. */
 function stopCast(resume, reason = '') {
   if (!state.device) return;
+  saveCastProgress(true); // (H28) a vevőn elért pozíció a folytatási pont
+  clearTimeout(state.seekTimer); // (H15) a függő tekerés nem futhat le egy másik munkamenetben
+  state.gen++;
   const name = state.device.name;
   state.device = null;
   api.castControl('disconnect');
@@ -164,6 +180,12 @@ const hooks = {
   menu: openMenu,
   async load(ch, stream, at = 0) {
     const n = !ch.vod ? epg.now(ch.id) : null;
+    // (H15 / H29) új tartalom = új munkamenet: a pozíció a kezdőpont (nem az előző filmé), a régi tekerés érvénytelen
+    const gen = ++state.gen;
+    clearTimeout(state.seekTimer);
+    state.time = at > 0 ? at : 0;
+    state.savedAt = 0;
+    if ((ch.vod?.key || '') !== state.durKey) (state.dur = 0), (state.durKey = ch.vod?.key || '');
     state.status = 'LOADING';
     drawOverlay();
     const opts = {
@@ -194,10 +216,17 @@ const hooks = {
         }
       } else throw new Error(`${_t('Kivetítés:')} ` + errText(err));
     }
-    if (at > 30) setTimeout(() => api.castControl('seek', at), 1500);
+    if (gen !== state.gen) return; // (közben új tartalom / leállítás jött)
+    const dev = state.device?.id;
+    if (at > 30) state.seekTimer = setTimeout(() => gen === state.gen && state.device?.id === dev && api.castControl('seek', at), 1500);
     state.paused = false;
     drawOverlay();
     toast(`${_t('Kivetítve: {name}', { name: state.device.name })}`);
+  },
+  /** (H34) kifejezett lejátszás / szünet (a rendszer médiagombjaihoz – idempotens, nem váltó) */
+  setPaused(paused) {
+    if (!state.device || state.paused === !!paused) return;
+    this.toggle();
   },
   toggle() {
     if (!state.device) return;
@@ -229,9 +258,12 @@ if (api.onCastStatus) {
     if (s.state === 'PLAYING') state.paused = false;
     bus.emit('cast-state'); // (a gyerek nézési ideje a vevőn indított szünetnél / folytatásnál is pontos – B09)
     if (typeof s.time === 'number') state.time = s.time;
+    if (s.state === 'PLAYING' || s.state === 'PAUSED') saveCastProgress(); // (H28) időközönként
     if (typeof s.volume === 'number') state.volume = s.volume;
     if (s.state === 'IDLE' && s.idle === 'ERROR') toast(_t('A kivetítő eszköz nem tudta lejátszani ezt az adást.'));
     if (s.state === 'IDLE' && s.idle === 'FINISHED' && player.channel?.vod) {
+      // (H28) végignézve: kész jelölés (a pozíció a vége)
+      if (state.dur > 0 && player.channel.vod.key === state.durKey) player.vodHooks?.progress(player.channel, state.dur, state.dur);
       const next = player.vodHooks?.next(player.channel, 1);
       if (next && player.vodHooks.autoNext()) player.playVod(next);
     }

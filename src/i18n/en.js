@@ -2277,5 +2277,7 @@ export default {
  "az előnézet nem indult": "the preview did not start",
  "nem érkezett adat": "no data arrived",
  "A mentés most nem lehetséges.": "Saving is not possible right now.",
- "A profilok nem menthetők – az átvétel elmaradt:": "The profiles cannot be saved – nothing was imported:"
+ "A profilok nem menthetők – az átvétel elmaradt:": "The profiles cannot be saved – nothing was imported:",
+ "a webcím most nem érhető el – a mentett lista látszik": "the web address is not reachable right now – the saved list is shown",
+ "A lejátszási puffer megtelt.": "The playback buffer is full."
 };

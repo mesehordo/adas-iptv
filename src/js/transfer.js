@@ -8,7 +8,7 @@ import { esc, toast, errText, bus } from './util.js';
 import { api } from './api.js';
 import { store, cleanProfile, validateImport } from './store.js';
 import { confirmDialog } from './components.js';
-import { attachDocs, stageDocs, dropDocs } from './snapshot.js';
+import { attachDocs, stageDocs, dropDocs, dropUnreferenced } from './snapshot.js';
 
 import { _t } from './i18n.js';
 const SECRET_KEYS = ['osApiKey', 'osUser', 'osPass', 'osToken', 'subdlKey', 'tmdbKey', 'omdbKey', 'tsdbKey', 'remoteKey'];
@@ -63,6 +63,8 @@ async function applyData(data, source, { profilesOnly = false } = {}) {
     await dropDocs(staged.written);
     throw err;
   }
+  // (H24) a régi beállítás által hivatkozott, az újból hiányzó listadokumentumok törlése (a mentési pontoké marad)
+  await Promise.resolve(dropUnreferenced(cur.settings, settings)).catch(() => {});
   toast(_t('Beállítások átvéve – újraindítás…'));
   setTimeout(() => location.reload(), 800);
   return true;
