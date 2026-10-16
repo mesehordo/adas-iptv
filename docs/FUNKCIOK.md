@@ -36,6 +36,9 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
+**Android: lejátszás zárolt képernyőnél, értesítés (1.28.5)**
+- **Lezárt képernyő**: a rádió mindig tovább szól (másik alkalmazásra váltáskor is), a TV és a VOD hangja a képernyő lezárásakor is; másik alkalmazásra váltáskor a videónál továbbra is a Háttérlejátszás beállítás dönt.
+- **Értesítés lejátszás közben**: amíg van betöltött adás (szünetelve is), az értesítési sávon és a zárolt képernyőn látszik, mi szól (TV: csatorna és a most futó műsor, rádió: adó és szám), lejátszás / szünet és leállítás gombbal. Android 13-tól az első lejátszáskor engedélyt kér.
 **macOS-javítás, műsorújság, Újrakezdés (1.28.4)**
 - **macOS**: a Mac-kiadások eddig el sem indultak (aláíratlan alkalmazás – „sérült, nem nyitható meg”); most ad-hoc aláírást kapnak. Az első indításkor egyszeri jóváhagyás kell (jobb klikk → Megnyitás, ill. macOS 15-től Adatvédelem és biztonság → Megnyitás mindenképp).
 - **Műsorújság**: a források kiegészítik egymást – ahol a magasabb prioritású forrás műsora véget ér (pl. csak a tegnapi napot adja), a következő pótolja. Javítva a „Nincs műsoradat” több magyar csatornán (Nick Jr., Minimax, Spektrum Home, TV2…).
