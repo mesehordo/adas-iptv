@@ -15,9 +15,8 @@ import android.os.Build;
 import android.os.IBinder;
 
 /**
- * Háttérlejátszás: amíg az Adás a háttérben szól (másik alkalmazásra váltáskor, Home gombnál vagy
- * képernyőzárnál, ha a Beállításokban be van kapcsolva), egy állandó médiaértesítés jelzi, és a rendszer nem
- * állítja le a folyamatot. Az értesítésről (és a médiamunkamenet révén a fülhallgató, a Bluetooth-eszköz, a
+ * Lejátszás közben (előtérben is) egy állandó médiaértesítés jelzi, mi szól; a háttérben (képernyőzárnál, a rádió
+ * mindig, a videó másik alkalmazásra váltáskor a beállítás szerint) a rendszer így nem állítja le a folyamatot. Az értesítésről (és a médiamunkamenet révén a fülhallgató, a Bluetooth-eszköz, a
  * zárolt képernyő vagy a tévé médiagombjairól) szüneteltethető, folytatható, leállítható; koppintásra az
  * Adás visszajön.
  *
@@ -168,7 +167,7 @@ public class PlaybackService extends Service {
     Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
     b.setSmallIcon(R.drawable.ic_stat_tv)
         .setContentTitle(t)
-        .setContentText(L.t(this, paused ? "Szünetel" : "Lejátszás a háttérben"))
+        .setContentText(L.t(this, paused ? "Szünetel" : "Most szól"))
         .setContentIntent(tap)
         .setOngoing(true)
         .setVisibility(Notification.VISIBILITY_PUBLIC)

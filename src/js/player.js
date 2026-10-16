@@ -140,7 +140,9 @@ export const player = {
     this.renderControls();
     this.showOsd(ch);
     bus.emit('player-opened', ch);
-    api.setNowPlaying?.(ch.vod ? ch.vod.title || ch.name : ch.name);
+    this.lastNowPlaying = '';
+    if (ch.vod) api.setNowPlaying?.(ch.vod.title || ch.name);
+    else this.reportNowPlaying(ch);
     const order = ch.vod ? ch.streams : orderedStreams(ch);
     this.startRace(ch);
     await this.tryStream(stream || order[0]);
@@ -534,6 +536,7 @@ export const player = {
       return;
     }
     const n = epg.now(ch.id);
+    this.reportNowPlaying(ch, n);
     const box = $('.p-epg', root);
     if (!n) {
       box.innerHTML = '';
@@ -546,6 +549,14 @@ export const player = {
           <div class="bar wide"><i style="width:${(n.progress * 100).toFixed(1)}%"></i></div>`
         : ''
     }${n.next ? `<div class="p-next muted">${_t('Utána: {fmtTime} {esc}', { fmtTime: fmtTime(n.next.start), esc: esc(n.next.title) })}</div>` : ''}`;
+  },
+
+  /** Az értesítés / a rendszer médiavezérlőinek címe: „Csatorna – most futó műsor” (csak változáskor). */
+  reportNowPlaying(ch, n = epg.now(ch.id)) {
+    const t = n?.cur?.title ? `${ch.name} – ${n.cur.title}` : ch.name;
+    if (t === this.lastNowPlaying) return;
+    this.lastNowPlaying = t;
+    api.setNowPlaying?.(t);
   },
 
   updateSeek() {

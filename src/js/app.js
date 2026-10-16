@@ -472,6 +472,15 @@ window.__adasPip = (on) => {
 };
 window.__adasPipFailed = () => toast(_t('A kép a képben mód ezen az eszközön nem érhető el.'));
 bus.on('player-opened', () => api.setVideoActive?.(true));
+// van-e betöltött adás (videó vagy rádió – szünetelve is): Androidon addig látszik a lejátszás értesítése
+let mediaActiveWas = false;
+const reportMediaActive = () => {
+  const on = !!(player.active || radioPlayer.active);
+  if (on === mediaActiveWas) return;
+  mediaActiveWas = on;
+  api.setMediaActive?.(on);
+};
+['player-opened', 'player-closed', 'radio-player'].forEach((ev) => bus.on(ev, () => setTimeout(reportMediaActive, 0)));
 bus.on('player-closed', () => api.setVideoActive?.(false));
 // Háttér-beállítások átadása a keretnek: kilépéskor kis ablak (videó) / háttérlejátszás (csak hang) – külön
 const sendBgPrefs = () => api.setBackgroundPrefs?.(store.settings.autoPip === true, !!store.settings.bgAudio);

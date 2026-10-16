@@ -1048,9 +1048,11 @@ https://…/sport/playlist.m3u8</pre>
 <li>On a phone there’s an icon menu bar at the bottom; during playback the picture is full screen, and can be watched in landscape when rotated. The first tap brings up the controls.</li>
 <li>On TV: <b>OK</b> = play, <b>long-pressed OK</b> on a channel = details page (favourite, reminder, sources), <b>Back</b> = back (exit on the home page). If the remote has coloured buttons, CH+/CH− or ◀◀ / ▶▶, they work just like in the LG version.</li>
 </ul>
-<h2>Background playback</h2>
+<h2>Background playback and notification</h2>
 <ul>
-<li><b>Background playback (audio only)</b>: Settings → Playback → <i>Background playback</i>. When on, the stream’s audio keeps playing when you switch to another app; a notification shows it, from where you can pause, resume, return or stop it (headset and Bluetooth buttons work too). When off (the default), playback stops when you leave.</li>
+<li><b>Notification while playing</b>: while something is playing (a channel, a film, a radio station – paused too), the notification shade and the lock screen show what is playing (on TV the channel and the programme on now, on radio the station and the track), with play / pause and stop buttons; headset and Bluetooth buttons work too. Tap it to bring Adás back. (From Android 13 it asks for notification permission at the first playback.)</li>
+<li><b>Radio always keeps playing</b> – when you lock the screen and when you switch to another app, like a music player.</li>
+<li><b>Video (TV, VOD)</b>: when you lock the screen, the sound always keeps playing. When you switch to another app, the setting decides: Settings → Playback → <i>Background playback (audio only)</i> on, the sound keeps playing; off (the default), the video stops.</li>
 <li><b>Mini player above other apps</b>: the player’s mini button puts the video into a small window (the system picture-in-picture mode – from Android 8, if the device supports it; if not, the button is hidden). Settings → Playback → <i>Small window when leaving</i>: while a video plays, pressing Home or switching apps moves it into the small window automatically. Closing the small window stops playback.</li>
 </ul>
 <div class="note">Android also has casting (from a phone / tablet), night mode audio (with the native player, from Android 9) and built-in updates (${t('update', 'Updates')}). Settings can be synced with a code with the computer and other Android devices, in both directions (${t('transfer', 'Sync between devices')}), and the phone can be used as a remote (${t('remote', 'Remote from phone')}). New versions can also be downloaded and installed in the app – the settings are kept.</div>`,
