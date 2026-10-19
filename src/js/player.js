@@ -665,6 +665,11 @@ export const player = {
     root.querySelector('.p-nextup')?.remove();
   },
 
+  /** (U14) a megjelenített hangerő: kivetítéskor a vevőé */
+  shownVolume() {
+    if (this.castHooks?.active) return this.castHooks.volume;
+    return video.muted ? 0 : video.volume;
+  },
   renderControls() {
     const ch = this.channel;
     if (!ch) return;
@@ -684,8 +689,8 @@ export const player = {
       <button class="icon-btn" data-c="fwd10" title="${_t('10 mp előre (→)')}">${P.fwd10}</button>
       ${hasNext ? `<button class="icon-btn" data-c="next" title="${_t('Következő rész (PageDown)')}">${P.nextEp}</button>` : ''}
       <div class="vol">
-        <button class="icon-btn" data-c="mute" title="${_t('Némítás (M)')}">${video.muted || video.volume === 0 ? P.mute : P.vol}</button>
-        <input type="range" min="0" max="1" step="0.02" value="${video.muted ? 0 : video.volume}" data-c="volume" aria-label="${_t('Hangerő')}" />
+        <button class="icon-btn" data-c="mute" title="${_t('Némítás (M)')}">${this.shownVolume() === 0 ? P.mute : P.vol}</button>
+        <input type="range" min="0" max="1" step="0.02" value="${this.shownVolume()}" data-c="volume" aria-label="${_t('Hangerő')}" />
       </div>
       <span class="grow"></span>
       ${pb('info') ? `<button class="icon-btn" data-c="info" title="${_t('Adatlap (I)')}">${ICON.info}</button>` : ''}
@@ -706,8 +711,8 @@ export const player = {
       ${casting || !pb('ts') ? '' : `<button class="icon-btn" data-c="ts-back" title="${_t('30 mp vissza (Shift+←)')}">${P.back30}</button>
       <button class="icon-btn" data-c="ts-fwd" title="${_t('30 mp előre (Shift+→)')}">${P.fwd30}</button>`}
       <div class="vol">
-        <button class="icon-btn" data-c="mute" title="${_t('Némítás (M)')}">${video.muted || video.volume === 0 ? P.mute : P.vol}</button>
-        <input type="range" min="0" max="1" step="0.02" value="${video.muted ? 0 : video.volume}" data-c="volume" aria-label="${_t('Hangerő')}" />
+        <button class="icon-btn" data-c="mute" title="${_t('Némítás (M)')}">${this.shownVolume() === 0 ? P.mute : P.vol}</button>
+        <input type="range" min="0" max="1" step="0.02" value="${this.shownVolume()}" data-c="volume" aria-label="${_t('Hangerő')}" />
       </div>
       <span class="grow"></span>
       ${pb('fav') ? `<button class="icon-btn ${fav ? 'on' : ''}" data-c="fav" title="${_t('Kedvenc (S)')}">${fav ? ICON.check : ICON.plus}</button>` : ''}
@@ -890,8 +895,25 @@ export const player = {
     this.poke();
   },
 
+  /** (U14) a mostani hangerő – kivetítéskor a vevőé */
+  curVolume() {
+    return this.castHooks?.active ? this.castHooks.volume : video.volume;
+  },
+  /** (U14) némítás be / ki – kivetítéskor a vevőn */
+  toggleMute() {
+    if (this.castHooks?.active) this.castHooks.toggleMute();
+    else video.muted = !video.muted;
+    this.renderControls();
+  },
   setVolume(v) {
     v = Math.max(0, Math.min(1, v));
+    // (U14) kivetítéskor a vevő hangereje változik (a helyi videó nem szól)
+    if (this.castHooks?.active) {
+      this.castHooks.setVolume(v);
+      this.renderControls();
+      this.showOsd(this.channel, `${_t('Hangerő {round}%', { round: Math.round(v * 100) })}`);
+      return;
+    }
     video.volume = v;
     video.muted = v === 0;
     store.set('volume', v);
@@ -975,11 +997,11 @@ export const player = {
           return true;
         case 'ArrowUp':
           if (onButton || onSeek) return false;
-          this.setVolume(video.volume + 0.05);
+          this.setVolume(this.curVolume() + 0.05);
           return true;
         case 'ArrowDown':
           if (onButton || onSeek) return false;
-          this.setVolume(video.volume - 0.05);
+          this.setVolume(this.curVolume() - 0.05);
           return true;
         case 'MediaFastForward':
           this.seekBy(30);
@@ -1036,12 +1058,12 @@ export const player = {
       case 'ArrowRight':
         if (onButton) return false;
         if (e.shiftKey) this.tsBy(30);
-        else this.setVolume(video.volume + 0.05);
+        else this.setVolume(this.curVolume() + 0.05);
         break;
       case 'ArrowLeft':
         if (onButton) return false;
         if (e.shiftKey) this.tsBy(-30);
-        else this.setVolume(video.volume - 0.05);
+        else this.setVolume(this.curVolume() - 0.05);
         break;
       case 'MediaRewind':
         this.tsBy(-30);
@@ -1063,8 +1085,7 @@ export const player = {
         break;
       case 'm':
       case 'M':
-        video.muted = !video.muted;
-        this.renderControls();
+        this.toggleMute();
         break;
       case 'f':
       case 'F':
@@ -1226,8 +1247,7 @@ root.addEventListener('click', (e) => {
       player.step(1);
       break;
     case 'mute':
-      video.muted = !video.muted;
-      player.renderControls();
+      player.toggleMute();
       break;
     case 'fav':
       store.toggleFavorite(player.channel.id);
@@ -1326,6 +1346,8 @@ root.addEventListener('input', (e) => {
   }
   if (e.target.dataset.c === 'volume') {
     const v = Number(e.target.value);
+    // (U14) kivetítéskor a csúszka a vevő hangerejét állítja
+    if (player.castHooks?.active) return void player.castHooks.setVolume(v);
     video.volume = v;
     video.muted = v === 0;
     store.set('volume', v);

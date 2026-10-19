@@ -84,3 +84,27 @@ test('EPG: hibás / üres bemenet nem dob, a „__proto__” azonosító nem oko
   assert.equal(count, 0);
   assert.equal((await parse('', INDEX)).map.size, 0);
 });
+
+// ------------------------------------------------------------------ összefésülés (U03) és helyőrző-határ (U04)
+import { _epgTest } from '../../src/js/epg.js';
+
+test('EPG (U03): a magasabb prioritású forrás belső rését a másik forrás kitölti, átfedés nélkül', () => {
+  const A = [10, 11, 'A'];
+  const B = [12, 13, 'B'];
+  const out = _epgTest.fillGaps([A, B], [[11, 12, 'C'], [10.5, 11.5, 'átfedő'], [13, 14, 'D'], [8, 9, 'E']]);
+  assert.deepEqual(out.map((r) => r[2]), ['E', 'A', 'C', 'B', 'D']);
+});
+
+test('EPG (U04): a helyőrző időhatár marad – a stop nélküli előző műsor a helyőrző kezdetéig tart', async () => {
+  const xml = `<tv>
+  <programme start="20261019100000 +0000" channel="M1.hu"><title>A</title></programme>
+  <programme start="20261019110000 +0000" stop="20261019120000 +0000" channel="M1.hu"><title>No Data</title></programme>
+  <programme start="20261019120000 +0000" stop="20261019130000 +0000" channel="M1.hu"><title>B</title></programme>
+  <programme start="20261019140000 +0000" stop="20261019150000 +0000" channel="M1.hu"><title>No Data</title></programme>
+  <programme start="20261019140000 +0000" stop="20261019150000 +0000" channel="M1.hu"><title>Valódi</title></programme>
+</tv>`;
+  const { map } = await parse(xml, INDEX);
+  const rows = map.get('ch-m1');
+  assert.deepEqual(rows.map((p) => p[2]), ['A', 'B', 'Valódi']);
+  assert.equal(rows[0][1], Date.UTC(2026, 9, 19, 11, 0), 'A vége 11:00');
+});

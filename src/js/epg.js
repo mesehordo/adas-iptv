@@ -99,17 +99,22 @@ const toProg = (r) => ({ start: r[0], stop: r[1], title: r[2] || _t('Műsor'), d
 // (több százezer objektum egyszerre a felületet másodpercekre megakasztotta).
 const PROGS = Symbol('progs');
 /**
- * Egy csatorna műsorai két forrásból: a `have` (magasabb prioritású) sorai maradnak, a `rows`-ból csak az kerül
- * hozzá, ami a `have` első műsora előtt véget ér, vagy az utolsó vége után kezdődik. A `have` lehet nyers
+ * Egy csatorna műsorai két forrásból: a `have` (magasabb prioritású) sorai maradnak, a `rows`-ból az kerül hozzá,
+ * ami egyetlen `have`-műsorral sem fedi át egymást – a lista elé, mögé és (U03) a műsorai közötti résekbe is. A `have` lehet nyers
  * (tömbös) vagy már átalakított (objektumos) lista – az eredmény ugyanolyan fajta, időrendben. → új lista, vagy
  * változás nélkül maga a `have`.
  */
 function fillGaps(have, rows) {
   const st = (r) => (Array.isArray(r) ? r[0] : r.start);
   const sp = (r) => (Array.isArray(r) ? r[1] : r.stop);
-  const first = st(have[0]);
-  const last = sp(have[have.length - 1]);
-  const extra = rows.filter((r) => sp(r) <= first || st(r) >= last);
+  // (a `have` időrendben van – egy mutatóval végigmenve lineáris)
+  const sorted = rows.slice().sort((a, b) => st(a) - st(b));
+  const extra = [];
+  let h = 0;
+  for (const r of sorted) {
+    while (h < have.length && sp(have[h]) <= st(r)) h++;
+    if (h >= have.length || st(have[h]) >= sp(r)) extra.push(r);
+  }
   if (!extra.length) return have;
   const conv = !!have[PROGS];
   const add = new Set(conv ? extra.map((r) => (Array.isArray(r) ? toProg(r) : r)) : extra);
@@ -300,7 +305,10 @@ export const epg = {
         used.set(chId, rows);
         matched++;
       }
-      if (used.size) nextBySource.set(src.url, used);
+      // (U05) a forrás minden friss (párosított) sora tartalék – egy most háttérbe szorított forrásé is, hogy a
+      // magasabb prioritású forrás kiesésekor (vagy kikapcsolásakor) is pótolhasson
+      if (fresh) nextBySource.set(src.url, fresh.matched);
+      else if (rowsOf.length || rowsOf.size) nextBySource.set(src.url, rowsOf);
       if (fresh) this.status[src.url].matched = matched;
       else if (matched) Object.assign(this.status[src.url], { stale: true, matched });
     });
@@ -376,3 +384,6 @@ bus.on('radio', () => {
   }, 4000);
 });
 bus.on('radio-favs', () => bus.emit('radio'));
+
+// (tesztekhez: a belső összefésülő – a működést nem befolyásolja)
+export const _epgTest = { fillGaps };

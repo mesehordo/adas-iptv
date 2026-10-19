@@ -819,7 +819,10 @@ export const vodRefreshDue = () => vod.ready && !vod.loading && Date.now() - (vo
 function loadLib(lib, { force = false } = {}) {
   // Kényszerített frissítés futó betöltés közben: megvárjuk, majd újratöltünk.
   if (lib.loading && force) return lib.loading.then(() => loadLib(lib, { force }));
+  // (U06) a futó betöltés óta megváltozott a lista-beállítás: utána új kör (a régi eredmény nem az új listáé)
+  if (lib.loading && lib.loadingKey !== cacheKey(lib)) return lib.loading.then(() => loadLib(lib, { force }));
   if (lib.loading) return lib.loading;
+  const key = (lib.loadingKey = cacheKey(lib));
   lib.loading = (async () => {
     try {
       // A Saját részlegnél előbb a forrásmappák átnézése (új / eltűnt lejátszólisták).
@@ -832,8 +835,10 @@ function loadLib(lib, { force = false } = {}) {
         });
       }
       lib.tvSig = (catalog.tvVod || []).map((t) => t.id + t.entries.length + ':' + (t.at || 0)).join(',');
+      // (az előkészítés – mappa-átnézés, csatornalista – után a listák változhattak: a gyorsítótár az akkori kulccsal)
+      const readKey = (lib.loadingKey = cacheKey(lib));
       if (!force && api.kvGet) {
-        const snap = await api.kvGet(cacheKey(lib)).catch(() => null);
+        const snap = await api.kvGet(readKey).catch(() => null);
         if (snap && Date.now() - snap.at < libMaxAge(lib) * 3600e3) {
           Object.assign(lib, { movies: snap.movies, series: snap.series, counts: snap.counts, errors: snap.errors, loadedAt: snap.at });
           index(lib);
@@ -842,7 +847,9 @@ function loadLib(lib, { force = false } = {}) {
           return;
         }
       }
+      // (a kulcs előtt végzett mappa-átnézés után a listák változhattak – a kulcs és a listák együtt)
       const lists = libLists(lib);
+      const saveKey = cacheKey(lib);
       lib.errors = {};
       const loaded = await Promise.all(
         lists.map(async (pl) => {
@@ -857,7 +864,8 @@ function loadLib(lib, { force = false } = {}) {
       build(lib, loaded);
       lib.loadedAt = Date.now();
       lib.ready = true;
-      api.kvSet?.(cacheKey(lib), { at: lib.loadedAt, movies: lib.movies, series: lib.series, counts: lib.counts, errors: lib.errors })?.catch?.(() => {});
+      // (a betöltés közbeni beállításváltás után nem az új konfiguráció kulcsa alá kerül)
+      if (cacheKey(lib) === saveKey) api.kvSet?.(saveKey, { at: lib.loadedAt, movies: lib.movies, series: lib.series, counts: lib.counts, errors: lib.errors })?.catch?.(() => {});
       bus.emit(lib.id === 'vod' ? 'vod' : 'own');
     } finally {
       lib.loading = null;
@@ -2220,7 +2228,12 @@ export function renderVodLists(box) {
       case 'del':
         if (!(await confirmDialog(`${_t('Törlöd a(z) „{name}” listát?', { name: p.name })}`, { ok: _t('Törlés'), danger: true }))) return;
         s.vodCustom = s.vodCustom.filter((x) => x !== p);
-        if (p.textKey) api.docSet?.(p.textKey, null)?.catch?.(() => {});
+        // (U01) a régi – v1 – mentési pontok által hivatkozott listaszöveg marad
+        if (p.textKey)
+          import('./backup.js')
+            .then((m) => m.v1BackupDocKeys())
+            .then((keep) => !keep.includes(p.textKey) && api.docSet?.(p.textKey, null))
+            .catch(() => {});
         store.save();
         reload();
         break;

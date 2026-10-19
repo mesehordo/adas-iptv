@@ -242,3 +242,50 @@ test('beállítás-átadás: helyes kóddal kiadja, 10 hibás kód után leáll;
   assert.equal((await fetch(`${base}/p/hibas-token?u=http://example.com/`)).status, 404);
   assert.equal((await fetch(`${base}/semmi`)).status, 404);
 });
+
+// ------------------------------------------------------------------ kivetítés: megszakítás csatlakozás közben (U11), egy lekérdezés egyszerre (U13)
+test('kivetítés (U11): a csatlakozás közben leállított kérés nem indít médiát', async (t) => {
+  const calls = [];
+  const srv = http.createServer((req, res) => {
+    req.resume();
+    req.on('end', () => {
+      calls.push(/#(\w+)"/.exec(req.headers.soapaction || '')?.[1]);
+      res.end('<s:Envelope><s:Body><CurrentTransportState>STOPPED</CurrentTransportState></s:Body></s:Envelope>');
+    });
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  t.after(() => srv.close());
+  lan.init({ emit: () => {} });
+  const dev = { id: 'dlna-u11', kind: 'dlna', name: 'TV', host: '127.0.0.1', av: { control: `http://127.0.0.1:${srv.address().port}/ctl`, type: 'urn:schemas-upnp-org:service:AVTransport:1' } };
+  lan._test.devices.set(dev.id, dev);
+  const p = lan.castPlay({ deviceId: dev.id, url: 'http://example.com/a.mp4', title: 'A', gen: 1 });
+  lan.castControl('disconnect');
+  const r = await p;
+  assert.equal(r.superseded, true);
+  await sleep(300);
+  assert.ok(!calls.includes('SetAVTransportURI'), 'nem tölthetett be médiát: ' + calls.join(','));
+});
+
+test('DLNA (U13): egyszerre csak egy állapotlekérdezés fut – a lassú régi válasz nem írja vissza a pozíciót', async (t) => {
+  let n = 0;
+  const srv = http.createServer((req, res) => {
+    let b = '';
+    req.on('data', (d) => (b += d));
+    req.on('end', async () => {
+      const action = /#(\w+)"/.exec(req.headers.soapaction || '')?.[1];
+      if (action === 'GetTransportInfo') return res.end('<CurrentTransportState>PLAYING</CurrentTransportState>');
+      const i = ++n;
+      if (i === 1) await sleep(400); // az első (régebbi) válasz késik
+      res.end(`<RelTime>0:00:${i === 1 ? '10' : '20'}</RelTime><TrackDuration>1:00:00</TrackDuration>`);
+    });
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  t.after(() => srv.close());
+  const ev = [];
+  lan.init({ emit: (ch, d) => ch === 'cast-status' && ev.push(d) });
+  const s = new lan._test.DlnaSession({ id: 'dlna-u13', av: { control: `http://127.0.0.1:${srv.address().port}/ctl`, type: 'urn:x' } });
+  await Promise.all([s.status(), s.status()]);
+  assert.equal(n, 1, 'a második lekérdezés nem indulhatott el, amíg az első fut');
+  await s.status();
+  assert.deepEqual(ev.map((e) => e.time), [10, 20], 'a pozíció csak előre lépett: ' + JSON.stringify(ev));
+});
