@@ -198,3 +198,24 @@ test('súgó: minden belső hivatkozás létező témára mutat; az angol súgó
   const en = await import('../../src/js/help/en.js');
   assert.deepEqual(en.ARTICLES.map((a) => a.id).sort(), [...ids].sort(), 'angol témák');
 });
+
+// ------------------------------------------------------------------ gyerektartalom
+import { defaultKids, kidsAllowed } from '../../src/js/kids.js';
+
+test('gyerektartalom: csatornakategória, nsfw, VOD-csoport (B22), kizáró jelek, profilszabály', () => {
+  assert.equal(defaultKids('ch', { id: 'a', categories: ['kids'] }), true);
+  assert.equal(defaultKids('ch', { id: 'b', categories: ['animation'], nsfw: true }), false);
+  assert.equal(defaultKids('ch', { id: 'c', categories: ['news'] }), false);
+  assert.equal(defaultKids('ch', { id: 'd' }), false, 'kategória nélküli (saját) csatorna');
+  assert.equal(defaultKids('vod', { id: 'v1', groups: ['Rajzfilmek'], title: 'Valami' }), true);
+  assert.equal(defaultKids('vod', { id: 'v2', groups: ['Filmek'], title: 'Kids' }), false, 'a cím önmagában nem bizonyíték');
+  assert.equal(defaultKids('vod', { id: 'v3', groups: ['Animal documentary'], title: 'x' }), false);
+  assert.equal(defaultKids('vod', { id: 'v4', groups: ['Családi'], title: 'Horror az erdőben' }), false, 'kizáró jel a címben');
+  assert.equal(defaultKids('vod', { id: 'v5', groups: ['Anime | Hentai'], title: 'x' }), false);
+  const adult = { id: 'f', kids: false };
+  const kid = { id: 'g', kids: true, kidsAllow: { ch: { c: true }, vod: { v1: false } } };
+  assert.equal(kidsAllowed(adult, 'ch', { id: 'c', categories: ['news'] }), true);
+  assert.equal(kidsAllowed(kid, 'ch', { id: 'c', categories: ['news'] }), true, 'szülői engedély');
+  assert.equal(kidsAllowed(kid, 'vod', { id: 'v1', groups: ['Rajzfilmek'] }), false, 'szülői tiltás');
+  assert.equal(kidsAllowed(kid, 'ch', { id: 'x', categories: ['movies'] }), false);
+});

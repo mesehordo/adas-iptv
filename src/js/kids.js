@@ -21,7 +21,7 @@ export const kidsMark = (kind, id) => marks()[kind]?.[id];
 
 /** Az alapértelmezett felismerés (kézi jelölés nélkül). */
 export function defaultKids(kind, item) {
-  if (kind === 'ch') return !item.nsfw && item.categories.some((c) => KIDS_CH_CATS.has(c));
+  if (kind === 'ch') return !item.nsfw && (item.categories || []).some((c) => KIDS_CH_CATS.has(c));
   const g = (item.groups || []).join(' | ');
   if (NOT_KIDS_RX.test(g + ' | ' + (item.title || ''))) return false;
   return KIDS_VOD_RX.test(g);
