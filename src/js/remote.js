@@ -264,7 +264,7 @@ function stateJson() {
   const ch0 = player.active ? player.channel : null;
   const recent = getChannels(store.profile?.recent || []).slice(0, 12).map(chItem);
   return JSON.stringify({
-    now, favs, recent, results, volume: video.muted ? 0 : video.volume, muted: video.muted, paused: video.paused, profile: store.profile?.name || '',
+    now, favs, recent, results, volume: player.shownVolume(), muted: player.shownVolume() === 0, paused: video.paused, profile: store.profile?.name || '',
     fav: !!(ch0 && !ch0.vod && store.profile?.favorites?.includes(ch0.id)),
     rec: !!(ch0 && player.recHooks?.isRec?.(ch0.id)),
     canRecord,

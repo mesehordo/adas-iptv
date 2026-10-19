@@ -308,7 +308,7 @@ export const epg = {
       // (U05) a forrás minden friss (párosított) sora tartalék – egy most háttérbe szorított forrásé is, hogy a
       // magasabb prioritású forrás kiesésekor (vagy kikapcsolásakor) is pótolhasson
       if (fresh) nextBySource.set(src.url, fresh.matched);
-      else if (rowsOf.size) nextBySource.set(src.url, rowsOf);
+      else if (rowsOf.length || rowsOf.size) nextBySource.set(src.url, rowsOf);
       if (fresh) this.status[src.url].matched = matched;
       else if (matched) Object.assign(this.status[src.url], { stale: true, matched });
     });

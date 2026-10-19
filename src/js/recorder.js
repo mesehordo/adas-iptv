@@ -75,7 +75,7 @@ const audioOut = (st) => (/mp3|mpeg/i.test(st.codec || '') ? 'mp3' : /aac/i.test
 async function startRadioRecNow(st, { title, until = 0, sched = null, progStart = 0, progStop = 0 } = {}) {
   // ami most szól, annak a működő címe; egyébként az első (a lejátszólista-címet feloldva)
   // (U09) a lista által kért fejlécek (User-Agent, Referer) a lejátszólista feloldásához és a felvételhez is
-  const playing = radioPlayer.station?.id === st.id && radioPlayer.url;
+  const playing = radioPlayer.playing && radioPlayer.station?.id === st.id && radioPlayer.url;
   const raw = playing ? radioPlayer.rawUrl || st.urls[0] || '' : st.urls[0] || '';
   const hdr = st.headers?.[raw] || null;
   const url = playing ? radioPlayer.url : await resolveStream(raw, hdr);

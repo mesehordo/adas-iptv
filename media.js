@@ -235,6 +235,7 @@ function probe(url) {
     });
   }));
   probeCache.set(url, p);
+  p.catch(() => probeCache.get(url) === p && probeCache.delete(url)); // (pl. a helyi kiszolgáló nem indult – a következő próba újra)
   setTimeout(() => probeCache.delete(url), 30 * 60e3);
   return p;
 }

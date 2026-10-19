@@ -445,16 +445,20 @@ final class Cast {
       } finally {
         if (connecting == s) connecting = null;
       }
-      if (op != castOp) {
+      synchronized (Cast.class) {
+        if (op == castOp) active = s;
+      }
+      if (active != s) {
         s.stop();
         return superseded;
       }
-      active = s;
     }
     String url = o.getString("url");
     // a vevő a munkamenethez kötött közvetítőn át éri el az adást (a saját fejlécekkel), csak a saját címéről
     String proxied = a.lan().castProxy(url, o.optString("ua"), o.optString("referrer"), dev.getString("host"));
-    if (op != castOp || active != s) return superseded;
+    synchronized (Cast.class) {
+      if (op != castOp || active != s) return superseded;
+    }
     if (o.has("gen")) castGen = o.optInt("gen", castGen);
     s.load(proxied, contentTypeOf(url, o.optString("type")), o.optBoolean("live"), o.optString("title"), o.optString("subtitle"), o.optString("image"));
     return new JSONObject().put("id", deviceId).put("name", dev.optString("name")).put("kind", dev.getString("kind"));
@@ -462,13 +466,15 @@ final class Cast {
 
   static void control(MainActivity a, String action, double value) {
     if ("disconnect".equals(action)) {
+      Session c;
+      Session s;
       synchronized (Cast.class) {
         castOp++;
+        c = connecting;
+        connecting = null;
+        s = active;
       }
-      Session c = connecting;
-      connecting = null;
       if (c != null) c.stop();
-      Session s = active;
       if (s != null) s.stop();
       a.lan().castProxyStop();
       return;
@@ -659,6 +665,14 @@ final class Cast {
       try {
         sock.startHandshake();
         sock.setSoTimeout(0);
+        // (U11) a kézfogás alatt leállították: a socket nem maradhat nyitva
+        if (closed) {
+          try {
+            sock.close();
+          } catch (Exception ignored) {
+          }
+          throw new Exception(L.t(a, "a kapcsolat megszakadt"));
+        }
       } catch (Exception e) {
         try {
           sock.close();
@@ -763,8 +777,10 @@ final class Cast {
         JSONArray arr = d.optJSONArray("status");
         if (arr != null && arr.length() > 0) {
           JSONObject st = arr.getJSONObject(0);
-          // (H29) az előző tartalom késői állapota már nem számít
-          if (loadPending || (curMsid >= 0 && st.optLong("mediaSessionId", -2) != curMsid)) return;
+          // (H29 / U12) betöltés közben és a régi médiamunkamenetnél nincs állapot-kiküldés – a LOAD válaszának
+          // illesztése (lent, a várakozók között) ettől még lefut
+          boolean stale = loadPending || (curMsid >= 0 && st.optLong("mediaSessionId", -2) != curMsid);
+          if (!stale) {
           mediaSessionId = st.optLong("mediaSessionId", mediaSessionId);
           JSONObject ev = new JSONObject().put("id", id).put("state", st.optString("playerState")).put("idle", st.optString("idleReason", "")).put("time", st.optDouble("currentTime", 0));
           // (H28) a film hossza a vevőtől (ha helyben nem volt ismert)
@@ -773,6 +789,7 @@ final class Cast {
           if (mdur > 0 && !Double.isInfinite(mdur)) ev.put("duration", mdur);
           if (volume >= 0) ev.put("volume", volume);
           emit(ev);
+          }
         }
       }
       int rid = d.optInt("requestId", -1);

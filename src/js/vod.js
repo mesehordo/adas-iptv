@@ -835,8 +835,10 @@ function loadLib(lib, { force = false } = {}) {
         });
       }
       lib.tvSig = (catalog.tvVod || []).map((t) => t.id + t.entries.length + ':' + (t.at || 0)).join(',');
+      // (az előkészítés – mappa-átnézés, csatornalista – után a listák változhattak: a gyorsítótár az akkori kulccsal)
+      const readKey = (lib.loadingKey = cacheKey(lib));
       if (!force && api.kvGet) {
-        const snap = await api.kvGet(key).catch(() => null);
+        const snap = await api.kvGet(readKey).catch(() => null);
         if (snap && Date.now() - snap.at < libMaxAge(lib) * 3600e3) {
           Object.assign(lib, { movies: snap.movies, series: snap.series, counts: snap.counts, errors: snap.errors, loadedAt: snap.at });
           index(lib);

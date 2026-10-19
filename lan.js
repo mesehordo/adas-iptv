@@ -1047,7 +1047,10 @@ class CastSession {
         reject(err);
         this.close('hiba: ' + err.message);
       });
-      sock.on('close', () => this.close('a kapcsolat megszakadt'));
+      sock.on('close', () => {
+        reject(new Error(_t('a kapcsolat megszakadt'))); // (U11: a csatlakozás közben lezárt munkamenetnél is)
+        this.close('a kapcsolat megszakadt');
+      });
       sock.setTimeout(8000, () => {
         if (!this.transportId) sock.destroy(new Error('időtúllépés'));
       });
@@ -1346,6 +1349,9 @@ async function castPlay({ deviceId, url, type, live, title, subtitle, image, gen
     connecting = s;
     try {
       await s.connect();
+    } catch (err) {
+      if (op !== castOp) return superseded; // (a leállítás szakította meg – nem hiba)
+      throw err;
     } finally {
       if (connecting === s) connecting = null;
     }

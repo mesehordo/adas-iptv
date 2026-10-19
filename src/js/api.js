@@ -129,6 +129,9 @@ async function webFactoryReset() {
   return true;
 }
 
+/** (U16) a böngészős fájlválasztásnál a fájl nem olvasható – üzenet (a választás üres eredménnyel zárul) */
+const readFailed = () => import('./util.js').then((m) => m.toast(_t('A fájl nem olvasható.'))).catch(() => {});
+
 async function directDownload(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -198,7 +201,7 @@ const webApi = {
     return true;
   },
   openFile(filters) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = (filters || []).map((f) => f.extensions.map((e) => '.' + e).join(',')).join(',');
@@ -208,8 +211,9 @@ const webApi = {
         const f = input.files[0];
         try {
           resolve(f ? { name: f.name, text: await f.text() } : null);
-        } catch (err) {
-          reject(err);
+        } catch {
+          readFailed();
+          resolve(null);
         }
       };
       input.click();
@@ -228,8 +232,9 @@ const webApi = {
           const out = [];
           for (const f of input.files) out.push({ name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) });
           resolve(out.length ? out : null);
-        } catch (err) {
-          reject(err);
+        } catch {
+          readFailed();
+          resolve(null);
         }
       };
       input.click();

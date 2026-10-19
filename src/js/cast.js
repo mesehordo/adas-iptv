@@ -186,7 +186,8 @@ const hooks = {
     api.castControl('volume', state.volume);
   },
   toggleMute() {
-    if (state.volume > 0) (state.muteVol = state.volume), this.setVolume(0);
+    const v = this.volume;
+    if (v > 0) (state.muteVol = v), this.setVolume(0);
     else this.setVolume(state.muteVol || 0.5);
   },
   menu: openMenu,
