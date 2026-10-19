@@ -22,7 +22,7 @@ let headersFor = () => null; // (url) => { ua, referrer } – a főfolyamat adja
 let emit = () => {}; // (csatorna, adat) → a felületnek
 // (H29) a kivetített tartalom munkamenete (a felülettől): minden állapotüzenet ezzel megy, a felület a régit eldobja
 let castGen = 0;
-const castEmit = (o) => castEmit({ ...o, gen: castGen });
+const castEmit = (o) => emit('cast-status', { ...o, gen: castGen });
 let pinsFile = ''; // a Chromecast-eszközök megjegyzett tanúsítvány-ujjlenyomatai (JSON)
 
 function init(opts) {
@@ -1337,3 +1337,5 @@ function castControl(action, value) {
 }
 
 module.exports = { fetchPolicy, hasSecretHeader, redirectStep, readBody, isPrivateHost, init, discover, castPlay, castControl, castForget, shareStart, shareStop, rcStart, rcStop, rcState, lanGet, sortedIPs, localIPv4s, proxyUrl };
+// (a tesztekhez: belső részek – a működést nem befolyásolja)
+module.exports._test = { toHms, fromHms, devices, DlnaSession };
