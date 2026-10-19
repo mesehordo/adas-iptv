@@ -442,6 +442,10 @@ final class Cast {
       connecting = s;
       try {
         if (s instanceof CastSession) ((CastSession) s).connect();
+      } catch (Exception e) {
+        // (a leállítás szakította meg a csatlakozást – nem hiba, mint az asztali változatban)
+        if (op != castOp) return superseded;
+        throw e;
       } finally {
         if (connecting == s) connecting = null;
       }
