@@ -1303,3 +1303,387 @@ body[data-theme="comic"] {
 [data-theme="comic"] .dc-link { color: var(--cm-blue); font-weight: 800; }
 [data-theme="comic"] .d-time { color: var(--cm-red); }
 [data-theme="manga"] .hero-video, [data-theme="manga"] .d-last-logo .hero-video { filter: grayscale(1) contrast(1.25); }
+
+/* ======================================================================
+   Kontraszt – nagy kontrasztú (gyengénlátóknak, messziről nézve): fekete alap, fehér / sárga szöveg,
+   vastag sárga fókuszkeret, díszítés és átlátszóság nélkül
+   ====================================================================== */
+body[data-theme="contrast"] {
+  --bg: #000; --bg-2: #000; --bg-3: #111; --bg-4: #1a1a1a; --line: #fff;
+  --text: #fff; --text-strong: #fff; --muted: #ffe14d;
+  --accent: #ffe14d; --accent-2: #fff27a; --ok: #6dff8a; --bad: #ff6b6b; --warn: #ffe14d; --radius: 4px; --focus: #ffe14d;
+  background: #000;
+}
+[data-theme="contrast"] :focus-visible { outline: 4px solid #ffe14d; outline-offset: 3px; }
+[data-theme="contrast"] #nav, [data-theme="contrast"] #nav.solid { background: #000; border-bottom: 2px solid #fff; }
+[data-theme="contrast"] .brand { color: #ffe14d; text-shadow: none; }
+[data-theme="contrast"] .links a { color: #fff; font-weight: 700; text-decoration: underline transparent; text-underline-offset: 6px; text-decoration-thickness: 3px; }
+[data-theme="contrast"] .links a:hover, [data-theme="contrast"] .links a.active { color: #ffe14d; text-decoration-color: #ffe14d; }
+[data-theme="contrast"] .hero-shade { background: linear-gradient(90deg, #000 0%, rgba(0, 0, 0, 0.92) 45%, rgba(0, 0, 0, 0.55) 100%); }
+[data-theme="contrast"] .hero h1, [data-theme="contrast"] .hero p { text-shadow: none; }
+[data-theme="contrast"] .btn { border: 2px solid #fff; background: #000; color: #fff; font-weight: 700; }
+[data-theme="contrast"] .btn:hover, [data-theme="contrast"] .btn:focus-visible { background: #fff; color: #000; }
+[data-theme="contrast"] .btn.white, [data-theme="contrast"] .btn.primary { background: #ffe14d; color: #000; border-color: #ffe14d; }
+[data-theme="contrast"] .btn.gray { background: #000; }
+[data-theme="contrast"] .row-title { color: #ffe14d; font-weight: 800; }
+[data-theme="contrast"] .thumb { border: 2px solid #fff; }
+[data-theme="contrast"] .card:hover, [data-theme="contrast"] .card:focus-visible { transform: none; box-shadow: none; }
+[data-theme="contrast"] .grid .card:hover, [data-theme="contrast"] .grid .card:focus-visible { transform: none; }
+[data-theme="contrast"] .card:hover .thumb, [data-theme="contrast"] .card:focus-visible .thumb { outline: 4px solid #ffe14d; outline-offset: 2px; border-color: #ffe14d; }
+[data-theme="contrast"] .card .name { color: #fff; font-weight: 700; }
+[data-theme="contrast"] .card .sub, [data-theme="contrast"] .muted { color: #ffe14d; }
+[data-theme="contrast"] .now-label, [data-theme="contrast"] .live-badge { background: #ffe14d; color: #000; }
+[data-theme="contrast"] .bar { background: #444; }
+[data-theme="contrast"] .bar i, [data-theme="contrast"] .progress i { background: #ffe14d; }
+[data-theme="contrast"] .tile { border: 2px solid #fff; background: #000; }
+[data-theme="contrast"] .tile:hover, [data-theme="contrast"] .tile:focus-visible { outline: 4px solid #ffe14d; }
+[data-theme="contrast"] .modal, [data-theme="contrast"] .info-hero { background: #000; border: 2px solid #fff; }
+[data-theme="contrast"] .tab.active { background: #ffe14d; color: #000; }
+[data-theme="contrast"] .pill { border-color: #fff; color: #fff; }
+[data-theme="contrast"] .input, [data-theme="contrast"] select { background: #000; color: #fff; border: 2px solid #fff; }
+
+/* ======================================================================
+   Nagybetűs – egyszerű, jól olvasható (idősebb nézőknek): világos alap, nagyobb betűk, kevés díszítés,
+   mozgás nélkül
+   ====================================================================== */
+html:has(body[data-theme="large"]) { font-size: 18px; }
+body[data-theme="large"] {
+  --bg: #f7f6f2; --bg-2: #ffffff; --bg-3: #ebe9e2; --line: #c9c5ba;
+  --text: #1d1d1b; --text-strong: #000; --muted: #4f4c45;
+  --accent: #0b5cad; --accent-2: #1670c9; --radius: 8px; --focus: #0b5cad;
+  font-size: 18px; line-height: 1.45;
+  background: #f7f6f2;
+}
+[data-theme="large"] *, [data-theme="large"] *::before, [data-theme="large"] *::after { animation-duration: 0.001s !important; transition-duration: 0.001s !important; }
+[data-theme="large"] :focus-visible { outline: 4px solid var(--focus); outline-offset: 3px; }
+[data-theme="large"] #nav, [data-theme="large"] #nav.solid { background: #fff; border-bottom: 1px solid var(--line); }
+[data-theme="large"] .brand { color: var(--accent); transform: none; }
+[data-theme="large"] .links a { color: var(--text-strong); font-size: 1.05rem; font-weight: 600; }
+[data-theme="large"] .links a.active { color: var(--accent); text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 3px; }
+[data-theme="large"] .hero-slide { background: linear-gradient(90deg, #fff 0%, hsl(var(--h) 25% 88%) 100%); }
+[data-theme="large"] .hero-shade { background: linear-gradient(90deg, #fff 0%, rgba(255, 255, 255, 0.85) 45%, transparent 85%); }
+[data-theme="large"] .row-title { font-size: 1.35rem; font-weight: 700; }
+[data-theme="large"] .card .name { font-size: 1.05rem; font-weight: 700; color: var(--text-strong); }
+[data-theme="large"] .card .sub { font-size: 0.95rem; color: var(--muted); }
+[data-theme="large"] .card:hover, [data-theme="large"] .card:focus-visible { transform: none; box-shadow: none; }
+[data-theme="large"] .grid .card:hover, [data-theme="large"] .grid .card:focus-visible { transform: none; }
+[data-theme="large"] .card:hover .thumb, [data-theme="large"] .card:focus-visible .thumb { outline: 4px solid var(--accent); outline-offset: 2px; }
+[data-theme="large"] .btn { font-size: 1rem; padding: 10px 20px; font-weight: 600; }
+[data-theme="large"] .now-label, [data-theme="large"] .live-badge { background: var(--accent); font-size: 0.8rem; }
+[data-theme="large"] .bar i { background: var(--accent); }
+[data-theme="large"] .modal { background: #fff; }
+
+/* ======================================================================
+   Shiro – sima, semleges világos: fehér–szürke alap, egyetlen kék kiemelés
+   ====================================================================== */
+body[data-theme="shiro"] {
+  --bg: #f4f5f7; --bg-2: #ffffff; --bg-3: #e8eaee; --line: #d6d9df;
+  --text: #2a2d33; --text-strong: #111317; --muted: #6b7079;
+  --accent: #2563eb; --accent-2: #3b74f0; --radius: 10px; --focus: #2563eb;
+  background: #f4f5f7;
+}
+[data-theme="shiro"] #nav, [data-theme="shiro"] #nav.solid { background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+[data-theme="shiro"] .brand { color: var(--text-strong); transform: none; letter-spacing: 0.02em; }
+[data-theme="shiro"] .links a { color: var(--muted); font-weight: 500; }
+[data-theme="shiro"] .links a:hover, [data-theme="shiro"] .links a.active { color: var(--text-strong); }
+[data-theme="shiro"] .links a.active { box-shadow: inset 0 -2px 0 var(--accent); }
+[data-theme="shiro"] .hero { border-radius: 14px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.06); }
+[data-theme="shiro"] .hero-slide { background: linear-gradient(90deg, #fff 0%, hsl(var(--h) 30% 92%) 100%); }
+[data-theme="shiro"] .hero-shade { background: linear-gradient(90deg, #fff 0%, rgba(255, 255, 255, 0.8) 40%, transparent 80%); }
+[data-theme="shiro"] .row-title { font-weight: 600; }
+[data-theme="shiro"] .thumb { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
+[data-theme="shiro"] .card:hover, [data-theme="shiro"] .card:focus-visible { transform: translateY(-3px); box-shadow: none; }
+[data-theme="shiro"] .grid .card:hover, [data-theme="shiro"] .grid .card:focus-visible { transform: translateY(-3px); }
+[data-theme="shiro"] .card:hover .thumb, [data-theme="shiro"] .card:focus-visible .thumb { outline: none; box-shadow: 0 0 0 2px var(--accent), 0 10px 24px rgba(0, 0, 0, 0.12); }
+[data-theme="shiro"] .now-label, [data-theme="shiro"] .live-badge, [data-theme="shiro"] .bar i { background: var(--accent); }
+[data-theme="shiro"] .tile { border-radius: 12px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
+[data-theme="shiro"] .modal { background: #fff; border-radius: 14px; }
+[data-theme="shiro"] .tab.active { background: var(--text-strong); color: #fff; }
+
+/* ======================================================================
+   Yoru – éjszakai mozi: szinte fekete, tompa, meleg borostyán kiemelés, alacsony fényerő
+   ====================================================================== */
+body[data-theme="yoru"] {
+  --bg: #0a0908; --bg-2: #110f0d; --bg-3: #1a1714; --bg-4: #231f1b; --line: #2a2520;
+  --text: #b8ada0; --text-strong: #d9cdbd; --muted: #7a7064;
+  --accent: #b9853f; --accent-2: #c9954d; --radius: 6px; --focus: #b9853f;
+  background: #0a0908;
+}
+[data-theme="yoru"] #nav, [data-theme="yoru"] #nav.solid { background: #0a0908; }
+[data-theme="yoru"] .brand { color: var(--accent); text-shadow: none; }
+[data-theme="yoru"] .links a { color: var(--muted); }
+[data-theme="yoru"] .links a:hover, [data-theme="yoru"] .links a.active { color: var(--text-strong); }
+[data-theme="yoru"] img, [data-theme="yoru"] .hero-video { filter: brightness(0.82) saturate(0.85); }
+[data-theme="yoru"] .hero-shade { background: linear-gradient(90deg, #0a0908 0%, rgba(10, 9, 8, 0.75) 45%, transparent 80%), linear-gradient(0deg, #0a0908 0%, transparent 40%); }
+[data-theme="yoru"] .hero h1 { text-shadow: none; }
+[data-theme="yoru"] .btn.white, [data-theme="yoru"] .btn.primary { background: var(--accent); color: #0a0908; }
+[data-theme="yoru"] .btn.gray { background: rgba(185, 133, 63, 0.14); color: var(--text-strong); }
+[data-theme="yoru"] .row-title { font-weight: 600; color: var(--text-strong); }
+[data-theme="yoru"] .thumb { background: radial-gradient(circle at 30% 25%, hsl(var(--h) 18% 22%), hsl(var(--h) 18% 12%)); }
+[data-theme="yoru"] .card:hover .thumb, [data-theme="yoru"] .card:focus-visible .thumb { outline: 2px solid var(--accent); outline-offset: 0; box-shadow: none; }
+[data-theme="yoru"] .now-label, [data-theme="yoru"] .live-badge { background: #7a3b2a; color: #e8d9c5; }
+[data-theme="yoru"] .bar i { background: var(--accent); }
+[data-theme="yoru"] .modal { background: #110f0d; }
+[data-theme="yoru"] .tab.active { background: var(--accent); color: #0a0908; }
+
+/* ======================================================================
+   Mori – erdő: mély fenyőzöld alap, moha- és kéregszínek, levélerezet-minta
+   ====================================================================== */
+body[data-theme="mori"] {
+  --bg: #0f1a14; --bg-2: #14231b; --bg-3: #1c2f24; --bg-4: #24392d; --line: #2d4537;
+  --text: #d6e2d2; --text-strong: #f1f5e9; --muted: #95a98f;
+  --accent: #8cbf5a; --accent-2: #a2d16f; --bark: #8a6a4a; --radius: 10px; --focus: #8cbf5a;
+  background: radial-gradient(ellipse at 20% 0%, #1d3326 0%, #0f1a14 55%, #0a120d 100%) fixed;
+}
+[data-theme="mori"] #nav.solid { background: #0f1a14; }
+[data-theme="mori"] .brand { color: var(--accent); text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5); }
+[data-theme="mori"] .links a.active { color: var(--accent); }
+[data-theme="mori"] .hero { border-radius: 14px; }
+[data-theme="mori"] .hero-slide { background: radial-gradient(ellipse at 75% 40%, hsl(110 25% 24%), #0f1a14 70%); }
+[data-theme="mori"] .hero-shade { background: linear-gradient(90deg, #0f1a14 0%, rgba(15, 26, 20, 0.6) 45%, transparent 80%); }
+[data-theme="mori"] .btn { border-radius: 20px; }
+[data-theme="mori"] .btn.white, [data-theme="mori"] .btn.primary { background: var(--accent); color: #0f1a14; }
+[data-theme="mori"] .row-title::before { content: ''; width: 12px; height: 12px; background: var(--accent); border-radius: 0 100% 0 100%; transform: rotate(-20deg); flex: none; }
+[data-theme="mori"] .thumb { border-radius: 12px; background: linear-gradient(160deg, hsl(var(--h) 20% 30%), hsl(130 25% 14%)); }
+[data-theme="mori"] .card:hover, [data-theme="mori"] .card:focus-visible { transform: translateY(-4px); box-shadow: none; }
+[data-theme="mori"] .grid .card:hover, [data-theme="mori"] .grid .card:focus-visible { transform: translateY(-4px); }
+[data-theme="mori"] .card:hover .thumb, [data-theme="mori"] .card:focus-visible .thumb { outline: none; box-shadow: 0 0 0 3px var(--accent), 0 14px 28px rgba(0, 0, 0, 0.5); }
+[data-theme="mori"] .now-label, [data-theme="mori"] .live-badge { background: var(--bark); }
+[data-theme="mori"] .bar i { background: var(--accent); }
+[data-theme="mori"] .tile { border-radius: 14px; }
+[data-theme="mori"] .modal { background: #14231b; }
+[data-theme="mori"] .tab.active { background: var(--accent); color: #0f1a14; }
+
+/* ======================================================================
+   Natsu – nyár a tengerparton: homokszín alap, türkiz és korall, napfényes, lágy hullám
+   ====================================================================== */
+body[data-theme="natsu"] {
+  --bg: #fbf4e6; --bg-2: #fffaf0; --bg-3: #f2e6cf; --line: #e6d6b6;
+  --text: #2f3b3d; --text-strong: #13292c; --muted: #6f7c7a;
+  --accent: #0f9aa0; --accent-2: #13b3b9; --coral: #ff7a59; --radius: 14px; --focus: #0f9aa0;
+  background: linear-gradient(180deg, #e6f7f6 0%, #fbf4e6 38%, #f8eedb 100%) fixed;
+}
+[data-theme="natsu"] #nav.solid { background: rgba(251, 244, 230, 0.94); border-bottom: 3px solid transparent; border-image: repeating-linear-gradient(90deg, var(--accent) 0 18px, transparent 18px 26px) 1; }
+[data-theme="natsu"] .brand { color: var(--coral); transform: none; }
+[data-theme="natsu"] .links a.active { color: var(--accent); font-weight: 700; }
+[data-theme="natsu"] .hero { border-radius: 22px; }
+[data-theme="natsu"] .hero-slide { background: linear-gradient(180deg, hsl(185 60% 86%) 0%, hsl(40 70% 90%) 100%); }
+[data-theme="natsu"] .hero-shade { background: linear-gradient(90deg, rgba(255, 250, 240, 0.96) 0%, rgba(255, 250, 240, 0.6) 45%, transparent 80%); }
+[data-theme="natsu"] .btn { border-radius: 999px; }
+[data-theme="natsu"] .btn.white, [data-theme="natsu"] .btn.primary { background: var(--accent); color: #fff; }
+[data-theme="natsu"] .row-title { font-weight: 700; }
+[data-theme="natsu"] .row-title::after { content: '〜'; color: var(--accent); }
+[data-theme="natsu"] .thumb { border-radius: 16px; background: linear-gradient(160deg, hsl(var(--h) 45% 62%), hsl(190 50% 40%)); }
+[data-theme="natsu"] .card:hover, [data-theme="natsu"] .card:focus-visible { transform: translateY(-5px) rotate(-0.6deg); box-shadow: none; }
+[data-theme="natsu"] .grid .card:hover, [data-theme="natsu"] .grid .card:focus-visible { transform: translateY(-5px); }
+[data-theme="natsu"] .card:hover .thumb, [data-theme="natsu"] .card:focus-visible .thumb { outline: none; box-shadow: 0 0 0 3px var(--coral), 0 14px 26px -10px rgba(15, 154, 160, 0.5); }
+[data-theme="natsu"] .now-label, [data-theme="natsu"] .live-badge { background: var(--coral); }
+[data-theme="natsu"] .bar i { background: var(--accent); }
+[data-theme="natsu"] .tile { border-radius: 18px; }
+[data-theme="natsu"] .modal { background: var(--bg-2); border-radius: 22px; }
+[data-theme="natsu"] .tab.active { background: var(--accent); color: #fff; }
+
+/* ======================================================================
+   Fuyu – tél: hideg, havas fehér–jégkék, finoman hulló hópelyhek, kristálytiszta keretek
+   ====================================================================== */
+body[data-theme="fuyu"] {
+  --bg: #eef3f8; --bg-2: #f8fbfe; --bg-3: #dfe8f1; --line: #cbd8e5;
+  --text: #2b3a4a; --text-strong: #142231; --muted: #6a7d90;
+  --accent: #3d7ab8; --accent-2: #4f8dcc; --radius: 8px; --focus: #3d7ab8;
+  background: linear-gradient(180deg, #f8fbfe 0%, #e7eff7 100%) fixed;
+}
+body[data-theme="fuyu"]::before { content: ''; position: fixed; inset: -20px 0 0; z-index: 0; pointer-events: none; opacity: 0.55;
+  background-image: radial-gradient(2px 2px at 20px 30px, #fff, transparent), radial-gradient(2px 2px at 80px 120px, #fff, transparent), radial-gradient(1.5px 1.5px at 150px 60px, #fff, transparent), radial-gradient(2.5px 2.5px at 220px 160px, #fff, transparent);
+  background-size: 260px 220px; animation: fuyu-snow 22s linear infinite; }
+@keyframes fuyu-snow { to { background-position: 40px 220px, 20px 220px, -30px 220px, 10px 220px; } }
+@media (prefers-reduced-motion: reduce) { body[data-theme="fuyu"]::before { animation: none; } }
+[data-theme="fuyu"] #nav.solid { background: rgba(248, 251, 254, 0.94); border-bottom: 1px solid var(--line); }
+[data-theme="fuyu"] .brand { color: var(--accent); transform: none; letter-spacing: 0.14em; }
+[data-theme="fuyu"] .brand::after { content: '❄'; font-size: 0.6em; margin-left: 6px; vertical-align: super; }
+[data-theme="fuyu"] .links a.active { color: var(--accent); }
+[data-theme="fuyu"] .hero-slide { background: radial-gradient(ellipse at 75% 40%, hsl(205 45% 88%), var(--bg-2) 70%); }
+[data-theme="fuyu"] .hero-shade { background: linear-gradient(90deg, var(--bg-2) 0%, rgba(248, 251, 254, 0.7) 45%, transparent 80%); }
+[data-theme="fuyu"] .btn.white, [data-theme="fuyu"] .btn.primary { background: var(--accent); color: #fff; }
+[data-theme="fuyu"] .row-title { font-weight: 600; letter-spacing: 0.02em; }
+[data-theme="fuyu"] .thumb { border: 1px solid rgba(255, 255, 255, 0.9); background: linear-gradient(160deg, hsl(var(--h) 25% 62%), hsl(210 35% 36%)); }
+[data-theme="fuyu"] .card:hover .thumb, [data-theme="fuyu"] .card:focus-visible .thumb { outline: none; box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--accent), 0 12px 24px -10px rgba(61, 122, 184, 0.5); }
+[data-theme="fuyu"] .now-label, [data-theme="fuyu"] .live-badge, [data-theme="fuyu"] .bar i { background: var(--accent); }
+[data-theme="fuyu"] .modal { background: var(--bg-2); }
+[data-theme="fuyu"] .tab.active { background: var(--accent); color: #fff; }
+
+/* ======================================================================
+   Deco – a régi mozipaloták art deco világa: fekete és arany, geometrikus keretek, elegáns betűk
+   ====================================================================== */
+body[data-theme="deco"] {
+  --bg: #0c0b09; --bg-2: #15130f; --bg-3: #1f1c16; --bg-4: #29251d; --line: #3a3326;
+  --text: #e6dcc4; --text-strong: #f7efd8; --muted: #a8996f;
+  --accent: #c9a24a; --accent-2: #dfb95e; --radius: 0; --focus: #c9a24a;
+  --deco-font: 'Didot', 'Bodoni MT', 'Playfair Display', 'Times New Roman', serif;
+  background: radial-gradient(ellipse at 50% -20%, #2a2418 0%, #0c0b09 60%) fixed;
+}
+[data-theme="deco"] h1, [data-theme="deco"] h2, [data-theme="deco"] .row-title, [data-theme="deco"] .brand { font-family: var(--deco-font); }
+[data-theme="deco"] #nav.solid { background: #0c0b09; border-bottom: 1px solid var(--accent); box-shadow: 0 3px 0 -2px var(--accent); }
+[data-theme="deco"] .brand { color: var(--accent); transform: none; letter-spacing: 0.3em; text-shadow: none; }
+[data-theme="deco"] .links a { text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.82rem; }
+[data-theme="deco"] .links a.active { color: var(--accent); }
+[data-theme="deco"] .hero { border: 1px solid var(--accent); outline: 1px solid var(--accent); outline-offset: 4px; }
+[data-theme="deco"] .hero-shade { background: linear-gradient(90deg, #0c0b09 0%, rgba(12, 11, 9, 0.7) 45%, transparent 80%); }
+[data-theme="deco"] .btn { text-transform: uppercase; letter-spacing: 0.16em; border: 1px solid var(--accent); background: transparent; color: var(--accent); }
+[data-theme="deco"] .btn:hover, [data-theme="deco"] .btn.white, [data-theme="deco"] .btn.primary { background: var(--accent); color: #0c0b09; }
+[data-theme="deco"] .row-title { text-transform: uppercase; letter-spacing: 0.14em; font-weight: 400; color: var(--accent); }
+[data-theme="deco"] .row-title::before, [data-theme="deco"] .row-title::after { content: ''; width: 22px; height: 7px; border-top: 1px solid var(--accent); border-bottom: 1px solid var(--accent); flex: none; }
+[data-theme="deco"] .thumb { border: 1px solid var(--line); }
+[data-theme="deco"] .card:hover, [data-theme="deco"] .card:focus-visible { transform: scale(1.04); box-shadow: none; }
+[data-theme="deco"] .grid .card:hover, [data-theme="deco"] .grid .card:focus-visible { transform: scale(1.04); }
+[data-theme="deco"] .card:hover .thumb, [data-theme="deco"] .card:focus-visible .thumb { outline: 1px solid var(--accent); outline-offset: 3px; border-color: var(--accent); box-shadow: none; }
+[data-theme="deco"] .now-label, [data-theme="deco"] .live-badge { background: var(--accent); color: #0c0b09; }
+[data-theme="deco"] .bar i { background: var(--accent); }
+[data-theme="deco"] .tile { border: 1px solid var(--accent); }
+[data-theme="deco"] .modal { background: #15130f; border: 1px solid var(--accent); }
+[data-theme="deco"] .tab.active { background: var(--accent); color: #0c0b09; }
+
+/* ======================================================================
+   Shōwa – a 70-es évek: narancs, barna és mustár, lekerekített „tévéképernyő” kártyák, csíkos díszítés
+   ====================================================================== */
+body[data-theme="showa"] {
+  --bg: #2a1c12; --bg-2: #34241a; --bg-3: #423022; --bg-4: #503b2a; --line: #5c4430;
+  --text: #f1dfc2; --text-strong: #fff2db; --muted: #c8a77d;
+  --accent: #e8792b; --accent-2: #f08b3e; --mustard: #d9a521; --brown: #8a4b22; --radius: 18px; --focus: #d9a521;
+  --showa-font: 'Cooper Black', 'Bookman Old Style', 'Georgia', serif;
+  background: #2a1c12;
+}
+[data-theme="showa"] h1, [data-theme="showa"] h2, [data-theme="showa"] .row-title, [data-theme="showa"] .brand { font-family: var(--showa-font); }
+[data-theme="showa"] #nav, [data-theme="showa"] #nav.solid { background: #2a1c12; box-shadow: 0 4px 0 var(--mustard), 0 8px 0 var(--accent), 0 12px 0 var(--brown); }
+[data-theme="showa"] .brand { color: var(--mustard); transform: none; text-shadow: 3px 3px 0 var(--brown); }
+[data-theme="showa"] .links a.active { color: var(--mustard); }
+[data-theme="showa"] .hero { border-radius: 32px; border: 6px solid #4a3324; }
+[data-theme="showa"] .hero-shade { background: linear-gradient(90deg, #2a1c12 0%, rgba(42, 28, 18, 0.7) 45%, transparent 80%); }
+[data-theme="showa"] .btn { border-radius: 999px; }
+[data-theme="showa"] .btn.white, [data-theme="showa"] .btn.primary { background: var(--accent); color: #fff2db; }
+[data-theme="showa"] .row-title { color: var(--mustard); }
+[data-theme="showa"] .thumb { border-radius: 22px / 18px; border: 4px solid #4a3324; background: linear-gradient(160deg, hsl(var(--h) 45% 45%), hsl(25 55% 26%)); }
+[data-theme="showa"] .card:hover .thumb, [data-theme="showa"] .card:focus-visible .thumb { outline: none; border-color: var(--mustard); box-shadow: 0 0 0 3px var(--accent); }
+[data-theme="showa"] .card:hover, [data-theme="showa"] .card:focus-visible { box-shadow: none; }
+[data-theme="showa"] .now-label, [data-theme="showa"] .live-badge { background: var(--accent); }
+[data-theme="showa"] .bar i { background: linear-gradient(90deg, var(--mustard), var(--accent)); }
+[data-theme="showa"] .tile { border-radius: 22px; border: 4px solid #4a3324; }
+[data-theme="showa"] .modal { background: #34241a; border-radius: 24px; }
+[data-theme="showa"] .tab.active { background: var(--mustard); color: #2a1c12; }
+
+/* ======================================================================
+   Mu – szinte üres felület: csak a tartalom, sok tér, keretek, árnyékok és díszek nélkül
+   ====================================================================== */
+body[data-theme="mu"] {
+  --bg: #fafafa; --bg-2: #ffffff; --bg-3: #f0f0f0; --line: #e6e6e6;
+  --text: #333; --text-strong: #111; --muted: #8c8c8c;
+  --accent: #111; --accent-2: #333; --radius: 0; --focus: #111;
+  background: #fafafa;
+}
+[data-theme="mu"] #nav, [data-theme="mu"] #nav.solid { background: #fafafa; }
+[data-theme="mu"] .brand { color: var(--text-strong); transform: none; font-weight: 300; letter-spacing: 0.4em; }
+[data-theme="mu"] .links a { color: var(--muted); font-weight: 400; }
+[data-theme="mu"] .links a:hover, [data-theme="mu"] .links a.active { color: var(--text-strong); }
+[data-theme="mu"] .hero-slide { background: #f0f0f0; }
+[data-theme="mu"] .hero-shade { background: linear-gradient(90deg, #fafafa 0%, rgba(250, 250, 250, 0.85) 40%, transparent 80%); }
+[data-theme="mu"] .btn, [data-theme="mu"] .btn.gray { background: transparent; border: 1px solid #111; color: #111; }
+[data-theme="mu"] .btn.white, [data-theme="mu"] .btn.primary, [data-theme="mu"] .btn:hover { background: #111; color: #fff; }
+[data-theme="mu"] .row-title { font-weight: 400; letter-spacing: 0.04em; }
+[data-theme="mu"] .thumb { box-shadow: none; background: hsl(var(--h) 6% 42%); }
+[data-theme="mu"] .card:hover, [data-theme="mu"] .card:focus-visible { transform: none; box-shadow: none; }
+[data-theme="mu"] .grid .card:hover, [data-theme="mu"] .grid .card:focus-visible { transform: none; }
+[data-theme="mu"] .card:hover .thumb, [data-theme="mu"] .card:focus-visible .thumb { outline: 1px solid #111; outline-offset: 4px; box-shadow: none; }
+[data-theme="mu"] .now-label, [data-theme="mu"] .live-badge { background: #111; }
+[data-theme="mu"] .bar i { background: #111; }
+[data-theme="mu"] .tile { box-shadow: none; }
+[data-theme="mu"] .modal { background: #fff; box-shadow: 0 0 0 1px #e6e6e6; }
+[data-theme="mu"] .tab.active { background: #111; color: #fff; }
+
+/* ======================================================================
+   Holo – sci-fi irányítópult: sötét kékes alap, cián hologramvonalak, vékony keretek, sarokjelölők
+   ====================================================================== */
+body[data-theme="holo"] {
+  --bg: #050b14; --bg-2: #08121f; --bg-3: #0d1b2c; --bg-4: #12243a; --line: #17406a;
+  --text: #bfe7ff; --text-strong: #e8f7ff; --muted: #5e93b8;
+  --accent: #35d3ff; --accent-2: #7ce3ff; --radius: 2px; --focus: #35d3ff;
+  --holo-font: 'Bahnschrift', 'Eurostile', 'Segoe UI', system-ui, sans-serif;
+  background:
+    linear-gradient(rgba(53, 211, 255, 0.05) 1px, transparent 1px) 0 0 / 40px 40px,
+    linear-gradient(90deg, rgba(53, 211, 255, 0.05) 1px, transparent 1px) 0 0 / 40px 40px,
+    radial-gradient(ellipse at 50% 0%, #0b2340 0%, #050b14 65%) fixed;
+}
+[data-theme="holo"] h1, [data-theme="holo"] h2, [data-theme="holo"] .row-title, [data-theme="holo"] .brand, [data-theme="holo"] .links a { font-family: var(--holo-font); }
+[data-theme="holo"] #nav.solid { background: rgba(5, 11, 20, 0.94); border-bottom: 1px solid var(--line); }
+[data-theme="holo"] .brand { color: var(--accent); transform: none; letter-spacing: 0.3em; text-shadow: 0 0 12px rgba(53, 211, 255, 0.7); }
+[data-theme="holo"] .links a { text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.82rem; color: var(--muted); }
+[data-theme="holo"] .links a:hover, [data-theme="holo"] .links a.active { color: var(--accent); text-shadow: 0 0 8px rgba(53, 211, 255, 0.6); }
+[data-theme="holo"] .hero { border: 1px solid var(--line); }
+[data-theme="holo"] .hero-shade { background: linear-gradient(90deg, #050b14 0%, rgba(5, 11, 20, 0.7) 45%, transparent 80%); }
+[data-theme="holo"] .btn { border: 1px solid var(--accent); background: rgba(53, 211, 255, 0.06); color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
+[data-theme="holo"] .btn:hover, [data-theme="holo"] .btn.white, [data-theme="holo"] .btn.primary { background: var(--accent); color: #050b14; }
+[data-theme="holo"] .row-title { text-transform: uppercase; letter-spacing: 0.16em; font-weight: 500; color: var(--accent); }
+[data-theme="holo"] .row-title::before { content: '◢'; font-size: 0.7em; }
+[data-theme="holo"] .thumb { border: 1px solid var(--line); background: linear-gradient(160deg, hsl(var(--h) 40% 22%), #06101d); }
+[data-theme="holo"] .card:hover, [data-theme="holo"] .card:focus-visible { box-shadow: none; }
+[data-theme="holo"] .card:hover .thumb, [data-theme="holo"] .card:focus-visible .thumb { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 18px rgba(53, 211, 255, 0.45), inset 0 0 24px rgba(53, 211, 255, 0.18); }
+[data-theme="holo"] .now-label, [data-theme="holo"] .live-badge { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+[data-theme="holo"] .bar i { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+[data-theme="holo"] .tile { border: 1px solid var(--line); }
+[data-theme="holo"] .modal { background: #08121f; border: 1px solid var(--line); }
+[data-theme="holo"] .tab.active { background: var(--accent); color: #050b14; }
+
+/* ======================================================================
+   Csillagidő – egy csillaghajó parancsnoki hídjának kezelőfelülete: fekete alap, lekerekített végű
+   narancs, levendula és barack színsávok, nagybetűs, keskeny feliratok
+   ====================================================================== */
+body[data-theme="stardate"] {
+  --bg: #000; --bg-2: #0a0a12; --bg-3: #14141f; --bg-4: #1c1c2a; --line: #2a2a3c;
+  --text: #ffcc99; --text-strong: #ff9966; --muted: #cc99cc;
+  --accent: #ff9900; --accent-2: #ffaa33; --lav: #cc99cc; --peach: #ff9966; --sky: #9999ff; --radius: 0; --focus: #9999ff;
+  --sd-font: 'Antonio', 'Swiss 911 UltraCompressed', 'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', sans-serif;
+  background: #000;
+}
+[data-theme="stardate"] h1, [data-theme="stardate"] h2, [data-theme="stardate"] h3, [data-theme="stardate"] .row-title, [data-theme="stardate"] .brand, [data-theme="stardate"] .links a, [data-theme="stardate"] .btn { font-family: var(--sd-font); text-transform: uppercase; letter-spacing: 0.06em; }
+[data-theme="stardate"] #nav, [data-theme="stardate"] #nav.solid { background: #000; border-bottom: 10px solid var(--accent); border-bottom-left-radius: 40px 20px; }
+[data-theme="stardate"] .brand { color: #000; background: var(--accent); padding: 2px 18px 2px 26px; border-radius: 0 22px 22px 0; transform: none; text-shadow: none; font-weight: 700; }
+[data-theme="stardate"] .brand.big { border-radius: 40px; padding: 4px 36px; }
+[data-theme="stardate"] .links a { color: #000; background: var(--lav); padding: 3px 14px; border-radius: 14px; font-weight: 600; }
+[data-theme="stardate"] .links a:nth-child(2n) { background: var(--peach); }
+[data-theme="stardate"] .links a:nth-child(3n) { background: var(--sky); }
+[data-theme="stardate"] .links a:hover, [data-theme="stardate"] .links a.active { background: var(--accent); color: #000; }
+[data-theme="stardate"] .hero { border-left: 24px solid var(--lav); border-top: 10px solid var(--lav); border-top-left-radius: 48px 34px; }
+[data-theme="stardate"] .hero-shade { background: linear-gradient(90deg, #000 0%, rgba(0, 0, 0, 0.7) 45%, transparent 80%); }
+[data-theme="stardate"] .hero h1 { color: var(--accent); text-shadow: none; }
+[data-theme="stardate"] .btn { border-radius: 20px; background: var(--lav); color: #000; font-weight: 600; }
+[data-theme="stardate"] .btn:hover, [data-theme="stardate"] .btn.white, [data-theme="stardate"] .btn.primary { background: var(--accent); color: #000; }
+[data-theme="stardate"] .btn.gray { background: var(--sky); color: #000; }
+[data-theme="stardate"] .row-title { color: var(--accent); font-weight: 600; }
+[data-theme="stardate"] .row-title::before { content: ''; width: 40px; height: 1.1em; background: var(--peach); border-radius: 12px 0 0 12px; flex: none; }
+[data-theme="stardate"] .thumb { border-radius: 0 14px 0 14px; background: linear-gradient(160deg, hsl(var(--h) 35% 30%), #0a0a12); }
+[data-theme="stardate"] .card:hover, [data-theme="stardate"] .card:focus-visible { box-shadow: none; }
+[data-theme="stardate"] .card:hover .thumb, [data-theme="stardate"] .card:focus-visible .thumb { outline: none; box-shadow: 0 0 0 4px var(--accent); border-radius: 0 14px 0 14px; }
+[data-theme="stardate"] .card .name { color: var(--text); }
+[data-theme="stardate"] .now-label, [data-theme="stardate"] .live-badge { background: var(--sky); color: #000; border-radius: 10px; }
+[data-theme="stardate"] .bar i { background: var(--accent); }
+[data-theme="stardate"] .tile { border-radius: 0 22px 0 22px; border-left: 10px solid var(--lav); }
+[data-theme="stardate"] .modal { background: #000; border-left: 18px solid var(--lav); border-top: 8px solid var(--lav); border-top-left-radius: 36px 26px; }
+[data-theme="stardate"] .tab { border-radius: 14px; }
+[data-theme="stardate"] .tab.active { background: var(--accent); color: #000; }
+
+/* Az új stílusok főoldali egységei (csempék) */
+[data-theme="contrast"] .dcard { background: #000; border: 2px solid #fff; border-radius: 4px; }
+[data-theme="contrast"] .dcard:focus-within { outline: 4px solid #ffe14d; outline-offset: 2px; }
+[data-theme="large"] .dcard { background: #fff; border: 1px solid var(--line); }
+[data-theme="shiro"] .dcard { border-radius: 14px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 6px 18px rgba(0, 0, 0, 0.05); }
+[data-theme="yoru"] .dcard { background: #100e0c; border: 1px solid #1d1a16; }
+[data-theme="mori"] .dcard { border-radius: 16px; background: linear-gradient(180deg, rgba(140, 191, 90, 0.07), transparent 40%), var(--bg-2); }
+[data-theme="natsu"] .dcard { border-radius: 20px; box-shadow: 0 8px 22px -14px rgba(15, 154, 160, 0.45); }
+[data-theme="fuyu"] .dcard { border: 1px solid #fff; box-shadow: 0 6px 18px -10px rgba(61, 122, 184, 0.35); }
+[data-theme="deco"] .dcard { border-radius: 0; border: 1px solid var(--line); box-shadow: inset 0 0 0 4px var(--bg-2), inset 0 0 0 5px rgba(201, 162, 74, 0.35); }
+[data-theme="deco"] .dc-title { color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-family: var(--deco-font); }
+[data-theme="showa"] .dcard { border-radius: 24px; border: 4px solid #4a3324; }
+[data-theme="mu"] .dcard { background: transparent; border-radius: 0; padding-left: 0; padding-right: 0; }
+[data-theme="holo"] .dcard { border-radius: 2px; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(53, 211, 255, 0.05), transparent 30%), var(--bg-2); }
+[data-theme="holo"] .dc-title { color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-family: var(--holo-font); }
+[data-theme="stardate"] .dcard { border-radius: 0 22px 0 22px; border-left: 12px solid var(--lav); background: #07070c; }
+[data-theme="stardate"] .dcard:nth-child(3n) { border-left-color: var(--peach); }
+[data-theme="stardate"] .dcard:nth-child(3n + 1) { border-left-color: var(--sky); }

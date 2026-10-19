@@ -122,6 +122,18 @@ A saját CSS-ben ezek `var(--accent)` formában használhatók; saját változó
 | `aurora` | Kyokkō | sarki fény, matt üveg |
 | `sketch` | Rakugaki | füzetlap, kézírás |
 | `terminal` | Phosphor | zöld monitor |
+| `contrast` | Kontraszt | nagy kontraszt |
+| `large` | Nagybetűs | világos alap, nagyobb betűk, kevés díszítés, mozgás nélkül – idősebb nézőknek. (világos) |
+| `shiro` | Shiro | sima, semleges világos (világos) |
+| `yoru` | Yoru | éjszakai mozi |
+| `mori` | Mori | mély fenyőzöld alap, moha- és kéregszínek, levél a sorcímek előtt. |
+| `natsu` | Natsu | napfényes tengerpart (világos) |
+| `fuyu` | Fuyu | havas fehér és jégkék, finoman hulló hópelyhek, kristálytiszta keretek. (világos) |
+| `deco` | Deco | a régi mozipaloták art deco világa |
+| `showa` | Shōwa | a 70-es évek |
+| `mu` | Mu | szinte üres felület (világos) |
+| `holo` | Holo | sci-fi irányítópult |
+| `stardate` | Csillagidő | egy csillaghajó parancsnoki hídjának kezelőfelülete |
 
 A `base` megadásával a téma átveszi az adott stílus összes díszítését (keretek, árnyékok, minták,
 animációk), és a saját `colors` / `css` ezek **fölé** kerül. Így egy beépített stílus „átszínezése” is egy

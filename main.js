@@ -416,11 +416,19 @@ function runSelfTest(w, file) {
   if (!abs.startsWith(path.join(__dirname, 'test') + path.sep)) return;
   const url = require('url').pathToFileURL(abs).href;
   const ready = `!!document.querySelector('#view')?.childElementCount && !document.body.classList.contains('onboarding')`;
+  // (a tesztkeret az épp induló teszt nevét a konzolra írja: elakadáskor az eredmény megmondja, hol tartott)
+  let current = '';
+  w.webContents.on('console-message', (...a) => {
+    const msg = String(a[0]?.message ?? a[2] ?? '');
+    if (msg.startsWith('@@T ')) current = msg.slice(4);
+  });
   w.webContents.once('did-finish-load', async () => {
     let out = { error: 'az alkalmazás nem indult el' };
     for (let i = 0; i < 240; i++) {
       if (await w.webContents.executeJavaScript(ready).catch(() => false)) {
-        out = await w.webContents.executeJavaScript(`import(${JSON.stringify(url)}).then((m) => m.run()).then((results) => ({ results }), (e) => ({ error: String(e && e.stack || e) }))`).catch((e) => ({ error: String(e) }));
+        const run = w.webContents.executeJavaScript(`import(${JSON.stringify(url)}).then((m) => m.run()).then((results) => ({ results }), (e) => ({ error: String(e && e.stack || e) }))`).catch((e) => ({ error: String(e) }));
+        const limit = new Promise((r) => setTimeout(() => r({ error: `időtúllépés (4 perc) – elakadt: ${current || '?'}` }), 240e3));
+        out = await Promise.race([run, limit]);
         break;
       }
       await new Promise((r) => setTimeout(r, 500));

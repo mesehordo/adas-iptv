@@ -28,6 +28,18 @@ Profilonként választható a **Beállítások → Megjelenés** legördülő me
 | Kyokkō | Lassan hullámzó színes háttér, matt üveg kártyák és lágy fénylés. |
 | Rakugaki *(világos)* | Vonalas füzetlap kézírással – a csatornák beragasztott polaroid fotók, ceruzás keretek. |
 | Phosphor | Régi zöld foszforos monitor – fix szélességű betűk, parancssori feliratok, inverz kijelölés. |
+| Kontraszt | Nagy kontraszt: fekete alap, fehér és sárga szöveg, vastag sárga fókuszkeret – gyengénlátóknak, messziről nézve. |
+| Nagybetűs *(világos)* | Világos alap, nagyobb betűk, kevés díszítés, mozgás nélkül – idősebb nézőknek. |
+| Shiro *(világos)* | (fehér) Sima, semleges világos: fehér–szürke alap, egyetlen kék kiemelés. |
+| Yoru | (éjszaka) Éjszakai mozi: szinte fekete, tompa, meleg borostyán kiemelés, alacsony fényerő – sötét szobába. |
+| Mori | (erdő) Mély fenyőzöld alap, moha- és kéregszínek, levél a sorcímek előtt. |
+| Natsu *(világos)* | (nyár) Napfényes tengerpart: homokszín alap, türkiz és korall, kerek kártyák, hullámos díszítés. |
+| Fuyu *(világos)* | (tél) Havas fehér és jégkék, finoman hulló hópelyhek, kristálytiszta keretek. |
+| Deco | A régi mozipaloták art deco világa: fekete és arany, geometrikus keretek, elegáns betűk. |
+| Shōwa | A 70-es évek: narancs, barna és mustár, lekerekített „tévéképernyő” kártyák, csíkos díszítés. |
+| Mu *(világos)* | (üresség) Szinte üres felület: csak a tartalom, sok tér, keretek, árnyékok és díszek nélkül. |
+| Holo | Sci-fi irányítópult: sötét kékes rácsos alap, cián hologramfény, vékony keretek, levágott sarkú gombok. |
+| Csillagidő | Egy csillaghajó parancsnoki hídjának kezelőfelülete: fekete alap, lekerekített végű narancs, levendula és barack sávok, keskeny nagybetűk. |
 
 Ugyanitt profilonként **sorrendbe állíthatók és elrejthetők a főoldal sorai** (húzással vagy a nyilakkal,
 távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben, hazai csatornák, kategóriák, országok.
