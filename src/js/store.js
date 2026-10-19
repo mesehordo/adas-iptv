@@ -12,6 +12,8 @@ export const epgSourceName = (src) => BUILTIN_EPG.find((b) => b.url === src.url)
 export const BUILTIN_EPG = [
   { url: 'https://iptv-epg.org/files/epg-hu.xml.gz', name: _t('Magyarország (iptv-epg.org)'), enabled: true },
   { url: 'https://epgshare01.online/epgshare01/epg_ripper_HU1.xml.gz', name: _t('Magyarország (epgshare01)'), enabled: true },
+  // (független harmadik magyar forrás: ha egy forrás kiesik vagy csak helyőrzőt ad, a többi pótolja – pl. Nickelodeon, Nicktoons)
+  { url: 'https://www.open-epg.com/files/hungary1.xml.gz', name: _t('Magyarország (open-epg.com)'), enabled: true },
   { url: 'https://epgshare01.online/epgshare01/epg_ripper_SK1.xml.gz', name: _t('Szlovákia (epgshare01)'), enabled: false },
   { url: 'https://epgshare01.online/epgshare01/epg_ripper_RO1.xml.gz', name: _t('Románia (epgshare01)'), enabled: false },
   { url: 'https://iptv-epg.org/files/epg-at.xml.gz', name: 'Ausztria (iptv-epg.org)', enabled: false },

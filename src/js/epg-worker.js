@@ -35,6 +35,10 @@ function decode(s) {
   return out.trim();
 }
 
+// Helyőrző „műsor” (adat nélküli forrás óránkénti kitöltése, pl. „No Data”): nem műsor – kimarad, így a csatornán
+// a többi forrás valódi műsora látszik (különben a magasabb prioritású forrás helyőrzői eltakarnák)
+const PLACEHOLDER_RX = /^\s*(no data|no (epg|programme|program) (data|information|info)|no information|nincs (műsor)?adat|nincs műsorinformáció|keine daten|sin datos|pas de données|to be announced|tba)\s*\.?\s*$/i;
+
 function parseTime(s) {
   // 20261001060000 +0200
   // Az időzóna elhagyható (ilyenkor UTC), a másodperc is.
@@ -159,7 +163,9 @@ self.onmessage = (e) => {
       const rating = element(body, 'rating');
       const rv = rating ? tag(rating.body, 'value') : '';
       const age = rv ? Number((/(\d{1,2})/.exec(rv) || [])[1]) || 0 : 0;
-      const row = [start, stop, tag(body, 'title'), tag(body, 'desc'), tag(body, 'category'), tag(body, 'sub-title'), tag(body, 'episode-num'), age];
+      const title = tag(body, 'title');
+      if (PLACEHOLDER_RX.test(title)) continue;
+      const row = [start, stop, title, tag(body, 'desc'), tag(body, 'category'), tag(body, 'sub-title'), tag(body, 'episode-num'), age];
       if (!programs.has(ch)) programs.set(ch, []);
       programs.get(ch).push(row);
       count++;
