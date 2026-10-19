@@ -557,12 +557,13 @@ function recStop(id) {
   if (!r) return false;
   r.stopping = true;
   clearTimeout(r.retry);
-  if (!r.proc || r.proc.exitCode !== null || r.proc.signalCode !== null) {
+  if (!r.proc) {
     // éppen újraindításra vár: nincs futó FFmpeg – a fájlt lezárjuk
-    r.proc = null;
     r.finish('');
     return true;
   }
+  // (már kilépett, de a kimenete még ürül: a folyamat „close” eseménye zárja le a fájlt – a pufferelt adat sem vész el)
+  if (r.proc.exitCode !== null || r.proc.signalCode !== null) return true;
   // „q”: az FFmpeg rendben lezárja a kimenetet; ha nem reagál, leállítjuk
   try {
     r.proc.stdin.write('q');

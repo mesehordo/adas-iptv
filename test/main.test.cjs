@@ -9,7 +9,13 @@ const http = require('http');
 const { spawnSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
-const tmp = (p) => fs.mkdtempSync(path.join(os.tmpdir(), `adas-${p}-`));
+const tmpDirs = [];
+const tmp = (p) => {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), `adas-${p}-`));
+  tmpDirs.push(d);
+  return d;
+};
+process.on('exit', () => tmpDirs.forEach((d) => fs.rmSync(d, { recursive: true, force: true, maxRetries: 5 })));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ------------------------------------------------------------------ fordítás

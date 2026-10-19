@@ -64,19 +64,30 @@ function rendererTests() {
   const extra = process.platform === 'linux' ? ['--no-sandbox'] : [];
   return new Promise((resolve) => {
     const app = spawn(electronBin, [ROOT, ...extra], { cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] });
-    let log = '';
-    app.stdout.on('data', (b) => (log += b));
+    let log = ''; // (a kettő együtt – hibánál a napló vége)
+    let stdout = ''; // (az eredménysor csak a szabványos kimeneten jön – a stderr darabjai nem kerülhetnek bele)
+    app.stdout.on('data', (b) => ((stdout += b), (log += b)));
     app.stderr.on('data', (b) => (log += b));
     const timer = setTimeout(() => app.kill(), 5 * 60e3);
     app.on('close', () => {
       clearTimeout(timer);
-      setTimeout(() => rmSync(data, { recursive: true, force: true }), 1000);
-      const line = log.split('\n').find((l) => l.startsWith('@@ADAS-SELFTEST@@'));
+      try {
+        rmSync(data, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); // (Windowson a fájlzár után)
+      } catch (err) {
+        console.log(`  (az ideiglenes mappa nem törölhető: ${data} – ${err.code || err.message})`);
+      }
+      const line = stdout.split('\n').find((l) => l.startsWith('@@ADAS-SELFTEST@@'));
       if (!line) {
         console.log('  ✗ nincs eredmény (az alkalmazás kilépett vagy elakadt)\n' + log.slice(-3000));
         return resolve(1);
       }
-      const out = JSON.parse(line.slice(17));
+      let out;
+      try {
+        out = JSON.parse(line.slice(17));
+      } catch (err) {
+        console.log('  ✗ hibás eredménysor: ' + err.message);
+        return resolve(1);
+      }
       if (out.error) {
         console.log('  ✗ ' + out.error);
         return resolve(1);
