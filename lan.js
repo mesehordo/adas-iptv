@@ -1206,6 +1206,13 @@ class DlnaSession {
     this.wasPlaying = false; // (a film végén a vevő csak STOPPED-et ad – ebből és a pozícióból lesz FINISHED)
     this.pos = 0;
     this.dur = 0;
+    this.gen = 0; // (a load előtt indult lekérdezés válasza ne írja vissza a régi film állapotát)
+  }
+  resetTrack() {
+    this.gen++;
+    this.wasPlaying = false;
+    this.pos = 0;
+    this.dur = 0;
   }
   async connect() {}
   async load({ url, contentType, title }) {
@@ -1213,39 +1220,44 @@ class DlnaSession {
       '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/">' +
       `<item id="0" parentID="-1" restricted="1"><dc:title>${xmlEscape(title)}</dc:title><upnp:class>object.item.videoItem</upnp:class>` +
       `<res protocolInfo="http-get:*:${contentType}:*">${xmlEscape(url)}</res></item></DIDL-Lite>`;
+    this.resetTrack(); // (a Stop miatti STOPPED a régi film adataival ne legyen FINISHED)
     try {
       await soap(this.dev.av, 'Stop', { InstanceID: 0 });
     } catch {}
     await soap(this.dev.av, 'SetAVTransportURI', { InstanceID: 0, CurrentURI: url, CurrentURIMetaData: didl });
     await soap(this.dev.av, 'Play', { InstanceID: 0, Speed: 1 });
     clearInterval(this.poll);
-    this.wasPlaying = false;
-    this.pos = 0;
-    this.dur = 0;
+    this.resetTrack();
     this.poll = setInterval(() => this.status(), 3000);
     emit('cast-status', { id: this.dev.id, state: 'BUFFERING' });
   }
   async status() {
+    const gen = this.gen;
     try {
       const x = await soap(this.dev.av, 'GetTransportInfo', { InstanceID: 0 });
       const s = xmlTag(x, 'CurrentTransportState');
       const map = { PLAYING: 'PLAYING', PAUSED_PLAYBACK: 'PAUSED', TRANSITIONING: 'BUFFERING', STOPPED: 'IDLE', NO_MEDIA_PRESENT: 'IDLE' };
       const ev = { id: this.dev.id, state: map[s] || s };
       // (H14) a vevő valódi pozíciója és a film hossza (ha a vevő támogatja)
+      let t = NaN;
+      let d = NaN;
       if (s === 'PLAYING' || s === 'PAUSED_PLAYBACK') {
         try {
           const p = await soap(this.dev.av, 'GetPositionInfo', { InstanceID: 0 });
-          const t = fromHms(xmlTag(p, 'RelTime'));
-          const d = fromHms(xmlTag(p, 'TrackDuration'));
-          if (Number.isFinite(t)) ev.time = this.pos = t;
-          if (Number.isFinite(d) && d > 0) ev.duration = this.dur = d;
+          t = fromHms(xmlTag(p, 'RelTime'));
+          d = fromHms(xmlTag(p, 'TrackDuration'));
         } catch {}
+      }
+      // (a válaszok alatt új film indult / a munkamenet lezárult → ez a lekérdezés elavult)
+      if (gen !== this.gen || this.closed) return;
+      if (s === 'PLAYING' || s === 'PAUSED_PLAYBACK') {
+        if (Number.isFinite(t)) ev.time = this.pos = t;
+        if (Number.isFinite(d) && d > 0) ev.duration = this.dur = d;
         if (s === 'PLAYING') this.wasPlaying = true;
       } else if (s === 'STOPPED' && this.wasPlaying && this.dur > 0 && this.pos >= this.dur - 15) {
         this.wasPlaying = false;
         ev.idle = 'FINISHED';
       }
-      if (this.closed) return;
       emit('cast-status', ev);
     } catch {}
   }
