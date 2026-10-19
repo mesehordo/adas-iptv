@@ -74,8 +74,13 @@ async function startRecNow(ch, { title, until = 0, sched = null, progStart = 0, 
 const audioOut = (st) => (/mp3|mpeg/i.test(st.codec || '') ? 'mp3' : /aac/i.test(st.codec || '') ? 'aac' : 'enc');
 async function startRadioRecNow(st, { title, until = 0, sched = null, progStart = 0, progStop = 0 } = {}) {
   // ami most szól, annak a működő címe; egyébként az első (a lejátszólista-címet feloldva)
-  const url = radioPlayer.station?.id === st.id && radioPlayer.url ? radioPlayer.url : await resolveStream(st.urls[0] || '');
+  // (U09) a lista által kért fejlécek (User-Agent, Referer) a lejátszólista feloldásához és a felvételhez is
+  const playing = radioPlayer.station?.id === st.id && radioPlayer.url;
+  const raw = playing ? radioPlayer.rawUrl || st.urls[0] || '' : st.urls[0] || '';
+  const hdr = st.headers?.[raw] || null;
+  const url = playing ? radioPlayer.url : await resolveStream(raw, hdr);
   if (!url) throw new Error(_t('A csatornának nincs forrása.'));
+  if (hdr && (hdr.ua || hdr.referrer)) await Promise.resolve(api.setStreamHeaders?.(url, { ua: hdr.ua, referrer: hdr.referrer })).catch(() => {});
   const d = new Date();
   const name = `${st.name} – ${title || _t('felvétel')} – ${d.toISOString().slice(0, 10)} ${String(d.getHours()).padStart(2, '0')}.${String(d.getMinutes()).padStart(2, '0')}`;
   const r = await api.recStart({ url, name, until, audio: audioOut(st) });

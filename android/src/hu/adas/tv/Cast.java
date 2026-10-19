@@ -58,6 +58,9 @@ final class Cast {
 
   /** (H29) a kivetített tartalom munkamenete (a felülettől): minden állapotüzenet ezzel megy, a régit a felület eldobja */
   static volatile int castGen;
+  /** (U11) a kivetítési kérés sorszáma (leállításkor / újabb kérésnél nő) és a még csatlakozó munkamenet */
+  static volatile int castOp;
+  static volatile Session connecting;
 
   static void emit(JSONObject o) {
     MainActivity a = act;
@@ -429,29 +432,49 @@ final class Cast {
       active = null;
       s = null;
     }
+    int op;
+    synchronized (Cast.class) {
+      op = ++castOp;
+    }
+    JSONObject superseded = new JSONObject().put("id", deviceId).put("name", dev.optString("name")).put("kind", dev.getString("kind")).put("superseded", true);
     if (s == null) {
       s = "chromecast".equals(dev.getString("kind")) ? new CastSession(a, dev) : new DlnaSession(dev);
-      if (s instanceof CastSession) ((CastSession) s).connect();
+      connecting = s;
+      try {
+        if (s instanceof CastSession) ((CastSession) s).connect();
+      } finally {
+        if (connecting == s) connecting = null;
+      }
+      if (op != castOp) {
+        s.stop();
+        return superseded;
+      }
       active = s;
     }
     String url = o.getString("url");
     // a vevő a munkamenethez kötött közvetítőn át éri el az adást (a saját fejlécekkel), csak a saját címéről
     String proxied = a.lan().castProxy(url, o.optString("ua"), o.optString("referrer"), dev.getString("host"));
-    // (H29) az eddigi médiamunkamenet ezután érkező állapota a régi tartalomé; az új munkamenet sorszáma
-    if (s instanceof CastSession) ((CastSession) s).staleMsid = ((CastSession) s).mediaSessionId;
+    if (op != castOp || active != s) return superseded;
     if (o.has("gen")) castGen = o.optInt("gen", castGen);
     s.load(proxied, contentTypeOf(url, o.optString("type")), o.optBoolean("live"), o.optString("title"), o.optString("subtitle"), o.optString("image"));
     return new JSONObject().put("id", deviceId).put("name", dev.optString("name")).put("kind", dev.getString("kind"));
   }
 
   static void control(MainActivity a, String action, double value) {
-    Session s = active;
-    if (s == null) return;
     if ("disconnect".equals(action)) {
-      s.stop();
+      synchronized (Cast.class) {
+        castOp++;
+      }
+      Session c = connecting;
+      connecting = null;
+      if (c != null) c.stop();
+      Session s = active;
+      if (s != null) s.stop();
       a.lan().castProxyStop();
       return;
     }
+    Session s = active;
+    if (s == null) return;
     s.control(action, value);
   }
 
@@ -590,7 +613,10 @@ final class Cast {
     OutputStream out;
     volatile String transportId, sessionId;
     volatile long mediaSessionId = -1;
-    volatile long staleMsid = -1; // (H29) az előző tartalom médiamunkamenete
+    // (H29 / U12) betöltés közben semmilyen állapot nem az új filmé; utána csak a visszaigazolt médiamunkameneté
+    volatile boolean loadPending;
+    volatile long curMsid = -1;
+    int loadSeq;
     volatile double volume = -1;
     volatile boolean closed;
     int reqId = 1;
@@ -738,7 +764,7 @@ final class Cast {
         if (arr != null && arr.length() > 0) {
           JSONObject st = arr.getJSONObject(0);
           // (H29) az előző tartalom késői állapota már nem számít
-          if (staleMsid >= 0 && st.optLong("mediaSessionId", -2) == staleMsid) return;
+          if (loadPending || (curMsid >= 0 && st.optLong("mediaSessionId", -2) != curMsid)) return;
           mediaSessionId = st.optLong("mediaSessionId", mediaSessionId);
           JSONObject ev = new JSONObject().put("id", id).put("state", st.optString("playerState")).put("idle", st.optString("idleReason", "")).put("time", st.optDouble("currentTime", 0));
           // (H28) a film hossza a vevőtől (ha helyben nem volt ismert)
@@ -794,8 +820,27 @@ final class Cast {
       if (image != null && !image.isEmpty()) imgs.put(new JSONObject().put("url", image));
       meta.put("images", imgs);
       JSONObject media = new JSONObject().put("contentId", url).put("contentType", contentType).put("streamType", live ? "LIVE" : "BUFFERED").put("metadata", meta);
-      request(NS_MEDIA, transportId, new JSONObject().put("type", "LOAD").put("sessionId", sessionId).put("autoplay", true).put("currentTime", 0).put("media", media),
-          new String[] {"MEDIA_STATUS", "LOAD_FAILED", "LOAD_CANCELLED", "INVALID_REQUEST"}, 20000);
+      int seq;
+      synchronized (this) {
+        seq = ++loadSeq;
+      }
+      loadPending = true;
+      JSONObject res;
+      try {
+        res = request(NS_MEDIA, transportId, new JSONObject().put("type", "LOAD").put("sessionId", sessionId).put("autoplay", true).put("currentTime", 0).put("media", media),
+            new String[] {"MEDIA_STATUS", "LOAD_FAILED", "LOAD_CANCELLED", "INVALID_REQUEST"}, 20000);
+      } finally {
+        synchronized (this) {
+          if (seq == loadSeq) loadPending = false;
+        }
+      }
+      synchronized (this) {
+        if (seq != loadSeq) return;
+      }
+      JSONArray arr = res.optJSONArray("status");
+      long msid = arr != null && arr.length() > 0 ? arr.getJSONObject(0).optLong("mediaSessionId", -1) : -1;
+      curMsid = msid;
+      if (msid >= 0) mediaSessionId = msid;
     }
 
     public void control(String action, double value) {

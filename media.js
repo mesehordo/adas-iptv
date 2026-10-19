@@ -309,9 +309,11 @@ function stopSession(id, s = sessions.get(id)) {
   } catch {}
 }
 
+// (U10) a kiszolgáló indulásának közös ígérete: párhuzamos hívók a ténylegesen megnyitott portot várják meg
+let serverReady = null;
 function ensureServer() {
-  if (server) return Promise.resolve();
-  return new Promise((resolve, reject) => {
+  if (serverReady) return serverReady;
+  serverReady = new Promise((resolve, reject) => {
     server = http.createServer((req, res) => {
       // A forrás továbbítása az FFmpegnek (DNS, HTTPS, fejlécek az Electron oldalán)
       const src = /^\/([0-9a-f]+)\/src\/([0-9a-f]+)$/.exec(req.url.split('?')[0]);
@@ -370,12 +372,16 @@ function ensureServer() {
       // A felület bezárta a kapcsolatot (tekerés, másik sáv, kilépés): az FFmpeg leáll.
       res.on('close', () => stopSession(id, s));
     });
-    server.on('error', reject);
+    server.on('error', (err) => {
+      if (!port) (server = null), (serverReady = null); // (sikertelen indulás: a következő hívás újrapróbál)
+      reject(err);
+    });
     server.listen(0, '127.0.0.1', () => {
       port = server.address().port;
       resolve();
     });
   });
+  return serverReady;
 }
 
 function stop(id) {

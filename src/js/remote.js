@@ -464,7 +464,7 @@ async function command({ c, a }) {
       break;
     case 'volup':
     case 'voldown':
-      if (live) player.setVolume(video.volume + (c === 'volup' ? 0.08 : -0.08));
+      if (live) player.setVolume(player.curVolume() + (c === 'volup' ? 0.08 : -0.08));
       break;
     case 'vol': {
       const v = Number(a);
@@ -475,10 +475,7 @@ async function command({ c, a }) {
       break;
     }
     case 'mute':
-      if (live) {
-        video.muted = !video.muted;
-        player.renderControls();
-      }
+      if (live) player.toggleMute();
       break;
     case 'toggle':
       if (live) player.togglePause();

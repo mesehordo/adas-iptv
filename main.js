@@ -1054,11 +1054,12 @@ ipcMain.handle('set-mini', (_e, on) => {
   if (on) {
     if (win.isFullScreen()) win.setFullScreen(false);
     normalBounds = win.getBounds();
-    const { width, height } = require('electron').screen.getDisplayMatching(normalBounds).workArea;
-    const w = 480;
-    const h = 270;
+    // (U15) a munkaterület kezdőpontja nem mindig 0,0 (bal / felső másodlagos kijelző, felül lévő tálca)
+    const { x, y, width, height } = require('electron').screen.getDisplayMatching(normalBounds).workArea;
+    const w = Math.min(480, width - 48);
+    const h = Math.min(270, height - 48);
     win.setAlwaysOnTop(true, 'floating');
-    win.setBounds({ x: width - w - 24, y: height - h - 24, width: w, height: h });
+    win.setBounds({ x: x + width - w - 24, y: y + height - h - 24, width: w, height: h });
   } else {
     win.setAlwaysOnTop(false);
     if (normalBounds) win.setBounds(normalBounds);

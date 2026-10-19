@@ -71,7 +71,8 @@ final class HttpOpen {
           body = null;
         }
         if (foreign && body != null && body.length > 0) throw new IOException("A kérés törzse nem küldhető másik szerverre");
-        if (foreign) hdrs.keySet().removeIf(HttpOpen::sensitiveHeader);
+        // (U17) a Collection.removeIf csak API 24-től van – Android 6-on (API 23) NoSuchMethodError lenne
+        if (foreign) for (java.util.Iterator<String> it = hdrs.keySet().iterator(); it.hasNext(); ) if (sensitiveHeader(it.next())) it.remove();
         url = next.toString();
         continue;
       }

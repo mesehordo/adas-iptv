@@ -890,8 +890,24 @@ export const player = {
     this.poke();
   },
 
+  /** (U14) a mostani hangerő – kivetítéskor a vevőé */
+  curVolume() {
+    return this.castHooks?.active ? this.castHooks.volume : video.volume;
+  },
+  /** (U14) némítás be / ki – kivetítéskor a vevőn */
+  toggleMute() {
+    if (this.castHooks?.active) this.castHooks.toggleMute();
+    else video.muted = !video.muted;
+    this.renderControls();
+  },
   setVolume(v) {
     v = Math.max(0, Math.min(1, v));
+    // (U14) kivetítéskor a vevő hangereje változik (a helyi videó nem szól)
+    if (this.castHooks?.active) {
+      this.castHooks.setVolume(v);
+      this.showOsd(this.channel, `${_t('Hangerő {round}%', { round: Math.round(v * 100) })}`);
+      return;
+    }
     video.volume = v;
     video.muted = v === 0;
     store.set('volume', v);
@@ -975,11 +991,11 @@ export const player = {
           return true;
         case 'ArrowUp':
           if (onButton || onSeek) return false;
-          this.setVolume(video.volume + 0.05);
+          this.setVolume(this.curVolume() + 0.05);
           return true;
         case 'ArrowDown':
           if (onButton || onSeek) return false;
-          this.setVolume(video.volume - 0.05);
+          this.setVolume(this.curVolume() - 0.05);
           return true;
         case 'MediaFastForward':
           this.seekBy(30);
@@ -1036,12 +1052,12 @@ export const player = {
       case 'ArrowRight':
         if (onButton) return false;
         if (e.shiftKey) this.tsBy(30);
-        else this.setVolume(video.volume + 0.05);
+        else this.setVolume(this.curVolume() + 0.05);
         break;
       case 'ArrowLeft':
         if (onButton) return false;
         if (e.shiftKey) this.tsBy(-30);
-        else this.setVolume(video.volume - 0.05);
+        else this.setVolume(this.curVolume() - 0.05);
         break;
       case 'MediaRewind':
         this.tsBy(-30);
@@ -1063,8 +1079,7 @@ export const player = {
         break;
       case 'm':
       case 'M':
-        video.muted = !video.muted;
-        this.renderControls();
+        this.toggleMute();
         break;
       case 'f':
       case 'F':
@@ -1226,8 +1241,7 @@ root.addEventListener('click', (e) => {
       player.step(1);
       break;
     case 'mute':
-      video.muted = !video.muted;
-      player.renderControls();
+      player.toggleMute();
       break;
     case 'fav':
       store.toggleFavorite(player.channel.id);

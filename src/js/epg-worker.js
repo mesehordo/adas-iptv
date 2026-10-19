@@ -164,11 +164,13 @@ self.onmessage = (e) => {
       const rv = rating ? tag(rating.body, 'value') : '';
       const age = rv ? Number((/(\d{1,2})/.exec(rv) || [])[1]) || 0 : 0;
       const title = tag(body, 'title');
-      if (PLACEHOLDER_RX.test(title)) continue;
+      // (U04) a helyőrző időhatárként még számít (a stop nélküli előző műsor vége), csak a végén esik ki
+      const ph = PLACEHOLDER_RX.test(title);
       const row = [start, stop, title, tag(body, 'desc'), tag(body, 'category'), tag(body, 'sub-title'), tag(body, 'episode-num'), age];
+      if (ph) row.ph = true;
+      else count++;
       if (!programs.has(ch)) programs.set(ch, []);
       programs.get(ch).push(row);
-      count++;
     }
     for (const [k, all] of programs) {
       const list = all.sort((x, y) => x[0] - y[0]);
@@ -178,16 +180,29 @@ self.onmessage = (e) => {
       const merged = [];
       for (const p of list) {
         const last = merged[merged.length - 1];
+        // (azonos kezdésnél a valódi műsor elsőbbséget kap a helyőrzővel szemben)
+        if (last && last[0] === p[0] && last.ph && !p.ph) {
+          const keepStop = !(p[1] > p[0]) && last[1] > last[0] ? last[1] : p[1];
+          merged[merged.length - 1] = p.slice();
+          merged[merged.length - 1][1] = keepStop;
+          continue;
+        }
+        if (last && last[0] === p[0] && !last.ph && p.ph) {
+          if (!(last[1] > last[0]) && p[1] > p[0]) last[1] = p[1];
+          continue;
+        }
         if (last && last[0] === p[0]) {
           // (érvénytelen – nem a kezdés utáni – vég hiányzónak számít: egy későbbi érvényes vég felülírja)
           if (!(last[1] > last[0]) && p[1] > p[0]) last[1] = p[1];
           for (let j = 2; j < p.length; j++) if (!last[j] && p[j]) last[j] = p[j];
           continue;
         }
-        merged.push(p.slice());
+        const c = p.slice();
+        if (p.ph) c.ph = true;
+        merged.push(c);
       }
       for (let i = 0; i < merged.length; i++) if (!merged[i][1]) merged[i][1] = merged[i + 1] ? merged[i + 1][0] : merged[i][0] + 3600e3;
-      programs.set(k, merged.filter((p) => p[1] > p[0] && p[1] > from && p[0] < to));
+      programs.set(k, merged.filter((p) => !p.ph && p[1] > p[0] && p[1] > from && p[0] < to));
     }
     // Párosítás: csak a csatornalistában megtalált csatornák műsorai mennek vissza [[csatorna-id, műsorok], …]
     const matched = [];

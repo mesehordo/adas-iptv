@@ -196,9 +196,9 @@ const defaults = () => JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 // ---------------------------------------------------------------------------
 const kindOf = (v) => (Array.isArray(v) ? 'array' : v === null ? 'null' : typeof v);
 // az alapértékek között nem szereplő, de ismert szerkezetű beállítások
-const EXTRA_KINDS = { rssFeeds: 'array', recSchedule: 'array', kidsMarks: 'object', listRefresh: 'object', tvPacks: 'array', vodPacks: 'array', weatherLoc: 'object', rssDefaultsSeen: 'array', radioPacks: 'array' };
+const EXTRA_KINDS = { sportWatch: 'array', customThemes: 'array', rssFeeds: 'array', recSchedule: 'array', kidsMarks: 'object', listRefresh: 'object', tvPacks: 'array', vodPacks: 'array', weatherLoc: 'object', rssDefaultsSeen: 'array', radioPacks: 'array' };
 // objektumelemekből álló tömbök (a nem objektum elem kimarad)
-const OBJECT_LISTS = ['customPlaylists', 'customChannels', 'vodCustom', 'ownSources', 'epgSources', 'rssFeeds', 'recSchedule', 'tvPacks', 'vodPacks', 'radioLists', 'radioPacks'];
+const OBJECT_LISTS = ['sportWatch', 'customThemes', 'customPlaylists', 'customChannels', 'vodCustom', 'ownSources', 'epgSources', 'rssFeeds', 'recSchedule', 'tvPacks', 'vodPacks', 'radioLists', 'radioPacks'];
 /** → { settings: javított másolat, fixed: [a javított kulcsok] } */
 export function sanitizeSettings(raw) {
   const fixed = [];
@@ -225,8 +225,13 @@ export function sanitizeSettings(raw) {
   for (const k of OBJECT_LISTS) {
     if (!Array.isArray(out[k])) continue;
     const n = out[k].length;
-    out[k] = out[k].filter((x) => kindOf(x) === 'object' && (k !== 'epgSources' || typeof x.url === 'string'));
+    out[k] = out[k].filter((x) => kindOf(x) === 'object' && (k !== 'epgSources' || typeof x.url === 'string') && (k !== 'sportWatch' || (typeof x.id === 'string' && typeof x.kind === 'string')) && (k !== 'customThemes' || typeof x.text === 'string'));
     if (out[k].length !== n) fixed.push(k + '[]');
+  }
+  // (U02) a hangerő 0 és 1 között
+  if (typeof out.volume === 'number' && !(out.volume >= 0 && out.volume <= 1)) {
+    out.volume = Number.isFinite(out.volume) ? Math.min(1, Math.max(0, out.volume)) : DEFAULT_SETTINGS.volume;
+    fixed.push('volume');
   }
   return { settings: out, fixed };
 }

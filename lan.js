@@ -1084,7 +1084,8 @@ class CastSession {
       if (d.status?.volume) this.volume = d.status.volume.level;
     }
     // (H29) az előző tartalom (régi médiamunkamenet) késői állapota már nem számít
-    if (d.type === 'MEDIA_STATUS' && d.status?.[0] && !(this.staleMsid != null && d.status[0].mediaSessionId === this.staleMsid)) {
+    // (H29 / U12) betöltés közben semmilyen állapot nem az új filmé; utána csak a visszaigazolt médiamunkameneté
+    if (d.type === 'MEDIA_STATUS' && d.status?.[0] && !this.loadPending && !(this.curMsid != null && d.status[0].mediaSessionId !== this.curMsid)) {
       const st = d.status[0];
       this.mediaSessionId = st.mediaSessionId;
       const dur = Number(st.media?.duration);
@@ -1120,7 +1121,12 @@ class CastSession {
 
   async load({ url, contentType, live, title, subtitle, image }) {
     if (!this.transportId) await this.launch();
-    await this.request(
+    // (U12) a LOAD és a visszaigazolt médiamunkamenet összekötve: csak a legutóbbi betöltés válasza számít
+    const seq = (this.loadSeq = (this.loadSeq || 0) + 1);
+    this.loadPending = true;
+    let res;
+    try {
+      res = await this.request(
       NS.media,
       this.transportId,
       {
@@ -1138,6 +1144,13 @@ class CastSession {
       (m, id) => m.data?.requestId === id && ['MEDIA_STATUS', 'LOAD_FAILED', 'LOAD_CANCELLED', 'INVALID_REQUEST'].includes(m.data.type),
       20000
     );
+    } finally {
+      if (seq === this.loadSeq) this.loadPending = false;
+    }
+    if (seq !== this.loadSeq) return;
+    const msid = res?.status?.[0]?.mediaSessionId;
+    this.curMsid = msid ?? null;
+    if (msid != null) this.mediaSessionId = msid;
   }
 
   control(action, value) {
@@ -1239,6 +1252,9 @@ class DlnaSession {
     castEmit({ id: this.dev.id, state: 'BUFFERING' });
   }
   async status() {
+    // (U13) egyszerre egy lekérdezés: egy lassan válaszoló régebbi nem írhatja felül egy újabb pozícióját
+    if (this.statusBusy) return;
+    this.statusBusy = true;
     const gen = this.gen;
     try {
       const x = await soap(this.dev.av, 'GetTransportInfo', { InstanceID: 0 });
@@ -1266,7 +1282,10 @@ class DlnaSession {
         ev.idle = 'FINISHED';
       }
       castEmit(ev);
-    } catch {}
+    } catch {
+    } finally {
+      this.statusBusy = false;
+    }
   }
   control(action, value) {
     const run = {
@@ -1298,6 +1317,8 @@ class DlnaSession {
 // Kivetítés – közös felület
 // ---------------------------------------------------------------------------
 let active = null;
+let connecting = null; // (U11) a még csatlakozó munkamenet
+let castOp = 0;
 
 function contentTypeOf(url, hint) {
   const p = url.toLowerCase().split('?')[0];
@@ -1317,22 +1338,38 @@ async function castPlay({ deviceId, url, type, live, title, subtitle, image, gen
     active.stop();
     active = null;
   }
+  // (U11) a kérés sorszáma: egy közben érkezett leállítás vagy újabb kérés után ez már nem indíthat médiát
+  const op = ++castOp;
+  const superseded = { id: dev.id, name: dev.name, kind: dev.kind, superseded: true };
   if (!active) {
     const s = dev.kind === 'chromecast' ? new CastSession(dev) : new DlnaSession(dev);
-    await s.connect();
+    connecting = s;
+    try {
+      await s.connect();
+    } finally {
+      if (connecting === s) connecting = null;
+    }
+    if (op !== castOp || s.closed) {
+      s.stop();
+      return superseded;
+    }
     active = s;
   }
   const media = { url: await proxyUrl(url, dev.host), contentType: contentTypeOf(url, type), live, title, subtitle, image };
-  // (H29) az eddigi médiamunkamenet ezután érkező állapota a régi tartalomé; az új munkamenet sorszáma
-  if (active instanceof CastSession) active.staleMsid = active.mediaSessionId;
+  if (op !== castOp || !active) return superseded;
   if (Number.isFinite(gen)) castGen = gen;
   await active.load(media);
   return { id: dev.id, name: dev.name, kind: dev.kind };
 }
 
 function castControl(action, value) {
+  if (action === 'disconnect') {
+    castOp++; // (U11) a csatlakozás alatt álló kérés sem indíthat már médiát
+    connecting?.close('');
+    connecting = null;
+    return active?.stop();
+  }
   if (!active) return;
-  if (action === 'disconnect') return active.stop();
   return active.control(action, value);
 }
 

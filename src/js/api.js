@@ -198,28 +198,39 @@ const webApi = {
     return true;
   },
   openFile(filters) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = (filters || []).map((f) => f.extensions.map((e) => '.' + e).join(',')).join(',');
+      // (U16) Mégse: üres eredmény; olvasási hiba: a hívó hibát kap – a művelet mindig lezárul
+      input.oncancel = () => resolve(null);
       input.onchange = async () => {
         const f = input.files[0];
-        resolve(f ? { name: f.name, text: await f.text() } : null);
+        try {
+          resolve(f ? { name: f.name, text: await f.text() } : null);
+        } catch (err) {
+          reject(err);
+        }
       };
       input.click();
     });
   },
   /** Több fájl (akár ZIP) kiválasztása: [{ name, bytes: Uint8Array }] */
   openFiles(filters) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const input = document.createElement('input');
       input.type = 'file';
       input.multiple = true;
       input.accept = (filters || []).map((f) => f.extensions.map((e) => '.' + e).join(',')).join(',');
+      input.oncancel = () => resolve(null); // (U16)
       input.onchange = async () => {
-        const out = [];
-        for (const f of input.files) out.push({ name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) });
-        resolve(out.length ? out : null);
+        try {
+          const out = [];
+          for (const f of input.files) out.push({ name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) });
+          resolve(out.length ? out : null);
+        } catch (err) {
+          reject(err);
+        }
       };
       input.click();
     });

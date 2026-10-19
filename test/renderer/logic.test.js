@@ -219,3 +219,12 @@ test('gyerektartalom: csatornakategória, nsfw, VOD-csoport (B22), kizáró jele
   assert.equal(kidsAllowed(kid, 'vod', { id: 'v1', groups: ['Rajzfilmek'] }), false, 'szülői tiltás');
   assert.equal(kidsAllowed(kid, 'ch', { id: 'x', categories: ['movies'] }), false);
 });
+
+test('sanitizeSettings (U02): hibás sportWatch / customThemes elemek és tartományon kívüli hangerő', () => {
+  const { settings: s, fixed } = sanitizeSettings({ sportWatch: [null, { id: 'espn:soccer/x', kind: 'espn' }, { kind: 'espn' }], customThemes: 'broken', volume: 2 });
+  assert.deepEqual(s.sportWatch, [{ id: 'espn:soccer/x', kind: 'espn' }]);
+  assert.ok(!('customThemes' in s));
+  assert.equal(s.volume, 1);
+  assert.ok(fixed.includes('sportWatch[]') && fixed.includes('customThemes') && fixed.includes('volume'));
+  assert.deepEqual(sanitizeSettings({ customThemes: [{ name: 'x', text: '{}' }, 'szöveg'] }).settings.customThemes, [{ name: 'x', text: '{}' }]);
+});

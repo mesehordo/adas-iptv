@@ -177,6 +177,18 @@ const hooks = {
   get deviceName() {
     return state.device?.name || '';
   },
+  /** (U14) a vevő hangereje (a lejátszó általános hangerő- és némításkezelése kivetítéskor ezt állítja) */
+  get volume() {
+    return state.volume ?? 0.5;
+  },
+  setVolume(v) {
+    state.volume = Math.max(0, Math.min(1, v));
+    api.castControl('volume', state.volume);
+  },
+  toggleMute() {
+    if (state.volume > 0) (state.muteVol = state.volume), this.setVolume(0);
+    else this.setVolume(state.muteVol || 0.5);
+  },
   menu: openMenu,
   async load(ch, stream, at = 0) {
     const n = !ch.vod ? epg.now(ch.id) : null;

@@ -467,7 +467,9 @@ export async function loadStandings(ref) {
 // ---------------------------------------------------------------------------
 let cache = { at: 0, events: null, errors: {} };
 let loading = null;
-const invalidate = () => (cache = { at: 0, events: null, errors: {} });
+let cacheVer = 0; // (U07) érvénytelenítéskor nő: a közben futó betöltés eredménye már nem kerül a gyorsítótárba
+let loadingVer = -1;
+const invalidate = () => ((cache = { at: 0, events: null, errors: {} }), cacheVer++);
 export const sportEventsCached = () => cache.events;
 export const sportErrors = () => cache.errors;
 /** Elavult-e a gyorsítótár (5 perc, vagy azóta betöltődött a műsorújság – a csatornaajánláshoz). */
@@ -477,9 +479,12 @@ export const sportStale = () => !cache.events || cache.ek !== dataKey() || Date.
 export function loadSportEvents(force = false, { live = false } = {}) {
   const ek = dataKey();
   if (!force && cache.events && cache.ek === ek && Date.now() - cache.at < 5 * 60e3) return Promise.resolve(cache.events);
-  if (loading) return loading;
+  if (loading && loadingVer === cacheVer) return loading;
+  // (a futó, már elavult betöltés után új kör)
+  if (loading) return loading.then(() => loadSportEvents(force, { live }));
   fresh = live;
-  loading = (async () => {
+  const ver = (loadingVer = cacheVer);
+  const p = (loading = (async () => {
     const errors = {};
     const { back, ahead } = cfg();
     const now = Date.now();
@@ -507,11 +512,12 @@ export function loadSportEvents(force = false, { live = false } = {}) {
     // Élő → a követett bajnokságok / csapatok / naptárak közelgő eseményei → a tévében talált műsorok → friss eredmények
     const rank = (e) => (e.state === 'in' ? 0 : e.state === 'pre' ? (e.kind === 'epg' ? 2 : 1) : 3);
     events.sort((a, b) => rank(a) - rank(b) || (a.state === 'post' ? b.start - a.start : a.start - b.start));
-    cache = { at: Date.now(), events, errors, ek };
-    loading = null;
+    if (ver === cacheVer) cache = { at: Date.now(), events, errors, ek };
     return events;
-  })();
-  return loading;
+  })().finally(() => {
+    if (loading === p) loading = null;
+  }));
+  return p;
 }
 
 // ---------------------------------------------------------------------------

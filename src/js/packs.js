@@ -104,7 +104,11 @@ export async function removePack(kind, id) {
   const cur = (s[k.setting] || []).find((p) => p.id === id);
   s[k.setting] = (s[k.setting] || []).filter((p) => p.id !== id);
   store.save();
-  await api.docSet?.(packDocKey(kind, cur || { id }), null);
+  // (U01) a régi – v1 – mentési pontok a közös dokumentumból állítanák vissza: amit hivatkoznak, az marad;
+  // olvashatatlan mentéstárnál nincs törlés
+  const docKey = packDocKey(kind, cur || { id });
+  const keep = await import('./backup.js').then((m) => m.v1BackupDocKeys()).catch(() => null);
+  if (keep && !keep.includes(docKey)) await api.docSet?.(docKey, null);
   bus.emit('packs', kind);
 }
 
