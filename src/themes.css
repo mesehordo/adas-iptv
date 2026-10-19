@@ -1325,6 +1325,7 @@ body[data-theme="contrast"] {
 [data-theme="contrast"] .btn:hover, [data-theme="contrast"] .btn:focus-visible { background: #fff; color: #000; }
 [data-theme="contrast"] .btn.white, [data-theme="contrast"] .btn.primary { background: #ffe14d; color: #000; border-color: #ffe14d; }
 [data-theme="contrast"] .btn.gray { background: #000; }
+[data-theme="contrast"] .btn.gray:hover, [data-theme="contrast"] .btn.gray:focus-visible { background: #fff; color: #000; }
 [data-theme="contrast"] .row-title { color: #ffe14d; font-weight: 800; }
 [data-theme="contrast"] .thumb { border: 2px solid #fff; }
 [data-theme="contrast"] .card:hover, [data-theme="contrast"] .card:focus-visible { transform: none; box-shadow: none; }
@@ -1354,7 +1355,8 @@ body[data-theme="large"] {
   font-size: 18px; line-height: 1.45;
   background: #f7f6f2;
 }
-[data-theme="large"] *, [data-theme="large"] *::before, [data-theme="large"] *::after { animation-duration: 0.001s !important; transition-duration: 0.001s !important; }
+/* (mozgás nélkül: a végtelen ismétlésű animációk – töltésjelző, élő-jelzés, felvételpont – is egyszer, azonnal lefutnak) */
+[data-theme="large"] *, [data-theme="large"] *::before, [data-theme="large"] *::after { animation-duration: 0.001s !important; animation-iteration-count: 1 !important; transition-duration: 0.001s !important; }
 [data-theme="large"] :focus-visible { outline: 4px solid var(--focus); outline-offset: 3px; }
 [data-theme="large"] #nav, [data-theme="large"] #nav.solid { background: #fff; border-bottom: 1px solid var(--line); }
 [data-theme="large"] .brand { color: var(--accent); transform: none; }
