@@ -766,6 +766,13 @@ ${go('#/profiles', 'Manage profiles')}`,
 <tr><td><b>Neo-Tokyo</b></td><td>The world of AKIRA: the silhouette of a ruined city at night at the bottom of the window, speeding red motorbike light trails, a Kaneda-red block logo with a white capsule badge, slanted title type, a red-glowing selection.</td></tr>
 <tr><td><b>Kyokkō</b></td><td>(aurora) A slowly rippling colourful background, frosted-glass cards, a glowing selection. (On TV the background doesn’t move.)</td></tr>
 <tr><td><b>Phosphor</b></td><td>A green phosphor monitor: fixed-width type, <code>$ ls</code> row titles, inverse selection.</td></tr>
+<tr><td><b>Kontraszt</b></td><td>High contrast: black background, white and yellow text, thick yellow focus frame – for low vision and distance viewing.</td></tr>
+<tr><td><b>Yoru</b></td><td>(night) Night cinema: almost black, muted warm amber accent, low brightness – for a dark room.</td></tr>
+<tr><td><b>Mori</b></td><td>(forest) Deep pine-green background, moss and bark colours, a leaf before row titles.</td></tr>
+<tr><td><b>Deco</b></td><td>The art deco world of old picture palaces: black and gold, geometric frames, elegant lettering.</td></tr>
+<tr><td><b>Shōwa</b></td><td>The 1970s: orange, brown and mustard, rounded “TV screen” cards, striped decoration.</td></tr>
+<tr><td><b>Holo</b></td><td>A sci-fi control panel: dark bluish grid, cyan hologram glow, thin frames, cut-corner buttons.</td></tr>
+<tr><td><b>Csillagidő</b></td><td>The control interface of a starship’s bridge: black background, round-ended orange, lavender and peach bars, narrow capitals.</td></tr>
 <tr><th colspan="2">Light styles</th></tr>
 <tr><td><b>Zen</b></td><td>Rice-paper white background, moss-green highlights, lots of space, quiet, slow movements, an ensō circle in the logo.</td></tr>
 <tr><td><b>Wabi-sabi</b></td><td>Warm, earth-toned paper texture, slightly irregular cards, rust and indigo, a golden kintsugi crack on hover.</td></tr>
@@ -776,6 +783,11 @@ ${go('#/profiles', 'Manage profiles')}`,
 <tr><td><b>Pow!</b></td><td>American comics: Ben-Day dots, red–yellow–blue, thick black outlines with offset shadows, yellow caption-box row titles, a “POW!” starburst on windows.</td></tr>
 <tr><td><b>Kikagaku</b></td><td>(geometry) Poster art: red–blue–yellow–black, cards with thick black borders and hard shadows, numbered rows.</td></tr>
 <tr><td><b>Rakugaki</b></td><td>(doodle) A lined notebook page with handwriting: channels are taped-in polaroid photos, buttons drawn in pencil.</td></tr>
+<tr><td><b>Nagybetűs</b></td><td>Light background, larger text, little decoration, no motion – for older viewers.</td></tr>
+<tr><td><b>Shiro</b></td><td>(white) Plain, neutral light: white–grey background, a single blue accent.</td></tr>
+<tr><td><b>Natsu</b></td><td>(summer) A sunny beach: sand background, turquoise and coral, round cards, wavy decoration.</td></tr>
+<tr><td><b>Fuyu</b></td><td>(winter) Snowy white and ice blue, gently falling snowflakes, crystal-clear frames.</td></tr>
+<tr><td><b>Mu</b></td><td>(emptiness) An almost empty interface: just the content, lots of space, no frames, shadows or decoration.</td></tr>
 </table>
 <p>The home page units (tiles) also get a look matching the style (border, shadow, background, titles). The player stays dark in every style, so the picture looks its best.</p>
 <p><b>Custom theme</b>: by uploading a theme file or (on desktop) copying it into the theme folder – Settings → Appearance → <i>Custom themes</i>. ${t('custom-theme', 'Making a custom theme')}</p>
@@ -801,7 +813,7 @@ ${go('#/settings', 'Appearance settings')}`,
 <tr><td><code>name</code></td><td><b>Required</b>: the name shown in the style picker.</td></tr>
 <tr><td><code>description</code>, <code>author</code></td><td>Description, author.</td></tr>
 <tr><td><code>tone</code></td><td><code>"dark"</code> (default) or <code>"light"</code>.</td></tr>
-<tr><td><code>base</code></td><td>A built-in style whose decorations it builds on: <code>netflix</code> (Kurenai), <code>disney</code> (Mahō), <code>skyshowtime</code> (Murasaki), <code>rakuten</code> (Akane), <code>prime</code> (Shinkai), <code>apple</code> (Garasu), <code>zen</code>, <code>wabisabi</code>, <code>nintendo</code> (Asobiba), <code>switch</code> (Futago), <code>wii</code> (Hiroba), <code>cyberpunk</code> (Neon City), <code>neotokyo</code>, <code>manga</code>, <code>comic</code> (Pow!), <code>snes</code> (16-Bit), <code>bauhaus</code> (Kikagaku), <code>aurora</code> (Kyokkō), <code>sketch</code> (Rakugaki), <code>terminal</code> (Phosphor). Empty: a neutral base.</td></tr>
+<tr><td><code>base</code></td><td>A built-in style whose decorations it builds on: <code>netflix</code> (Kurenai), <code>disney</code> (Mahō), <code>skyshowtime</code> (Murasaki), <code>rakuten</code> (Akane), <code>prime</code> (Shinkai), <code>apple</code> (Garasu), <code>zen</code>, <code>wabisabi</code>, <code>nintendo</code> (Asobiba), <code>switch</code> (Futago), <code>wii</code> (Hiroba), <code>cyberpunk</code> (Neon City), <code>neotokyo</code>, <code>manga</code>, <code>comic</code> (Pow!), <code>snes</code> (16-Bit), <code>bauhaus</code> (Kikagaku), <code>aurora</code> (Kyokkō), <code>sketch</code> (Rakugaki), <code>terminal</code> (Phosphor), <code>contrast</code> (Kontraszt), <code>large</code> (Nagybetűs), <code>shiro</code> (Shiro), <code>yoru</code> (Yoru), <code>mori</code> (Mori), <code>natsu</code> (Natsu), <code>fuyu</code> (Fuyu), <code>deco</code> (Deco), <code>showa</code> (Shōwa), <code>mu</code> (Mu), <code>holo</code> (Holo), <code>stardate</code> (Csillagidő). Empty: a neutral base.</td></tr>
 <tr><td><code>colors</code></td><td><code>bg</code> (background), <code>bg2</code> (cards, panels), <code>bg3</code>, <code>bg4</code> (further surfaces), <code>line</code> (lines), <code>text</code>, <code>textStrong</code> (headings), <code>muted</code> (faint text), <code>accent</code>, <code>accent2</code> (highlight). In CSS they are available as <code>var(--bg)</code>, <code>var(--bg-2)</code>, <code>var(--accent)</code>…</td></tr>
 <tr><td><code>fonts</code></td><td><code>body</code> and <code>headings</code>: CSS <code>font-family</code> – installed fonts only, always with a fallback.</td></tr>
 <tr><td><code>radius</code></td><td>Base corner radius, e.g. <code>"8px"</code>.</td></tr>

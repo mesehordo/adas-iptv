@@ -766,6 +766,13 @@ ${go('#/profiles', 'Profilok kezelése')}`,
 <tr><td><b>Neo-Tokyo</b></td><td>Az AKIRA világa: éjszakai romváros sziluettje az ablak alján, száguldó vörös motorfény-csíkok, Kaneda-vörös tömbös logó fehér kapszula-jelvénnyel, döntött címbetűk, vörösen izzó kijelölés.</td></tr>
 <tr><td><b>Kyokkō</b></td><td>(sarki fény) Lassan hullámzó színes háttér, matt üveg kártyák, fénylő kijelölés. (Tévén a háttér nem mozog.)</td></tr>
 <tr><td><b>Phosphor</b></td><td>Zöld foszforos monitor: fix szélességű betűk, <code>$ ls</code> sorcímek, inverz kijelölés.</td></tr>
+<tr><td><b>Kontraszt</b></td><td>Nagy kontraszt: fekete alap, fehér és sárga szöveg, vastag sárga fókuszkeret – gyengénlátóknak, messziről nézve.</td></tr>
+<tr><td><b>Yoru</b></td><td>(éjszaka) Éjszakai mozi: szinte fekete, tompa, meleg borostyán kiemelés, alacsony fényerő – sötét szobába.</td></tr>
+<tr><td><b>Mori</b></td><td>(erdő) Mély fenyőzöld alap, moha- és kéregszínek, levél a sorcímek előtt.</td></tr>
+<tr><td><b>Deco</b></td><td>A régi mozipaloták art deco világa: fekete és arany, geometrikus keretek, elegáns betűk.</td></tr>
+<tr><td><b>Shōwa</b></td><td>A 70-es évek: narancs, barna és mustár, lekerekített „tévéképernyő” kártyák, csíkos díszítés.</td></tr>
+<tr><td><b>Holo</b></td><td>Sci-fi irányítópult: sötét kékes rácsos alap, cián hologramfény, vékony keretek, levágott sarkú gombok.</td></tr>
+<tr><td><b>Csillagidő</b></td><td>Egy csillaghajó parancsnoki hídjának kezelőfelülete: fekete alap, lekerekített végű narancs, levendula és barack sávok, keskeny nagybetűk.</td></tr>
 <tr><th colspan="2">Világos stílusok</th></tr>
 <tr><td><b>Zen</b></td><td>Rizspapír-fehér háttér, mohazöld kiemelés, sok levegő, csendes, lassú mozgások, ensō kör a logóban.</td></tr>
 <tr><td><b>Wabi-sabi</b></td><td>Meleg, földszínű papírtextúra, kissé szabálytalan kártyák, rozsda- és indigószín, rámutatásra arany kintsugi-repedés.</td></tr>
@@ -776,6 +783,11 @@ ${go('#/profiles', 'Profilok kezelése')}`,
 <tr><td><b>Pow!</b></td><td>Amerikai képregény: Ben-Day pöttyök, vörös–sárga–kék, vastag fekete kontúr eltolt árnyékkal, sárga szövegdobozos sorcímek, „POW!” csillagrobbanás az ablakokon.</td></tr>
 <tr><td><b>Kikagaku</b></td><td>(geometria) Plakátművészet: vörös–kék–sárga–fekete, vastag fekete keretes kártyák kemény árnyékkal, sorszámozott sorok.</td></tr>
 <tr><td><b>Rakugaki</b></td><td>(firka) Vonalas füzetlap kézírással: a csatornák beragasztott polaroid fotók, a gombok ceruzával rajzoltak.</td></tr>
+<tr><td><b>Nagybetűs</b></td><td>Világos alap, nagyobb betűk, kevés díszítés, mozgás nélkül – idősebb nézőknek.</td></tr>
+<tr><td><b>Shiro</b></td><td>(fehér) Sima, semleges világos: fehér–szürke alap, egyetlen kék kiemelés.</td></tr>
+<tr><td><b>Natsu</b></td><td>(nyár) Napfényes tengerpart: homokszín alap, türkiz és korall, kerek kártyák, hullámos díszítés.</td></tr>
+<tr><td><b>Fuyu</b></td><td>(tél) Havas fehér és jégkék, finoman hulló hópelyhek, kristálytiszta keretek.</td></tr>
+<tr><td><b>Mu</b></td><td>(üresség) Szinte üres felület: csak a tartalom, sok tér, keretek, árnyékok és díszek nélkül.</td></tr>
 </table>
 <p>A főoldal egységei (csempéi) is a stílushoz illő kinézetet kapnak (keret, árnyék, háttér, címek). A lejátszó minden stílusban sötét marad, hogy a kép a lehető legjobban érvényesüljön.</p>
 <p><b>Saját téma</b>: téma-fájl feltöltésével vagy (asztali gépen) a téma-mappába másolva – Beállítások → Megjelenés → <i>Saját témák</i>. ${t('custom-theme', 'Saját téma készítése')}</p>
@@ -801,7 +813,7 @@ ${go('#/settings', 'Megjelenés beállítása')}`,
 <tr><td><code>name</code></td><td><b>Kötelező</b>: a stílusválasztóban megjelenő név.</td></tr>
 <tr><td><code>description</code>, <code>author</code></td><td>Leírás, készítő.</td></tr>
 <tr><td><code>tone</code></td><td><code>"dark"</code> (alap) vagy <code>"light"</code>.</td></tr>
-<tr><td><code>base</code></td><td>Beépített stílus, amelynek díszítéseire épül: <code>netflix</code> (Kurenai), <code>disney</code> (Mahō), <code>skyshowtime</code> (Murasaki), <code>rakuten</code> (Akane), <code>prime</code> (Shinkai), <code>apple</code> (Garasu), <code>zen</code>, <code>wabisabi</code>, <code>nintendo</code> (Asobiba), <code>switch</code> (Futago), <code>wii</code> (Hiroba), <code>cyberpunk</code> (Neon City), <code>neotokyo</code>, <code>manga</code>, <code>comic</code> (Pow!), <code>snes</code> (16-Bit), <code>bauhaus</code> (Kikagaku), <code>aurora</code> (Kyokkō), <code>sketch</code> (Rakugaki), <code>terminal</code> (Phosphor). Üresen: semleges alap.</td></tr>
+<tr><td><code>base</code></td><td>Beépített stílus, amelynek díszítéseire épül: <code>netflix</code> (Kurenai), <code>disney</code> (Mahō), <code>skyshowtime</code> (Murasaki), <code>rakuten</code> (Akane), <code>prime</code> (Shinkai), <code>apple</code> (Garasu), <code>zen</code>, <code>wabisabi</code>, <code>nintendo</code> (Asobiba), <code>switch</code> (Futago), <code>wii</code> (Hiroba), <code>cyberpunk</code> (Neon City), <code>neotokyo</code>, <code>manga</code>, <code>comic</code> (Pow!), <code>snes</code> (16-Bit), <code>bauhaus</code> (Kikagaku), <code>aurora</code> (Kyokkō), <code>sketch</code> (Rakugaki), <code>terminal</code> (Phosphor), <code>contrast</code> (Kontraszt), <code>large</code> (Nagybetűs), <code>shiro</code> (Shiro), <code>yoru</code> (Yoru), <code>mori</code> (Mori), <code>natsu</code> (Natsu), <code>fuyu</code> (Fuyu), <code>deco</code> (Deco), <code>showa</code> (Shōwa), <code>mu</code> (Mu), <code>holo</code> (Holo), <code>stardate</code> (Csillagidő). Üresen: semleges alap.</td></tr>
 <tr><td><code>colors</code></td><td><code>bg</code> (háttér), <code>bg2</code> (kártyák, panelek), <code>bg3</code>, <code>bg4</code> (további felületek), <code>line</code> (vonalak), <code>text</code>, <code>textStrong</code> (címek), <code>muted</code> (halvány szöveg), <code>accent</code>, <code>accent2</code> (kiemelés). A CSS-ben <code>var(--bg)</code>, <code>var(--bg-2)</code>, <code>var(--accent)</code>… néven érhetők el.</td></tr>
 <tr><td><code>fonts</code></td><td><code>body</code> és <code>headings</code>: CSS <code>font-family</code> – csak telepített betűtípus, mindig tartalékkal.</td></tr>
 <tr><td><code>radius</code></td><td>Alap-lekerekítés, pl. <code>"8px"</code>.</td></tr>

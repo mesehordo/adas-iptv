@@ -47,6 +47,7 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 export async function run() {
   const out = [];
   for (const t of tests) {
+    console.log('@@T ' + t.name); // (az önteszt-futtató ebből tudja, melyik teszt fut)
     const t0 = performance.now();
     try {
       await t.fn();

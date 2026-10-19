@@ -97,6 +97,59 @@ export const THEMES = {
     label: 'Phosphor',
     desc: _t('Phosphor: régi zöld foszforos monitor – fix szélességű betűk, parancssori feliratok, inverz kijelölés.'),
   },
+  contrast: {
+    label: 'Kontraszt',
+    desc: _t('Kontraszt: nagy kontrasztú – fekete alap, fehér és sárga szöveg, vastag sárga fókuszkeret, díszítés nélkül. Gyengénlátóknak és messziről nézve.'),
+  },
+  large: {
+    label: 'Nagybetűs',
+    desc: _t('Nagybetűs: egyszerű, jól olvasható – világos alap, nagyobb betűk, kevés díszítés, mozgás nélkül. Idősebb nézőknek.'),
+    light: true,
+  },
+  shiro: {
+    label: 'Shiro',
+    desc: _t('Shiro (fehér): sima, semleges világos – fehér–szürke alap, egyetlen kék kiemelés.'),
+    light: true,
+  },
+  yoru: {
+    label: 'Yoru',
+    desc: _t('Yoru (éjszaka): éjszakai mozi – szinte fekete, tompa, meleg borostyán kiemelés, visszafogott fényerő. Sötét szobába.'),
+  },
+  mori: {
+    label: 'Mori',
+    desc: _t('Mori (erdő): mély fenyőzöld alap, moha- és kéregszínek, levél a sorcímek előtt.'),
+  },
+  natsu: {
+    label: 'Natsu',
+    desc: _t('Natsu (nyár): napfényes tengerpart – homokszín alap, türkiz és korall, kerek kártyák, hullámos díszítés.'),
+    light: true,
+  },
+  fuyu: {
+    label: 'Fuyu',
+    desc: _t('Fuyu (tél): havas fehér és jégkék, finoman hulló hópelyhek, kristálytiszta keretek.'),
+    light: true,
+  },
+  deco: {
+    label: 'Deco',
+    desc: _t('Deco: a régi mozipaloták art deco világa – fekete és arany, geometrikus keretek, elegáns, ritkított betűk.'),
+  },
+  showa: {
+    label: 'Shōwa',
+    desc: _t('Shōwa: a 70-es évek – narancs, barna és mustár, lekerekített „tévéképernyő” kártyák, csíkos díszítés.'),
+  },
+  mu: {
+    label: 'Mu',
+    desc: _t('Mu (üresség): szinte üres felület – csak a tartalom, sok tér, keretek, árnyékok és díszek nélkül.'),
+    light: true,
+  },
+  holo: {
+    label: 'Holo',
+    desc: _t('Holo: sci-fi irányítópult – sötét kékes alap rácsvonalakkal, cián hologramfény, vékony keretek, levágott sarkú gombok.'),
+  },
+  stardate: {
+    label: 'Csillagidő',
+    desc: _t('Csillagidő: egy csillaghajó parancsnoki hídjának kezelőfelülete – fekete alap, lekerekített végű narancs, levendula és barack színsávok, keskeny, nagybetűs feliratok.'),
+  },
 };
 
 export function currentTheme() {
