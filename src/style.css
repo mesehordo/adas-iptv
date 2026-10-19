@@ -1757,10 +1757,12 @@ body.radio-full > :not(#radio-full):not(#modal-root):not(#toasts):not(#rc-cursor
 /* Telefon (alsó menüsávval): a rádió mini-lejátszója a menüsáv fölött – nem takarja el (a tartalom alatta is elfér) */
 @media (max-width: 700px) {
   #radio-bar { left: 8px; right: 8px; bottom: calc(58px + 8px + env(safe-area-inset-bottom)); }
-  html body.radio-on #view { padding-bottom: calc(66px + 90px); }
+  html body.radio-on #view { padding-bottom: calc(66px + 90px + env(safe-area-inset-bottom)); }
 }
 /* Érintőképernyő (telefon, tablet): koppintás után a menüpont nem kap fókuszkeretet – a programból kapott fókusz
    kerete a menüsáv szélein csak két függőleges csíkként látszott. Tévén (távirányító, pointer: none) marad. */
 @media (hover: none) and (pointer: coarse) {
   #nav a:focus-visible, #nav button:focus-visible, #nav .links a:focus { outline: none !important; }
+  /* (a fókusz így is látszik – csíkok helyett halvány háttérrel, billentyűzetnél is) */
+  #nav a:focus-visible, #nav button:focus-visible { background: rgba(127, 127, 127, 0.18) !important; border-radius: 10px; }
 }
