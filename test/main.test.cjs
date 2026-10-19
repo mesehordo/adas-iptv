@@ -189,3 +189,50 @@ test('felvétel: retry közbeni leállítás pontosan egy rec-ended (H38); egyid
   if (!procLog.some((l) => /SIG(SEGV|ABRT|ILL|BUS)/.test(l))) assert.ok(ended.find((e) => e.id === a.id).size > 0);
   assert.equal(media.recStop(a.id), false);
 });
+
+// ------------------------------------------------------------------ távirányító és beállítás-átadás (helyi kiszolgáló)
+test('távirányító: aláírt parancs (PIN és QR-kulcs), visszajátszás és hibás PIN elutasítva, korlátozás', async (t) => {
+  const crypto = require('crypto');
+  const cmds = [];
+  lan.init({ emit: (ch, d) => ch === 'remote-cmd' && cmds.push(d) });
+  const key = crypto.randomBytes(16).toString('hex');
+  const { port } = await lan.rcStart('<html>vezérlő</html>', '1234', key);
+  t.after(() => lan.rcStop());
+  const base = `http://127.0.0.1:${port}`;
+  const get = async (p) => {
+    const r = await fetch(base + p);
+    return { status: r.status, text: await r.text() };
+  };
+  assert.match((await get('/adas/remote')).text, /vezérlő/);
+  const { n } = JSON.parse((await get('/adas/rchello')).text);
+  assert.match(n, /^[0-9a-f]{24}$/);
+  const sign = (secret, kind, ctr, tail) => `${ctr}.${kind}.${crypto.createHmac('sha256', secret).update(`${n}|${ctr}|${tail}`).digest('hex').slice(0, 32)}`;
+  const tail = 'cmd?c=play&a=1';
+  assert.equal((await get(`/adas/rc/${sign('1234', 'p', 1, tail)}/${tail}`)).status, 200);
+  assert.deepEqual(cmds, [{ c: 'play', a: '1' }]);
+  assert.equal((await get(`/adas/rc/${sign('1234', 'p', 1, tail)}/${tail}`)).status, 403, 'visszajátszott számláló');
+  assert.equal((await get(`/adas/rc/${sign('0000', 'p', 2, tail)}/${tail}`)).status, 403, 'hibás PIN');
+  assert.equal((await get(`/adas/rc/${sign(key, 'k', 3, 'state')}/state`)).status, 200, 'QR-kulcs');
+  // más útvonalra szóló aláírás nem használható
+  assert.equal((await get(`/adas/rc/${sign('1234', 'p', 4, 'state')}/${tail}`)).status, 403);
+  assert.equal(cmds.length, 1);
+  // 20 hibás próbálkozás után ez a cím ki van zárva (a helyes aláírás is)
+  for (let i = 0; i < 20; i++) await get(`/adas/rc/${sign('9999', 'p', 100 + i, tail)}/${tail}`);
+  assert.equal((await get(`/adas/rc/${sign('1234', 'p', 200, tail)}/${tail}`)).status, 429);
+  lan.rcStop();
+  assert.equal((await get('/adas/rchello')).status, 403);
+});
+
+test('beállítás-átadás: helyes kóddal kiadja, 10 hibás kód után leáll; ismeretlen útvonal 404', async () => {
+  const locked = [];
+  lan.init({ emit: (ch, d) => ch === 'share-locked' && locked.push(d) });
+  const id = require('crypto').randomBytes(16).toString('hex');
+  const { port } = await lan.shareStart({ titkos: 'adat' }, 15, id);
+  const base = `http://127.0.0.1:${port}`;
+  assert.deepEqual(await (await fetch(`${base}/adas/share/${id}`)).json(), { titkos: 'adat' });
+  for (let i = 0; i < 10; i++) assert.equal((await fetch(`${base}/adas/share/rossz${i}`)).status, 404);
+  assert.equal(locked.length, 1);
+  assert.equal((await fetch(`${base}/adas/share/${id}`)).status, 404, 'a lezárt átadás már nem ad ki semmit');
+  assert.equal((await fetch(`${base}/p/hibas-token?u=http://example.com/`)).status, 404);
+  assert.equal((await fetch(`${base}/semmi`)).status, 404);
+});
