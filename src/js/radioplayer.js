@@ -53,13 +53,29 @@ const PLAYLIST_RX = /\.(pls|m3u|asx|xspf)(\?|$)/i;
 const START_TIMEOUT = 15000;
 const RESOLVE_TIMEOUT = 8000; // a lejátszólista (.pls / .m3u…) letöltésének felső ideje
 
-/** Lejátszólista-cím (.pls / .m3u / .asx) → az első adás címe. */
-export async function resolveStream(url) {
+/**
+ * Lejátszólista-cím (.pls / .m3u / .asx) → az első adás címe. hdr: a lista által az adáshoz kért fejlécek
+ * (User-Agent, Referer) – (H11) a védett lejátszólista lekérése is ezekkel megy. io: a lekérő (tesztekhez).
+ */
+export async function resolveStream(url, hdr = null, io = api) {
   if (!PLAYLIST_RX.test(url) || /\.m3u8(\?|$)/i.test(url)) return url;
   try {
     let timer = 0;
+    const headers = {};
+    if (hdr?.ua) headers['User-Agent'] = hdr.ua;
+    if (hdr?.referrer) headers.Referer = hdr.referrer;
+    // (ahol a fejléc nem adható át – böngésző –, vagy a szerver így is elutasítja: a sima lekérés is próba)
+    const get = Object.keys(headers).length && io.request
+      ? io
+          .request({ url, headers })
+          .then((r) => {
+            if (r.status < 200 || r.status >= 300) throw new Error(`HTTP ${r.status}`);
+            return { text: r.text };
+          })
+          .catch(() => io.fetchText(url, { maxAgeHours: 24 }))
+      : io.fetchText(url, { maxAgeHours: 24 });
     const { text } = await Promise.race([
-      api.fetchText(url, { maxAgeHours: 24 }),
+      get,
       new Promise((_, reject) => (timer = setTimeout(() => reject(new Error('timeout')), RESOLVE_TIMEOUT))),
     ]).finally(() => clearTimeout(timer));
     const m = /^\s*(?:File\d+=)?(https?:\/\/[^\s"<]+)/im.exec(text) || /<ref[^>]+href="(https?:\/\/[^"]+)"/i.exec(text) || /<location>(https?:\/\/[^<]+)<\/location>/i.exec(text);
@@ -183,7 +199,7 @@ class RadioPlayer {
       this.nRetry = (this.nRetry || []).filter((t) => now - t < 60e3);
       if (this.nRetry.length < 3) {
         this.nRetry.push(now);
-        this.play(this.station);
+        this.reconnect();
       } else {
         this.state = 'error';
         this.error = _t('Az adás többször megszakadt – próbáld újra később.');
@@ -316,8 +332,15 @@ class RadioPlayer {
 
   // ------------------------------------------------------------------- lejátszás
   /** Adó indítása. list: a lista, amelyből indult (előző / következő). */
-  async play(st, list = null) {
+  /** opts.reconnect: megszakadt adás újraindítása (nem új választás); opts.order: a címek próbálási sorrendje */
+  async play(st, list = null, opts = {}) {
     if (!st?.urls?.length) return;
+    // (H12) új választás: saját próbakeret (a korábbi megszakadások nem számítanak bele)
+    if (!opts.reconnect) {
+      this.lostAt = [];
+      this.nRetry = [];
+      this.lostBy = new Map();
+    }
     bus.emit('radio-start'); // (a videólejátszó bezárul – app.js)
     const seq = ++this.seq;
     if (list) this.list = list;
@@ -329,12 +352,13 @@ class RadioPlayer {
     this.emit();
     this.ensureGraph();
     if (this.ctx?.state === 'suspended') this.ctx.resume().catch(() => {});
-    for (const raw of st.urls) {
+    for (const raw of opts.order || st.urls) {
       if (seq !== this.seq) return;
-      const url = await resolveStream(raw);
-      if (seq !== this.seq) return;
-      // (H11) a lista által megadott fejlécek (User-Agent, Referer) – asztalon a fejléc-beállító, Androidon a natív lejátszó
+      // (H11) a lista által megadott fejlécek (User-Agent, Referer) – a lejátszólista lekérése is ezekkel megy; a
+      // lejátszásnál asztalon a fejléc-beállító, Androidon a natív lejátszó kapja
       const hdr = st.headers?.[raw] || null;
+      const url = await resolveStream(raw, hdr);
+      if (seq !== this.seq) return;
       this.reqHeaders = hdr;
       let host = '';
       try {
@@ -485,12 +509,30 @@ class RadioPlayer {
       this.lateOff[i] = null;
     };
   }
+  /**
+   * (H12) Újracsatlakozás: az elsőre ugyanazzal a címmel; ha ugyanaz a cím ismét megszakad, a sorban következővel
+   * (körbe) – egy induló, de rögtön megszakadó első cím ne zárja ki a jó tartalékot.
+   */
+  reconnect() {
+    const st = this.station;
+    if (!st) return;
+    this.lostBy ||= new Map();
+    const raw = this.rawUrl;
+    const n = (this.lostBy.get(raw) || 0) + 1;
+    this.lostBy.set(raw, n);
+    const i = st.urls.indexOf(raw);
+    // (a sorrend a megszakadt címmel kezdődik – egy korábban már nem induló cím ne késleltesse; ismételt
+    // megszakadásnál a következővel, körbe)
+    const from = i < 0 ? 0 : n >= 2 ? (i + 1) % st.urls.length : i;
+    const order = [...st.urls.slice(from), ...st.urls.slice(0, from)];
+    this.play(st, null, { reconnect: true, order });
+  }
   streamLost() {
     const now = Date.now();
     this.lostAt = (this.lostAt || []).filter((t) => now - t < 60e3);
     if (this.lostAt.length < 3) {
       this.lostAt.push(now);
-      this.play(this.station);
+      this.reconnect();
       return;
     }
     ++this.seq;

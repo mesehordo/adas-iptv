@@ -128,6 +128,22 @@ csomagot tölti le. A buildcél a natív rétegtől jut el a felülethez (`AdasA
   Android 9-től), beépített frissítés (a buildcélnak megfelelő APK), helyi / USB-mappa a saját médiatárhoz.
 - **Nincs benne**: a beállítások *átadása* (az átvétel megy).
 
+## Tesztek
+
+```bash
+npm test
+```
+
+Három lépés fut egymás után (`tools/run-tests.mjs`):
+
+| Lépés | Mit ellenőriz |
+|---|---|
+| Fordításkulcsok | `tools/i18n-check.mjs`: minden `_t()` szöveg megvan magyarul és angolul |
+| Főfolyamat | `test/*.test.cjs` (node:test, az Electron saját Node-jával): hálózati szabályok, DLNA-vezérlés, távirányító és beállítás-átadás (aláírás, visszajátszás, korlátozás), borítótár, felvétel valódi FFmpeggel |
+| Felület | `test/renderer/*.test.js`: a valódi alkalmazásablakban, ideiglenes adatmappával (`ADAS_DATA_DIR`) és kész tesztprofillal – listafeldolgozás, műsorújság (XMLTV), felirat, beállítás-ellenőrzés, gyerektartalom, mentési pontok, rádió, súgó, valódi lejátszás (MP4 és MPEG-TS az FFmpeg-hídon át), valamint minden oldal és beállításfejezet megnyitása hiba nélkül |
+
+Egy lépés külön: `npm test -- --only=main` (`i18n`, `main`, `renderer`). Rendszer-Node nélkül: `ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron tools/run-tests.mjs`. A GitHubon minden PR-nál lefut (`.github/workflows/tests.yml`, Linuxon xvfb-vel).
+
 ## Felépítés
 
 ```

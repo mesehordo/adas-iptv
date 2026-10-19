@@ -500,7 +500,8 @@ async function recStart({ url, dir, name, until, audio }) {
     opts.emit('rec-ended', { id, file, size, restarts: rec.restarts, error: endError });
   };
   out.once('close', notify);
-  const finish = (error) => {
+  // (H38) minden lezárás (a recStop is) ezen az egy, egyszer futó úton megy – egyetlen rec-ended
+  const finish = (rec.finish = (error) => {
     if (error && !endError) endError = error;
     if (ended) return;
     ended = true;
@@ -509,7 +510,7 @@ async function recStart({ url, dir, name, until, audio }) {
     recordings.delete(id);
     if (out.destroyed || out.closed) notify();
     else out.end();
-  };
+  });
   // (H01) írási hiba (betelt lemez, jogosultság, eltűnt külső meghajtó): a kezeletlen stream-hiba a főfolyamatot
   // leállítaná – helyette az FFmpeg leáll, a felvétel hibával véget ér, újrapróbálás nincs
   out.on('error', (err) => {
@@ -532,6 +533,9 @@ async function recStart({ url, dir, name, until, audio }) {
     proc.on('error', () => {});
     proc.on('close', (code) => {
       proc.stdout.unpipe(out);
+      // (a kilépett folyamat már nem „fut” – jelzéssel leállt (összeomlott, kilőtt) FFmpegnél az exitCode null marad,
+      // így a leállítás enélkül a halott folyamatra várna, és a felvétel soha nem zárulna le)
+      if (rec.proc === proc) rec.proc = null;
       if (rec.stopping) return finish('');
       // Váratlan leállás (megszakadt az adás): újrapróbálás, amíg az ütemezett vég el nem jön
       const left = rec.until ? rec.until - Date.now() : Infinity;
@@ -553,13 +557,13 @@ function recStop(id) {
   if (!r) return false;
   r.stopping = true;
   clearTimeout(r.retry);
-  if (!r.proc || r.proc.exitCode !== null) {
+  if (!r.proc) {
     // éppen újraindításra vár: nincs futó FFmpeg – a fájlt lezárjuk
-    r.proc = null;
-    recordings.delete(String(id));
-    r.out.end(() => opts.emit('rec-ended', { id: String(id), file: r.file, size: fs.existsSync(r.file) ? fs.statSync(r.file).size : 0, restarts: r.restarts, error: '' }));
+    r.finish('');
     return true;
   }
+  // (már kilépett, de a kimenete még ürül: a folyamat „close” eseménye zárja le a fájlt – a pufferelt adat sem vész el)
+  if (r.proc.exitCode !== null || r.proc.signalCode !== null) return true;
   // „q”: az FFmpeg rendben lezárja a kimenetet; ha nem reagál, leállítjuk
   try {
     r.proc.stdin.write('q');

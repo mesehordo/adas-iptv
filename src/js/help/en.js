@@ -1522,11 +1522,39 @@ ${go('#/settings?section=update', 'Updates')}`,
   <li>macOS: <code>~/Library/Application Support/Adás</code></li>
   <li>Linux: <code>~/.config/Adás</code></li>
   <li>On TV and Android: in the app’s own storage.</li>
-  </ul> ${t('backup', 'Backup and moving')}</li>
+  </ul> ${t('data-locations', 'Exact locations (recordings too)')} · ${t('backup', 'Backup and moving')}</li>
 <li>The program connects to the following servers: iptv-org (channel list and data), the switched-on TV guide sources, the addresses of your own lists, the servers hosting the channel logos, and during playback the streams’ own servers. Like any website, these may see your IP address.</li>
 <li>When casting and handing over settings, the desktop version starts a small server on the <b>local network</b> (around port 47800). The relay can only be used with a random key that’s new at every start; the settings can only be downloaded with the code, which is valid for 15 minutes.</li>
 <li>Viewing statistics, PINs and settings are never sent anywhere.</li>
 </ul>`,
+  },
+  {
+    id: 'data-locations',
+    cat: 'about',
+    title: 'Where does Adás store its data?',
+    keywords: 'folder location storage recordings profile settings backup cache path data folder delete move',
+    body: `
+<p>All data is stored <b>locally</b> on your own device – in a different place for each edition.</p>
+<h2>Desktop (Windows, macOS, Linux)</h2>
+<table class="help-table">
+<tr><td><b>Data folder</b></td><td>Windows: <code>%APPDATA%\\Adás</code><br>macOS: <code>~/Library/Application Support/Adás</code><br>Linux: <code>~/.config/Adás</code> (or <code>$XDG_CONFIG_HOME/Adás</code>)</td></tr>
+<tr><td><b>Recordings</b></td><td>The <code>Adás recordings</code> subfolder of your Videos folder – Windows: <code>%USERPROFILE%\\Videos\\Adás recordings</code>, macOS: <code>~/Movies/Adás recordings</code>, Linux: <code>~/Videos/Adás recordings</code> (or the folder set by <code>XDG_VIDEOS_DIR</code>). If the app was first used in Hungarian, the folder is called <code>Adás felvételek</code>. Originals kept before trimming are in the hidden <code>.eredeti</code> subfolder. Open the folder with <b>Open folder</b> on the TV → Recordings tab.</td></tr>
+</table>
+<p>What the data folder contains:</p>
+<table class="help-table">
+<tr><td><code>store.json</code></td><td>Profiles, settings, favourites, viewing history and resume points, reminders, scheduled recordings, viewing statistics, PINs.</td></tr>
+<tr><td><code>lists\\</code></td><td>The contents of lists added from files and add-on packs, the restore points, subtitles already downloaded.</td></tr>
+<tr><td><code>cache\\</code></td><td>Cache of the downloaded channel lists and the TV guide (can be deleted, it is downloaded again).</td></tr>
+<tr><td><code>covers\\</code></td><td>Cover and logo cache (can be emptied: Settings → VOD → Cover image store).</td></tr>
+<tr><td><code>packs\\</code>, <code>themes\\</code></td><td>Downloaded radio / list packs and your own styles.</td></tr>
+<tr><td><code>recdir.json</code>, <code>cast-pins.json</code></td><td>The recordings folder and the remembered identities of cast devices.</td></tr>
+</table>
+<div class="tip"><b>Different data folder:</b> with the <code>ADAS_DATA_DIR</code> environment variable Adás uses any folder you choose (e.g. on a portable drive).</div>
+<h2>Android (phone, tablet, Android TV)</h2>
+<p>In the app’s own storage, which other apps can’t access (<code>/data/data/hu.adas.tv</code>): profiles, settings, lists and restore points in the built-in browser engine’s database; reminders, language and cast devices in the system preferences store; covers in the <code>covers</code> folder. There is no recording on Android. Uninstalling the app or Settings → Apps → Adás → <b>Clear data</b> deletes all of it.</p>
+<h2>Browser and webOS TV</h2>
+<p>In the browser’s (or the TV app’s) own storage: IndexedDB and localStorage. Clearing browsing data deletes these too.</p>
+<div class="note">To move between computers and devices, or for backups, use the built-in export and restore points – copying the folders by hand also works on desktop, but only while Adás is closed. ${t('backup', 'Backup and moving')} · ${t('privacy', 'Privacy')}</div>`,
   },
   {
     id: 'about',

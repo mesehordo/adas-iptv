@@ -20,6 +20,9 @@ const CHROME_UA =
 
 let headersFor = () => null; // (url) => { ua, referrer } – a főfolyamat adja meg
 let emit = () => {}; // (csatorna, adat) → a felületnek
+// (H29) a kivetített tartalom munkamenete (a felülettől): minden állapotüzenet ezzel megy, a felület a régit eldobja
+let castGen = 0;
+const castEmit = (o) => emit('cast-status', { ...o, gen: castGen });
 let pinsFile = ''; // a Chromecast-eszközök megjegyzett tanúsítvány-ujjlenyomatai (JSON)
 
 function init(opts) {
@@ -1080,15 +1083,19 @@ class CastSession {
       if (this.transportId && !app) this.close(_t('a kivetítés véget ért az eszközön'));
       if (d.status?.volume) this.volume = d.status.volume.level;
     }
-    if (d.type === 'MEDIA_STATUS' && d.status?.[0]) {
+    // (H29) az előző tartalom (régi médiamunkamenet) késői állapota már nem számít
+    if (d.type === 'MEDIA_STATUS' && d.status?.[0] && !(this.staleMsid != null && d.status[0].mediaSessionId === this.staleMsid)) {
       const st = d.status[0];
       this.mediaSessionId = st.mediaSessionId;
-      emit('cast-status', {
+      const dur = Number(st.media?.duration);
+      castEmit({
         id: this.dev.id,
         state: st.playerState, // PLAYING | PAUSED | BUFFERING | IDLE
         idle: st.idleReason || '',
         time: st.currentTime || 0,
         volume: this.volume,
+        // (H28) a film hossza a vevőtől (ha helyben nem volt ismert)
+        ...(dur > 0 && isFinite(dur) ? { duration: dur } : {}),
       });
     }
     for (const w of [...this.waiters]) {
@@ -1158,7 +1165,7 @@ class CastSession {
     this.waiters = [];
     if (active === this) {
       active = null;
-      emit('cast-status', { id: this.dev.id, state: 'ENDED', reason });
+      castEmit({ id: this.dev.id, state: 'ENDED', reason });
     }
   }
 }
@@ -1229,7 +1236,7 @@ class DlnaSession {
     clearInterval(this.poll);
     this.resetTrack();
     this.poll = setInterval(() => this.status(), 3000);
-    emit('cast-status', { id: this.dev.id, state: 'BUFFERING' });
+    castEmit({ id: this.dev.id, state: 'BUFFERING' });
   }
   async status() {
     const gen = this.gen;
@@ -1258,7 +1265,7 @@ class DlnaSession {
         this.wasPlaying = false;
         ev.idle = 'FINISHED';
       }
-      emit('cast-status', ev);
+      castEmit(ev);
     } catch {}
   }
   control(action, value) {
@@ -1282,7 +1289,7 @@ class DlnaSession {
     clearInterval(this.poll);
     if (active === this) {
       active = null;
-      emit('cast-status', { id: this.dev.id, state: 'ENDED', reason });
+      castEmit({ id: this.dev.id, state: 'ENDED', reason });
     }
   }
 }
@@ -1303,7 +1310,7 @@ function contentTypeOf(url, hint) {
   return 'video/mp4';
 }
 
-async function castPlay({ deviceId, url, type, live, title, subtitle, image }) {
+async function castPlay({ deviceId, url, type, live, title, subtitle, image, gen }) {
   const dev = devices.get(deviceId);
   if (!dev) throw new Error(_t('Az eszköz nem található – keresd újra.'));
   if (active && active.dev.id !== deviceId) {
@@ -1316,6 +1323,9 @@ async function castPlay({ deviceId, url, type, live, title, subtitle, image }) {
     active = s;
   }
   const media = { url: await proxyUrl(url, dev.host), contentType: contentTypeOf(url, type), live, title, subtitle, image };
+  // (H29) az eddigi médiamunkamenet ezután érkező állapota a régi tartalomé; az új munkamenet sorszáma
+  if (active instanceof CastSession) active.staleMsid = active.mediaSessionId;
+  if (Number.isFinite(gen)) castGen = gen;
   await active.load(media);
   return { id: dev.id, name: dev.name, kind: dev.kind };
 }
@@ -1327,3 +1337,5 @@ function castControl(action, value) {
 }
 
 module.exports = { fetchPolicy, hasSecretHeader, redirectStep, readBody, isPrivateHost, init, discover, castPlay, castControl, castForget, shareStart, shareStop, rcStart, rcStop, rcState, lanGet, sortedIPs, localIPv4s, proxyUrl };
+// (a tesztekhez: belső részek – a működést nem befolyásolja)
+module.exports._test = { toHms, fromHms, devices, DlnaSession };

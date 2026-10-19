@@ -407,6 +407,28 @@ async function checkStreams(event, list) {
 // ---------------------------------------------------------------------------
 // Ablak
 // ---------------------------------------------------------------------------
+/**
+ * Önteszt (npm test – tools/run-tests.mjs): az ablak betöltése után a felület tesztjeit futtatja, az eredményt a
+ * szabványos kimenetre írja, majd kilép. Csak a csomag saját test/ mappájából tölt be.
+ */
+function runSelfTest(w, file) {
+  const abs = path.resolve(__dirname, file);
+  if (!abs.startsWith(path.join(__dirname, 'test') + path.sep)) return;
+  const url = require('url').pathToFileURL(abs).href;
+  const ready = `!!document.querySelector('#view')?.childElementCount && !document.body.classList.contains('onboarding')`;
+  w.webContents.once('did-finish-load', async () => {
+    let out = { error: 'az alkalmazás nem indult el' };
+    for (let i = 0; i < 240; i++) {
+      if (await w.webContents.executeJavaScript(ready).catch(() => false)) {
+        out = await w.webContents.executeJavaScript(`import(${JSON.stringify(url)}).then((m) => m.run()).then((results) => ({ results }), (e) => ({ error: String(e && e.stack || e) }))`).catch((e) => ({ error: String(e) }));
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    process.stdout.write(`\n@@ADAS-SELFTEST@@${JSON.stringify(out)}\n`, () => app.exit(out.results ? 0 : 1));
+  });
+}
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1440,
@@ -431,6 +453,7 @@ function createWindow() {
     },
   });
   win.loadFile(path.join(__dirname, 'src', 'index.html'));
+  if (process.env.ADAS_SELFTEST) runSelfTest(win, process.env.ADAS_SELFTEST);
   // A telepítő (MSI / Setup) által indított első ablak a Windows előtérzára miatt gyakran nem kapja meg a
   // billentyűzetfókuszt: a mező fókuszáltnak látszik, de a leütések máshová mennek (pl. az első profil névmezője
   // nem írható). Az ablakot ténylegesen előtérbe hozzuk, és a rendszerfókusz visszatérésekor a lap is megkapja.
@@ -1205,17 +1228,33 @@ app.whenReady().then(() => {
       return;
     }
   }
-  covers.install(protocol, net, dataDir());
+  // (H37) a borítótár vagy a menü hibája ne akadályozza meg az ablak létrehozását
+  try {
+    covers.install(protocol, net, dataDir());
+  } catch (err) {
+    console.error('[start] borítótár:', err);
+  }
   // macOS-en a menüsor nélkül a Cmd+C / Cmd+V / Cmd+Q sem működne: ott egy minimális menü kell.
   Menu.setApplicationMenu(
     process.platform === 'darwin'
       ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }])
       : null
   );
-  installHeaderHooks();
+  try {
+    installHeaderHooks();
+  } catch (err) {
+    console.error('[start] fejléc-kezelő:', err);
+  }
   createWindow();
   // macOS: a Dock-ikonra kattintva az elrejtett (vagy bezárt) ablak előjön.
   app.on('activate', () => showWindow());
+}).catch((err) => {
+  // (H37) a váratlan indulási hiba ne hagyja ablak és üzenet nélkül a felhasználót
+  console.error('[start]', err);
+  try {
+    dialog.showErrorBox('Adás', _t('Az Adás nem tudott elindulni: {msg}', { msg: err?.message || String(err) }));
+  } catch {}
+  app.exit(1);
 });
 
 app.on('window-all-closed', () => {

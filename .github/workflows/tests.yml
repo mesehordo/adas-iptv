@@ -1,0 +1,32 @@
+# Tesztek minden PR-ban és a main ágon: fordításkulcsok, főfolyamat (node:test) és a felület a valódi
+# alkalmazásablakban (tools/run-tests.mjs). Linuxon virtuális kijelzővel (xvfb).
+name: Tesztek
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: npm test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Tesztek
+        run: xvfb-run -a npm test

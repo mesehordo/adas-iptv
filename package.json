@@ -8,6 +8,7 @@
   "license": "MIT",
   "scripts": {
     "start": "electron .",
+    "test": "node tools/run-tests.mjs",
     "start:nosandbox": "electron . --no-sandbox",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win nsis portable msi",

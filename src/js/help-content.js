@@ -1522,11 +1522,39 @@ ${go('#/settings?section=update', 'Frissítések')}`,
   <li>macOS: <code>~/Library/Application Support/Adás</code></li>
   <li>Linux: <code>~/.config/Adás</code></li>
   <li>Tévén és Androidon: az alkalmazás saját tárhelyén.</li>
-  </ul> ${t('backup', 'Mentés és költöztetés')}</li>
+  </ul> ${t('data-locations', 'Pontos helyek (felvételek is)')} · ${t('backup', 'Mentés és költöztetés')}</li>
 <li>A program a következő szerverekhez kapcsolódik: az iptv-org (csatornalista és adatok), a bekapcsolt műsorújság-források, a saját listáid címei, a csatornák logóit tároló szerverek, és lejátszáskor maguk az adások szerverei. Ezek – mint minden weboldal – láthatják az IP-címedet.</li>
 <li>Kivetítéskor és a beállítások átadásakor az asztali változat egy kis kiszolgálót indít a <b>helyi hálózaton</b> (47800-as port körül). A továbbító csak egy véletlen, indításonként új kulccsal használható; a beállításokat csak a 15 percig érvényes kóddal lehet letölteni.</li>
 <li>A nézési statisztika, a PIN-kódok és a beállítások sehova nem kerülnek elküldésre.</li>
 </ul>`,
+  },
+  {
+    id: 'data-locations',
+    cat: 'about',
+    title: 'Hol tárolja az Adás az adatokat?',
+    keywords: 'mappa hely tárolás felvételek profil beállítások mentés gyorsítótár elérési út adatmappa törlés költöztetés',
+    body: `
+<p>Minden adat <b>helyben</b>, a saját eszközödön van – kiadásonként más helyen.</p>
+<h2>Asztali gép (Windows, macOS, Linux)</h2>
+<table class="help-table">
+<tr><td><b>Adatmappa</b></td><td>Windows: <code>%APPDATA%\\Adás</code><br>macOS: <code>~/Library/Application Support/Adás</code><br>Linux: <code>~/.config/Adás</code> (ill. <code>$XDG_CONFIG_HOME/Adás</code>)</td></tr>
+<tr><td><b>Felvételek</b></td><td>A Videók mappa <code>Adás felvételek</code> almappája – Windows: <code>%USERPROFILE%\\Videos\\Adás felvételek</code>, macOS: <code>~/Movies/Adás felvételek</code>, Linux: <code>~/Videos/Adás felvételek</code> (ill. az <code>XDG_VIDEOS_DIR</code> szerinti mappa). Ha az Adást először más nyelven használtad, a mappa neve annak a nyelvnek megfelelő (pl. angolul <code>Adás recordings</code>). A vágás előtti eredetik a rejtett <code>.eredeti</code> almappában vannak. A mappa a TV → Felvételek fülön a <b>Mappa megnyitása</b> gombbal nyílik meg.</td></tr>
+</table>
+<p>Az adatmappa tartalma:</p>
+<table class="help-table">
+<tr><td><code>store.json</code></td><td>Profilok, beállítások, kedvencek, nézési előzmények és folytatási pontok, emlékeztetők, ütemezett felvételek, nézési statisztika, PIN-kódok.</td></tr>
+<tr><td><code>lists\\</code></td><td>A fájlból felvett listák és kiegészítő csomagok tartalma, a mentési pontok, a már letöltött feliratok.</td></tr>
+<tr><td><code>cache\\</code></td><td>A letöltött csatornalisták és a műsorújság gyorsítótára (törölhető, újra letöltődik).</td></tr>
+<tr><td><code>covers\\</code></td><td>Borító- és logó-gyorsítótár (üríthető: Beállítások → VOD → Borítóképek tára).</td></tr>
+<tr><td><code>packs\\</code>, <code>themes\\</code></td><td>Letöltött rádió- / listacsomagok és saját stílusok.</td></tr>
+<tr><td><code>recdir.json</code>, <code>cast-pins.json</code></td><td>A felvételek mappája, ill. a kivetítő eszközök megjegyzett azonosítói.</td></tr>
+</table>
+<div class="tip"><b>Más adatmappa:</b> az <code>ADAS_DATA_DIR</code> környezeti változóval az Adás tetszőleges mappát használ (pl. hordozható meghajtón).</div>
+<h2>Android (telefon, táblagép, Android TV)</h2>
+<p>Az alkalmazás saját, más alkalmazások számára elérhetetlen tárhelyén (<code>/data/data/hu.adas.tv</code>): a profilok, beállítások, listák és mentési pontok a beépített böngészőmotor adatbázisában, az emlékeztetők, a nyelv és a kivetítő eszközök a rendszer beállítástárában, a borítók a <code>covers</code> mappában. Felvétel Androidon nincs. Az alkalmazás eltávolítása vagy a Beállítások → Alkalmazások → Adás → <b>Adatok törlése</b> mindezt törli.</p>
+<h2>Böngésző és webOS tévé</h2>
+<p>A böngésző (ill. a tévé alkalmazásának) saját tárhelyén: IndexedDB és localStorage. A böngészési adatok törlése ezeket is törli.</p>
+<div class="note">Gépek és eszközök közötti költöztetéshez, ill. biztonsági mentéshez a beépített exportot és mentési pontokat használd – a mappák kézi másolása is működik asztali gépen, de csak kikapcsolt Adás mellett. ${t('backup', 'Mentés és költöztetés')} · ${t('privacy', 'Adatvédelem')}</div>`,
   },
   {
     id: 'about',
