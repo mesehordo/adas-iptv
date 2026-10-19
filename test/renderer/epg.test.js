@@ -57,6 +57,19 @@ test('EPG: időzóna, entitások / CDATA, korhatár, hiányzó vég, azonos kezd
   assert.equal(map.get('ch-duna')[0][2], 'UTC ő�', 'érvénytelen karakterhivatkozás helyén U+FFFD');
 });
 
+test('EPG: a helyőrző („No Data”) sorok kimaradnak – a csak helyőrzős csatorna nem kerül a listába', async () => {
+  const xml = `<tv>
+  <programme start="20261019130000 +0000" stop="20261019140000 +0000" channel="M1.hu"><title>No Data</title><desc>https://iptv-epg.org/help</desc></programme>
+  <programme start="20261019140000 +0000" stop="20261019150000 +0000" channel="M1.hu"><title>Híradó</title></programme>
+  <programme start="20261019130000 +0000" stop="20261019140000 +0000" channel="x-duna"><title>no data</title></programme>
+  <programme start="20261019140000 +0000" stop="20261019150000 +0000" channel="x-duna"><title>Nincs adat</title></programme>
+</tv>`;
+  const { map, count } = await parse(xml, INDEX);
+  assert.deepEqual(map.get('ch-m1').map((p) => p[2]), ['Híradó']);
+  assert.ok(!map.has('ch-duna'));
+  assert.equal(count, 1);
+});
+
 test('EPG: időablak – a tartományon kívüli műsor kimarad', async () => {
   const from = Date.UTC(2026, 9, 19, 4, 30);
   const to = Date.UTC(2026, 9, 19, 5, 30);
