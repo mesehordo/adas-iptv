@@ -265,6 +265,8 @@ if (api.onCastStatus) {
     if (s.state === 'PLAYING') state.paused = false;
     bus.emit('cast-state'); // (a gyerek nézési ideje a vevőn indított szünetnél / folytatásnál is pontos – B09)
     if (typeof s.time === 'number') state.time = s.time;
+    // (H14) a DLNA-vevő a film hosszát is megadhatja – ha helyben nem volt ismert, ez kell a folytatási ponthoz
+    if (typeof s.duration === 'number' && s.duration > 0 && !(state.dur > 0)) state.dur = s.duration;
     if (s.state === 'PLAYING' || s.state === 'PAUSED') saveCastProgress(); // (H28) időközönként
     if (typeof s.volume === 'number') state.volume = s.volume;
     if (s.state === 'IDLE' && s.idle === 'ERROR') toast(_t('A kivetítő eszköz nem tudta lejátszani ezt az adást.'));

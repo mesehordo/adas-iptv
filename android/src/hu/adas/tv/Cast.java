@@ -63,6 +63,17 @@ final class Cast {
     a.runOnUiThread(() -> a.web.evaluateJavascript(js, null));
   }
 
+  /** (H14) UPnP-időformátum: másodperc → „H:MM:SS”, ill. vissza (érvénytelen → -1). */
+  static String toHms(double sec) {
+    long t = Math.max(0, (long) Math.floor(sec));
+    return String.format(java.util.Locale.ROOT, "%d:%02d:%02d", t / 3600, (t / 60) % 60, t % 60);
+  }
+
+  static double fromHms(String s) {
+    java.util.regex.Matcher m = java.util.regex.Pattern.compile("^(\\d+):(\\d{1,2}):(\\d{1,2})(?:\\.\\d+)?$").matcher(s == null ? "" : s.trim());
+    return m.matches() ? Long.parseLong(m.group(1)) * 3600 + Long.parseLong(m.group(2)) * 60 + Long.parseLong(m.group(3)) : -1;
+  }
+
   static void emitState(String id, String state, String reason) {
     try {
       JSONObject o = new JSONObject().put("id", id).put("state", state);
@@ -870,6 +881,19 @@ final class Cast {
       this.id = dev.getString("id");
     }
 
+    // (H14) a lejátszott film utolsó pozíciója / hossza (a FINISHED felismeréséhez)
+    // (gen: a load előtt indult lekérdezés válasza ne írja vissza a régi film állapotát)
+    boolean wasPlaying;
+    double pos, dur;
+    int gen;
+
+    synchronized void resetTrack() {
+      gen++;
+      wasPlaying = false;
+      pos = 0;
+      dur = 0;
+    }
+
     public String id() {
       return id;
     }
@@ -879,22 +903,52 @@ final class Cast {
       String didl = "<DIDL-Lite xmlns=\"urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:upnp=\"urn:schemas-upnp-org:metadata-1-0/upnp/\">"
           + "<item id=\"0\" parentID=\"-1\" restricted=\"1\"><dc:title>" + xmlEscape(title) + "</dc:title><upnp:class>object.item.videoItem</upnp:class>"
           + "<res protocolInfo=\"http-get:*:" + contentType + ":*\">" + xmlEscape(url) + "</res></item></DIDL-Lite>";
+      resetTrack(); // (a Stop miatti STOPPED a régi film adataival ne legyen FINISHED)
       try {
         soap(av, "Stop", new String[][] {{"InstanceID", "0"}});
       } catch (Exception ignored) {
       }
       soap(av, "SetAVTransportURI", new String[][] {{"InstanceID", "0"}, {"CurrentURI", url}, {"CurrentURIMetaData", didl}});
       soap(av, "Play", new String[][] {{"InstanceID", "0"}, {"Speed", "1"}});
+      resetTrack();
       emitState(id, "BUFFERING", null);
       if (poll == null) {
         poll = new Thread(() -> {
           while (!closed) {
             try {
               Thread.sleep(3000);
+              int g;
+              synchronized (DlnaSession.this) {
+                g = gen;
+              }
               String x = soap(av, "GetTransportInfo", new String[][] {{"InstanceID", "0"}});
               String s = xmlTag(x, "CurrentTransportState");
               String st = "PLAYING".equals(s) ? "PLAYING" : "PAUSED_PLAYBACK".equals(s) ? "PAUSED" : "TRANSITIONING".equals(s) ? "BUFFERING" : "STOPPED".equals(s) || "NO_MEDIA_PRESENT".equals(s) ? "IDLE" : s;
-              if (!closed) emitState(id, st, null);
+              JSONObject ev = new JSONObject().put("id", id).put("state", st);
+              // (H14) a vevő valódi pozíciója és a film hossza; a film végén (STOPPED a vég közelében) FINISHED
+              boolean on = "PLAYING".equals(s) || "PAUSED_PLAYBACK".equals(s);
+              double t = -1, d = -1;
+              if (on) {
+                try {
+                  String p = soap(av, "GetPositionInfo", new String[][] {{"InstanceID", "0"}});
+                  t = fromHms(xmlTag(p, "RelTime"));
+                  d = fromHms(xmlTag(p, "TrackDuration"));
+                } catch (Exception ignored) {
+                }
+              }
+              synchronized (DlnaSession.this) {
+                // (a válaszok alatt új film indult / a munkamenet lezárult → ez a lekérdezés elavult)
+                if (g != gen || closed) continue;
+                if (on) {
+                  if (t >= 0) ev.put("time", pos = t);
+                  if (d > 0) ev.put("duration", dur = d);
+                  if ("PLAYING".equals(s)) wasPlaying = true;
+                } else if ("STOPPED".equals(s) && wasPlaying && dur > 0 && pos >= dur - 15) {
+                  wasPlaying = false;
+                  ev.put("idle", "FINISHED");
+                }
+              }
+              emit(ev);
             } catch (InterruptedException e) {
               return;
             } catch (Exception ignored) {
@@ -913,6 +967,8 @@ final class Cast {
           if ("play".equals(action)) soap(av, "Play", new String[][] {{"InstanceID", "0"}, {"Speed", "1"}});
           else if ("pause".equals(action)) soap(av, "Pause", new String[][] {{"InstanceID", "0"}});
           else if ("stop".equals(action)) soap(av, "Stop", new String[][] {{"InstanceID", "0"}});
+          // (H14) tekerés / folytatási pozíció (nem tekerhető forrásnál a vevő hibát ad – elnyeljük)
+          else if ("seek".equals(action)) soap(av, "Seek", new String[][] {{"InstanceID", "0"}, {"Unit", "REL_TIME"}, {"Target", toHms(value)}});
           else if ("volume".equals(action) && dev.optJSONObject("rc") != null) soap(dev.getJSONObject("rc"), "SetVolume", new String[][] {{"InstanceID", "0"}, {"Channel", "Master"}, {"DesiredVolume", String.valueOf(Math.round(value * 100))}});
         } catch (Exception ignored) {
         }
