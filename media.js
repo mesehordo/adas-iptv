@@ -500,7 +500,8 @@ async function recStart({ url, dir, name, until, audio }) {
     opts.emit('rec-ended', { id, file, size, restarts: rec.restarts, error: endError });
   };
   out.once('close', notify);
-  const finish = (error) => {
+  // (H38) minden lezárás (a recStop is) ezen az egy, egyszer futó úton megy – egyetlen rec-ended
+  const finish = (rec.finish = (error) => {
     if (error && !endError) endError = error;
     if (ended) return;
     ended = true;
@@ -509,7 +510,7 @@ async function recStart({ url, dir, name, until, audio }) {
     recordings.delete(id);
     if (out.destroyed || out.closed) notify();
     else out.end();
-  };
+  });
   // (H01) írási hiba (betelt lemez, jogosultság, eltűnt külső meghajtó): a kezeletlen stream-hiba a főfolyamatot
   // leállítaná – helyette az FFmpeg leáll, a felvétel hibával véget ér, újrapróbálás nincs
   out.on('error', (err) => {
@@ -556,8 +557,7 @@ function recStop(id) {
   if (!r.proc || r.proc.exitCode !== null) {
     // éppen újraindításra vár: nincs futó FFmpeg – a fájlt lezárjuk
     r.proc = null;
-    recordings.delete(String(id));
-    r.out.end(() => opts.emit('rec-ended', { id: String(id), file: r.file, size: fs.existsSync(r.file) ? fs.statSync(r.file).size : 0, restarts: r.restarts, error: '' }));
+    r.finish('');
     return true;
   }
   // „q”: az FFmpeg rendben lezárja a kimenetet; ha nem reagál, leállítjuk

@@ -201,6 +201,7 @@ const hooks = {
       // (Androidon a közvetítő ezekkel kéri le az adást – a vevő ugyanazt kapja, amit a helyi lejátszó)
       ua: stream.ua || '',
       referrer: stream.referrer || '',
+      gen, // (H29) a vevő állapotüzenetei ezzel jönnek vissza – a régi tartalomé nem írja felül az újat
     };
     try {
       await api.castPlay(opts);
@@ -260,6 +261,8 @@ if (api.onCastStatus) {
   api.onCastStatus((s) => {
     if (!state.device || s.id !== state.device.id) return;
     if (s.state === 'ENDED') return stopCast(player.active, s.reason || '');
+    // (H29) egy korábbi tartalom (A → B váltás előtti munkamenet) késői állapota: nem írja B idejét, haladását
+    if (typeof s.gen === 'number' && s.gen !== state.gen) return;
     state.status = s.state;
     if (s.state === 'PAUSED') state.paused = true;
     if (s.state === 'PLAYING') state.paused = false;
@@ -272,7 +275,11 @@ if (api.onCastStatus) {
     if (s.state === 'IDLE' && s.idle === 'ERROR') toast(_t('A kivetítő eszköz nem tudta lejátszani ezt az adást.'));
     if (s.state === 'IDLE' && s.idle === 'FINISHED' && player.channel?.vod) {
       // (H28) végignézve: kész jelölés (a pozíció a vége)
-      if (state.dur > 0 && state.castCh?.vod?.key === state.durKey) player.vodHooks?.progress(state.castCh, state.dur, state.dur);
+      // (ismeretlen hossznál is: a vevő hiteles FINISHED jelzése önmagában elég a kész jelöléshez)
+      if (state.castCh?.vod?.key === state.durKey) {
+        const end = state.dur > 0 ? state.dur : Math.max(1, state.time);
+        player.vodHooks?.progress(state.castCh, end, end);
+      }
       const next = player.vodHooks?.next(player.channel, 1);
       if (next && player.vodHooks.autoNext()) player.playVod(next);
     }

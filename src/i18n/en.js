@@ -2279,5 +2279,6 @@ export default {
  "A mentés most nem lehetséges.": "Saving is not possible right now.",
  "A profilok nem menthetők – az átvétel elmaradt:": "The profiles cannot be saved – nothing was imported:",
  "a webcím most nem érhető el – a mentett lista látszik": "the web address is not reachable right now – the saved list is shown",
- "A lejátszási puffer megtelt.": "The playback buffer is full."
+ "A lejátszási puffer megtelt.": "The playback buffer is full.",
+ "Az Adás nem tudott elindulni: {msg}": "Adás could not start: {msg}"
 };

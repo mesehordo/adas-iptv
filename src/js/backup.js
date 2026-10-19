@@ -201,7 +201,11 @@ export async function renderBackups(box) {
         staged = await stageDocs(data); // (új kulcsokra: hiba esetén a mostani listák érintetlenek – B31)
         const before = JSON.parse(JSON.stringify(store.settings));
         await store.replaceAll({ ...data, health: store.health });
-        await dropUnreferenced(before, data.settings); // (a régiek a „visszaállítás előtti” pontban megvannak)
+        // (a régiek a „visszaállítás előtti” pontban megvannak; a régi – v1 – pontok dokumentumai maradnak – H39;
+        // olvashatatlan mentéstárnál nincs takarítás, és a takarítás hibája már nem vonja vissza a visszaállítást)
+        await v1BackupDocKeys()
+          .then((keep) => dropUnreferenced(before, data.settings, keep))
+          .catch(() => {});
       } catch (err) {
         if (staged) await dropDocs(staged.written);
         // (a mostani állapot használható marad, a további mentések is működnek)

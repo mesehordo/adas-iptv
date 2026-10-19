@@ -1205,17 +1205,33 @@ app.whenReady().then(() => {
       return;
     }
   }
-  covers.install(protocol, net, dataDir());
+  // (H37) a borítótár vagy a menü hibája ne akadályozza meg az ablak létrehozását
+  try {
+    covers.install(protocol, net, dataDir());
+  } catch (err) {
+    console.error('[start] borítótár:', err);
+  }
   // macOS-en a menüsor nélkül a Cmd+C / Cmd+V / Cmd+Q sem működne: ott egy minimális menü kell.
   Menu.setApplicationMenu(
     process.platform === 'darwin'
       ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }])
       : null
   );
-  installHeaderHooks();
+  try {
+    installHeaderHooks();
+  } catch (err) {
+    console.error('[start] fejléc-kezelő:', err);
+  }
   createWindow();
   // macOS: a Dock-ikonra kattintva az elrejtett (vagy bezárt) ablak előjön.
   app.on('activate', () => showWindow());
+}).catch((err) => {
+  // (H37) a váratlan indulási hiba ne hagyja ablak és üzenet nélkül a felhasználót
+  console.error('[start]', err);
+  try {
+    dialog.showErrorBox('Adás', _t('Az Adás nem tudott elindulni: {msg}', { msg: err?.message || String(err) }));
+  } catch {}
+  app.exit(1);
 });
 
 app.on('window-all-closed', () => {

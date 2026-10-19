@@ -18,6 +18,7 @@ const TOUCH_AFTER = 24 * 3600e3; // a használat idejét naponta legfeljebb egys
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138 Safari/537.36 Adas';
 
 let dir = '';
+let diskOk = false; // (H37) a lemezes tár használható-e (a mappa létrehozása sikerült)
 let added = 0; // a legutóbbi takarítás óta mentett bájtok
 let gen = 0; // ürítéskor nő: a közben futó letöltések már nem mentenek
 const inflight = new Map(); // eredeti cím → folyamatban lévő letöltés (ugyanaz a kép egyszerre csak egyszer)
@@ -40,6 +41,7 @@ const respond = (buf, type) =>
   new Response(buf, { status: 200, headers: { 'Content-Type': type || sniff(buf) || 'application/octet-stream', 'Access-Control-Allow-Origin': '*' } });
 
 async function save(file, buf) {
+  if (!diskOk) return;
   const tmp = `${file}.${process.pid}.tmp`;
   try {
     await fs.promises.writeFile(tmp, buf);
@@ -55,6 +57,7 @@ async function save(file, buf) {
 async function stats() {
   let files = 0;
   let bytes = 0;
+  if (!diskOk) return { files, bytes, max: MAX_BYTES };
   for (const name of await fs.promises.readdir(dir).catch(() => [])) {
     if (name.endsWith('.tmp')) continue;
     const st = await fs.promises.stat(path.join(dir, name)).catch(() => null);
@@ -67,6 +70,7 @@ async function stats() {
 let trimming = null;
 function trim() {
   if (trimming) return trimming;
+  if (!diskOk) return Promise.resolve();
   added = 0;
   trimming = (async () => {
     const list = [];
@@ -96,6 +100,7 @@ function trim() {
 
 async function clear() {
   gen++;
+  if (!diskOk) return;
   for (const name of await fs.promises.readdir(dir).catch(() => [])) await fs.promises.unlink(path.join(dir, name)).catch(() => {});
 }
 
@@ -103,7 +108,7 @@ async function clear() {
 async function load(orig, net) {
   const file = fileOf(orig);
   // (egyetlen megnyitott fájlleíróval: az ellenőrzés és az olvasás ugyanarra a fájlra vonatkozik)
-  const fh = await fs.promises.open(file, 'r').catch(() => null);
+  const fh = diskOk ? await fs.promises.open(file, 'r').catch(() => null) : null;
   if (fh) {
     try {
       const st = await fh.stat();
@@ -163,7 +168,13 @@ function registerScheme(protocol) {
 /** A kéréskezelő telepítése (az app „ready” után). dataDir: a felhasználói adatmappa. */
 function install(protocol, net, dataDir) {
   dir = path.join(dataDir, 'covers');
-  fs.mkdirSync(dir, { recursive: true });
+  // (H37) a tár hibája (útban lévő fájl, jogosultság, betelt lemez) ne akassza meg az indulást: lemezes tár nélkül megy
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    diskOk = fs.statSync(dir).isDirectory();
+  } catch (err) {
+    console.warn('[covers] a borítótár nem használható, tár nélkül fut:', err.code || err.message);
+  }
   protocol.handle(SCHEME, async (req) => {
     let orig = '';
     try {
