@@ -1213,7 +1213,9 @@ export function packDash({ cols, rows, units }) {
   return { units: out, empty };
 }
 
-const STACKED = '(max-width: 760px), (orientation: portrait) and (max-width: 1000px)';
+// (alacsony, fektetett telefon: nem a képernyő magasságába préselve – a csempék rendes magasságúak, görgethető –
+// lásd style.css: „alacsony fekvő képernyő”)
+const STACKED = '(max-width: 760px), (orientation: portrait) and (max-width: 1000px), (max-height: 520px)';
 const stacked = () => matchMedia(STACKED).matches;
 
 /** A rács kitölti a képernyő maradékát – minden egység egy oldalon látszik. */

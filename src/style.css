@@ -975,6 +975,12 @@ mark { background: rgba(255, 213, 74, 0.45); color: inherit; border-radius: 2px;
 .news-detail h2 { margin: 6px 0 10px; }
 .news-detail .nd-img { width: 100%; max-height: 260px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; }
 .spinner.small { width: 26px; height: 26px; margin: 20px auto; }
+/* alacsony fekvő képernyő (fektetett telefon): a főoldal nem préselődik a képernyő magasságába – két oszlop, rendes
+   magasságú csempék, görgethető (a dashboard.js STACKED feltétele ugyanez) */
+@media (max-height: 520px) and (min-width: 761px) {
+  .dash { height: auto !important; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; }
+  .dash > .dcard { grid-column: auto !important; grid-row: auto !important; height: var(--mob, 300px); }
+}
 /* telefon (és álló Android): egymás alatt, a felsorolás sorrendjében */
 @media (max-width: 760px), (orientation: portrait) and (max-width: 1000px) {
   .dash { height: auto !important; grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
@@ -1759,3 +1765,16 @@ body.radio-full > :not(#radio-full):not(#modal-root):not(#toasts):not(#rc-cursor
 .radio-guide .g-logo { position: relative; overflow: hidden; }
 .radio-guide .g-logo .rlogo { position: absolute; inset: 4%; width: 92%; height: 92%; object-fit: contain; }
 .rg-desc { white-space: pre-line; color: var(--text); }
+
+/* Telefon (alsó menüsávval): a rádió mini-lejátszója a menüsáv fölött – nem takarja el (a tartalom alatta is elfér) */
+@media (max-width: 700px) {
+  #radio-bar { left: 8px; right: 8px; bottom: calc(58px + 8px + env(safe-area-inset-bottom)); }
+  html body.radio-on #view { padding-bottom: calc(66px + 90px + env(safe-area-inset-bottom)); }
+}
+/* Érintőképernyő (telefon, tablet): koppintás után a menüpont nem kap fókuszkeretet – a programból kapott fókusz
+   kerete a menüsáv szélein csak két függőleges csíkként látszott. Tévén (távirányító, pointer: none) marad. */
+@media (hover: none) and (pointer: coarse) {
+  #nav a:focus-visible, #nav button:focus-visible, #nav .links a:focus { outline: none !important; }
+  /* (a fókusz így is látszik – csíkok helyett halvány háttérrel, billentyűzetnél is) */
+  #nav a:focus-visible, #nav button:focus-visible { background: rgba(127, 127, 127, 0.18) !important; border-radius: 10px; }
+}
