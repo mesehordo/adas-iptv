@@ -51,7 +51,7 @@ function stateText() {
   if (r.state === 'loading') return _t('Csatlakozás…');
   if (r.state === 'error') return r.error;
   if (r.state === 'paused') return _t('Szünetel');
-  return r.now.text || epg.now(r.station.id)?.cur?.title || [countryName(r.station.country), r.station.genres[0] ? genreName(r.station.genres[0]) : ''].filter(Boolean).join(' · ');
+  return r.now.text || epg.now(r.station.id)?.cur?.title || [countryName(r.station.country), r.station.genres?.[0] ? genreName(r.station.genres[0]) : ''].filter(Boolean).join(' · ');
 }
 
 function ensureBar() {

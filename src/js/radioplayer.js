@@ -55,21 +55,21 @@ const RESOLVE_TIMEOUT = 8000; // a lejátszólista (.pls / .m3u…) letöltésé
 
 /**
  * Lejátszólista-cím (.pls / .m3u / .asx) → az első adás címe. hdr: a lista által az adáshoz kért fejlécek
- * (User-Agent, Referer) – (H11) a védett lejátszólista lekérése is ezekkel megy.
+ * (User-Agent, Referer) – (H11) a védett lejátszólista lekérése is ezekkel megy. io: a lekérő (tesztekhez).
  */
-export async function resolveStream(url, hdr = null) {
+export async function resolveStream(url, hdr = null, io = api) {
   if (!PLAYLIST_RX.test(url) || /\.m3u8(\?|$)/i.test(url)) return url;
   try {
     let timer = 0;
     const headers = {};
     if (hdr?.ua) headers['User-Agent'] = hdr.ua;
     if (hdr?.referrer) headers.Referer = hdr.referrer;
-    const get = Object.keys(headers).length && api.request
-      ? api.request({ url, headers }).then((r) => {
+    const get = Object.keys(headers).length && io.request
+      ? io.request({ url, headers }).then((r) => {
           if (r.status < 200 || r.status >= 300) throw new Error(`HTTP ${r.status}`);
           return { text: r.text };
         })
-      : api.fetchText(url, { maxAgeHours: 24 });
+      : io.fetchText(url, { maxAgeHours: 24 });
     const { text } = await Promise.race([
       get,
       new Promise((_, reject) => (timer = setTimeout(() => reject(new Error('timeout')), RESOLVE_TIMEOUT))),
