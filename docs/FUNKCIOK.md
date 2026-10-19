@@ -36,6 +36,13 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
+**Hibajavítások, teljes tesztcsomag, súgó: adattárolás (1.28.7)**
+- **Kivetítés**: DLNA-tévén is működik a tekerés és a folytatás, a tévé valódi pozíciója és a film hossza visszajön; a film végén megnézettnek jelöl (Chromecastnál ismeretlen hossznál is); filmváltáskor az előző film késői állapota nem írja felül az újat.
+- **Rádió**: a védett lejátszólisták a lista fejléceivel töltődnek le; az ismételten megszakadó cím helyett a következővel csatlakozik újra.
+- **Felvétel**: a leállítás akkor sem akad el, ha az FFmpeg összeomlott; újrapróbálás közbeni leállításnál egyetlen értesítés.
+- **Indulás és mentés**: a borítótár hibája nem akadályozza meg az ablak megnyitását; mentési pont visszaállításakor a régi mentési pontok listái megmaradnak.
+- **Súgó**: új téma – *Hol tárolja az Adás az adatokat?* (asztali gép, Android, böngésző / webOS; felvételek, profilok, gyorsítótár).
+- **Tesztek**: `npm test` – fordítások, főfolyamat és a felület a valódi alkalmazásablakban (lejátszás, műsorújság, távirányító, mentések…), minden PR-nál automatikusan.
 **Hibajavítások egy külső kódellenőrzés alapján (1.28.6)**
 - **Feliratok**: a már egyszer letöltött felirat nem töltődik le újra (filmenként tárolva – az OpenSubtitles napi kerete nem fogy el ugyanarra); régi keresés / letöltés nem írja felül az újat; a videó melletti felirat pontos névpárosítással.
 - **Felvétel**: írási hiba (betelt lemez, eltűnt meghajtó) nem dönti le az alkalmazást; egyszerre induló felvételek külön fájlt kapnak; dupla indítás ellen védett; ütemezett felvétel összeomlás után is folytatódik; a vágás hibája után a felvétel nem tűnik el.
