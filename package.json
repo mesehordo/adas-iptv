@@ -1,7 +1,7 @@
 {
   "name": "adas",
   "productName": "Adás",
-  "version": "1.28.8",
+  "version": "1.28.9",
   "description": "Élő TV lejátszó az iptv-org nyilvános csatornalistájához, streaming-szolgáltatás stílusú felülettel.",
   "main": "main.js",
   "author": "Adás",
