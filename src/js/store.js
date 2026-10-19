@@ -11,9 +11,10 @@ export const epgSourceName = (src) => BUILTIN_EPG.find((b) => b.url === src.url)
 /** Beépített műsorújság-források. A nem magyar források alapból ki vannak kapcsolva. */
 export const BUILTIN_EPG = [
   { url: 'https://iptv-epg.org/files/epg-hu.xml.gz', name: _t('Magyarország (iptv-epg.org)'), enabled: true },
-  { url: 'https://epgshare01.online/epgshare01/epg_ripper_HU1.xml.gz', name: _t('Magyarország (epgshare01)'), enabled: true },
-  // (független harmadik magyar forrás: ha egy forrás kiesik vagy csak helyőrzőt ad, a többi pótolja – pl. Nickelodeon, Nicktoons)
+  // (az open-epg.com az epgshare01 előtt: a két forrás címei és időpontjai a legtöbb csatornán percre egyeznek, de az
+  // epgshare01 néhány csatornán – Nickelodeon, Nicktoons – a világidőt magyar időként jelöli, így 2 órát csúszik)
   { url: 'https://www.open-epg.com/files/hungary1.xml.gz', name: _t('Magyarország (open-epg.com)'), enabled: true },
+  { url: 'https://epgshare01.online/epgshare01/epg_ripper_HU1.xml.gz', name: _t('Magyarország (epgshare01)'), enabled: true },
   { url: 'https://epgshare01.online/epgshare01/epg_ripper_SK1.xml.gz', name: _t('Szlovákia (epgshare01)'), enabled: false },
   { url: 'https://epgshare01.online/epgshare01/epg_ripper_RO1.xml.gz', name: _t('Románia (epgshare01)'), enabled: false },
   { url: 'https://iptv-epg.org/files/epg-at.xml.gz', name: 'Ausztria (iptv-epg.org)', enabled: false },
@@ -406,6 +407,14 @@ export const store = {
     // Új beépített források felvétele, ha a mentett lista régebbi.
     const known = new Set(this.settings.epgSources.map((s) => s.url));
     for (const s of BUILTIN_EPG) if (!known.has(s.url)) this.settings.epgSources.push({ ...s });
+    // (egyszeri átrendezés a meglévő listákban is: az open-epg.com az epgshare01 elé – lásd BUILTIN_EPG)
+    if (!(this.settings.epgOrder >= 2)) {
+      const list = this.settings.epgSources;
+      const oi = list.findIndex((x) => x.url === 'https://www.open-epg.com/files/hungary1.xml.gz');
+      const ei = list.findIndex((x) => x.url === 'https://epgshare01.online/epgshare01/epg_ripper_HU1.xml.gz');
+      if (ei >= 0 && oi > ei) list.splice(ei, 0, ...list.splice(oi, 1));
+      this.settings.epgOrder = 2;
+    }
     // Új beépített listák alapból bekapcsolva; a beépítettel azonos saját lista fölösleges.
     this.settings.builtinLists = { ...DEFAULT_SETTINGS.builtinLists, ...(this.settings.builtinLists || {}) };
     this.settings.vodBuiltin = { ...DEFAULT_SETTINGS.vodBuiltin, ...(this.settings.vodBuiltin || {}) };

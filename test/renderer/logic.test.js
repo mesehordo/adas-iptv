@@ -228,3 +228,14 @@ test('sanitizeSettings (U02): hibás sportWatch / customThemes elemek és tartom
   assert.ok(fixed.includes('sportWatch[]') && fixed.includes('customThemes') && fixed.includes('volume'));
   assert.deepEqual(sanitizeSettings({ customThemes: [{ name: 'x', text: '{}' }, 'szöveg'] }).settings.customThemes, [{ name: 'x', text: '{}' }]);
 });
+
+test('műsorforrások sorrendje: az open-epg.com az epgshare01 előtt (a Nick-csatornák időzónája miatt)', async () => {
+  const { BUILTIN_EPG } = await import('../../src/js/store.js');
+  const urls = BUILTIN_EPG.map((s) => s.url);
+  const o = urls.indexOf('https://www.open-epg.com/files/hungary1.xml.gz');
+  const e = urls.indexOf('https://epgshare01.online/epgshare01/epg_ripper_HU1.xml.gz');
+  assert.ok(o >= 0 && e >= 0 && o < e, `open-epg ${o}, epgshare ${e}`);
+  const { store } = await import('../../src/js/store.js');
+  const list = store.settings.epgSources.map((s) => s.url);
+  assert.ok(list.indexOf(urls[o]) < list.indexOf(urls[e]), 'a betöltött beállításban is');
+});
