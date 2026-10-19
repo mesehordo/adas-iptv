@@ -11,6 +11,11 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const only = (process.argv.find((a) => a.startsWith('--only=')) || '').slice(7);
+// (elgépelt csoportnévnél ne fusson le „üresen”, hamis zöld eredménnyel)
+if (only && !['i18n', 'main', 'renderer'].includes(only)) {
+  console.error(`Ismeretlen --only érték: ${only} (lehet: i18n, main, renderer)`);
+  process.exit(1);
+}
 const want = (k) => !only || only === k;
 const electronBin = createRequire(import.meta.url)('electron'); // (Node alól: az Electron futtatható fájljának útja)
 const nodeEnv = { ...process.env, ELECTRON_RUN_AS_NODE: '1' };
