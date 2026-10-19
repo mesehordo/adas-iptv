@@ -36,6 +36,11 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
+**Hibajavítások egy újabb kódellenőrzés alapján (1.28.9)**
+- **Kivetítés**: a csatlakozás közben leállított kivetítés nem indul el; gyors Chromecast-filmváltásnál régi állapot nem írja az új film pozícióját; DLNA-n a késő válasz nem ugraszt vissza; kivetítéskor a hangerő és a némítás a tévét állítja.
+- **Műsorújság**: a fő forrás műsorai közötti réseket a többi forrás kitölti; a háttérbe szorított forrás adata is tartalék.
+- **Mentés, import**: csomag és saját VOD-lista törlése után a régi mentési pontok is visszaállíthatók; a hibás beállítás-import nem okoz összeomlást.
+- **Egyéb**: védett rádió felvétele lejátszás nélkül is; listaváltás és sportkövetés-váltás közbeni gyorsítótár-hibák; miniablak több monitornál; Android 6-on összeomlás átirányításnál; párhuzamos lejátszás-indítás.
 **Műsorújság-javítás (1.28.8)**
 - **Műsorújság**: az adat nélküli helyőrző („No Data”) sorok kimaradnak – eddig eltakarták a többi forrás valódi műsorát (pl. RTL, TV2, Nickelodeon, Nicktoons: „No Data” vagy az előző nap műsora látszott).
 - **Új forrás**: harmadik magyar műsorforrás (open-epg.com), alapból bekapcsolva – ha egy forrás kiesik vagy csak helyőrzőt ad, a többi pótolja (pl. M4 Sport).
