@@ -533,6 +533,9 @@ async function recStart({ url, dir, name, until, audio }) {
     proc.on('error', () => {});
     proc.on('close', (code) => {
       proc.stdout.unpipe(out);
+      // (a kilépett folyamat már nem „fut” – jelzéssel leállt (összeomlott, kilőtt) FFmpegnél az exitCode null marad,
+      // így a leállítás enélkül a halott folyamatra várna, és a felvétel soha nem zárulna le)
+      if (rec.proc === proc) rec.proc = null;
       if (rec.stopping) return finish('');
       // Váratlan leállás (megszakadt az adás): újrapróbálás, amíg az ütemezett vég el nem jön
       const left = rec.until ? rec.until - Date.now() : Infinity;
@@ -554,7 +557,7 @@ function recStop(id) {
   if (!r) return false;
   r.stopping = true;
   clearTimeout(r.retry);
-  if (!r.proc || r.proc.exitCode !== null) {
+  if (!r.proc || r.proc.exitCode !== null || r.proc.signalCode !== null) {
     // éppen újraindításra vár: nincs futó FFmpeg – a fájlt lezárjuk
     r.proc = null;
     r.finish('');
