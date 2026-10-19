@@ -4,7 +4,7 @@
 // Kapcsoló: --only=i18n|main|renderer
 import { spawn, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { mkdtempSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -40,10 +40,25 @@ if (want('renderer')) {
 console.log(failed ? `\n✗ ${failed} tesztcsoport hibás` : '\n✓ minden teszt rendben');
 process.exit(failed ? 1 : 0);
 
+/** Tesztvideók a lejátszási tesztekhez (az ffmpeg-static csomaggal; ha nincs, a tesztek kimaradnak). */
+function makeFixtures(dir) {
+  let ff = null;
+  try {
+    ff = createRequire(import.meta.url)('ffmpeg-static');
+  } catch {}
+  if (!ff) return;
+  mkdirSync(dir, { recursive: true });
+  const src = ['-f', 'lavfi', '-i', 'testsrc=duration=6:size=320x180:rate=25', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=6'];
+  const run = (out, codec) => spawnSync(ff, ['-hide_banner', '-loglevel', 'error', '-y', ...src, ...codec, path.join(dir, out)], { stdio: 'inherit' });
+  run('test.mp4', ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', '-movflags', '+faststart']);
+  run('test-mpeg2.ts', ['-c:v', 'mpeg2video', '-c:a', 'mp2', '-shortest', '-f', 'mpegts']);
+}
+
 function rendererTests() {
   const data = mkdtempSync(path.join(tmpdir(), 'adas-test-'));
   // kész profil: az első indítás varázslója nélkül indul
   writeFileSync(path.join(data, 'store.json'), JSON.stringify({ version: 1, settings: { lang: 'hu' }, profiles: [{ id: 'teszt', name: 'Teszt', avatar: 1 }], activeProfileId: 'teszt' }));
+  makeFixtures(path.join(data, 'fixtures'));
   const env = { ...process.env, ADAS_DATA_DIR: data, ADAS_SELFTEST: 'test/renderer/index.js' };
   delete env.ELECTRON_RUN_AS_NODE;
   const extra = process.platform === 'linux' ? ['--no-sandbox'] : [];

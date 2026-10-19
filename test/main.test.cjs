@@ -139,6 +139,21 @@ test('covers: a tár helyén lévő fájl nem akasztja meg az indulást (H37)', 
 });
 
 // ------------------------------------------------------------------ felvétel (H32 / H38)
+// (az FFmpeg-folyamatok eseményei – hibánál a napló megmutatja, mi történt)
+const procLog = [];
+{
+  const cp = require('child_process');
+  const orig = cp.spawn;
+  cp.spawn = (...a) => {
+    const p = orig(...a);
+    const t0 = Date.now();
+    const tag = String(a[1]?.find?.((x) => /(\.ts|\/src\/[0-9a-f]+)$/.test(x)) || '').slice(-30);
+    p.on('exit', (code, sig) => procLog.push(`+${Date.now() - t0}ms exit ${code} ${sig || ''} ${tag}`));
+    p.on('close', (code) => procLog.push(`+${Date.now() - t0}ms close ${code} ${tag}`));
+    p.stderr?.on('data', (b) => procLog.push('stderr: ' + String(b).slice(0, 200)));
+    return p;
+  };
+}
 const media = require(path.join(ROOT, 'media'));
 const ffmpeg = (() => {
   try {
@@ -167,6 +182,7 @@ test('felvétel: retry közbeni leállítás pontosan egy rec-ended (H38); egyid
   // hogy egy esetleges második értesítés is kiderüljön)
   for (let i = 0; i < 150 && !(ended.some((e) => e.id === a.id) && ended.some((e) => e.id === b.id)); i++) await sleep(100);
   await sleep(4500);
+  if (ended.length !== 2) console.log(`FFmpeg-napló:\n  ${procLog.join('\n  ')}\nrec-ended: ${JSON.stringify(ended)}`);
   assert.equal(ended.filter((e) => e.id === a.id).length, 1);
   assert.equal(ended.filter((e) => e.id === b.id).length, 1);
   assert.ok(ended.find((e) => e.id === a.id).size > 0);
