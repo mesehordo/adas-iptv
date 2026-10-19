@@ -1091,6 +1091,7 @@ export default {
  "A statisztika törölve": "Statistics deleted",
  "Magyarország (iptv-epg.org)": "Hungary (iptv-epg.org)",
  "Magyarország (epgshare01)": "Hungary (epgshare01)",
+ "Magyarország (open-epg.com)": "Hungary (open-epg.com)",
  "Szlovákia (epgshare01)": "Slovakia (epgshare01)",
  "Románia (epgshare01)": "Romania (epgshare01)",
  "Németország (iptv-epg.org)": "Germany (iptv-epg.org)",
