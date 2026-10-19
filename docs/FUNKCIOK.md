@@ -48,6 +48,10 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
+**12 új felületstílus, Android fektetve, műsorújság (1.29.0)**
+- **Új stílusok**: Kontraszt (nagy kontrasztú, gyengénlátóknak), Nagybetűs (idősebb nézőknek), Shiro, Yoru (éjszakai mozi), Mori (erdő), Natsu (nyár), Fuyu (tél), Deco (art deco), Shōwa (70-es évek), Mu (szinte üres), Holo (sci-fi irányítópult), Csillagidő (egy csillaghajó hídjának kezelőfelülete).
+- **Android, fektetett telefon**: a főoldal csempéi nem préselődnek a képernyő magasságába (levágott címek, kicsúszó tartalom helyett két oszlop, görgethető); a rádió mini-lejátszója nem takarja el az alsó menüsávot; a menüpontok mellett nincs sárga fókuszcsík.
+- **Műsorújság**: a Nickelodeon és a Nicktoons műsora 2 órával elcsúszott (a forrás időzóna-hibája) – az open-epg.com lett az elsődleges forrás, a meglévő beállításokban is.
 **Hibajavítások egy újabb kódellenőrzés alapján (1.28.9)**
 - **Kivetítés**: a csatlakozás közben leállított kivetítés nem indul el; gyors Chromecast-filmváltásnál régi állapot nem írja az új film pozícióját; DLNA-n a késő válasz nem ugraszt vissza; kivetítéskor a hangerő és a némítás a tévét állítja.
 - **Műsorújság**: a fő forrás műsorai közötti réseket a többi forrás kitölti; a háttérbe szorított forrás adata is tartalék.
