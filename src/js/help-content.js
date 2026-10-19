@@ -1538,7 +1538,7 @@ ${go('#/settings?section=update', 'Frissítések')}`,
 <h2>Asztali gép (Windows, macOS, Linux)</h2>
 <table class="help-table">
 <tr><td><b>Adatmappa</b></td><td>Windows: <code>%APPDATA%\\Adás</code><br>macOS: <code>~/Library/Application Support/Adás</code><br>Linux: <code>~/.config/Adás</code> (ill. <code>$XDG_CONFIG_HOME/Adás</code>)</td></tr>
-<tr><td><b>Felvételek</b></td><td>A Videók mappa <code>Adás felvételek</code> almappája – Windows: <code>%USERPROFILE%\\Videos\\Adás felvételek</code>, macOS: <code>~/Movies/Adás felvételek</code>, Linux: <code>~/Videos/Adás felvételek</code> (ill. az <code>XDG_VIDEOS_DIR</code> szerinti mappa). A vágás előtti eredetik a rejtett <code>.eredeti</code> almappában vannak. A mappa a TV → Felvételek fülön a <b>Mappa megnyitása</b> gombbal nyílik meg.</td></tr>
+<tr><td><b>Felvételek</b></td><td>A Videók mappa <code>Adás felvételek</code> almappája – Windows: <code>%USERPROFILE%\\Videos\\Adás felvételek</code>, macOS: <code>~/Movies/Adás felvételek</code>, Linux: <code>~/Videos/Adás felvételek</code> (ill. az <code>XDG_VIDEOS_DIR</code> szerinti mappa). Ha az Adást először más nyelven használtad, a mappa neve annak a nyelvnek megfelelő (pl. angolul <code>Adás recordings</code>). A vágás előtti eredetik a rejtett <code>.eredeti</code> almappában vannak. A mappa a TV → Felvételek fülön a <b>Mappa megnyitása</b> gombbal nyílik meg.</td></tr>
 </table>
 <p>Az adatmappa tartalma:</p>
 <table class="help-table">

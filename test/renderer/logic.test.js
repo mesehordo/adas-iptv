@@ -149,8 +149,9 @@ test('resolveStream: a védett lejátszólista a lista fejléceivel kérődik le
   assert.equal(seen[0].headers.Referer, 'https://radio.example/');
   // fejlécek nélkül a gyorsítótáras lekérés; hibánál az eredeti cím marad
   assert.equal(await resolveStream('https://radio.example/listen.pls', null, io), 'https://radio.example/listen.pls');
-  // a fejlécekkel is elutasító szerver (403): az eredeti cím marad
-  assert.equal(await resolveStream('https://radio.example/listen.pls', { ua: 'x' }, { request: async () => ({ status: 403, text: '' }) }), 'https://radio.example/listen.pls');
+  // a fejlécekkel elutasító lekérés után a sima lekérés is próba; ha az sem megy, az eredeti cím marad
+  assert.equal(await resolveStream('https://radio.example/listen.pls', { ua: 'x' }, { request: async () => ({ status: 403, text: '' }), fetchText: async () => ({ text: 'File1=https://c.example/x.aac' }) }), 'https://c.example/x.aac');
+  assert.equal(await resolveStream('https://radio.example/listen.pls', { ua: 'x' }, { request: async () => ({ status: 403, text: '' }), fetchText: io.fetchText }), 'https://radio.example/listen.pls');
   // nem lejátszólista: változatlan
   assert.equal(await resolveStream('https://radio.example/live.mp3', null, io), 'https://radio.example/live.mp3');
 });
@@ -173,6 +174,10 @@ test('rádió-újracsatlakozás: az ismételten megszakadó első cím után a m
     await sleep(50);
     assert.equal(tried.at(-1), st.urls[1]);
     assert.equal(rp.rawUrl, st.urls[1]);
+    // a második címen történt megszakadás: az újracsatlakozás azzal kezdődik (nem a korábban hibás elsővel)
+    rp.streamLost();
+    await sleep(50);
+    assert.equal(tried.at(-1), st.urls[1]);
     // új választás: saját próbakeret
     await rp.play(st);
     assert.equal(rp.lostAt.length, 0);

@@ -148,7 +148,7 @@ const ffmpeg = (() => {
   }
 })();
 
-test('felvétel: retry közbeni leállítás pontosan egy rec-ended (H38); egyidejű felvételek külön fájlba (H32)', { skip: !media.available() || !ffmpeg ? 'nincs FFmpeg' : false, timeout: 60000 }, async () => {
+test('felvétel: retry közbeni leállítás pontosan egy rec-ended (H38); egyidejű felvételek külön fájlba (H32)', { skip: !media.available() || !ffmpeg ? 'nincs FFmpeg' : false, timeout: 90000 }, async () => {
   const dir = tmp('rec');
   const src = path.join(dir, 'src.ts');
   const g = spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc=duration=1:size=160x120:rate=10', '-c:v', 'mpeg2video', '-f', 'mpegts', src]);
@@ -163,7 +163,10 @@ test('felvétel: retry közbeni leállítás pontosan egy rec-ended (H38); egyid
   await sleep(1500);
   assert.equal(media.recStop(a.id), true);
   assert.equal(media.recStop(b.id), true);
-  await sleep(5000);
+  // (a lezárás a futó FFmpeg leállása után jön – lassabb gépen akár a 4 mp-es kényszerleállításig; utána még várunk,
+  // hogy egy esetleges második értesítés is kiderüljön)
+  for (let i = 0; i < 150 && !(ended.some((e) => e.id === a.id) && ended.some((e) => e.id === b.id)); i++) await sleep(100);
+  await sleep(4500);
   assert.equal(ended.filter((e) => e.id === a.id).length, 1);
   assert.equal(ended.filter((e) => e.id === b.id).length, 1);
   assert.ok(ended.find((e) => e.id === a.id).size > 0);

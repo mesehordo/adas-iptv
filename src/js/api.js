@@ -151,7 +151,11 @@ const webApi = {
       h['X-User-Agent'] = h['User-Agent'];
       delete h['User-Agent'];
     }
-    const res = await fetch(url, { method, headers: h, body });
+    // (a Referer fejlécként nem küldhető: a fetch referrer-beállítása – a böngésző a saját szabályai szerint adja át)
+    const ref = h.Referer || h.Referrer;
+    delete h.Referer;
+    delete h.Referrer;
+    const res = await fetch(url, { method, headers: h, body, ...(ref ? { referrer: ref, referrerPolicy: 'unsafe-url' } : null) });
     return { status: res.status, text: await res.text() };
   },
   /** Letöltés bájtként (ZIP, nem UTF-8 kódolású szöveg) → { status, bytes } */

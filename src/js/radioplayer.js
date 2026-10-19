@@ -64,11 +64,15 @@ export async function resolveStream(url, hdr = null, io = api) {
     const headers = {};
     if (hdr?.ua) headers['User-Agent'] = hdr.ua;
     if (hdr?.referrer) headers.Referer = hdr.referrer;
+    // (ahol a fejléc nem adható át – böngésző –, vagy a szerver így is elutasítja: a sima lekérés is próba)
     const get = Object.keys(headers).length && io.request
-      ? io.request({ url, headers }).then((r) => {
-          if (r.status < 200 || r.status >= 300) throw new Error(`HTTP ${r.status}`);
-          return { text: r.text };
-        })
+      ? io
+          .request({ url, headers })
+          .then((r) => {
+            if (r.status < 200 || r.status >= 300) throw new Error(`HTTP ${r.status}`);
+            return { text: r.text };
+          })
+          .catch(() => io.fetchText(url, { maxAgeHours: 24 }))
       : io.fetchText(url, { maxAgeHours: 24 });
     const { text } = await Promise.race([
       get,
@@ -517,7 +521,10 @@ class RadioPlayer {
     const n = (this.lostBy.get(raw) || 0) + 1;
     this.lostBy.set(raw, n);
     const i = st.urls.indexOf(raw);
-    const order = n >= 2 && i >= 0 && st.urls.length > 1 ? [...st.urls.slice(i + 1), ...st.urls.slice(0, i + 1)] : st.urls;
+    // (a sorrend a megszakadt címmel kezdődik – egy korábban már nem induló cím ne késleltesse; ismételt
+    // megszakadásnál a következővel, körbe)
+    const from = i < 0 ? 0 : n >= 2 ? (i + 1) % st.urls.length : i;
+    const order = [...st.urls.slice(from), ...st.urls.slice(0, from)];
     this.play(st, null, { reconnect: true, order });
   }
   streamLost() {
