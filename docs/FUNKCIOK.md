@@ -36,6 +36,9 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
+**Műsorújság-javítás (1.28.8)**
+- **Műsorújság**: az adat nélküli helyőrző („No Data”) sorok kimaradnak – eddig eltakarták a többi forrás valódi műsorát (pl. RTL, TV2, Nickelodeon, Nicktoons: „No Data” vagy az előző nap műsora látszott).
+- **Új forrás**: harmadik magyar műsorforrás (open-epg.com), alapból bekapcsolva – ha egy forrás kiesik vagy csak helyőrzőt ad, a többi pótolja (pl. M4 Sport).
 **Hibajavítások, teljes tesztcsomag, súgó: adattárolás (1.28.7)**
 - **Kivetítés**: DLNA-tévén is működik a tekerés és a folytatás, a tévé valódi pozíciója és a film hossza visszajön; a film végén megnézettnek jelöl (Chromecastnál ismeretlen hossznál is); filmváltáskor az előző film késői állapota nem írja felül az újat.
 - **Rádió**: a védett lejátszólisták a lista fejléceivel töltődnek le; az ismételten megszakadó cím helyett a következővel csatlakozik újra.
