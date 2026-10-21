@@ -10,7 +10,18 @@ import { store } from './store.js';
 
 export const KIDS_CH_CATS = new Set(['kids', 'animation', 'family', 'education']);
 // (betűhatár: a magyar ékezetes betűket is betűnek veszi – a \b az ékezetnél határt látna)
-const W = (body) => new RegExp(`(?:^|[^\\p{L}\\p{N}])(?:${body})(?=$|[^\\p{L}\\p{N}])`, 'iu');
+// (V01) a Unicode-tulajdonság (\p{L}) régi böngészőmotoron (webOS 4) szintaktikai hiba: ott a latin, görög és
+// cirill betűtartomány a tartalék (mint az util.js-ben)
+let UNI = true;
+try {
+  new RegExp('\\p{L}', 'u');
+} catch {
+  UNI = false;
+}
+const LETTER = 'A-Za-zÀ-ɏͰ-ϿЀ-ӿ';
+/** a tartalék minta (exportálva a tesztekhez) */
+export const _kidsFallbackRx = (body) => new RegExp(`(?:^|[^${LETTER}0-9])(?:${body.split('\\p{L}').join(`[${LETTER}]`)})(?=$|[^${LETTER}0-9])`, 'i');
+const W = (body) => (UNI ? new RegExp(`(?:^|[^\\p{L}\\p{N}])(?:${body})(?=$|[^\\p{L}\\p{N}])`, 'iu') : _kidsFallbackRx(body));
 const KIDS_VOD_RX = W('family|families|kids?|child|children|cartoons?|animation|animated|animáció|animációs|rajzfilm\\p{L}*|gyerek\\p{L}*|mesék?|mesefilm\\p{L}*|csal[aá]di|matinee|disney|junior|pixar|ghibli');
 const NOT_KIDS_RX = W('nem gyerekeknek|ecchi\\p{L}*|guro\\p{L}*|horror\\p{L}*|thriller\\p{L}*|seinen\\p{L}*|háború\\p{L}*|őrült\\p{L}*|doujin\\p{L}*|erotik\\p{L}*|hentai\\p{L}*|xxx|adult\\p{L}*|felnőtt\\p{L}*|18\\+|porn\\p{L}*|sex\\p{L}*|szex\\p{L}*');
 

@@ -939,7 +939,7 @@ export function renderSettings(view) {
       <p>${_t('Élő tévé, műsorújság, filmek és sorozatok (online listák és saját médiatár), felvétel, sportfigyelő és testreszabható főoldal – egy alkalmazásban, Windowson, macOS-en, Linuxon, Androidon és Android TV-n.')}</p>
       <dl class="about-list">
         <dt>${_t('Tévécsatornák')}</dt><dd><a href="#" data-ext="https://github.com/iptv-org/iptv">iptv-org</a> ${_t('(nyilvános, közösségi gyűjtemény), Free-TV, Pluto TV, Samsung TV Plus, Plex, FreeCast – és a saját listáid')}</dd>
-        <dt>${_t('Műsorújság')}</dt><dd>${_t('iptv-epg.org, epgshare01, a lejátszólisták saját XMLTV-forrásai és a saját forrásaid')}</dd>
+        <dt>${_t('Műsorújság')}</dt><dd>${_t('iptv-epg.org, open-epg.com, epgshare01, a lejátszólisták saját XMLTV-forrásai és a saját forrásaid')}</dd>
         <dt>${_t('Film- és sorozatadatok')}</dt><dd>${_t('Wikipédia, Wikidata, AniList, Kitsu, MyAnimeList, TVmaze; saját kulccsal TMDB és OMDb')}</dd>
         <dt>${_t('Feliratok')}</dt><dd>${_t('OpenSubtitles (saját fiókkal)')}</dd>
         <dt>${_t('Főoldal')}</dt><dd>${_t('Open-Meteo (időjárás, levegőminőség), ESPN és TheSportsDB (sport), Frankfurter (árfolyam), névnapok, a választott hírforrások RSS-e')}</dd>

@@ -348,7 +348,8 @@ export async function addCustomVodText(name, text, extra = {}) {
 }
 
 /** Egy lista bejegyzései: [{ ...m3u bejegyzés, fileHint }] */
-async function loadList(pl, force) {
+/** warnings: a betöltés figyelmeztetéseinek gyűjtője (a tartalékból mutatott lista – a betöltés végén kerül a lib.errors-ba) */
+async function loadList(pl, force, warnings = vod.errors) {
   // (a lista saját frissítési gyakoriságával – Beállítások → VOD és médiatár, a lista sorában)
   const opts = { maxAgeHours: refreshHoursOf('vod', pl), force };
   const parseText = (text, fileName, url) => {
@@ -366,7 +367,7 @@ async function loadList(pl, force) {
   const staleNote = (r) => {
     if (!r.stale) return;
     if (pl.textKey && (pl.at || 0) > (r.cachedAt || 0)) throw new Error(_t('hálózati hiba'));
-    vod.errors[pl.id] = _t('a forrás most nem érhető el – a legutóbb letöltött példány látszik');
+    warnings[pl.id] = _t('a forrás most nem érhető el – a legutóbb letöltött példány látszik');
   };
   const fromUrl = async () => {
     const files = await expandGitHub(pl.url, opts.maxAgeHours);
@@ -405,7 +406,7 @@ async function loadList(pl, force) {
     // forráscímes csomag: ha a forrás (vagy a GitHub-tárhely listázása) nem érhető el, a csomagban
     // mentett lista látszik – a listák között jelezve
     if (!pl.textKey) throw err;
-    vod.errors[pl.id] = _t('a forrás nem érhető el ({err}) – a csomagban mentett lista látszik', { err: errText(err) });
+    warnings[pl.id] = _t('a forrás nem érhető el ({err}) – a csomagban mentett lista látszik', { err: errText(err) });
     return parseText(await listText(pl), '', '');
   }
 }
@@ -815,8 +816,12 @@ function libMaxAge(lib) {
 /** Esedékes-e az online VOD-listák frissítése (az ütemező hívja – app.js)? */
 export const vodRefreshDue = () => vod.ready && !vod.loading && Date.now() - (vod.loadedAt || 0) > libMaxAge(vod) * 3600e3;
 
-/** Betöltés (gyorsítótárból, ha friss). Többszöri hívásnál ugyanazt az ígéretet adja vissza. */
-function loadLib(lib, { force = false } = {}) {
+/**
+ * Betöltés (gyorsítótárból, ha friss). Többszöri hívásnál ugyanazt az ígéretet adja vissza. recheck: a feldolgozott
+ * gyorsítótár helyett a listák újraolvasása (a hálózati lista rövid gyorsítótára marad) – (V19) a Saját médiatár
+ * időzített és oldalnyitáskori ellenőrzése, hogy egy már ismert címen megváltozott lista is megjelenjen.
+ */
+function loadLib(lib, { force = false, recheck = false } = {}) {
   // Kényszerített frissítés futó betöltés közben: megvárjuk, majd újratöltünk.
   if (lib.loading && force) return lib.loading.then(() => loadLib(lib, { force }));
   // (U06) a futó betöltés óta megváltozott a lista-beállítás: utána új kör (a régi eredmény nem az új listáé)
@@ -837,7 +842,7 @@ function loadLib(lib, { force = false } = {}) {
       lib.tvSig = (catalog.tvVod || []).map((t) => t.id + t.entries.length + ':' + (t.at || 0)).join(',');
       // (az előkészítés – mappa-átnézés, csatornalista – után a listák változhattak: a gyorsítótár az akkori kulccsal)
       const readKey = (lib.loadingKey = cacheKey(lib));
-      if (!force && api.kvGet) {
+      if (!force && !recheck && api.kvGet) {
         const snap = await api.kvGet(readKey).catch(() => null);
         if (snap && Date.now() - snap.at < libMaxAge(lib) * 3600e3) {
           Object.assign(lib, { movies: snap.movies, series: snap.series, counts: snap.counts, errors: snap.errors, loadedAt: snap.at });
@@ -850,17 +855,22 @@ function loadLib(lib, { force = false } = {}) {
       // (a kulcs előtt végzett mappa-átnézés után a listák változhattak – a kulcs és a listák együtt)
       const lists = libLists(lib);
       const saveKey = cacheKey(lib);
-      lib.errors = {};
+      const errors = {};
+      const warnings = {}; // (tartalékból mutatott lista: nem hiba – a könyvtár ilyenkor is frissül)
       const loaded = await Promise.all(
         lists.map(async (pl) => {
           try {
-            return { pl, entries: await (lib === own ? loadOwnList(pl, force) : loadList(pl, force)) };
+            return { pl, entries: await (lib === own ? loadOwnList(pl, force) : loadList(pl, force, warnings)) };
           } catch (err) {
-            lib.errors[pl.id] = String(err.message || err);
+            errors[pl.id] = String(err.message || err);
             return { pl, entries: [] };
           }
         })
       );
+      // (V19) az időzített / oldalnyitáskori ellenőrzés olvasási hibájánál a meglévő könyvtár nem cserélődik le
+      // részleges vagy üres eredményre (a hiba a következő sikeres körig nem írja felül)
+      if (recheck && lib.ready && (Object.keys(errors).length || (lib === own && Object.keys(own.scanErrors || {}).length))) return;
+      lib.errors = { ...warnings, ...errors };
       build(lib, loaded);
       lib.loadedAt = Date.now();
       lib.ready = true;
@@ -1431,6 +1441,8 @@ function renderVodPage(view, params, lib) {
     if (has) loadLib(lib);
     return;
   }
+  // (V19) a már betöltött Saját médiatár megnyitásakor is ellenőrzés (legfeljebb 2 percenként; az eredmény frissíti az oldalt)
+  if (isOwn && !own.loading && Date.now() - (own.loadedAt || 0) > 2 * 60e3) loadOwn({ recheck: true });
 
   const { movies, series } = visibleVod(lib);
   const all = huFirst([...series, ...movies]);
@@ -2033,7 +2045,7 @@ async function loadOwnList(pl, force = false) {
 
 // Az automatikusan generált NAS-listák változásainak követése (10 percenként).
 setInterval(() => {
-  if ((store.settings.ownSources || []).some((s) => s.enabled) && own.ready && !player.active) loadOwn();
+  if ((store.settings.ownSources || []).some((s) => s.enabled) && own.ready && !player.active) loadOwn({ recheck: true });
 }, 10 * 60e3);
 
 // ---------------------------------------------------------------------------

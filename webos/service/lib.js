@@ -182,6 +182,30 @@ function download(url, opts, cb) {
   });
 }
 
+var MAX_BIN = 32 * 1024 * 1024; // (V08) bájtos letöltés (felirat-ZIP)
+
+/** (V08) Letöltés bájtként (pl. ZIP) – csak az átviteli tömörítést bontja ki, a fájl tartalmát nem. cb(err, buf) */
+function downloadBytes(url, opts, cb) {
+  var finished = false;
+  function done(err, buf) {
+    if (finished) return;
+    finished = true;
+    cb(err, buf);
+  }
+  request(url, opts || {}, function (err, res, req) {
+    if (err) return done(err);
+    if (res.statusCode >= 400) {
+      res.resume();
+      return done(new Error('HTTP ' + res.statusCode));
+    }
+    collect(res, req, MAX_BIN, function (e, buf) {
+      if (e) return done(e);
+      if (/gzip/i.test(String(res.headers['content-encoding'] || ''))) return gunzipLimited(buf, MAX_BIN, done);
+      done(null, buf);
+    });
+  });
+}
+
 /**
  * Él-e az adás – úgy, ahogy a lejátszó látja: HLS-nél a változatlistán és a médialistán át
  * egy valódi videószegmens elejét is letölti (földrajzi korlát, üres adás kiszűrése).
@@ -305,4 +329,4 @@ function probeAll(items, concurrency, cb) {
   next();
 }
 
-module.exports = { download: download, probe: probe, probeAll: probeAll, httpText: httpText };
+module.exports = { download: download, downloadBytes: downloadBytes, probe: probe, probeAll: probeAll, httpText: httpText };

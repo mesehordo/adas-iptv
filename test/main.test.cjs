@@ -289,3 +289,25 @@ test('DLNA (U13): egyszerre csak egy állapotlekérdezés fut – a lassú régi
   await s.status();
   assert.deepEqual(ev.map((e) => e.time), [10, 20], 'a pozíció csak előre lépett: ' + JSON.stringify(ev));
 });
+
+test('webOS-szolgáltatás (V08): bájtos letöltés – a ZIP változatlan, az átviteli gzip kibontva, a hibakód hiba', async (t) => {
+  const zlib = require('zlib');
+  const lib = require(path.join(ROOT, 'webos/service/lib.js'));
+  const zip = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x1f, 0x8b, 0x00, 0xff, 0x10]);
+  const srv = http.createServer((req, res) => {
+    if (req.url === '/a.zip') return res.end(zip);
+    if (req.url === '/gz.zip') {
+      res.setHeader('Content-Encoding', 'gzip');
+      return res.end(zlib.gzipSync(zip));
+    }
+    res.statusCode = 404;
+    res.end('x');
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  t.after(() => srv.close());
+  const base = `http://127.0.0.1:${srv.address().port}`;
+  const get = (u) => new Promise((res, rej) => lib.downloadBytes(base + u, {}, (e, b) => (e ? rej(e) : res(b))));
+  assert.deepEqual(await get('/a.zip'), zip);
+  assert.deepEqual(await get('/gz.zip'), zip);
+  await assert.rejects(get('/nincs'), /HTTP 404/);
+});

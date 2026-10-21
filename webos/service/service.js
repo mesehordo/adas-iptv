@@ -21,11 +21,20 @@ function fail(message, err) {
   message.respond({ returnValue: false, errorText: String((err && err.message) || err) });
 }
 
-// fetch { url, ua?, referrer? } -> { id, length, chunkSize }
+// fetch { url, ua?, referrer?, binary? } -> { id, length, chunkSize }  (binary: a tartalom base64-ként – V08)
 service.register('fetch', function (message) {
   var p = message.payload || {};
   if (!/^https?:\/\//.test(p.url || '')) return fail(message, 'Érvénytelen cím');
-  lib.download(p.url, { ua: p.ua, referrer: p.referrer }, function (err, text) {
+  var get = p.binary
+    ? function (cb) {
+        lib.downloadBytes(p.url, { ua: p.ua, referrer: p.referrer }, function (err, buf) {
+          cb(err, buf ? buf.toString('base64') : '');
+        });
+      }
+    : function (cb) {
+        lib.download(p.url, { ua: p.ua, referrer: p.referrer }, cb);
+      };
+  get(function (err, text) {
     if (err) return fail(message, err);
     cleanup();
     var id = String(++seq);

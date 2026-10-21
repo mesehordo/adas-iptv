@@ -64,7 +64,7 @@ export const ARTICLES = [
 <h2>Recommended first settings</h2>
 <ul>
 <li><b>Home country</b> (Settings → Content and kids → Content): its channels come first and get the channel numbers. It is set from the language chosen at the first start.</li>
-<li><b>Interface style</b>: choose from sixteen looks, per profile. ${t('themes', 'Styles')}</li>
+<li><b>Interface style</b>: choose from thirty-two looks, per profile. ${t('themes', 'Styles')}</li>
 <li><b>Kids profile</b>: if a child uses the app too, give them a separate profile. ${t('kids', 'Details')}</li>
 </ul>
 ${go('#/settings', 'Open Settings')}`,
@@ -678,7 +678,7 @@ ${go('#/settings?section=reminders', 'Reminder settings')}`,
 <p>Programme data comes from sources in <b>XMLTV</b> format. Under Settings → TV guide you see each of them: how many channels it was matched to, how many programmes it contains, and, if it fails, what the error is.</p>
 <h2>Built-in sources</h2>
 <ul>
-<li>Switched on by default: the source(s) of your home country (set at the first start) and the playlist’s own source.</li>
+<li>Switched on by default: the source(s) of your home country (set at the first start; for Hungary three: iptv-epg.org, open-epg.com, epgshare01 – in this order) and the playlist’s own source.</li>
 <li>Can be switched on: Hungary, Slovakia, Romania, Germany, the United Kingdom, the USA, France, Italy, Spain, as well as the Pluto TV, Samsung TV Plus and Plex channel guides. The more sources are on, the longer loading takes.</li>
 </ul>
 <h2>Your own source</h2>
@@ -699,8 +699,8 @@ ${go('#/settings?section=reminders', 'Reminder settings')}`,
 <h2>Managing</h2>
 <p>Profile menu → <b>Manage profiles</b> → click a profile to edit it (name, profile picture, colour, kids profile, delete), or the <b>Add profile</b> button.</p>
 <h2>Profile picture</h2>
-<p>In the editor you can choose from 11 drawn profile pictures (fox, bunny, robot, characters, zen vases…), or the <b>letter</b> version: the first letter of the name on a background of the chosen colour. The profile picture shows on the “Who’s watching?” screen, in the header and in the profile menu.</p>
-<p><b>Own picture</b>: with the <i>Upload own picture…</i> button you can choose any PNG (or JPG, WebP) image. The program crops it to a square (from the centre) and scales it down to 256×256 pixels; the picture is stored with the profile, so it moves to other devices along with the profile. On TV there’s no file picker: the picture of a profile taken over from the computer appears there.</p>
+<p>In the editor you can choose from 29 drawn profile pictures (fox, bunny, robot, characters, zen vases…), or the <b>letter</b> version: the first letter of the name on a background of the chosen colour. The profile picture shows on the “Who’s watching?” screen, in the header and in the profile menu.</p>
+<p><b>Own picture</b>: with the <i>Upload own picture…</i> button you can choose any PNG (or JPG, WebP) image. The program crops it to a square (from the centre) and scales it down to 256×256 pixels; the picture is stored with the profile, so it moves to other devices along with the profile. On an LG TV there’s no file picker: the picture of the profile from a backup loaded from a web address appears there (on Android TV also that of a profile taken over with a code).</p>
 <h2>What belongs to the profile, and what is shared?</h2>
 <table class="help-table">
 <tr><th>Separate per profile</th><th>Shared by all profiles</th></tr>
@@ -727,7 +727,7 @@ ${go('#/profiles', 'Manage profiles')}`,
 <p>An adult (18+) channel never appears in a kids profile, even if you allow it by hand.</p>
 <h2>Adult content</h2>
 <p>Adult (18+) channels are hidden by default. To show them: Settings → Content and kids → Content → <b>Show adult content</b> (asks for confirmation). Filtering is based on iptv-org’s classification and blocklist.</p>
-<div class="warn">Filtering relies on the public database’s marks, so it isn’t perfect. With younger children it’s worth supervising use; switching profiles from a kids profile isn’t password-protected unless an adult profile has a PIN.</div>`,
+<div class="warn">Filtering relies on the public database’s marks, so it isn’t perfect. With younger children it’s worth supervising use; switching from a kids profile to an adult profile only asks for a PIN if an adult profile has one (${t('parental', 'Parental controls')}).</div>`,
   },
   {
     id: 'favorites',
@@ -905,7 +905,7 @@ ${go('#/settings', 'Open Settings')}`,
 <p><b>Restore from file</b>: the saved file overwrites the current settings and profiles (asks for confirmation), then the program restarts.</p>
 <p><b>Add profiles from file</b>: only takes over the backup’s profiles (with favourites, history, reminders, profile picture, PIN); the current settings, lists and other profiles stay, and an identical profile is updated. The same works over the network with the <b>Profiles only</b> switch under <i>Sync between devices</i>.</p>
 <h2>Is the profile file the same everywhere?</h2>
-<p>Yes: every version (Windows, Mac, Linux, LG TV, Android, browser) uses the same format, so a backup can be loaded on any device. Where there is no file picker (TV), use the network (<i>Sync between devices</i>) or a web address.</p>
+<p>Yes: every version (Windows, Mac, Linux, LG TV, Android, browser) uses the same format, so a backup can be loaded on any device. Where there is no file picker (LG TV), load it from a web address; on Android TV syncing with a code also works (<i>Sync between devices</i>).</p>
 <table class="help-table">
 <tr><th>Version</th><th>Where is the data?</th></tr>
 <tr><td>Windows</td><td><code>%APPDATA%\\Adás\\store.json</code> (both the installed and the portable version save here)</td></tr>
@@ -924,7 +924,7 @@ ${go('#/settings', 'Open Settings')}`,
 <li><b>Your recordings are kept</b> (the files in your Videos folder are yours, not app data).</li>
 </ul>
 <div class="tip">This cannot be undone – if you might want to return to your current setup, save it to a file first (<b>Save to file</b>).</div>
-<div class="note">On TV, saving to a file isn’t available – <i>Sync between devices</i> works there. On Android, saving uses the system’s file saver (e.g. to the Downloads folder or Google Drive).</div>`,
+<div class="note">On an LG TV, saving to a file and syncing with a code aren’t available – a backup made elsewhere can be loaded from a web address there. On Android TV, <i>Sync between devices</i> works too. On Android, saving uses the system’s file saver (e.g. to the Downloads folder or Google Drive).</div>`,
   },
 
   // ===================================================================== Channel lists
@@ -1049,7 +1049,7 @@ https://…/sport/playlist.m3u8</pre>
     title: 'Android: phone, tablet, Android TV',
     keywords: 'android phone mobile tablet android tv google tv shield box apk install',
     body: `
-<p>The Android version is a single <code>.apk</code> file (<code>dist-android/Adas-…apk</code>) that runs on phones, tablets and <b>Android TV / Google TV</b> (Android 6.0 or newer). On a TV the TV interface for remotes starts.</p>
+<p>The Android version comes as two <code>.apk</code> files in the releases (Android 6.0 or newer): <code>Adas-…-android-mobile.apk</code> for <b>phones and tablets</b>, <code>Adas-…-android-tv.apk</code> for <b>Android TV / Google TV</b>. The TV package also appears in the TV’s launcher and starts with the remote-friendly interface; the mobile package shows the phone interface on a TV too – install the TV package on a TV.</p>
 <h2>Installing</h2>
 <ul>
 <li><b>On a phone / tablet</b>: copy the APK over and open it. The first time you must allow the file manager (or browser) to install apps (“unknown sources”).</li>
@@ -1079,14 +1079,20 @@ https://…/sport/playlist.m3u8</pre>
 <ol>
 <li>Register a free account at <b>developer.lge.com</b>.</li>
 <li>On the TV: LG Content Store → install the <b>Developer Mode</b> app, log in, switch on <i>Dev Mode Status</i> and <i>Key Server</i>, then restart the TV. The app shows the TV’s IP address and passphrase.</li>
-<li>On the computer (Node.js needed), in the project folder:
-<pre class="code">npx ares-setup-device        (add the TV: name “tv”, IP address, port 9922)
-npx ares-novacom --device tv --getkey   (the passphrase is shown by the Developer Mode app)
-npm run webos:install -- --device tv
-npm run webos:launch -- --device tv</pre></li>
+<li>Build the package on the computer (Node.js needed), in the project folder:
+<pre class="code">npm install
+# result: dist-webos/hu.adas.tv_&lt;version&gt;_all.ipk
+node tools/build-webos.mjs</pre></li>
+<li>Add the TV and install:
+<pre class="code"># add the TV: name “tv”, IP address, port 9922
+npx ares-setup-device
+# the passphrase is shown by the Developer Mode app
+npx ares-novacom --device tv --getkey
+npx ares-install --device tv dist-webos/hu.adas.tv_&lt;version&gt;_all.ipk
+npx ares-launch --device tv hu.adas.tv</pre></li>
 </ol>
 <p>A graphical option: the <b>webOS Dev Manager</b> desktop program → <i>Install from file</i> → the <code>.ipk</code> file.</p>
-<div class="warn">Developer mode expires every 50 hours; it can be extended with one press in the Developer Mode app. After it expires, the installed app disappears and has to be reinstalled.</div>`,
+<div class="warn">A developer mode session is valid for a limited time: the Developer Mode app shows the remaining time, and it can be extended there with <i>Extend</i>. When it expires, developer mode switches off and the installed app disappears – it has to be reinstalled.</div>`,
   },
   {
     id: 'tv-remote',
@@ -1287,7 +1293,7 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 </table>
 <p><b>Keys:</b> <kbd>Space</kbd> or the media key: pause / resume; <kbd>CH+</kbd> / <kbd>CH−</kbd>: next / previous station from the row you started from; <kbd>D</kbd>: stream info; <kbd>Esc</kbd>: close the Now playing view.</p>
 <p><b>Sources</b> (Settings → <i>Radio</i>, each can be turned off): <i>Radio Browser</i> (a community database with tens of thousands of stations), <i>Verified Radio Streams</i> (tested streams) and <i>IPRD</i> (a selection per country). The same station from several sources shows up as one card, and its addresses are tried one after another as fallbacks. You can also add your own M3U radio list from a web address, with a refresh interval, or load an .adaspack pack of kind “radio”.</p>
-<div class="note">Starting a video (live channel, film) stops the radio, and starting the radio closes the video. On LG webOS TVs, sound effects and visualisation aren’t available (the TV’s browser engine can’t access the stream’s audio); the radio still plays there. The menu item can be turned off under Settings → <i>Radio</i>; it is hidden in kids’ profiles.</div>`,
+<div class="note">Starting a video (live channel, film) stops the radio, and starting the radio closes the video. On LG webOS TVs and on Android, sound effects (equaliser, sound) and visualisation aren’t available – the TV’s browser engine can’t access the stream’s audio, and on Android the radio plays with the system’s own player (so it’s reliable in the background); the radio and the sleep timer still work there. The menu item can be turned off under Settings → <i>Radio</i>; it is hidden in kids’ profiles.</div>`,
   },
   {
     id: 'sport-page',
@@ -1357,7 +1363,7 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 <li>To switch it on during playback: <b>CC</b> button → <i>Audio and subtitles</i> → <i>Night mode audio</i>.</li>
 <li>You can make it the default per profile: Settings → Subtitles and information → Info and subtitles in your language → <i>Night mode audio</i>.</li>
 </ul>
-<div class="note">Available in the desktop version.</div>`,
+<div class="note">Available in the desktop version and on Android (from Android 9, with the native player); not on LG TVs or in the browser.</div>`,
   },
   {
     id: 'parental',
@@ -1369,10 +1375,11 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 <h2>Kids profile</h2>
 <p>If at least one <b>adult profile has a PIN</b>, then from the kids profile:</p>
 <ul>
-<li>switching to another profile is only possible with the PIN,</li>
+<li>switching to an adult profile needs an adult profile’s PIN (even if the target profile isn’t locked); switching to another kids profile needs no PIN unless that profile has its own,</li>
 <li><b>Settings</b> and <b>Manage profiles</b> only open with an adult PIN (the approval is valid for 10 minutes),</li>
 <li>adult content and channels not meant for children still don’t appear.</li>
 </ul>
+<p>If no adult profile has a PIN, switching profiles is free. A profile locked with its own PIN always asks for that PIN.</p>
 <p>The PIN can be typed with the remote’s number buttons or the on-screen number pad. After five wrong attempts you have to wait half a minute.</p>
 <h2>Forgotten PIN</h2>
 <p>Any profile’s PIN can be removed from another adult profile (Manage profiles). If there is no such profile, deleting the app’s data resets everything. ${t('privacy', 'Where is the data?')}</p>
@@ -1395,7 +1402,7 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
     body: `
 <p>The <i>Viewing statistics</i> item in the profile menu shows how much and when you watch TV: today, in the last week and month, by day, by time of day; the most-watched channels, categories, films and series.</p>
 <ul>
-<li>Counted separately per profile, only the time actually played (without pauses).</li>
+<li>Counted separately per profile, only the time actually played (without pauses) – including playback in the background, in a small window and casting.</li>
 <li>The data is stored only on this device. On the statistics page, collection can be switched off and the data deleted.</li>
 </ul>
 ${go('#/stats', 'Open statistics')}`,
@@ -1508,12 +1515,12 @@ ${go('#/recordings', 'Recordings')}`,
     title: 'Updates',
     keywords: 'update new version download install github release',
     body: `
-<p>The desktop version (Windows, macOS, Linux) updates itself from <b>GitHub</b>, from the official releases (<code>github.com/mesehordo/adas-iptv</code>). Settings → <b>Updates</b>:</p>
+<p>The desktop version (Windows, macOS, Linux) can be updated from <b>GitHub</b>, from the official releases (<code>github.com/mesehordo/adas-iptv</code>). Settings → <b>Updates</b>:</p>
 <ul>
 <li><b>Check for updates at startup</b> (on by default): at every start it checks whether there’s a new version; if there is, you get a notification and can install it right away with the <i>Update</i> button. If you don’t want this, switch it off – then it only checks on request.</li>
 <li><b>Check for updates now</b>: an immediate check; for a new version the release notes and the <b>Download and install</b> button appear.</li>
-<li>Installation follows how the app was installed: installed with the installer (Setup), the new installer starts; installed with MSI, the new MSI; for the <b>portable</b> version you’ll find the downloaded file in the folder that opens (start it instead of the old one); on Linux the AppImage replaces itself.</li>
-<li><b>Update source</b>: empty means the official releases. You can give your own GitHub repository (<code>owner/repo</code>) or the address of a JSON file: <code>{ "version": "1.25.0", "url": "https://…/Adas-Setup-1.25.0.exe", "notes": "…" }</code>.</li>
+<li>Installation follows how the app was installed: installed with the installer (Setup), the new installer starts; installed with MSI, the new MSI; for the <b>portable</b> version you’ll find the downloaded file in the folder that opens (start it instead of the old one); on Linux the AppImage replaces itself (if its location is writable). <b>On macOS and on Linux installed from the DEB package</b> there is no self-install: the folder of the downloaded, verified file (DMG or DEB) opens – open it and install it the usual way (on a Mac, drag it into Applications).</li>
+<li><b>Update source</b>: empty means the official releases. You can give your own GitHub repository (<code>owner/repo</code>, with a <code>SHA256SUMS.txt</code> in the release) or the address of a JSON file: <code>{ "version": "1.25.0", "url": "https://…/Adas-Setup-1.25.0.exe", "sha256": "…", "notes": "…" }</code>. Per platform: <code>"assets": { "win": "…", "mac": "…", "linux": "…", "android": "…", "androidtv": "…" }</code> and <code>"sha256": { "win": "…", … }</code> (on Android only this form). <code>sha256</code> is the file’s SHA-256 sum (64 hex digits, e.g. <code>sha256sum file</code>, on Windows <code>certutil -hashfile file SHA256</code>) – without it the new version is shown but can’t be downloaded in the app.</li>
 </ul>
 <div class="note">On <b>Android</b> you can update here too: <b>Download and install</b> downloads the new <code>.apk</code>, verifies it (the release checksum, the package name, its version and signature – a differently signed or older package is not installed), then Android asks you to confirm the installation. The first time, you need to allow Adás to install apps (the setting opens automatically). Profiles, lists and settings are kept. On a TV the TV build, on a phone the mobile build is downloaded if the release contains them separately.</div>
 ${go('#/settings?section=update', 'Updates')}`,
@@ -1527,7 +1534,7 @@ ${go('#/settings?section=update', 'Updates')}`,
     keywords: 'privacy data storage where tracking account folder',
     body: `
 <ul>
-<li>No account, no registration, no tracking, and the program doesn’t send data about your usage anywhere.</li>
+<li>No account, no registration, no tracking; the program doesn’t collect or send statistics about your usage. There is one exception: for a station started from the Radio Browser database – like every player built on it – a “click” signal goes to the Radio Browser server (only the station’s ID; it counts the stations’ popularity from this); the source can be switched off under Settings → <i>Radio</i>.</li>
 <li>All settings, profiles and downloaded lists are stored <b>locally</b>:
   <ul>
   <li>Windows: <code>%APPDATA%\\Adás</code></li>
@@ -1535,7 +1542,7 @@ ${go('#/settings?section=update', 'Updates')}`,
   <li>Linux: <code>~/.config/Adás</code></li>
   <li>On TV and Android: in the app’s own storage.</li>
   </ul> ${t('data-locations', 'Exact locations (recordings too)')} · ${t('backup', 'Backup and moving')}</li>
-<li>The program connects to the following servers: iptv-org (channel list and data), the switched-on TV guide sources, the addresses of your own lists, the servers hosting the channel logos, and during playback the streams’ own servers. Like any website, these may see your IP address.</li>
+<li>The program connects to the following servers: iptv-org (channel list and data), the switched-on TV guide sources, the addresses of your own lists, the servers hosting the channel logos, the switched-on services (radio databases and track data, weather, news, exchange rates, sports, subtitles, covers and film data, update checks), and during playback the streams’ own servers. Like any website, these may see your IP address.</li>
 <li>When casting and handing over settings, the desktop version starts a small server on the <b>local network</b> (around port 47800). The relay can only be used with a random key that’s new at every start; the settings can only be downloaded with the code, which is valid for 15 minutes.</li>
 <li>Viewing statistics, PINs and settings are never sent anywhere.</li>
 </ul>`,

@@ -469,6 +469,7 @@ export const player = {
     clearTimeout(this.numTimer); // a félig beírt csatornaszám ne nyissa újra a lejátszót
     this.numBuffer = '';
     this.engine.stop();
+    this.sleepRestore(); // (V04: a kivetítés lezárása előtt – utána a vevő már nem érhető el)
     this.castHooks?.onClose?.();
     this.active = false;
     root.classList.remove('vod');
@@ -850,6 +851,7 @@ export const player = {
   setSleep(minutes) {
     clearInterval(this.sleepTimer);
     this.sleepAt = 0;
+    this.sleepRestore(); // (V04) elhalkulás közben kikapcsolva / átállítva: a hangerő visszaáll
     if (minutes === -1 && this.channel?.vod && isFinite(video.duration)) {
       this.sleepAt = Date.now() + Math.max(0, video.duration - video.currentTime) * 1000;
     } else if (minutes === -1) {
@@ -872,14 +874,28 @@ export const player = {
     if (left <= 0) {
       clearInterval(this.sleepTimer);
       this.sleepAt = 0;
-      video.volume = store.settings.volume;
+      this.sleepRestore();
       this.close();
       toast(_t('Az elalvási időzítő leállította a lejátszást. Jó éjszakát!'), { timeout: 8000 });
       return;
     }
-    // Az utolsó 15 másodpercben lágyan elhalkul.
-    if (left < 15000) video.volume = store.settings.volume * (left / 15000);
+    // Az utolsó 15 másodpercben lágyan elhalkul – (V04) kivetítéskor a vevő; a kezdő hangerő rögzül
+    if (left < 15000) {
+      const cast = !!this.castHooks?.active;
+      if (!this.sleepFade) this.sleepFade = { cast, from: cast ? this.castHooks.volume : video.volume };
+      const v = this.sleepFade.from * (left / 15000);
+      if (this.sleepFade.cast) cast && this.castHooks.setVolume(v);
+      else video.volume = v;
+    }
     if (Math.round(left / 1000) % 60 === 0) this.renderControls();
+  },
+  /** (V04) az elhalkulás előtti hangerő visszaállítása (a helyi videón, ill. a vevőn) */
+  sleepRestore() {
+    const f = this.sleepFade;
+    if (!f) return;
+    this.sleepFade = null;
+    if (f.cast) this.castHooks?.active && this.castHooks.setVolume(f.from);
+    else video.volume = f.from;
   },
 
   async setMini(on) {
@@ -907,6 +923,7 @@ export const player = {
   },
   setVolume(v) {
     v = Math.max(0, Math.min(1, v));
+    this.sleepFade = null; // (V04) kézi hangerőváltás: az elhalkulás az új értékből folytatódik, ez marad meg
     // (U14) kivetítéskor a vevő hangereje változik (a helyi videó nem szól)
     if (this.castHooks?.active) {
       this.castHooks.setVolume(v);
@@ -1346,6 +1363,7 @@ root.addEventListener('input', (e) => {
   }
   if (e.target.dataset.c === 'volume') {
     const v = Number(e.target.value);
+    player.sleepFade = null; // (V04) kézi hangerőváltás az elhalkulás közben
     // (U14) kivetítéskor a csúszka a vevő hangerejét állítja
     if (player.castHooks?.active) return void player.castHooks.setVolume(v);
     video.volume = v;

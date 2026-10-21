@@ -372,7 +372,7 @@ A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
 ## Súgó
 
-Beépített, kereshető súgó 42 témakörrel (első lépések, lejátszás, keresés, műsorújság, személyre szabás, listák, tévé, hibaelhárítás, GYIK, adatvédelem). Megnyitás: <kbd>F1</kbd>, <kbd>?</kbd>, a fejléc kérdőjel ikonja vagy a profilmenü – mindig az aktuális képernyőhöz tartozó témával. A beállítások egyes részeinél a ? gomb a vonatkozó témára visz.
+Beépített, kereshető súgó 70 témakörrel (első lépések, lejátszás, keresés, műsorújság, személyre szabás, listák, tévé, hibaelhárítás, GYIK, adatvédelem). Megnyitás: <kbd>F1</kbd>, <kbd>?</kbd>, a fejléc kérdőjel ikonja vagy a profilmenü – mindig az aktuális képernyőhöz tartozó témával. A beállítások egyes részeinél a ? gomb a vonatkozó témára visz.
 
 ## Billentyűparancsok
 
