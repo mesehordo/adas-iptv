@@ -415,6 +415,9 @@ function runSelfTest(w, file) {
   const abs = path.resolve(__dirname, file);
   if (!abs.startsWith(path.join(__dirname, 'test') + path.sep)) return;
   const url = require('url').pathToFileURL(abs).href;
+  // (a takart / háttérbe került tesztablakban a böngészőmotor visszafogná az időzítőket – a tesztek sleep()-jei
+  // percekig tartanának, és a futás véletlenszerűen időtúllépéssel állna le)
+  w.webContents.setBackgroundThrottling(false);
   const ready = `!!document.querySelector('#view')?.childElementCount && !document.body.classList.contains('onboarding')`;
   // (a tesztkeret az épp induló teszt nevét a konzolra írja: elakadáskor az eredmény megmondja, hol tartott)
   let current = '';

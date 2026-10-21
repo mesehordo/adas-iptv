@@ -101,7 +101,8 @@ export async function buildWebBundle(appDir, { flagScript }) {
 
   copy(r('node_modules/hls.js/dist/hls.min.js'), path.join(appDir, 'lib/hls.min.js'));
   copy(r('node_modules/mpegts.js/dist/mpegts.js'), path.join(appDir, 'lib/mpegts.js'));
-  copy(r('node_modules/dashjs/dist/dash.all.min.js'), path.join(appDir, 'lib/dash.all.min.js'));
+  // (dash.js 5: a régebbi böngészőmotorokhoz – webOS 4, régi Android WebView – fordított változat)
+  copy(r('node_modules/dashjs/dist/legacy/umd/dash.all.min.js'), path.join(appDir, 'lib/dash.all.min.js'));
 
   const css = [r('src/style.css'), r('src/themes.css'), r('webos/tv-fallback.css')].map((f) => fs.readFileSync(f, 'utf8')).join('\n');
   fs.writeFileSync(path.join(appDir, 'style.css'), legacyCss(css));
@@ -111,7 +112,7 @@ export async function buildWebBundle(appDir, { flagScript }) {
     .replace(/\s*<link rel="stylesheet" href="themes.css" \/>/, '')
     .replace(/\.\.\/node_modules\/hls\.js\/dist\//, 'lib/')
     .replace(/\.\.\/node_modules\/mpegts\.js\/dist\//, 'lib/')
-    .replace(/\.\.\/node_modules\/dashjs\/dist\//, 'lib/')
+    .replace(/\.\.\/node_modules\/dashjs\/dist\/modern\/umd\//, 'lib/')
     .replace('<script type="module" src="js/app.js"></script>', `<script>${flagScript}</script>\n  <script src="js/app.js"></script>`);
   fs.writeFileSync(path.join(appDir, 'index.html'), htmlSrc);
 

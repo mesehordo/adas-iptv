@@ -1274,8 +1274,8 @@ export default {
  "Kyokkō (sarki fény): lassan hullámzó színes háttér, matt üveg kártyák és lágy fénylés.": "Kyokkō (aurora): a slowly rippling colourful background, frosted-glass cards and a soft glow.",
  "Rakugaki (firka): vonalas füzetlap kézírással – a csatornák beragasztott polaroid fotók, ceruzás keretek.": "Rakugaki (doodle): a lined notebook page with handwriting – channels are taped-in polaroid photos, pencil borders.",
  "Phosphor: régi zöld foszforos monitor – fix szélességű betűk, parancssori feliratok, inverz kijelölés.": "Phosphor: an old green phosphor monitor – fixed-width type, command-line labels, inverse selection.",
- "Kontraszt: nagy kontrasztú – fekete alap, fehér és sárga szöveg, vastag sárga fókuszkeret, díszítés nélkül. Gyengénlátóknak és messziről nézve.": "Kontraszt: high contrast – black background, white and yellow text, a thick yellow focus frame, no decoration. For low vision and viewing from a distance.",
- "Nagybetűs: egyszerű, jól olvasható – világos alap, nagyobb betűk, kevés díszítés, mozgás nélkül. Idősebb nézőknek.": "Nagybetűs: simple and easy to read – light background, larger text, little decoration, no motion. For older viewers.",
+ "Kontraszt: nagy kontrasztú – fekete alap, fehér és sárga szöveg, vastag sárga fókuszkeret, díszítés nélkül. Gyengénlátóknak és messziről nézve.": "High contrast: black background, white and yellow text, a thick yellow focus frame, no decoration. For low vision and viewing from a distance.",
+ "Nagybetűs: egyszerű, jól olvasható – világos alap, nagyobb betűk, kevés díszítés, mozgás nélkül. Idősebb nézőknek.": "Large text: simple and easy to read – light background, larger text, little decoration, no motion. For older viewers.",
  "Shiro (fehér): sima, semleges világos – fehér–szürke alap, egyetlen kék kiemelés.": "Shiro (white): plain, neutral light – white–grey background with a single blue accent.",
  "Yoru (éjszaka): éjszakai mozi – szinte fekete, tompa, meleg borostyán kiemelés, visszafogott fényerő. Sötét szobába.": "Yoru (night): night cinema – almost black, muted warm amber accent, low brightness. For a dark room.",
  "Mori (erdő): mély fenyőzöld alap, moha- és kéregszínek, levél a sorcímek előtt.": "Mori (forest): deep pine-green background, moss and bark colours, a leaf before row titles.",
@@ -1285,7 +1285,7 @@ export default {
  "Shōwa: a 70-es évek – narancs, barna és mustár, lekerekített „tévéképernyő” kártyák, csíkos díszítés.": "Shōwa: the 1970s – orange, brown and mustard, rounded “TV screen” cards, striped decoration.",
  "Mu (üresség): szinte üres felület – csak a tartalom, sok tér, keretek, árnyékok és díszek nélkül.": "Mu (emptiness): an almost empty interface – just the content, lots of space, no frames, shadows or decoration.",
  "Holo: sci-fi irányítópult – sötét kékes alap rácsvonalakkal, cián hologramfény, vékony keretek, levágott sarkú gombok.": "Holo: a sci-fi control panel – dark bluish grid background, cyan hologram glow, thin frames, cut-corner buttons.",
- "Csillagidő: egy csillaghajó parancsnoki hídjának kezelőfelülete – fekete alap, lekerekített végű narancs, levendula és barack színsávok, keskeny, nagybetűs feliratok.": "Csillagidő (stardate): the control interface of a starship’s bridge – black background, round-ended orange, lavender and peach bars, narrow capital lettering.",
+ "Csillagidő: egy csillaghajó parancsnoki hídjának kezelőfelülete – fekete alap, lekerekített végű narancs, levendula és barack színsávok, keskeny, nagybetűs feliratok.": "Stardate: the control interface of a starship’s bridge – black background, round-ended orange, lavender and peach bars, narrow capital lettering.",
  "Hibás JSON (": "Invalid JSON (",
  "téma-fájl": "theme file",
  "Ez nem Adás téma-fájl (hiányzik: \"adasTheme\": 1).": "This isn’t an Adás theme file (missing: \"adasTheme\": 1).",
@@ -2293,5 +2293,8 @@ export default {
  "A profilok nem menthetők – az átvétel elmaradt:": "The profiles cannot be saved – nothing was imported:",
  "a webcím most nem érhető el – a mentett lista látszik": "the web address is not reachable right now – the saved list is shown",
  "A lejátszási puffer megtelt.": "The playback buffer is full.",
- "Az Adás nem tudott elindulni: {msg}": "Adás could not start: {msg}"
+ "Az Adás nem tudott elindulni: {msg}": "Adás could not start: {msg}",
+ "Kontraszt": "High contrast",
+ "Nagybetűs": "Large text",
+ "Csillagidő": "Stardate"
 };
