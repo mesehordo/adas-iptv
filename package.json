@@ -109,9 +109,11 @@
       "maintainer": "Adás <noreply@example.com>",
       "synopsis": "Élő TV lejátszó",
       "desktop": {
-        "Name": "Adás",
-        "Comment": "Élő TV lejátszó",
-        "Keywords": "tv;iptv;élő;televízió;műsor;"
+        "entry": {
+          "Name": "Adás",
+          "Comment": "Élő TV lejátszó",
+          "Keywords": "tv;iptv;élő;televízió;műsor;"
+        }
       }
     },
     "nsis": {
