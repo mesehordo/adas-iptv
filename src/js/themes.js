@@ -98,11 +98,11 @@ export const THEMES = {
     desc: _t('Phosphor: régi zöld foszforos monitor – fix szélességű betűk, parancssori feliratok, inverz kijelölés.'),
   },
   contrast: {
-    label: 'Kontraszt',
+    label: _t('Kontraszt'),
     desc: _t('Kontraszt: nagy kontrasztú – fekete alap, fehér és sárga szöveg, vastag sárga fókuszkeret, díszítés nélkül. Gyengénlátóknak és messziről nézve.'),
   },
   large: {
-    label: 'Nagybetűs',
+    label: _t('Nagybetűs'),
     desc: _t('Nagybetűs: egyszerű, jól olvasható – világos alap, nagyobb betűk, kevés díszítés, mozgás nélkül. Idősebb nézőknek.'),
     light: true,
   },
@@ -147,7 +147,7 @@ export const THEMES = {
     desc: _t('Holo: sci-fi irányítópult – sötét kékes alap rácsvonalakkal, cián hologramfény, vékony keretek, levágott sarkú gombok.'),
   },
   stardate: {
-    label: 'Csillagidő',
+    label: _t('Csillagidő'),
     desc: _t('Csillagidő: egy csillaghajó parancsnoki hídjának kezelőfelülete – fekete alap, lekerekített végű narancs, levendula és barack színsávok, keskeny, nagybetűs feliratok.'),
   },
 };
