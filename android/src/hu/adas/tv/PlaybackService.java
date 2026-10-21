@@ -103,8 +103,14 @@ public class PlaybackService extends Service {
         });
     session.setActive(true);
     // (az előtérbe lépés már itt: ha a szolgáltatás az onStartCommand előtt leállna – pl. gyors visszalépésnél –,
-    // a rendszer nem tekinti hibának, és az Adás nem omlik össze)
-    goForeground();
+    // a rendszer nem tekinti hibának, és az Adás nem omlik össze; betöltött adás nélkül – pl. egy késve érkező
+    // értesítésgomb – nincs értesítés, az onStartCommand leállítja)
+    if (mediaActive()) goForeground();
+  }
+
+  static boolean mediaActive() {
+    MainActivity a = MainActivity.instance;
+    return a != null && a.mediaActive;
   }
 
   void goForeground() {
@@ -133,7 +139,8 @@ public class PlaybackService extends Service {
         if (wifi == null) {
           WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
           if (wm != null) {
-            wifi = wm.createWifiLock(Build.VERSION.SDK_INT >= 29 ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY : WifiManager.WIFI_MODE_FULL_HIGH_PERF, "adas:playback");
+            // (a LOW_LATENCY mód csak bekapcsolt képernyőn hat – lezárt képernyőnél a HIGH_PERF)
+            wifi = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "adas:playback");
             wifi.setReferenceCounted(false);
           }
         }
@@ -167,9 +174,8 @@ public class PlaybackService extends Service {
     }
     if (TOGGLE.equals(action)) {
       // (egy már kiváltott, késve érkező gomb a leállított szolgáltatást nem indíthatja újra előtér nélkül)
-      // (az onCreate már előtérbe lép – a betöltött adás hiánya jelzi a késve érkező gombot)
-      MainActivity a = MainActivity.instance;
-      if (!foreground || a == null || !a.mediaActive) {
+      // (a betöltött adás hiánya jelzi a késve érkező gombot)
+      if (!foreground || !mediaActive()) {
         stopSelf();
         return START_NOT_STICKY;
       }
