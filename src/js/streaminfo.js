@@ -4,6 +4,7 @@
 import { esc, fmtNum } from './util.js';
 
 import { _t } from './i18n.js';
+import { dashCurrentBitrate } from './engine.js';
 const ENGINE = { hls: 'hls.js (HLS)', native: _t('Beépített lejátszó'), mpegts: 'mpegts.js (MPEG-TS / FLV)', dash: 'dash.js (DASH)', bridge: _t('Lejátszási híd (FFmpeg)'), exo: _t('Natív lejátszó (ExoPlayer)') };
 const mbit = (bps) => (bps > 0 ? (bps >= 1e6 ? `${_t('{toFixed} Mbit/s', { toFixed: fmtNum(bps / 1e6, 1) })}` : `${_t('{round} kbit/s', { round: Math.round(bps / 1e3) })}`) : '–');
 const sec = (s) => (Number.isFinite(s) ? `${_t('{toFixed} mp', { toFixed: fmtNum(s, 1) })}` : '–');
@@ -85,8 +86,7 @@ function render(player, video) {
   let bitrate = lvl?.bitrate || 0;
   if (!bitrate && e?.dash) {
     try {
-      const qi = e.dash.getQualityFor?.('video');
-      bitrate = e.dash.getBitrateInfoListFor?.('video')?.[qi]?.bitrate || 0;
+      bitrate = dashCurrentBitrate(e.dash);
     } catch {}
   }
   if (!bitrate && e?.fragBitrate) bitrate = e.fragBitrate; // a letöltött szegmensekből mérve

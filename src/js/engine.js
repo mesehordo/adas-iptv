@@ -37,7 +37,7 @@ export const maxQualityHeight = () => Number(store.settings.maxQuality) || 0;
  * nagyobb, a legkisebb – mint a hls.js-nél). Automatikusnál a korlát feloldva.
  */
 function applyDashCap(dash) {
-  const list = dash?.getBitrateInfoListFor?.('video') || [];
+  const list = dashVideoReps(dash);
   const max = maxQualityHeight();
   let kbps = -1;
   if (max && list.length) {
@@ -46,6 +46,22 @@ function applyDashCap(dash) {
     if (pick > 0) kbps = Math.ceil(pick / 1000);
   }
   dash.updateSettings({ streaming: { abr: { maxBitrate: { video: kbps } } } });
+}
+
+/**
+ * A DASH-adás videós minőségei: [{ height, bitrate }] – a dash.js 5 (getRepresentationsByType, bandwidth) és a
+ * korábbi 4.x (getBitrateInfoListFor, bitrate) felületével is.
+ */
+export function dashVideoReps(dash) {
+  const list = dash?.getRepresentationsByType?.('video') ?? dash?.getBitrateInfoListFor?.('video') ?? [];
+  return list.map((r) => ({ height: r.height || 0, bitrate: r.bandwidth ?? r.bitrate ?? 0 }));
+}
+/** A DASH-adás most játszott videós minőségének bitrátája (bit/s), vagy 0. */
+export function dashCurrentBitrate(dash) {
+  const cur = dash?.getCurrentRepresentationForType?.('video');
+  if (cur) return cur.bandwidth || 0;
+  const qi = dash?.getQualityFor?.('video');
+  return dash?.getBitrateInfoListFor?.('video')?.[qi]?.bitrate || 0;
 }
 
 function detectType(url) {
@@ -294,7 +310,9 @@ export class Engine {
       } else if (this.type === 'dash' && window.dashjs) {
         const p = window.dashjs.MediaPlayer().create();
         this.dash = p;
-        p.updateSettings({ debug: { logLevel: 0 }, streaming: { lowLatencyEnabled: false, text: { defaultEnabled: false } } });
+        // (nincs késleltetés-behozás gyorsított lejátszással – stabil puffer; dash.js 5-ben a lowLatencyEnabled megszűnt,
+        // a liveCatchup.enabled a 4.x-ben és az 5-ben is érvényes)
+        p.updateSettings({ debug: { logLevel: 0 }, streaming: { liveCatchup: { enabled: false }, text: { defaultEnabled: false } } });
         p.on('error', (e) => fail(new Error(`${_t('DASH hiba:')} ` + (e.error?.message || e.error || ''))));
         p.on('streamInitialized', () => {
           this.headReceived = true;
@@ -405,7 +423,7 @@ export class Engine {
       }));
     }
     if (this.dash) {
-      return (this.dash.getBitrateInfoListFor?.('video') || []).map((b, i) => ({ index: i, label: `${b.height}p` }));
+      return dashVideoReps(this.dash).map((b, i) => ({ index: i, label: `${b.height}p` }));
     }
     return [];
   }
@@ -426,7 +444,8 @@ export class Engine {
     if (this.hls) this.hls.currentLevel = i;
     if (this.dash) {
       this.dash.updateSettings({ streaming: { abr: { autoSwitchBitrate: { video: i < 0 } } } });
-      if (i >= 0) this.dash.setQualityFor('video', i);
+      // (dash.js 5: setRepresentationForTypeByIndex; 4.x: setQualityFor)
+      if (i >= 0) this.dash.setRepresentationForTypeByIndex ? this.dash.setRepresentationForTypeByIndex('video', i) : this.dash.setQualityFor?.('video', i);
     }
   }
 
