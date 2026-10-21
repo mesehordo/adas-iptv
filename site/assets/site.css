@@ -1,0 +1,196 @@
+/* Adás weboldal – a program saját, alapértelmezett kinézetére építve (sötét háttér, piros kiemelés, kártyák) */
+:root {
+  --bg: #141414;
+  --bg-2: #181818;
+  --bg-3: #232323;
+  --bg-4: #2f2f2f;
+  --line: #2c2c2c;
+  --text: #e5e5e5;
+  --strong: #fff;
+  --muted: #a3a3a3;
+  --accent: #e50914;
+  --accent-2: #f40612;
+  --ok: #46d369;
+  --radius: 10px;
+  --wrap: 1200px;
+  --font: 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 17px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+img { max-width: 100%; height: auto; display: block; }
+a { color: inherit; }
+h1, h2, h3 { color: var(--strong); line-height: 1.15; margin: 0; }
+p { margin: 0; }
+.wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 24px; }
+.muted { color: var(--muted); }
+.skip { position: absolute; left: -999px; top: 8px; background: var(--accent); color: #fff; padding: 8px 14px; border-radius: 6px; z-index: 100; }
+.skip:focus { left: 8px; }
+
+/* ------------------------------------------------------------------ fejléc */
+.top { position: sticky; top: 0; z-index: 50; background: linear-gradient(180deg, rgba(0, 0, 0, 0.92), rgba(0, 0, 0, 0.72)); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.top .wrap { display: flex; align-items: center; gap: 28px; height: 64px; }
+.brand { color: var(--accent); font-weight: 900; letter-spacing: 0.06em; font-size: 28px; text-decoration: none; display: inline-block; transform: scaleY(1.15); text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); }
+.nav { display: flex; gap: 22px; font-size: 15px; }
+.nav a { text-decoration: none; color: #ddd; }
+.nav a:hover { color: #fff; }
+.top .grow { flex: 1; }
+.lang { display: flex; border: 1px solid #444; border-radius: 6px; overflow: hidden; font-size: 13px; font-weight: 600; }
+.lang a { padding: 5px 10px; text-decoration: none; color: var(--muted); }
+.lang a[aria-current='true'] { background: #fff; color: #000; }
+.gh { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; text-decoration: none; color: #ddd; }
+.gh svg { width: 20px; height: 20px; fill: currentColor; }
+
+/* ------------------------------------------------------------------ gombok */
+.btn { display: inline-flex; align-items: center; gap: 10px; padding: 13px 24px; border-radius: 6px; font-weight: 700; font-size: 17px; text-decoration: none; border: 0; cursor: pointer; transition: transform 0.15s, background 0.15s; }
+.btn svg { width: 20px; height: 20px; fill: currentColor; }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.primary:hover { background: var(--accent-2); transform: translateY(-1px); }
+.btn.ghost { background: rgba(109, 109, 110, 0.55); color: #fff; }
+.btn.ghost:hover { background: rgba(109, 109, 110, 0.8); }
+.btn:focus-visible, a:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+/* ------------------------------------------------------------------ nyitó rész */
+.hero { position: relative; overflow: hidden; padding: 88px 0 40px; }
+.hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(900px 480px at 78% 20%, rgba(229, 9, 20, 0.28), transparent 70%), radial-gradient(700px 400px at 10% 90%, rgba(229, 9, 20, 0.12), transparent 70%); pointer-events: none; }
+.hero .wrap { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 56px; align-items: center; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+.eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.25); animation: pulse 2s infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 8px rgba(229, 9, 20, 0); } }
+.hero h1 { font-size: clamp(40px, 5.4vw, 66px); font-weight: 800; margin: 16px 0 20px; letter-spacing: -0.01em; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.hero .lead { font-size: 20px; color: #cfcfcf; max-width: 34em; }
+.cta { display: flex; flex-wrap: wrap; gap: 14px; margin: 32px 0 18px; }
+.ver { font-size: 14px; color: var(--muted); }
+.ver b { color: var(--text); }
+.shot-stack { position: relative; }
+.shot-stack .desk { border-radius: 12px; border: 1px solid #333; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.03); }
+.shot-stack .phone { position: absolute; width: 27%; right: -10px; bottom: -36px; border-radius: 26px; border: 6px solid #0b0b0b; outline: 1px solid #3a3a3a; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7); }
+.platforms-line { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 56px; color: var(--muted); font-size: 14px; }
+.platforms-line span { display: inline-flex; align-items: center; gap: 7px; }
+.platforms-line svg { width: 18px; height: 18px; fill: currentColor; opacity: 0.85; }
+
+/* ------------------------------------------------------------------ szakaszok */
+section { padding: 84px 0; }
+.sec-head { max-width: 720px; margin-bottom: 40px; }
+.sec-head h2 { font-size: clamp(30px, 3.6vw, 42px); font-weight: 800; margin-bottom: 14px; }
+.sec-head h2::before { content: ''; display: block; width: 44px; height: 4px; background: var(--accent); border-radius: 2px; margin-bottom: 18px; }
+.sec-head p { color: #c4c4c4; font-size: 18px; }
+.alt { background: var(--bg-2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+
+/* funkciókártyák – mint a program kártyái */
+.features { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.feat { background: var(--bg-3); border-radius: var(--radius); padding: 22px 22px 24px; border: 1px solid transparent; transition: transform 0.2s, border-color 0.2s, background 0.2s; position: relative; overflow: hidden; }
+.feat:hover { transform: translateY(-3px) scale(1.01); border-color: #444; background: #272727; }
+.feat .ico { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; background: rgba(229, 9, 20, 0.14); color: var(--accent); margin-bottom: 16px; }
+.feat .ico svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.feat h3 { font-size: 19px; margin-bottom: 8px; }
+.feat p { font-size: 15px; color: #bdbdbd; }
+
+/* képernyőkép-túra */
+.tour { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 28px; align-items: start; }
+.tabs { display: flex; flex-direction: column; gap: 6px; }
+.tab { all: unset; cursor: pointer; padding: 14px 16px; border-radius: 8px; border-left: 3px solid transparent; color: #bbb; transition: background 0.15s; }
+.tab b { display: block; color: #e5e5e5; font-size: 16px; }
+.tab small { display: block; font-size: 13.5px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+.tab:hover { background: var(--bg-3); }
+.tab[aria-selected='true'] { background: var(--bg-3); border-left-color: var(--accent); }
+.tab[aria-selected='true'] b { color: #fff; }
+.tab:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.frame { border-radius: 12px; overflow: hidden; border: 1px solid #333; box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55); background: #000; aspect-ratio: 1440 / 880; }
+.frame img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.frame figcaption { display: none; }
+
+/* témák */
+.themes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+.theme { margin: 0; }
+.theme img { border-radius: 8px; border: 1px solid #333; aspect-ratio: 16 / 10; object-fit: cover; object-position: top left; transition: transform 0.2s; }
+.theme:hover img { transform: scale(1.03); }
+.theme figcaption { font-size: 14px; margin-top: 10px; color: #ccc; }
+.theme figcaption b { color: #fff; }
+.more-themes { margin-top: 22px; color: var(--muted); }
+
+/* telefonok */
+.phones { display: flex; justify-content: center; gap: 28px; margin-top: 8px; }
+.phones img { width: 250px; border-radius: 30px; border: 7px solid #0b0b0b; outline: 1px solid #3a3a3a; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6); }
+.phones img:nth-child(2) { transform: translateY(-24px); }
+
+/* letöltés */
+.downloads { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.dl { background: var(--bg-3); border-radius: var(--radius); padding: 22px; display: flex; flex-direction: column; gap: 14px; border: 1px solid transparent; }
+.dl.mine { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.dl header { display: flex; align-items: center; gap: 12px; }
+.dl header svg { width: 30px; height: 30px; fill: currentColor; color: #fff; }
+.dl h3 { font-size: 20px; }
+.dl .tag { margin-left: auto; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; background: var(--accent); color: #fff; padding: 3px 8px; border-radius: 4px; }
+.dl ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.dl li a { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 6px; background: var(--bg-4); text-decoration: none; font-size: 15px; }
+.dl li a:hover { background: #3a3a3a; }
+.dl li a span { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.dl p { font-size: 14px; color: var(--muted); }
+.dl-note { margin-top: 22px; font-size: 15px; color: var(--muted); }
+.dl-note code, .faq code { background: var(--bg-4); padding: 1px 6px; border-radius: 4px; font-size: 0.92em; }
+
+/* bizalom */
+.trust { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.trust div { border-left: 3px solid var(--accent); padding: 4px 0 4px 18px; }
+.trust h3 { font-size: 18px; margin-bottom: 6px; }
+.trust p { font-size: 15px; color: #bdbdbd; }
+
+/* kérdések */
+.faq { max-width: 860px; }
+.faq details { border-bottom: 1px solid var(--line); }
+.faq summary { cursor: pointer; list-style: none; padding: 20px 40px 20px 0; font-size: 19px; font-weight: 600; color: #fff; position: relative; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: '+'; position: absolute; right: 6px; top: 14px; font-size: 30px; font-weight: 300; color: var(--muted); transition: transform 0.2s; }
+.faq details[open] summary::after { transform: rotate(45deg); color: var(--accent); }
+.faq details > div { padding: 0 0 22px; color: #c4c4c4; font-size: 16px; }
+.faq details > div p + p { margin-top: 10px; }
+
+/* lábléc */
+.foot { padding: 48px 0 56px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+.foot .wrap { display: flex; flex-wrap: wrap; gap: 18px 40px; align-items: center; }
+.foot .brand { font-size: 22px; }
+.foot nav { display: flex; gap: 20px; flex-wrap: wrap; }
+.foot a { text-decoration: none; }
+.foot a:hover { color: #fff; }
+.foot .grow { flex: 1; }
+
+/* megjelenés görgetéskor */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .eyebrow .dot { animation: none; }
+}
+
+/* ------------------------------------------------------------------ kisebb képernyők */
+@media (max-width: 1020px) {
+  .hero .wrap { grid-template-columns: 1fr; gap: 48px; }
+  .features { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tour { grid-template-columns: 1fr; }
+  .tabs { flex-direction: row; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+  .tab { border-left: 0; border-bottom: 3px solid transparent; white-space: nowrap; }
+  .tab small { display: none; }
+  .tab[aria-selected='true'] { border-bottom-color: var(--accent); }
+  .themes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .downloads, .trust { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  body { font-size: 16px; }
+  .wrap { padding: 0 16px; }
+  .nav, .gh span { display: none; }
+  .top .wrap { gap: 14px; }
+  .hero { padding: 52px 0 24px; }
+  .hero .lead { font-size: 18px; }
+  section { padding: 60px 0; }
+  .features, .downloads, .trust { grid-template-columns: 1fr; }
+  .themes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .shot-stack .phone { width: 30%; right: -4px; bottom: -22px; border-width: 4px; border-radius: 16px; }
+  .phones { gap: 12px; }
+  .phones img { width: 31%; border-width: 4px; border-radius: 16px; }
+  .phones img:nth-child(2) { transform: translateY(-12px); }
+  .btn { padding: 12px 18px; font-size: 16px; }
+}
