@@ -12,7 +12,9 @@ import android.media.MediaMetadata;
 import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
 import android.os.Build;
+import android.net.wifi.WifiManager;
 import android.os.IBinder;
+import android.os.PowerManager;
 
 /**
  * Lejátszás közben (előtérben is) egy állandó médiaértesítés jelzi, mi szól; a háttérben (képernyőzárnál, a rádió
@@ -35,6 +37,10 @@ public class PlaybackService extends Service {
   static volatile boolean paused = false;
   MediaSession session;
   boolean foreground; // ez a példány sikeresen előtérbe került-e
+  // lejátszás közben (nem szünetelve): a processzor és a Wi-Fi ébren marad – lezárt képernyőnél a Wi-Fi
+  // energiatakarékos módja nem szakítja meg az adást
+  PowerManager.WakeLock cpu;
+  WifiManager.WifiLock wifi;
 
   static void start(Context ctx, String t) {
     if (t != null) title = t;
@@ -96,6 +102,49 @@ public class PlaybackService extends Service {
           }
         });
     session.setActive(true);
+    // (az előtérbe lépés már itt: ha a szolgáltatás az onStartCommand előtt leállna – pl. gyors visszalépésnél –,
+    // a rendszer nem tekinti hibának, és az Adás nem omlik össze)
+    goForeground();
+  }
+
+  void goForeground() {
+    try {
+      Notification n = build();
+      if (Build.VERSION.SDK_INT >= 29) startForeground(ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+      else startForeground(ID, n);
+      foreground = true;
+    } catch (Exception e) {
+      // (pl. háttérből indítva – Android 12+)
+    }
+    locks();
+  }
+
+  /** Ébren tartás csak szóló adásnál (szünetelve nem meríti az akkumulátort). */
+  @SuppressWarnings("deprecation")
+  void locks() {
+    boolean on = foreground && !paused;
+    try {
+      if (on) {
+        if (cpu == null) {
+          PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+          cpu = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "adas:playback");
+          cpu.setReferenceCounted(false);
+        }
+        if (wifi == null) {
+          WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+          if (wm != null) {
+            wifi = wm.createWifiLock(Build.VERSION.SDK_INT >= 29 ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY : WifiManager.WIFI_MODE_FULL_HIGH_PERF, "adas:playback");
+            wifi.setReferenceCounted(false);
+          }
+        }
+        if (!cpu.isHeld()) cpu.acquire();
+        if (wifi != null && !wifi.isHeld()) wifi.acquire();
+      } else {
+        if (cpu != null && cpu.isHeld()) cpu.release();
+        if (wifi != null && wifi.isHeld()) wifi.release();
+      }
+    } catch (Exception ignored) {
+    }
   }
 
   static void command(String cmd) {
@@ -118,25 +167,23 @@ public class PlaybackService extends Service {
     }
     if (TOGGLE.equals(action)) {
       // (egy már kiváltott, késve érkező gomb a leállított szolgáltatást nem indíthatja újra előtér nélkül)
-      if (!foreground) {
+      // (az onCreate már előtérbe lép – a betöltött adás hiánya jelzi a késve érkező gombot)
+      MainActivity a = MainActivity.instance;
+      if (!foreground || a == null || !a.mediaActive) {
         stopSelf();
         return START_NOT_STICKY;
       }
       command(paused ? "play" : "pause");
       return START_NOT_STICKY;
     }
-    Notification n = build();
-    try {
-      if (Build.VERSION.SDK_INT >= 29) startForeground(ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
-      else startForeground(ID, n);
-      foreground = true;
-    } catch (Exception e) {
-      stopSelf();
-    }
+    goForeground();
+    // (egy már előtérben futó példányt egy sikertelen ismételt indítás nem állít le)
+    if (!foreground) stopSelf();
     return START_NOT_STICKY;
   }
 
   void refresh() {
+    locks();
     try {
       NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
       nm.notify(ID, build());
@@ -181,6 +228,8 @@ public class PlaybackService extends Service {
   @Override
   public void onDestroy() {
     instance = null;
+    foreground = false;
+    locks();
     try {
       session.setActive(false);
       session.release();
