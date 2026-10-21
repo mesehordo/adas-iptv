@@ -17,6 +17,8 @@
   <!-- (F03) beépített frissítés: a letöltött új verzió telepítése (a felhasználó jóváhagyásával) -->
   <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+  <!-- háttérlejátszás közben a processzor és a Wi-Fi ébren marad (lezárt képernyőnél sem szakad meg az adás) -->
+  <uses-permission android:name="android.permission.WAKE_LOCK" />
   <!-- Android TV: nincs érintőképernyő, a Leanback indítóban is megjelenik -->
   <uses-feature android:name="android.software.leanback" android:required="false" />
   <uses-feature android:name="android.hardware.touchscreen" android:required="false" />

@@ -96,6 +96,8 @@ public class MainActivity extends Activity {
   int folderId = -1;
 
   WebView web;
+  // (a rendszer leállította a lap folyamatát – a WebView ezután nem használható, a felület újraindul)
+  boolean rendererGone = false;
   NativePlayer nativePlayer;
   RadioNative radioNative; // a rádió natív lejátszója
   boolean tv;
@@ -148,6 +150,7 @@ public class MainActivity extends Activity {
     web.addJavascriptInterface(new Bridge(), "AdasAndroid");
     web.setWebViewClient(new Client());
     web.setWebChromeClient(new Chrome());
+    rendererPriority();
     web.setFocusable(true);
     web.setFocusableInTouchMode(true);
     launchChannel = getIntent().getStringExtra("channel");
@@ -178,7 +181,20 @@ public class MainActivity extends Activity {
   @Override
   protected void onSaveInstanceState(Bundle out) {
     super.onSaveInstanceState(out);
-    web.saveState(out);
+    if (!rendererGone) web.saveState(out);
+  }
+
+  /**
+   * A lap folyamatának fontossága: lejátszás közben (szünetelve is) a háttérben is fontos marad – a rendszer
+   * memóriahiánykor ne ezt lője ki elsőként (különben a háttérben szóló adás megszakad, és visszatéréskor az
+   * Adás elölről töltődik be); lejátszás nélkül a háttérben a szokásos (alacsony) fontosság.
+   */
+  void rendererPriority() {
+    if (Build.VERSION.SDK_INT < 26 || rendererGone) return;
+    try {
+      web.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, !mediaActive);
+    } catch (Exception ignored) {
+    }
   }
 
   /** Vissza gomb: az oldal kezeli (menük, lejátszó, előző oldal; a főoldalon kilépés). */
@@ -194,8 +210,11 @@ public class MainActivity extends Activity {
   protected void onResume() {
     super.onResume();
     foreground = true;
-    web.onResume();
-    PlaybackService.stop(this); // (előtérben nincs szükség a háttér-értesítésre)
+    wasPip = inPip(); // (a kis ablakból teljes nézetbe visszatérve már nem a kis ablak bezárása)
+    if (!rendererGone) web.onResume();
+    // (lejátszás közben az értesítés előtérben is marad – az onStart indította; a leállítása itt versenyt okozott:
+    // a még el sem indult előtérszolgáltatás leállítása a rendszer szerint hiba, és az Adás összeomolhatott)
+    if (!mediaActive) PlaybackService.stop(this);
   }
 
   /** Értesítésre kattintva, futó alkalmazásnál: a csatorna indul. */
@@ -256,11 +275,15 @@ public class MainActivity extends Activity {
     if (videoActive && playing && autoPip && !tv) enterPip();
   }
 
+  // (V03) kis ablakban volt-e – a bezárásakor (X) az onStop már nem kis ablakban fut: a lejátszás megáll
+  boolean wasPip = false;
+
   @Override
   public void onPictureInPictureModeChanged(boolean pip, Configuration cfg) {
     super.onPictureInPictureModeChanged(pip, cfg);
     // (a Home útvonalon az onPause a kis ablak előtt fut, és elindíthatta a háttér-értesítést – kis ablakban nem kell)
     if (pip) PlaybackService.stop(this);
+    if (pip) wasPip = true;
     web.evaluateJavascript("window.__adasPip&&window.__adasPip(" + pip + ")", null);
   }
 
@@ -312,11 +335,15 @@ public class MainActivity extends Activity {
   @Override
   protected void onStop() {
     super.onStop();
+    if (rendererGone) return;
+    // (V03) a kis ablak bezárása: leállítás a háttérlejátszás beállításától függetlenül (képernyőzárnál nem)
+    boolean pipClosed = wasPip && !inPip() && !screenOff();
+    wasPip = false;
     // a beállítások és a film pozíciójának azonnali mentése (a WebView nem mindig jelez a lapnak)
     web.evaluateJavascript("window.__adasFlush&&window.__adasFlush()", null);
     // Szól tovább (rádió; képernyőzár; bekapcsolt háttérlejátszás) – értesítéssel, a szolgáltatás már fut;
     // egyébként megáll.
-    if (keepPlaying()) {
+    if (keepPlaying() && !pipClosed) {
       startBackgroundPlayback(); // (ha valamiért nem indult el – régebbi Androidon ez még megengedett)
       return;
     }
@@ -332,7 +359,7 @@ public class MainActivity extends Activity {
     foreground = false;
     // háttérlejátszásnál a lap tovább fut, és a szolgáltatás (értesítés, médiavezérlők) most indul – az
     // alkalmazás ekkor még előtérben van; visszatéréskor (onResume) leáll
-    if (inPip()) return; // kis ablakban a lap tovább fut (látható), értesítés sem kell
+    if (inPip() || rendererGone) return; // kis ablakban a lap tovább fut (látható), értesítés sem kell
     if (keepPlaying()) startBackgroundPlayback();
     else web.onPause();
   }
@@ -349,7 +376,7 @@ public class MainActivity extends Activity {
       lanServer.rcStop();
     }
     pool.shutdownNow();
-    web.destroy();
+    if (!rendererGone) web.destroy();
     super.onDestroy();
   }
 
@@ -647,6 +674,7 @@ public class MainActivity extends Activity {
       // (az állapot azonnal látszik – egy épp zajló onPause / onStop már az újat olvassa; a szolgáltatás a UI-szálon)
       mediaActive = on;
       runOnUiThread(() -> {
+        rendererPriority();
         // (előtérszolgáltatás csak előtérből indítható – a háttérből érkező jelzést az onPause / onStop kezeli)
         if (on) {
           if (foreground) PlaybackService.start(MainActivity.this, nowPlaying);
@@ -1029,6 +1057,24 @@ public class MainActivity extends Activity {
   }
 
   class Client extends WebViewClient {
+    /**
+     * A rendszer (pl. memóriahiány miatt) leállította a lap folyamatát: kezelés nélkül ilyenkor az egész alkalmazás
+     * összeomlik – így csak a felület indul újra (a lejátszás megáll, de az Adás fut tovább).
+     */
+    @Override
+    public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
+      if (view != web || rendererGone) return true;
+      rendererGone = true;
+      if (nativePlayer != null) nativePlayer.pause();
+      if (radioNative != null) radioNative.release();
+      PlaybackService.stop(MainActivity.this);
+      // (az elhalt WebView nem használható újra: kikerül a nézetből és megszűnik; a késői hívások üres művelet)
+      if (view.getParent() instanceof android.view.ViewGroup) ((android.view.ViewGroup) view.getParent()).removeView(view);
+      view.destroy();
+      recreate();
+      return true;
+    }
+
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
       Uri u = req.getUrl();

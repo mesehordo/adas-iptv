@@ -196,7 +196,7 @@ class NativePlayer implements Player.Listener {
     }
     lastTracks = Tracks.EMPTY;
     if (surface != null) surface.setVisibility(View.GONE);
-    act.web.setBackgroundColor(Color.BLACK);
+    if (!act.rendererGone) act.web.setBackgroundColor(Color.BLACK);
   }
 
   void ensureSurface() {
