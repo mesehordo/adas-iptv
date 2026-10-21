@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
+<script>document.documentElement.classList.add('js')</script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Adás – live TV, films and radio in one place</title>
-<meta name="description" content="Adás is a free, open-source player for publicly available TV and radio streams: thousands of channels with a TV guide, your own film library, radio from around the world – on Windows, macOS, Linux, Android, Android TV and LG webOS." />
+<meta name="description" content="Adás is a free, open-source player for publicly available TV and radio streams: thousands of channels with a TV guide, your own film library, radio from around the world – on Windows, macOS, Linux, Android and Android TV." />
 <meta name="theme-color" content="#141414" />
 <link rel="icon" href="img/icon.png" />
 <link rel="alternate" hreflang="en" href="./" />
@@ -58,7 +59,7 @@
       <div class="platforms-line" aria-label="Platforms">
         <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-7v2h3v2H7v-2h3v-2H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm1 2v9h16V6Z"/></svg>Windows · macOS · Linux</span>
         <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm0 2v14h10V4Zm5 15.2a1 1 0 1 0 0 1.6 1 1 0 0 0 0-1.6Z"/></svg>Android phone &amp; tablet</span>
-        <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm1 2v9h16V7ZM8 20h8v2H8Z"/></svg>Android TV · LG webOS</span>
+        <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm1 2v9h16V7ZM8 20h8v2H8Z"/></svg>Android TV · Google TV</span>
       </div>
     </div>
     <div class="shot-stack">
@@ -168,7 +169,7 @@
   <div class="wrap">
     <div class="sec-head reveal">
       <h2>Phone, tablet, TV</h2>
-      <p>The same app on Android phones and tablets, with a bottom menu and full-screen landscape playback – and a remote-friendly interface on Android TV and LG webOS.</p>
+      <p>The same app on Android phones and tablets, with a bottom menu and full-screen landscape playback – and a remote-friendly interface on Android TV and Google TV.</p>
     </div>
     <div class="phones reveal">
       <img src="img/mobile-tv.jpg" width="780" height="1688" alt="TV channels on a phone" loading="lazy" />
@@ -201,7 +202,7 @@
           <li><a data-asset="-mac-arm64\.dmg$" href="https://github.com/mesehordo/adas-iptv/releases/latest">Apple Silicon (.dmg) <span></span></a></li>
           <li><a data-asset="-mac-x64\.dmg$" href="https://github.com/mesehordo/adas-iptv/releases/latest">Intel (.dmg) <span></span></a></li>
         </ul>
-        <p>Open the .dmg and drag Adás into Applications.</p>
+        <p>Open the .dmg and drag Adás into Applications. Adás isn't notarised by Apple, so the first launch needs one extra step: in Finder <b>right-click → Open → Open</b>; on macOS 15 and later launch it once, then <i>System Settings → Privacy &amp; Security →</i> <b>Open Anyway</b>.</p>
       </article>
       <article class="dl" data-os="linux">
         <header><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm1 4v12h14V7Zm2 2 3 2.5L7 14l-1-1 1.8-1.5L6 10Zm4 4h5v1.5h-5Z"/></svg><h3>Linux</h3></header>
@@ -226,11 +227,11 @@
         <p>Appears in the TV's launcher with a remote-friendly interface. Send it to the TV with an app like <i>Send files to TV</i>.</p>
       </article>
       <article class="dl" data-os="webos">
-        <header><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm1 2v9h16V7ZM8 20h8v2H8Z"/></svg><h3>LG webOS TV</h3></header>
+        <header><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm1 2v9h16V7ZM8 20h8v2H8Z"/></svg><h3>Other smart TVs</h3></header>
         <ul>
-          <li><a href="https://github.com/mesehordo/adas-iptv#readme">Build and install guide</a></li>
+          <li><a href="#tour">Cast from your computer or phone</a></li>
         </ul>
-        <p>LG TVs from 2018 (webOS 4.0+), installed in developer mode. The steps are in the app's help and the README.</p>
+        <p>On a TV without Android, send what you watch from the desktop or Android app to a Chromecast or DLNA TV. (The LG webOS version is on hold and isn't part of the releases.)</p>
       </article>
     </div>
     <p class="dl-note reveal">Every file is listed with its SHA-256 checksum in <code>SHA256SUMS.txt</code> on the <a href="https://github.com/mesehordo/adas-iptv/releases/latest">release page</a>; the built-in updater checks it before installing.</p>
@@ -276,7 +277,7 @@
       </details>
       <details>
         <summary>Can I use it on my TV?</summary>
-        <div><p>Yes: install the TV APK on Android TV / Google TV, or the webOS package on LG TVs (2018 or newer). You can also cast from your computer or phone to a Chromecast or DLNA TV.</p></div>
+        <div><p>Yes: install the TV APK on Android TV / Google TV. On other TVs you can cast from your computer or phone to a Chromecast or DLNA TV.</p></div>
       </details>
       <details>
         <summary>Is there a Hungarian version?</summary>
