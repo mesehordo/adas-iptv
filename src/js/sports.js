@@ -256,9 +256,16 @@ function tzName(tzid) {
   }
   return null;
 }
+// (zónánként egy formázó – az ismétlődések kibontása sokszor hívja)
+const TZ_FMT = new Map();
+const tzFmt = (tz) => {
+  let f = TZ_FMT.get(tz);
+  if (!f) TZ_FMT.set(tz, (f = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })));
+  return f;
+};
 /** A zóna eltolása (ms) az adott pillanatban. */
 function tzOffset(t, tz) {
-  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+  const p = Object.fromEntries(tzFmt(tz).formatToParts(new Date(t)).map((x) => [x.type, x.value]));
   return Date.UTC(+p.year, p.month - 1, +p.day, +p.hour % 24, +p.minute, +p.second) - Math.floor(t / 1000) * 1000;
 }
 /** A zóna faliórájának időpontja → abszolút idő (két lépésben, hogy a nyári időszámítás váltásánál is pontos). */
@@ -310,6 +317,8 @@ function icsExpand(first, rule, from, to) {
   const r = Object.fromEntries(String(rule).split(';').map((p) => p.split('=')).filter((p) => p.length === 2).map(([k, v]) => [k.toUpperCase(), v.toUpperCase()]));
   const freq = r.FREQ;
   if (!['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'].includes(freq)) return [first.start];
+  // (a nem értelmezett BY*-részekkel – pl. a hónap első szombatja – a kibontás téves napokat adna: csak az első alkalom)
+  if (Object.keys(r).some((k) => /^BY/.test(k) && !(k === 'BYDAY' && freq === 'WEEKLY'))) return [first.start];
   const step = Math.max(1, parseInt(r.INTERVAL, 10) || 1);
   const count = parseInt(r.COUNT, 10) || 0;
   const until = r.UNTIL ? icsValue(/T/.test(r.UNTIL) ? '' : ';VALUE=DATE', r.UNTIL) : null;
@@ -324,9 +333,10 @@ function icsExpand(first, rule, from, to) {
     let cands;
     if (freq === 'DAILY') cands = [{ ...w0, d: w0.d + k }];
     else if (freq === 'WEEKLY') {
-      // (a hét a kezdőnap hetéhez igazodik; BYDAY nélkül a kezdőnap napja)
-      const weekStart = w0.d - dow0 + k * 7;
-      cands = (days?.length ? [...days].sort((a, b) => a - b) : [dow0]).map((x) => ({ ...w0, d: weekStart + x }));
+      // (a hét a kezdőnap hetéhez igazodik, hétfővel kezdve – RFC 5545: WKST=MO; BYDAY nélkül a kezdőnap napja)
+      const wk = (x) => (x + 6) % 7;
+      const weekStart = w0.d - wk(dow0) + k * 7;
+      cands = (days?.length ? days.map(wk).sort((a, b) => a - b) : [wk(dow0)]).map((x) => ({ ...w0, d: weekStart + x }));
     } else if (freq === 'MONTHLY') cands = [{ ...w0, mo: w0.mo + k }];
     else cands = [{ ...w0, y: w0.y + k }];
     let stop = false;
@@ -376,7 +386,9 @@ function parseIcs(text, w, now = Date.now()) {
     // a hossz: DTEND, ennek híján DURATION (egész napos eseménynél a nap vége)
     const de = icsLines(block, 'DTEND')[0];
     const end = de && icsValue(de.params, de.value);
-    const len = end && end.start > tm.start ? end.start - tm.start : icsDuration(get('DURATION')) || (tm.allDay ? 15 * 3600e3 : 0);
+    // (egész napos DTEND: kizáró dátum, a nap eleje számít – az icsValue a napot 9:00-ra teszi)
+    const endT = end && (tm.allDay && end.allDay ? end.start - 9 * 3600e3 : end.start);
+    const len = endT && endT > tm.start ? endT - tm.start : icsDuration(get('DURATION')) || (tm.allDay ? 15 * 3600e3 : 0);
     const title = get('SUMMARY').replace(/\\,/g, ',').replace(/\\n/g, ' ');
     const detail = get('LOCATION').replace(/\\,/g, ',');
     const rrule = get('RRULE');

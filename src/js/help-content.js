@@ -1081,10 +1081,13 @@ https://…/sport/playlist.m3u8</pre>
 <li>A tévén: LG Content Store → telepítsd a <b>Developer Mode</b> alkalmazást, jelentkezz be, kapcsold be a <i>Dev Mode Status</i> és a <i>Key Server</i> kapcsolót, majd indítsd újra a tévét. Az alkalmazás kiírja a tévé IP-címét és jelszavát.</li>
 <li>A csomag elkészítése a számítógépen (Node.js szükséges), a projekt mappájában:
 <pre class="code">npm install
-node tools/build-webos.mjs     (eredmény: dist-webos/hu.adas.tv_&lt;verzió&gt;_all.ipk)</pre></li>
+# eredmény: dist-webos/hu.adas.tv_&lt;verzió&gt;_all.ipk
+node tools/build-webos.mjs</pre></li>
 <li>A tévé hozzáadása és a telepítés:
-<pre class="code">npx ares-setup-device        (add hozzá a tévét: név „tv”, IP-cím, port 9922)
-npx ares-novacom --device tv --getkey   (a jelszót a Developer Mode alkalmazás mutatja)
+<pre class="code"># a tévé hozzáadása: név „tv”, IP-cím, port 9922
+npx ares-setup-device
+# a jelszót a Developer Mode alkalmazás mutatja
+npx ares-novacom --device tv --getkey
 npx ares-install --device tv dist-webos/hu.adas.tv_&lt;verzió&gt;_all.ipk
 npx ares-launch --device tv hu.adas.tv</pre></li>
 </ol>

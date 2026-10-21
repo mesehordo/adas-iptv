@@ -1081,10 +1081,13 @@ https://…/sport/playlist.m3u8</pre>
 <li>On the TV: LG Content Store → install the <b>Developer Mode</b> app, log in, switch on <i>Dev Mode Status</i> and <i>Key Server</i>, then restart the TV. The app shows the TV’s IP address and passphrase.</li>
 <li>Build the package on the computer (Node.js needed), in the project folder:
 <pre class="code">npm install
-node tools/build-webos.mjs     (result: dist-webos/hu.adas.tv_&lt;version&gt;_all.ipk)</pre></li>
+# result: dist-webos/hu.adas.tv_&lt;version&gt;_all.ipk
+node tools/build-webos.mjs</pre></li>
 <li>Add the TV and install:
-<pre class="code">npx ares-setup-device        (add the TV: name “tv”, IP address, port 9922)
-npx ares-novacom --device tv --getkey   (the passphrase is shown by the Developer Mode app)
+<pre class="code"># add the TV: name “tv”, IP address, port 9922
+npx ares-setup-device
+# the passphrase is shown by the Developer Mode app
+npx ares-novacom --device tv --getkey
 npx ares-install --device tv dist-webos/hu.adas.tv_&lt;version&gt;_all.ipk
 npx ares-launch --device tv hu.adas.tv</pre></li>
 </ol>

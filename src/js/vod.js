@@ -854,17 +854,21 @@ function loadLib(lib, { force = false, recheck = false } = {}) {
       // (a kulcs előtt végzett mappa-átnézés után a listák változhattak – a kulcs és a listák együtt)
       const lists = libLists(lib);
       const saveKey = cacheKey(lib);
-      lib.errors = {};
+      const errors = {};
       const loaded = await Promise.all(
         lists.map(async (pl) => {
           try {
             return { pl, entries: await (lib === own ? loadOwnList(pl, force) : loadList(pl, force)) };
           } catch (err) {
-            lib.errors[pl.id] = String(err.message || err);
+            errors[pl.id] = String(err.message || err);
             return { pl, entries: [] };
           }
         })
       );
+      // (V19) az időzített / oldalnyitáskori ellenőrzés olvasási hibájánál a meglévő könyvtár nem cserélődik le
+      // részleges vagy üres eredményre (a hiba a következő sikeres körig nem írja felül)
+      if (recheck && lib.ready && (Object.keys(errors).length || (lib === own && Object.keys(own.scanErrors || {}).length))) return;
+      lib.errors = errors;
       build(lib, loaded);
       lib.loadedAt = Date.now();
       lib.ready = true;

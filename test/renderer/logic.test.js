@@ -269,6 +269,17 @@ test('sportnaptár (V10): RRULE + EXDATE + DTEND, módosított alkalom, élő á
   const b = ev.filter((e) => e.title === 'Futam').map((e) => new Date(e.start).toISOString().slice(5, 16));
   // (a nyári időszámítás vége – október 25. – után is helyi 14:00)
   assert.deepEqual(b, ['10-25T13:00', '11-01T13:00', '11-08T13:00']);
+  // (RFC 5545: a hét hétfővel kezdődik – kéthetente hétfő és vasárnap: H, V+6, H+14, V+20)
+  const wk = parseIcs(['BEGIN:VEVENT', 'UID:c', 'SUMMARY:Kétheti', 'DTSTART:20261019T100000Z', 'RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,SU;COUNT=4', 'END:VEVENT'].join('\r\n'), { id: 'x', name: 'N', sport: 'soccer' }, now);
+  // (a 10-19-i első alkalom az időablakon – most −2 nap – kívül esik, de a COUNT-ba beleszámít)
+  assert.deepEqual(wk.map((e) => new Date(e.start).toISOString().slice(5, 10)), ['10-25', '11-02', '11-08']);
+  // (nem értelmezett BY*-rész: csak az első alkalom, nem téves napok)
+  const by = parseIcs(['BEGIN:VEVENT', 'UID:d', 'SUMMARY:Első szombat', 'DTSTART:20261003T100000Z', 'RRULE:FREQ=MONTHLY;BYDAY=1SA', 'END:VEVENT'].join('\r\n'), { id: 'x', name: 'N', sport: 'soccer' }, now);
+  assert.equal(by.length, 1);
+  // (egész napos esemény DTEND-del: a nap végéig élő, másnap reggel már nem)
+  const ad = parseIcs(['BEGIN:VEVENT', 'UID:e', 'SUMMARY:Egész nap', 'DTSTART;VALUE=DATE:20261021', 'DTEND;VALUE=DATE:20261022', 'END:VEVENT'].join('\r\n'), { id: 'x', name: 'N', sport: 'soccer' }, now)[0];
+  assert.equal(new Date(ad.stop).getDate(), 22);
+  assert.equal(new Date(ad.stop).getHours(), 0);
   assert.equal(icsDuration('P1DT2H'), 26 * 3600e3);
   assert.equal(icsDuration('PT90M'), 90 * 60e3);
 });

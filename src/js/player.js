@@ -469,6 +469,7 @@ export const player = {
     clearTimeout(this.numTimer); // a félig beírt csatornaszám ne nyissa újra a lejátszót
     this.numBuffer = '';
     this.engine.stop();
+    this.sleepRestore(); // (V04: a kivetítés lezárása előtt – utána a vevő már nem érhető el)
     this.castHooks?.onClose?.();
     this.active = false;
     root.classList.remove('vod');
@@ -922,6 +923,7 @@ export const player = {
   },
   setVolume(v) {
     v = Math.max(0, Math.min(1, v));
+    this.sleepFade = null; // (V04) kézi hangerőváltás: az elhalkulás az új értékből folytatódik, ez marad meg
     // (U14) kivetítéskor a vevő hangereje változik (a helyi videó nem szól)
     if (this.castHooks?.active) {
       this.castHooks.setVolume(v);
@@ -1361,6 +1363,7 @@ root.addEventListener('input', (e) => {
   }
   if (e.target.dataset.c === 'volume') {
     const v = Number(e.target.value);
+    player.sleepFade = null; // (V04) kézi hangerőváltás az elhalkulás közben
     // (U14) kivetítéskor a csúszka a vevő hangerejét állítja
     if (player.castHooks?.active) return void player.castHooks.setVolume(v);
     video.volume = v;
