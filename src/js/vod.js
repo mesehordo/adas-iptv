@@ -348,7 +348,8 @@ export async function addCustomVodText(name, text, extra = {}) {
 }
 
 /** Egy lista bejegyzései: [{ ...m3u bejegyzés, fileHint }] */
-async function loadList(pl, force) {
+/** warnings: a betöltés figyelmeztetéseinek gyűjtője (a tartalékból mutatott lista – a betöltés végén kerül a lib.errors-ba) */
+async function loadList(pl, force, warnings = vod.errors) {
   // (a lista saját frissítési gyakoriságával – Beállítások → VOD és médiatár, a lista sorában)
   const opts = { maxAgeHours: refreshHoursOf('vod', pl), force };
   const parseText = (text, fileName, url) => {
@@ -366,7 +367,7 @@ async function loadList(pl, force) {
   const staleNote = (r) => {
     if (!r.stale) return;
     if (pl.textKey && (pl.at || 0) > (r.cachedAt || 0)) throw new Error(_t('hálózati hiba'));
-    vod.errors[pl.id] = _t('a forrás most nem érhető el – a legutóbb letöltött példány látszik');
+    warnings[pl.id] = _t('a forrás most nem érhető el – a legutóbb letöltött példány látszik');
   };
   const fromUrl = async () => {
     const files = await expandGitHub(pl.url, opts.maxAgeHours);
@@ -405,7 +406,7 @@ async function loadList(pl, force) {
     // forráscímes csomag: ha a forrás (vagy a GitHub-tárhely listázása) nem érhető el, a csomagban
     // mentett lista látszik – a listák között jelezve
     if (!pl.textKey) throw err;
-    vod.errors[pl.id] = _t('a forrás nem érhető el ({err}) – a csomagban mentett lista látszik', { err: errText(err) });
+    warnings[pl.id] = _t('a forrás nem érhető el ({err}) – a csomagban mentett lista látszik', { err: errText(err) });
     return parseText(await listText(pl), '', '');
   }
 }
@@ -855,10 +856,11 @@ function loadLib(lib, { force = false, recheck = false } = {}) {
       const lists = libLists(lib);
       const saveKey = cacheKey(lib);
       const errors = {};
+      const warnings = {}; // (tartalékból mutatott lista: nem hiba – a könyvtár ilyenkor is frissül)
       const loaded = await Promise.all(
         lists.map(async (pl) => {
           try {
-            return { pl, entries: await (lib === own ? loadOwnList(pl, force) : loadList(pl, force)) };
+            return { pl, entries: await (lib === own ? loadOwnList(pl, force) : loadList(pl, force, warnings)) };
           } catch (err) {
             errors[pl.id] = String(err.message || err);
             return { pl, entries: [] };
@@ -868,7 +870,7 @@ function loadLib(lib, { force = false, recheck = false } = {}) {
       // (V19) az időzített / oldalnyitáskori ellenőrzés olvasási hibájánál a meglévő könyvtár nem cserélődik le
       // részleges vagy üres eredményre (a hiba a következő sikeres körig nem írja felül)
       if (recheck && lib.ready && (Object.keys(errors).length || (lib === own && Object.keys(own.scanErrors || {}).length))) return;
-      lib.errors = errors;
+      lib.errors = { ...warnings, ...errors };
       build(lib, loaded);
       lib.loadedAt = Date.now();
       lib.ready = true;
