@@ -37,7 +37,8 @@ export const maxQualityHeight = () => Number(store.settings.maxQuality) || 0;
  * nagyobb, a legkisebb – mint a hls.js-nél). Automatikusnál a korlát feloldva.
  */
 function applyDashCap(dash) {
-  const list = dashVideoReps(dash);
+  // (a szűretlen lista: egy korábbi alacsonyabb korlát által kizárt szintek is számítanak – a korlát emelhető)
+  const list = dashVideoReps(dash, { unfiltered: true });
   const max = maxQualityHeight();
   let kbps = -1;
   if (max && list.length) {
@@ -52,8 +53,8 @@ function applyDashCap(dash) {
  * A DASH-adás videós minőségei: [{ height, bitrate }] – a dash.js 5 (getRepresentationsByType, bandwidth) és a
  * korábbi 4.x (getBitrateInfoListFor, bitrate) felületével is.
  */
-export function dashVideoReps(dash) {
-  const list = dash?.getRepresentationsByType?.('video') ?? dash?.getBitrateInfoListFor?.('video') ?? [];
+export function dashVideoReps(dash, { unfiltered = false } = {}) {
+  const list = (unfiltered ? dash?.getRepresentationsByTypeUnfiltered?.('video') : null) ?? dash?.getRepresentationsByType?.('video') ?? dash?.getBitrateInfoListFor?.('video') ?? [];
   return list.map((r) => ({ height: r.height || 0, bitrate: r.bandwidth ?? r.bitrate ?? 0 }));
 }
 /** A DASH-adás most játszott videós minőségének bitrátája (bit/s), vagy 0. */
