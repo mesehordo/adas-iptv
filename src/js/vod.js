@@ -815,8 +815,12 @@ function libMaxAge(lib) {
 /** Esedékes-e az online VOD-listák frissítése (az ütemező hívja – app.js)? */
 export const vodRefreshDue = () => vod.ready && !vod.loading && Date.now() - (vod.loadedAt || 0) > libMaxAge(vod) * 3600e3;
 
-/** Betöltés (gyorsítótárból, ha friss). Többszöri hívásnál ugyanazt az ígéretet adja vissza. */
-function loadLib(lib, { force = false } = {}) {
+/**
+ * Betöltés (gyorsítótárból, ha friss). Többszöri hívásnál ugyanazt az ígéretet adja vissza. recheck: a feldolgozott
+ * gyorsítótár helyett a listák újraolvasása (a hálózati lista rövid gyorsítótára marad) – (V19) a Saját médiatár
+ * időzített és oldalnyitáskori ellenőrzése, hogy egy már ismert címen megváltozott lista is megjelenjen.
+ */
+function loadLib(lib, { force = false, recheck = false } = {}) {
   // Kényszerített frissítés futó betöltés közben: megvárjuk, majd újratöltünk.
   if (lib.loading && force) return lib.loading.then(() => loadLib(lib, { force }));
   // (U06) a futó betöltés óta megváltozott a lista-beállítás: utána új kör (a régi eredmény nem az új listáé)
@@ -837,7 +841,7 @@ function loadLib(lib, { force = false } = {}) {
       lib.tvSig = (catalog.tvVod || []).map((t) => t.id + t.entries.length + ':' + (t.at || 0)).join(',');
       // (az előkészítés – mappa-átnézés, csatornalista – után a listák változhattak: a gyorsítótár az akkori kulccsal)
       const readKey = (lib.loadingKey = cacheKey(lib));
-      if (!force && api.kvGet) {
+      if (!force && !recheck && api.kvGet) {
         const snap = await api.kvGet(readKey).catch(() => null);
         if (snap && Date.now() - snap.at < libMaxAge(lib) * 3600e3) {
           Object.assign(lib, { movies: snap.movies, series: snap.series, counts: snap.counts, errors: snap.errors, loadedAt: snap.at });
@@ -1431,6 +1435,8 @@ function renderVodPage(view, params, lib) {
     if (has) loadLib(lib);
     return;
   }
+  // (V19) a már betöltött Saját médiatár megnyitásakor is ellenőrzés (legfeljebb 2 percenként; az eredmény frissíti az oldalt)
+  if (isOwn && !own.loading && Date.now() - (own.loadedAt || 0) > 2 * 60e3) loadOwn({ recheck: true });
 
   const { movies, series } = visibleVod(lib);
   const all = huFirst([...series, ...movies]);
@@ -2033,7 +2039,7 @@ async function loadOwnList(pl, force = false) {
 
 // Az automatikusan generált NAS-listák változásainak követése (10 percenként).
 setInterval(() => {
-  if ((store.settings.ownSources || []).some((s) => s.enabled) && own.ready && !player.active) loadOwn();
+  if ((store.settings.ownSources || []).some((s) => s.enabled) && own.ready && !player.active) loadOwn({ recheck: true });
 }, 10 * 60e3);
 
 // ---------------------------------------------------------------------------

@@ -268,40 +268,143 @@ function zonedTime(y, mo, d, h, mi, sec, tz) {
   t = wall - tzOffset(t, tz);
   return t;
 }
-/** DTSTART (paraméterekkel) → { start, allDay } vagy null (nem értelmezhető / ismeretlen zóna). */
-function icsTime(block) {
-  const line = /^DTSTART((?:;[^:\n]*)?):(.*)$/mi.exec(block);
-  if (!line) return null;
-  const params = line[1] || '';
-  const m = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?/.exec(line[2].trim());
+/**
+ * Egy iCalendar-időérték (paraméterekkel) → { start, allDay, wall } vagy null (nem értelmezhető / ismeretlen
+ * zóna). wall: a falióra szerinti részek és a zóna – (V10) az ismétlődések ebből számolódnak (a nyári
+ * időszámítás váltásán át is a helyi órához igazodva).
+ */
+function icsValue(params, value) {
+  const m = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?/.exec(String(value || '').trim());
   if (!m) return null;
   const [y, mo, d] = [+m[1], m[2] - 1, +m[3]];
-  if (!m[4] || /VALUE=DATE(?!-)/i.test(params)) return { start: new Date(y, mo, d, 9).getTime(), allDay: true };
+  if (!m[4] || /VALUE=DATE(?!-)/i.test(params)) return { start: new Date(y, mo, d, 9).getTime(), allDay: true, wall: { y, mo, d, h: 9, mi: 0, sec: 0, tz: '' } };
   const [h, mi, sec] = [+m[4], +m[5], +(m[6] || 0)];
-  if (m[7]) return { start: Date.UTC(y, mo, d, h, mi, sec), allDay: false };
+  if (m[7]) return { start: Date.UTC(y, mo, d, h, mi, sec), allDay: false, wall: { y, mo, d, h, mi, sec, tz: 'UTC' } };
   const tzid = /TZID=("[^"]*"|[^;:]*)/i.exec(params)?.[1];
-  if (!tzid) return { start: new Date(y, mo, d, h, mi, sec).getTime(), allDay: false }; // lebegő helyi idő
+  if (!tzid) return { start: new Date(y, mo, d, h, mi, sec).getTime(), allDay: false, wall: { y, mo, d, h, mi, sec, tz: '' } }; // lebegő helyi idő
   const tz = tzName(tzid);
   if (!tz) {
     console.warn('Sportnaptár: ismeretlen időzóna, az esemény kimarad:', tzid);
     return null;
   }
-  return { start: zonedTime(y, mo, d, h, mi, sec, tz), allDay: false };
+  return { start: zonedTime(y, mo, d, h, mi, sec, tz), allDay: false, wall: { y, mo, d, h, mi, sec, tz } };
 }
-
-function parseIcs(text, w) {
-  const unfold = text.replace(/\r?\n[ \t]/g, '');
+/** A falióra-részek → abszolút idő (a zóna: '' helyi, 'UTC', ill. IANA-név). */
+const wallTime = (w) => (w.tz === 'UTC' ? Date.UTC(w.y, w.mo, w.d, w.h, w.mi, w.sec) : w.tz ? zonedTime(w.y, w.mo, w.d, w.h, w.mi, w.sec, w.tz) : new Date(w.y, w.mo, w.d, w.h, w.mi, w.sec).getTime());
+/** Egy tulajdonság sorai: [{ params, value }] */
+const icsLines = (block, k) => [...block.matchAll(new RegExp(`^${k}((?:;[^:\\n]*)?):(.*)$`, 'gmi'))].map((m) => ({ params: m[1] || '', value: m[2].trim() }));
+/** DURATION (pl. PT1H30M, P1D, P1W) → ms, vagy 0 */
+function icsDuration(v) {
+  const m = /^([+-])?P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/i.exec(String(v || '').trim());
+  if (!m) return 0;
+  const ms = ((+m[2] || 0) * 7 * 864e5) + ((+m[3] || 0) * 864e5) + ((+m[4] || 0) * 3600e3) + ((+m[5] || 0) * 60e3) + ((+m[6] || 0) * 1e3);
+  return m[1] === '-' ? 0 : ms;
+}
+const ICS_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+const ICS_MAX = 400; // egy ismétlődő eseményből legfeljebb ennyi alkalom (a végtelen szabály is korlátos)
+/**
+ * (V10) RRULE kibontása a kért időablakra: FREQ (DAILY / WEEKLY / MONTHLY / YEARLY), INTERVAL, COUNT, UNTIL és a
+ * heti BYDAY. A falióra szerinti kezdésekből (a zóna szerint) → abszolút idők.
+ */
+function icsExpand(first, rule, from, to) {
+  const r = Object.fromEntries(String(rule).split(';').map((p) => p.split('=')).filter((p) => p.length === 2).map(([k, v]) => [k.toUpperCase(), v.toUpperCase()]));
+  const freq = r.FREQ;
+  if (!['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'].includes(freq)) return [first.start];
+  const step = Math.max(1, parseInt(r.INTERVAL, 10) || 1);
+  const count = parseInt(r.COUNT, 10) || 0;
+  const until = r.UNTIL ? icsValue(/T/.test(r.UNTIL) ? '' : ';VALUE=DATE', r.UNTIL) : null;
+  const untilT = until ? (until.allDay ? until.start + 15 * 3600e3 : until.start) : Infinity; // (egész napos UNTIL: a nap végéig)
+  const days = freq === 'WEEKLY' && r.BYDAY ? r.BYDAY.split(',').map((x) => ICS_DAYS.indexOf(x.replace(/^[+-]?\d+/, ''))).filter((x) => x >= 0) : null;
+  const w0 = first.wall;
+  const dow0 = new Date(Date.UTC(w0.y, w0.mo, w0.d)).getUTCDay();
   const out = [];
-  for (const block of unfold.split('BEGIN:VEVENT').slice(1)) {
-    const get = (k) => (new RegExp(`^${k}(?:;[^:\\n]*)?:(.*)$`, 'mi').exec(block) || [])[1]?.trim() || '';
-    const tm = icsTime(block);
-    if (!tm) continue;
-    const { start } = tm;
-    const title = get('SUMMARY').replace(/\\,/g, ',').replace(/\\n/g, ' ');
-    out.push({ id: 'ics:' + w.id + ':' + start + ':' + title.slice(0, 30), sport: w.sport, league: w.name, leagueName: w.name, title, home: '', away: '', state: start > Date.now() ? 'pre' : 'post', start, allDay: tm.allDay, detail: get('LOCATION').replace(/\\,/g, ','), kw: [title, w.name], src: _t('Naptár'), kind: 'ics' });
+  let n = 0;
+  for (let i = 0; n < (count || Infinity) && i < 5000; i++) {
+    const k = i * step;
+    let cands;
+    if (freq === 'DAILY') cands = [{ ...w0, d: w0.d + k }];
+    else if (freq === 'WEEKLY') {
+      // (a hét a kezdőnap hetéhez igazodik; BYDAY nélkül a kezdőnap napja)
+      const weekStart = w0.d - dow0 + k * 7;
+      cands = (days?.length ? [...days].sort((a, b) => a - b) : [dow0]).map((x) => ({ ...w0, d: weekStart + x }));
+    } else if (freq === 'MONTHLY') cands = [{ ...w0, mo: w0.mo + k }];
+    else cands = [{ ...w0, y: w0.y + k }];
+    let stop = false;
+    for (const c of cands) {
+      // (a nem létező nap – pl. február 30. – kimarad, mint a szabványban; a dátumot a Date normalizálja)
+      const norm = new Date(Date.UTC(c.y, c.mo, c.d));
+      if ((freq === 'MONTHLY' || freq === 'YEARLY') && norm.getUTCDate() !== w0.d) continue;
+      const t = wallTime({ ...c, y: norm.getUTCFullYear(), mo: norm.getUTCMonth(), d: norm.getUTCDate() });
+      if (t < first.start) continue;
+      if (t > untilT || t > to) {
+        stop = true;
+        break;
+      }
+      if (count && n >= count) break;
+      n++;
+      if (t >= from) out.push(t);
+      if (out.length >= ICS_MAX) return out;
+    }
+    if (stop) break;
   }
   return out;
 }
+
+/** (V10) Az ismétlődés kibontásának időablaka: a múltba 2 nap, előre 60 nap */
+const ICS_BACK = 2 * 864e5;
+const ICS_AHEAD = 60 * 864e5;
+function parseIcs(text, w, now = Date.now()) {
+  const unfold = text.replace(/\r?\n[ \t]/g, '');
+  const from = now - ICS_BACK;
+  const to = now + ICS_AHEAD;
+  const out = [];
+  const blocks = unfold.split('BEGIN:VEVENT').slice(1).map((b) => b.split('END:VEVENT')[0]);
+  // (V10) a módosított alkalmak (RECURRENCE-ID): az eredeti sorozat ezeket az időpontokat kihagyja
+  const moved = new Map();
+  for (const block of blocks) {
+    const rid = icsLines(block, 'RECURRENCE-ID')[0];
+    const uid = icsLines(block, 'UID')[0]?.value;
+    const t = rid && icsValue(rid.params, rid.value);
+    if (uid && t) (moved.get(uid) || moved.set(uid, new Set()).get(uid)).add(t.start);
+  }
+  for (const block of blocks) {
+    const get = (k) => icsLines(block, k)[0]?.value || '';
+    const ds = icsLines(block, 'DTSTART')[0];
+    const tm = ds && icsValue(ds.params, ds.value);
+    if (!tm) continue;
+    if (/^CANCELLED$/i.test(get('STATUS'))) continue;
+    // a hossz: DTEND, ennek híján DURATION (egész napos eseménynél a nap vége)
+    const de = icsLines(block, 'DTEND')[0];
+    const end = de && icsValue(de.params, de.value);
+    const len = end && end.start > tm.start ? end.start - tm.start : icsDuration(get('DURATION')) || (tm.allDay ? 15 * 3600e3 : 0);
+    const title = get('SUMMARY').replace(/\\,/g, ',').replace(/\\n/g, ' ');
+    const detail = get('LOCATION').replace(/\\,/g, ',');
+    const rrule = get('RRULE');
+    const isOverride = !!icsLines(block, 'RECURRENCE-ID').length;
+    let starts = rrule && !isOverride ? icsExpand(tm, rrule, from, to) : [tm.start];
+    if (rrule && !isOverride) {
+      // RDATE: további alkalmak; EXDATE és a módosított alkalmak: kimaradnak
+      for (const l of icsLines(block, 'RDATE')) for (const v of l.value.split(',')) {
+        const t = icsValue(l.params, v);
+        if (t && t.start >= from && t.start <= to) starts.push(t.start);
+      }
+      const ex = new Set(moved.get(get('UID')) || []);
+      for (const l of icsLines(block, 'EXDATE')) for (const v of l.value.split(',')) {
+        const t = icsValue(l.params, v);
+        if (t) ex.add(t.start);
+      }
+      starts = [...new Set(starts)].filter((t) => !ex.has(t)).sort((a, b) => a - b);
+    }
+    for (const start of starts) {
+      const stop = len ? start + len : 0;
+      out.push({ id: 'ics:' + w.id + ':' + start + ':' + title.slice(0, 30), sport: w.sport, league: w.name, leagueName: w.name, title, home: '', away: '', state: icsState(start, stop, now), start, stop, allDay: tm.allDay, detail, kw: [title, w.name], src: _t('Naptár'), kind: 'ics' });
+    }
+  }
+  return out;
+}
+/** (V10) Naptáresemény állapota: kezdés előtt közelgő; ismert végidőnél addig élő; vége után (ill. végidő nélkül a kezdés után) lezajlott. */
+const icsState = (start, stop, now = Date.now()) => (now < start ? 'pre' : stop && now < stop ? 'in' : 'post');
+export const _sportsTest = { parseIcs, icsDuration, icsState };
 async function loadIcs(w) {
   const { text } = await api.fetchText(w.url, { maxAgeHours: 3 });
   return parseIcs(text, w);
@@ -508,7 +611,8 @@ export function loadSportEvents(force = false, { live = false } = {}) {
     const events = all
       .flatMap((list) => [...list.filter((e) => e.start && inWin(e)), ...nextOf(list.filter((e) => e.start))])
       .filter((e) => !seen.has(e.id) && seen.add(e.id))
-      .map((e) => (e.state === 'pre' && e.start < now - 4 * 3600e3 && e.kind === 'ics' ? { ...e, state: 'post' } : e));
+      // (a naptár állapota a gyorsítótárazott eseménynél is a mostani időhöz igazodik – V10: végidőig élő)
+      .map((e) => (e.kind === 'ics' ? { ...e, state: icsState(e.start, e.stop, now) } : e));
     // Élő → a követett bajnokságok / csapatok / naptárak közelgő eseményei → a tévében talált műsorok → friss eredmények
     const rank = (e) => (e.state === 'in' ? 0 : e.state === 'pre' ? (e.kind === 'epg' ? 2 : 1) : 3);
     events.sort((a, b) => rank(a) - rank(b) || (a.state === 'post' ? b.start - a.start : a.start - b.start));

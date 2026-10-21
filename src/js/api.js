@@ -301,8 +301,8 @@ function luna(uri, params = {}) {
 }
 
 /** Letöltés a TV-n futó háttérszolgáltatással (nincs CORS, kibontja a gzip-et), darabokban. */
-async function serviceDownload(url, headers = {}) {
-  const r = await luna(WEBOS_SERVICE + 'fetch', { url, ua: headers.ua || '', referrer: headers.referrer || '' });
+async function serviceDownload(url, headers = {}, binary = false) {
+  const r = await luna(WEBOS_SERVICE + 'fetch', { url, ua: headers.ua || '', referrer: headers.referrer || '', binary });
   let text = '';
   for (let offset = 0; offset < r.length; offset += r.chunkSize) {
     const c = await luna(WEBOS_SERVICE + 'chunk', { id: r.id, offset });
@@ -326,6 +326,17 @@ const tvApi = {
   platform: 'webos',
   caps: { mini: false, fullscreen: false, files: false, external: false, health: true, preview: false, exit: true },
   fetchText: (url, opts) => cachedFetchText(url, opts, tvDownload),
+  /** (V08) bájtos letöltés (felirat-ZIP): CORS-hiba esetén a háttérszolgáltatáson át (base64-ként érkezik) */
+  async requestBytes(url) {
+    try {
+      return await webApi.requestBytes(url);
+    } catch {
+      const bin = atob(await serviceDownload(url, {}, true));
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return { status: 200, bytes };
+    }
+  },
   async request(opts) {
     try {
       return await webApi.request(opts);

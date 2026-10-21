@@ -239,3 +239,36 @@ test('műsorforrások sorrendje: az open-epg.com az epgshare01 előtt (a Nick-cs
   const list = store.settings.epgSources.map((s) => s.url);
   assert.ok(list.indexOf(urls[o]) < list.indexOf(urls[e]), 'a betöltött beállításban is');
 });
+
+// ------------------------------------------------------------------ 2026-10-21-i jegyzék
+import { _kidsFallbackRx } from '../../src/js/kids.js';
+
+test('gyerektartalom (V01): a Unicode-tulajdonság nélküli tartalék minta is teljes szóra illeszt, ékezettel', () => {
+  const rx = _kidsFallbackRx('rajzfilm\\p{L}*|gyerek\\p{L}*|csal[aá]di|kids?');
+  assert.ok(rx.test('Rajzfilmek'));
+  assert.ok(rx.test('Filmek | Gyerekeknek'));
+  assert.ok(rx.test('CSALÁDI'));
+  assert.ok(!rx.test('Kidsfilm'), 'szó közepén nem');
+  assert.ok(!rx.test('ágyerek'), 'ékezetes betű után nem szóhatár');
+  assert.ok(!/\\p\{/.test(rx.source));
+});
+
+test('sportnaptár (V10): RRULE + EXDATE + DTEND, módosított alkalom, élő állapot', async () => {
+  const { _sportsTest: { parseIcs, icsDuration } } = await import('../../src/js/sports.js');
+  const now = Date.UTC(2026, 9, 21, 12, 0, 0);
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'BEGIN:VEVENT', 'UID:a', 'SUMMARY:Edzés', 'DTSTART:20261020T110000Z', 'DTEND:20261020T130000Z', 'RRULE:FREQ=DAILY;COUNT=4', 'EXDATE:20261022T110000Z', 'END:VEVENT',
+    'BEGIN:VEVENT', 'UID:a', 'RECURRENCE-ID:20261023T110000Z', 'SUMMARY:Edzés (később)', 'DTSTART:20261023T150000Z', 'DURATION:PT1H', 'END:VEVENT',
+    'BEGIN:VEVENT', 'UID:b', 'SUMMARY:Futam', 'DTSTART;TZID=Europe/Budapest:20261025T140000', 'RRULE:FREQ=WEEKLY;INTERVAL=1;UNTIL=20261108T235959Z', 'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+  const ev = parseIcs(ics, { id: 'x', name: 'N', sport: 'soccer' }, now);
+  const a = ev.filter((e) => e.title.startsWith('Edzés')).map((e) => [new Date(e.start).toISOString().slice(5, 16), e.state]);
+  assert.deepEqual(a, [['10-20T11:00', 'post'], ['10-21T11:00', 'in'], ['10-23T15:00', 'pre']]);
+  const b = ev.filter((e) => e.title === 'Futam').map((e) => new Date(e.start).toISOString().slice(5, 16));
+  // (a nyári időszámítás vége – október 25. – után is helyi 14:00)
+  assert.deepEqual(b, ['10-25T13:00', '11-01T13:00', '11-08T13:00']);
+  assert.equal(icsDuration('P1DT2H'), 26 * 3600e3);
+  assert.equal(icsDuration('PT90M'), 90 * 60e3);
+});

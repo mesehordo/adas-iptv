@@ -54,7 +54,7 @@ export const ARTICLES = [
     title: 'Az első indítás',
     keywords: 'indítás betöltés lassú első alkalom profil ország',
     body: `
-<p>Az első indításkor a program letölti a csatornalistát és a csatornák adatait (országok, nyelvek, logók, kategóriák – összesen kb. 25 MB). Ez a kapcsolat sebességétől függően fél perc is lehet; utána a feldolgozott lista elmentődik, így a következő indítások már néhány másodpercesek.</p>
+<p>Az első indításkor egy rövid varázsló kéri a <b>felület nyelvét</b>, majd létrehozza a <b>profilodat</b> (név és profilkép), és ha szeretnéd, egy <b>gyerekprofilt</b> is (kihagyható). Ezután a program letölti a csatornalistát és a csatornák adatait (országok, nyelvek, logók, kategóriák – összesen kb. 25 MB). Ez a kapcsolat sebességétől függően fél perc is lehet; utána a feldolgozott lista elmentődik, így a következő indítások már néhány másodpercesek.</p>
 <h2>Mi történik a háttérben?</h2>
 <ol>
 <li><b>Csatornalista</b>: letöltés és feldolgozás (6 óránként magától frissül).</li>
@@ -64,7 +64,7 @@ export const ARTICLES = [
 <h2>Ajánlott első beállítások</h2>
 <ul>
 <li><b>Hazai ország</b> (Beállítások → Tartalom és gyerekek → Tartalom): ennek a csatornái kerülnek előre, ezek kapják a csatornaszámokat. Alapból Magyarország.</li>
-<li><b>Felületstílus</b>: tizenhat kinézet közül választhatsz, profilonként. ${t('themes', 'Stílusok')}</li>
+<li><b>Felületstílus</b>: harminckét kinézet közül választhatsz, profilonként. ${t('themes', 'Stílusok')}</li>
 <li><b>Gyerekprofil</b>: ha gyerek is használja, állíts be neki külön profilt. ${t('kids', 'Részletek')}</li>
 </ul>
 ${go('#/settings', 'Beállítások megnyitása')}`,
@@ -678,7 +678,7 @@ ${go('#/settings?section=reminders', 'Emlékeztetők beállításai')}`,
 <p>A műsoradatok <b>XMLTV</b> formátumú forrásokból érkeznek. Beállítások → Műsorújság alatt látod mindegyiket: hány csatornához sikerült párosítani, hány műsort tartalmaz, és ha hibás, mi a hiba.</p>
 <h2>Beépített források</h2>
 <ul>
-<li>Alapból bekapcsolva: két magyar forrás és a lejátszólista saját forrása.</li>
+<li>Alapból bekapcsolva: a hazai ország forrásai (Magyarországnál három: iptv-epg.org, open-epg.com, epgshare01 – ebben a sorrendben) és a lejátszólista saját forrása.</li>
 <li>Bekapcsolhatók: Szlovákia, Románia, Ausztria, Németország, Egyesült Királyság, USA, Franciaország, Olaszország, Spanyolország, valamint a Pluto TV, Samsung TV Plus és Plex csatornák műsora. Minél több forrás van bekapcsolva, annál tovább tart a betöltés.</li>
 </ul>
 <h2>Saját forrás</h2>
@@ -699,8 +699,8 @@ ${go('#/settings?section=reminders', 'Emlékeztetők beállításai')}`,
 <h2>Kezelés</h2>
 <p>Profilmenü → <b>Profilok kezelése</b> → kattints egy profilra a szerkesztéshez (név, profilkép, szín, gyerekprofil, törlés), vagy a <b>Profil hozzáadása</b> gombra.</p>
 <h2>Profilkép</h2>
-<p>A szerkesztőben 11 rajzolt profilkép közül választhatsz (róka, nyuszi, robot, szereplők, zen vázák…), vagy a <b>betűs</b> változatot: ekkor a név kezdőbetűje jelenik meg a kiválasztott színű háttéren. A profilkép a „Ki nézi?” képernyőn, a fejlécben és a profilmenüben látszik.</p>
-<p><b>Saját kép</b>: a <i>Saját kép feltöltése…</i> gombbal bármilyen PNG (vagy JPG, WebP) képet választhatsz. A program négyzetesre vágja (középről) és 256×256 pontra kicsinyíti; a kép a profillal együtt tárolódik, így a profil költöztetésével átkerül a többi eszközre is. Tévén nincs fájlválasztó: ott a számítógépről átvett profil képe jelenik meg.</p>
+<p>A szerkesztőben 29 rajzolt profilkép közül választhatsz (róka, nyuszi, robot, szereplők, zen vázák…), vagy a <b>betűs</b> változatot: ekkor a név kezdőbetűje jelenik meg a kiválasztott színű háttéren. A profilkép a „Ki nézi?” képernyőn, a fejlécben és a profilmenüben látszik.</p>
+<p><b>Saját kép</b>: a <i>Saját kép feltöltése…</i> gombbal bármilyen PNG (vagy JPG, WebP) képet választhatsz. A program négyzetesre vágja (középről) és 256×256 pontra kicsinyíti; a kép a profillal együtt tárolódik, így a profil költöztetésével átkerül a többi eszközre is. LG tévén nincs fájlválasztó: ott a webcímről betöltött mentés profiljának képe jelenik meg (Android TV-n a kóddal átvett profilé is).</p>
 <h2>Mi tartozik a profilhoz és mi közös?</h2>
 <table class="help-table">
 <tr><th>Profilonként külön</th><th>Közös minden profilnak</th></tr>
@@ -727,7 +727,7 @@ ${go('#/profiles', 'Profilok kezelése')}`,
 <p>Felnőtt (18+) csatorna gyerekprofilban akkor sem jelenik meg, ha kézzel engedélyezed.</p>
 <h2>Felnőtt tartalom</h2>
 <p>A felnőtt (18+) csatornák alapból rejtve vannak. Megjelenítésük: Beállítások → Tartalom és gyerekek → Tartalom → <b>Felnőtt tartalom megjelenítése</b> (megerősítést kér). A szűrés az iptv-org besorolásán és tiltólistáján alapul.</p>
-<div class="warn">A szűrés a nyilvános adatbázis jelöléseire épül, ezért nem tökéletes. Kisebb gyerekeknél érdemes felügyelni a használatot; a gyerekprofilból a profilváltás nincs jelszóval védve.</div>`,
+<div class="warn">A szűrés a nyilvános adatbázis jelöléseire épül, ezért nem tökéletes. Kisebb gyerekeknél érdemes felügyelni a használatot; a gyerekprofilból felnőtt profilra váltás csak akkor kér PIN-t, ha valamelyik felnőtt profilnak van PIN-je (${t('parental', 'Szülői felügyelet')}).</div>`,
   },
   {
     id: 'favorites',
@@ -905,7 +905,7 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
 <p><b>Visszaállítás fájlból</b>: a mentett fájl felülírja a jelenlegi beállításokat és profilokat (megerősítést kér), majd a program újraindul.</p>
 <p><b>Profilok hozzáadása fájlból</b>: csak a mentés profiljait veszi át (kedvencekkel, előzményekkel, emlékeztetőkkel, profilképpel, PIN-nel); a mostani beállítások, listák és a többi profil megmaradnak, az azonos profil frissül. Ugyanez a <i>Szinkronizálás eszközök között</i> résznél a <b>Csak a profilok</b> kapcsolóval hálózaton át is működik.</p>
 <h2>Egységes a profilfájl?</h2>
-<p>Igen: minden változat (Windows, Mac, Linux, LG tévé, Android, böngésző) ugyanazt a formátumot használja, ezért a mentés bármelyik eszközön betölthető. Ahol nincs fájlválasztó (tévé), ott hálózaton át (<i>Szinkronizálás eszközök között</i>) vagy webcímről.</p>
+<p>Igen: minden változat (Windows, Mac, Linux, LG tévé, Android, böngésző) ugyanazt a formátumot használja, ezért a mentés bármelyik eszközön betölthető. Ahol nincs fájlválasztó (LG tévé), ott webcímről tölthető be; Android TV-n a kódos szinkron is működik (<i>Szinkronizálás eszközök között</i>).</p>
 <table class="help-table">
 <tr><th>Változat</th><th>Hol vannak az adatok?</th></tr>
 <tr><td>Windows</td><td><code>%APPDATA%\\Adás\\store.json</code> (a telepített és a hordozható változat is ide ment)</td></tr>
@@ -924,7 +924,7 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
 <li>A <b>felvett videók megmaradnak</b> (a Videók mappában lévő fájlok a tieid, nem az alkalmazás adatai).</li>
 </ul>
 <div class="tip">Nem vonható vissza – ha később visszatérnél a mostani állapothoz, előtte mentsd el fájlba (<b>Mentés fájlba</b>).</div>
-<div class="note">Tévén a fájlba mentés nem érhető el – ott a <i>Szinkronizálás eszközök között</i> működik. Androidon a mentés a rendszer fájlmentőjével (pl. a Letöltések mappába vagy a Google Drive-ra) történik.</div>`,
+<div class="note">LG tévén a fájlba mentés és a kódos szinkron nem érhető el – ott egy máshol készült mentés webcímről tölthető be. Android TV-n a <i>Szinkronizálás eszközök között</i> is működik. Androidon a mentés a rendszer fájlmentőjével (pl. a Letöltések mappába vagy a Google Drive-ra) történik.</div>`,
   },
 
   // ===================================================================== Csatornalisták
@@ -1049,7 +1049,7 @@ https://…/sport/playlist.m3u8</pre>
     title: 'Android: telefon, tablet, Android TV',
     keywords: 'android telefon mobil tablet android tv google tv shield xiaomi box apk telepítés',
     body: `
-<p>Az androidos változat egyetlen <code>.apk</code> fájl (<code>dist-android/Adas-…apk</code>), amely telefonon, tableten és <b>Android TV-n / Google TV-n</b> is fut (Android 6.0 vagy újabb). Tévén a tévés, távirányítós felület indul.</p>
+<p>Az androidos változat a kiadásokban két <code>.apk</code> fájl (Android 6.0 vagy újabb): <code>Adas-…-android-mobile.apk</code> <b>telefonra és tabletre</b>, <code>Adas-…-android-tv.apk</code> <b>Android TV-re / Google TV-re</b>. A tévés csomag a tévé indítójában is megjelenik, és a távirányítós felülettel indul; a mobil csomag tévén is a telefonos felületet adja – tévére a tévés csomagot telepítsd.</p>
 <h2>Telepítés</h2>
 <ul>
 <li><b>Telefonon / tableten</b>: másold át az APK-t, és nyisd meg. Első alkalommal engedélyezni kell, hogy a fájlkezelő (vagy böngésző) alkalmazásokat telepíthessen („ismeretlen források”).</li>
@@ -1079,14 +1079,17 @@ https://…/sport/playlist.m3u8</pre>
 <ol>
 <li>Regisztrálj ingyenes fiókot a <b>developer.lge.com</b> oldalon.</li>
 <li>A tévén: LG Content Store → telepítsd a <b>Developer Mode</b> alkalmazást, jelentkezz be, kapcsold be a <i>Dev Mode Status</i> és a <i>Key Server</i> kapcsolót, majd indítsd újra a tévét. Az alkalmazás kiírja a tévé IP-címét és jelszavát.</li>
-<li>A számítógépen (Node.js szükséges) a projekt mappájában:
+<li>A csomag elkészítése a számítógépen (Node.js szükséges), a projekt mappájában:
+<pre class="code">npm install
+node tools/build-webos.mjs     (eredmény: dist-webos/hu.adas.tv_&lt;verzió&gt;_all.ipk)</pre></li>
+<li>A tévé hozzáadása és a telepítés:
 <pre class="code">npx ares-setup-device        (add hozzá a tévét: név „tv”, IP-cím, port 9922)
 npx ares-novacom --device tv --getkey   (a jelszót a Developer Mode alkalmazás mutatja)
-npm run webos:install -- --device tv
-npm run webos:launch -- --device tv</pre></li>
+npx ares-install --device tv dist-webos/hu.adas.tv_&lt;verzió&gt;_all.ipk
+npx ares-launch --device tv hu.adas.tv</pre></li>
 </ol>
 <p>Grafikus megoldás: a <b>webOS Dev Manager</b> asztali program → <i>Install from file</i> → a <code>.ipk</code> fájl.</p>
-<div class="warn">A fejlesztői mód 50 óránként lejár; a Developer Mode alkalmazásban egy gombnyomással meghosszabbítható. Lejárat után a telepített alkalmazás eltűnik, és újra kell telepíteni.</div>`,
+<div class="warn">A fejlesztői mód munkamenete korlátozott ideig érvényes: a hátralévő időt a Developer Mode alkalmazás mutatja, és ott az <i>Extend</i> gombbal meghosszabbítható. Ha lejár, a fejlesztői mód kikapcsol, és a telepített alkalmazás eltűnik – újra kell telepíteni.</div>`,
   },
   {
     id: 'tv-remote',
@@ -1287,7 +1290,7 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
 </table>
 <p><b>Billentyűk:</b> <kbd>Szóköz</kbd> vagy a médiagomb: szünet / folytatás; <kbd>CH+</kbd> / <kbd>CH−</kbd>: következő / előző adó abból a sorból, amelyből indítottad; <kbd>D</kbd>: Adás adatai; <kbd>Esc</kbd>: a Most szól nézet bezárása.</p>
 <p><b>Források</b> (Beállítások → <i>Rádió</i>, mindegyik kikapcsolható): <i>Radio Browser</i> (közösségi adatbázis, több tízezer adó), <i>Verified Radio Streams</i> (kipróbált adások) és <i>IPRD</i> (országonkénti válogatás). Ugyanaz az adó több forrásból egy kártyán jelenik meg, a címei tartalékként egymás után próbálódnak. Saját M3U rádiólistát webcímről is hozzáadhatsz, frissítési gyakorisággal, vagy „radio” fajtájú .adaspack csomagot tölthetsz be.</p>
-<div class="note">Videó indításakor (élő adás, film) a rádió elhallgat, rádió indításakor a videó bezárul. LG webOS tévén a hangeffektek és a vizualizáció nem érhetők el (a tévé böngészőmotorja nem fér hozzá az adás hangjához); a rádió ott is szól. A menüpont a Beállítások → <i>Rádió</i> alatt kikapcsolható; gyerekprofilban nem látszik.</div>`,
+<div class="note">Videó indításakor (élő adás, film) a rádió elhallgat, rádió indításakor a videó bezárul. LG webOS tévén és Androidon a hangeffektek (hangszínszabályzó, hangzás) és a vizualizáció nem érhetők el – a tévé böngészőmotorja nem fér hozzá az adás hangjához, Androidon pedig a rádió a rendszer saját lejátszójával szól (így megbízható a háttérben is); a rádió és az elalvás-időzítő ott is működik. A menüpont a Beállítások → <i>Rádió</i> alatt kikapcsolható; gyerekprofilban nem látszik.</div>`,
   },
   {
     id: 'sport-page',
@@ -1357,7 +1360,7 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
 <li>Bekapcsolás lejátszás közben: <b>CC</b> gomb → <i>Hang és felirat</i> → <i>Éjszakai hang</i>.</li>
 <li>Profilonként alapértelmezetté teheted: Beállítások → Feliratok és információk → Magyar információk és feliratok → <i>Éjszakai hang</i>.</li>
 </ul>
-<div class="note">Az asztali változatban érhető el.</div>`,
+<div class="note">Az asztali változatban, valamint Androidon (Android 9-től, a natív lejátszóval) érhető el; LG tévén és böngészőben nem.</div>`,
   },
   {
     id: 'parental',
@@ -1369,10 +1372,11 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
 <h2>Gyerekprofil</h2>
 <p>Ha legalább egy <b>felnőtt profilnak van PIN-je</b>, akkor a gyerekprofilból:</p>
 <ul>
-<li>csak a PIN megadásával lehet másik profilra váltani,</li>
+<li>felnőtt profilra váltáshoz egy felnőtt profil PIN-je kell (akkor is, ha a célprofil nincs zárolva); másik gyerekprofilra PIN nélkül lehet váltani, hacsak annak nincs saját PIN-je,</li>
 <li>a <b>Beállítások</b> és a <b>Profilok kezelése</b> csak felnőtt PIN-nel nyílik meg (a jóváhagyás 10 percig érvényes),</li>
 <li>a felnőtt tartalom és a nem gyerekeknek való csatornák továbbra sem jelennek meg.</li>
 </ul>
+<p>Ha egyik felnőtt profilnak sincs PIN-je, a profilváltás szabad. A saját PIN-nel zárolt profil mindig a saját PIN-jét kéri.</p>
 <p>A PIN a távirányító számgombjaival vagy a képernyőn megjelenő számbillentyűzettel is beírható. Öt hibás próbálkozás után fél percig várni kell.</p>
 <h2>Elfelejtett PIN</h2>
 <p>Egy másik felnőtt profilból (Profilok kezelése) bármelyik profil PIN-je törölhető. Ha nincs ilyen profil, az alkalmazás adatainak törlésével minden visszaáll az alapállapotra. ${t('privacy', 'Hol vannak az adatok?')}</p>
@@ -1395,7 +1399,7 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
     body: `
 <p>A profilmenü <i>Nézési statisztika</i> pontja megmutatja, mennyit és mikor nézel tévét: ma, az elmúlt héten és hónapban, napi bontásban, napszakonként; a legtöbbet nézett csatornákat, kategóriákat, filmeket és sorozatokat.</p>
 <ul>
-<li>Profilonként külön számolódik, csak a ténylegesen lejátszott idő (szünet nélkül).</li>
+<li>Profilonként külön számolódik, csak a ténylegesen lejátszott idő (szünet nélkül) – a háttérben, kis ablakban szóló adás és a kivetítés is.</li>
 <li>Az adatok csak ezen az eszközön tárolódnak. A statisztika oldalán a gyűjtés kikapcsolható és törölhető.</li>
 </ul>
 ${go('#/stats', 'Statisztika megnyitása')}`,
@@ -1508,12 +1512,12 @@ ${go('#/recordings', 'Felvételek')}`,
     title: 'Frissítések',
     keywords: 'frissítés új verzió update letöltés telepítés github kiadás',
     body: `
-<p>Az asztali változat (Windows, macOS, Linux) magától frissül a <b>GitHubról</b>, a hivatalos kiadásokból (<code>github.com/mesehordo/adas-iptv</code>). Beállítások → <b>Frissítés</b>:</p>
+<p>Az asztali változat (Windows, macOS, Linux) a <b>GitHubról</b> frissíthető, a hivatalos kiadásokból (<code>github.com/mesehordo/adas-iptv</code>). Beállítások → <b>Frissítés</b>:</p>
 <ul>
 <li><b>Frissítés keresése induláskor</b> (alapból be): minden indításkor megnézi, van-e új verzió; ha van, értesítést kapsz, és a <i>Frissítés</i> gombbal azonnal telepítheted. Ha nem szeretnéd, kapcsold ki – ilyenkor csak kérésre keres.</li>
 <li><b>Frissítés keresése most</b>: azonnali keresés; új verziónál megjelennek a kiadási megjegyzések és a <b>Letöltés és telepítés</b> gomb.</li>
-<li>A telepítés a telepítés módjához igazodik: telepítővel (Setup) telepítve az új telepítő indul, MSI-vel telepítve az új MSI, a <b>hordozható</b> változatnál a letöltött fájlt a megnyíló mappában találod (azt indítsd a régi helyett), Linuxon az AppImage magát cseréli le.</li>
-<li><b>Frissítési forrás</b>: üresen a hivatalos kiadások. Megadható saját GitHub-tároló (<code>tulajdonos/tároló</code>) vagy egy JSON-fájl címe: <code>{ "version": "1.25.0", "url": "https://…/Adas-Setup-1.25.0.exe", "notes": "…" }</code>.</li>
+<li>A telepítés a telepítés módjához igazodik: telepítővel (Setup) telepítve az új telepítő indul, MSI-vel telepítve az új MSI, a <b>hordozható</b> változatnál a letöltött fájlt a megnyíló mappában találod (azt indítsd a régi helyett), Linuxon az AppImage magát cseréli le (ha a helye írható). <b>macOS-en és a DEB-csomagból telepített Linuxon</b> nincs önálló telepítés: a letöltött, ellenőrzött fájl (DMG, ill. DEB) mappája nyílik meg – nyisd meg, és telepítsd a szokásos módon (Macen húzd az Alkalmazások mappába).</li>
+<li><b>Frissítési forrás</b>: üresen a hivatalos kiadások. Megadható saját GitHub-tároló (<code>tulajdonos/tároló</code>, a kiadásban <code>SHA256SUMS.txt</code>-vel) vagy egy JSON-fájl címe: <code>{ "version": "1.25.0", "url": "https://…/Adas-Setup-1.25.0.exe", "sha256": "…", "notes": "…" }</code>. Platformonként: <code>"assets": { "win": "…", "mac": "…", "linux": "…", "android": "…", "androidtv": "…" }</code> és <code>"sha256": { "win": "…", … }</code> (Androidon csak ez az alak). A <code>sha256</code> a fájl SHA-256 összege (64 hexadecimális jegy, pl. <code>sha256sum fájl</code>, Windowson <code>certutil -hashfile fájl SHA256</code>) – nélküle az új verzió megjelenik, de nem tölthető le az alkalmazásból.</li>
 </ul>
 <div class="note"><b>Androidon</b> is itt frissíthetsz: a <b>Letöltés és telepítés</b> letölti az új <code>.apk</code>-t, ellenőrzi (a kiadás ellenőrző összege, a csomag azonosítója, a verziója és az aláírása – más aláírású vagy régebbi csomag nem települ), majd az Android rákérdez a telepítésre. Első alkalommal engedélyezni kell az Adásnak az alkalmazások telepítését (a beállítás magától megnyílik). A profilok, a listák és a beállítások megmaradnak. Tévén a tévés, telefonon a mobil kiadást tölti le, ha a kiadás külön tartalmazza őket.</div>
 ${go('#/settings?section=update', 'Frissítések')}`,
@@ -1527,7 +1531,7 @@ ${go('#/settings?section=update', 'Frissítések')}`,
     keywords: 'adatvédelem adat tárolás hol követés fiók mappa',
     body: `
 <ul>
-<li>Nincs fiók, nincs regisztráció, nincs követés, és a program nem küld a használatodról adatot sehová.</li>
+<li>Nincs fiók, nincs regisztráció, nincs követés; a program nem gyűjt és nem küld statisztikát a használatodról. Egy kivétel van: a Radio Browser adatbázisból indított adónál – mint minden erre épülő rádiólejátszó – egy „kattintás” jelzés megy a Radio Browser szerverére (csak az adó azonosítója, ebből számolja az adók népszerűségét); a Beállítások → <i>Rádió</i> alatt a forrás kikapcsolható.</li>
 <li>Minden beállítás, profil és a letöltött listák <b>helyben</b> tárolódnak:
   <ul>
   <li>Windows: <code>%APPDATA%\\Adás</code></li>
@@ -1535,7 +1539,7 @@ ${go('#/settings?section=update', 'Frissítések')}`,
   <li>Linux: <code>~/.config/Adás</code></li>
   <li>Tévén és Androidon: az alkalmazás saját tárhelyén.</li>
   </ul> ${t('data-locations', 'Pontos helyek (felvételek is)')} · ${t('backup', 'Mentés és költöztetés')}</li>
-<li>A program a következő szerverekhez kapcsolódik: az iptv-org (csatornalista és adatok), a bekapcsolt műsorújság-források, a saját listáid címei, a csatornák logóit tároló szerverek, és lejátszáskor maguk az adások szerverei. Ezek – mint minden weboldal – láthatják az IP-címedet.</li>
+<li>A program a következő szerverekhez kapcsolódik: az iptv-org (csatornalista és adatok), a bekapcsolt műsorújság-források, a saját listáid címei, a csatornák logóit tároló szerverek, a bekapcsolt szolgáltatások (rádió-adatbázisok és a szám adatai, időjárás, hírek, árfolyam, sport, feliratok, borítók és filmadatok, frissítések keresése), és lejátszáskor maguk az adások szerverei. Ezek – mint minden weboldal – láthatják az IP-címedet.</li>
 <li>Kivetítéskor és a beállítások átadásakor az asztali változat egy kis kiszolgálót indít a <b>helyi hálózaton</b> (47800-as port körül). A továbbító csak egy véletlen, indításonként új kulccsal használható; a beállításokat csak a 15 percig érvényes kóddal lehet letölteni.</li>
 <li>A nézési statisztika, a PIN-kódok és a beállítások sehova nem kerülnek elküldésre.</li>
 </ul>`,

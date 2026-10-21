@@ -1565,7 +1565,7 @@ export default {
  "Élő tévé, műsorújság, filmek és sorozatok (online listák és saját médiatár), felvétel, sportfigyelő és testreszabható főoldal – egy alkalmazásban, Windowson, macOS-en, Linuxon, Androidon és Android TV-n.": "TV en direct, guide TV, films et séries (listes en ligne et médiathèque personnelle), enregistrement, suivi sportif et accueil personnalisable – dans une seule application, sous Windows, macOS, Linux, Android et Android TV.",
  "Tévécsatornák": "Chaînes TV",
  "(nyilvános, közösségi gyűjtemény), Free-TV, Pluto TV, Samsung TV Plus, Plex, FreeCast – és a saját listáid": "(collection publique et communautaire), Free-TV, Pluto TV, Samsung TV Plus, Plex, FreeCast – et vos propres listes",
- "iptv-epg.org, epgshare01, a lejátszólisták saját XMLTV-forrásai és a saját forrásaid": "iptv-epg.org, epgshare01, les sources XMLTV des listes elles-mêmes et vos propres sources",
+ "iptv-epg.org, open-epg.com, epgshare01, a lejátszólisták saját XMLTV-forrásai és a saját forrásaid": "iptv-epg.org, open-epg.com, epgshare01, les sources XMLTV des listes elles-mêmes et vos propres sources",
  "Film- és sorozatadatok": "Données des films et séries",
  "Wikipédia, Wikidata, AniList, Kitsu, MyAnimeList, TVmaze; saját kulccsal TMDB és OMDb": "Wikipédia, Wikidata, AniList, Kitsu, MyAnimeList, TVmaze ; avec votre propre clé, TMDB et OMDb",
  "Feliratok": "Sous-titres",
