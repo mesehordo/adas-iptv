@@ -171,8 +171,10 @@ const webApi = {
   },
   async cancelCheck() {},
   onCheckProgress() {},
-  kvGet: (k) => idbGet('kv:' + k),
-  kvSet: (k, v) => idbSet('kv:' + k, v),
+  // (JSON-szövegként: a nagy pillanatkép objektumként tárolva olvasáskor lassú strukturált klónozás lenne; a
+  // korábban objektumként mentett bejegyzés is olvasható)
+  kvGet: (k) => idbGet('kv:' + k).then((v) => (typeof v === 'string' ? JSON.parse(v) : v)),
+  kvSet: (k, v) => idbSet('kv:' + k, JSON.stringify(v)),
   // (strict: az olvasási hiba nem „üres”, hanem hiba – B30)
   docGet: (k, opts) => idb('readonly', (s) => s.get(k), 'docs').catch((err) => {
     if (opts?.strict) throw err;
@@ -682,7 +684,26 @@ const androidApi = {
   },
 };
 
-export const api = window.api || (IS_ANDROID ? androidApi : IS_WEBOS ? tvApi : webApi);
+/**
+ * Asztali változat: a preload hídja, a gyorsítótár JSON-szövegként (kvGetText) – a nagy objektum az IPC-n és a
+ * contextBridge-en át a felület szálán sokáig tartó klónozás lenne; így egy szövegmásolás és egy JSON.parse.
+ */
+const desktopApi = window.api?.kvGetText
+  ? {
+      ...window.api,
+      kvGet: async (k) => {
+        const text = await window.api.kvGetText(k);
+        if (text == null) return undefined;
+        try {
+          return JSON.parse(text);
+        } catch {
+          return undefined; // (sérült / félbemaradt fájl: mintha nem lenne)
+        }
+      },
+      kvSet: (k, v) => window.api.kvSetText(k, JSON.stringify(v)),
+    }
+  : window.api;
+export const api = desktopApi || (IS_ANDROID ? androidApi : IS_WEBOS ? tvApi : webApi);
 
 /**
  * A borítókép címe a tartós borítótárból (asztali változat: adasimg://, a főfolyamat lemezre menti).

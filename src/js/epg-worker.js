@@ -206,12 +206,20 @@ self.onmessage = (e) => {
     }
     // Párosítás: csak a csatornalistában megtalált csatornák műsorai mennek vissza [[csatorna-id, műsorok], …]
     const matched = [];
+    // a tévécsatornához nem párosított műsorújság-csatornák névkulcsai: a felület ezekből tudja, hogy egy újonnan
+    // betöltött rádióadó egyáltalán párosítható-e (ha nem, nem kell a teljes műsorújságot újra feldolgozni)
+    const radioKeys = new Set();
     if (index) {
       const seen = new Set();
       for (const epgId of new Set([...channels.keys(), ...programs.keys()])) {
         const progs = programs.get(epgId);
         if (!progs || !progs.length) continue;
-        const chId = resolve(epgId, channels.get(epgId) || [], index);
+        const names = channels.get(epgId) || [];
+        const chId = resolve(epgId, names, index);
+        if ((!chId || chId.startsWith('r:')) && radioKeys.size < 20000) {
+          radioKeys.add(idKey(epgId).k);
+          for (const n of names) radioKeys.add(stripSuffix(key(n)));
+        }
         if (!chId || seen.has(chId)) continue;
         seen.add(chId);
         matched.push([chId, progs]);
@@ -230,7 +238,7 @@ self.onmessage = (e) => {
         size = 0;
       }
     }
-    self.postMessage({ id, chunk: part, done: true, nChannels: channels.size, count });
+    self.postMessage({ id, chunk: part, done: true, nChannels: channels.size, count, radioKeys: [...radioKeys] });
   } catch (err) {
     self.postMessage({ id, error: String(err) });
   }

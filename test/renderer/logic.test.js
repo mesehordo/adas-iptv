@@ -283,3 +283,12 @@ test('sportnaptár (V10): RRULE + EXDATE + DTEND, módosított alkalom, élő á
   assert.equal(icsDuration('P1DT2H'), 26 * 3600e3);
   assert.equal(icsDuration('PT90M'), 90 * 60e3);
 });
+
+test('gyorsítótár (kv): JSON-szövegként oda-vissza – nagy, egymásba ágyazott objektum, ékezet, hiányzó kulcs', async () => {
+  const big = { v: 1, at: 1, channels: Array.from({ length: 3000 }, (_, i) => ({ id: 'c' + i, name: 'Csatorna ' + i + ' – ő ű', tags: ['a', 'b'], n: i })) };
+  await api.kvSet('teszt:kv-nagy', big);
+  const back = await api.kvGet('teszt:kv-nagy');
+  assert.equal(back.channels.length, 3000);
+  assert.equal(back.channels[2999].name, 'Csatorna 2999 – ő ű');
+  assert.equal(await api.kvGet('teszt:nincs-ilyen-kulcs'), undefined);
+});
