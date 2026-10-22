@@ -37,8 +37,10 @@
 
   // ---------------------------------------------------------------- a látogató rendszere
   const ua = navigator.userAgent;
-  // (iPhone / iPad: a böngésző „like Mac OS X”-nek is mondja magát – ott nincs letölthető csomag)
-  const os = /iPhone|iPad|iPod/i.test(ua) ? '' : /Android/i.test(ua) ? (/TV|AFT|BRAVIA|SMART-TV/i.test(ua) ? 'androidtv' : 'android') : /Windows/i.test(ua) ? 'win' : /Mac OS X|Macintosh/i.test(ua) ? 'mac' : /Linux|X11/i.test(ua) ? 'linux' : '';
+  // (iPhone / iPad: a böngésző „like Mac OS X”-nek is mondja magát – ott nincs letölthető csomag. Az iPad Safari
+  // asztali módban Macintosh-ként jelentkezik: érintőképernyős „Mac” vagy a „Mobile/” jelölés → nem ajánlunk semmit)
+  const ipadAsMac = /Macintosh/i.test(ua) && (navigator.maxTouchPoints > 1 || /\bMobile\//.test(ua));
+  const os = /iPhone|iPad|iPod/i.test(ua) || ipadAsMac ? '' : /Android/i.test(ua) ? (/TV|AFT|BRAVIA|SMART-TV/i.test(ua) ? 'androidtv' : 'android') : /Windows/i.test(ua) ? 'win' : /Mac OS X|Macintosh/i.test(ua) ? 'mac' : /Linux|X11/i.test(ua) ? 'linux' : '';
   const mine = os && document.querySelector(`.dl[data-os~="${os}"]`);
   if (mine) {
     mine.classList.add('mine');

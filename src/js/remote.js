@@ -4,7 +4,7 @@
 import { $, esc, toast, bus, norm } from './util.js';
 import { api } from './api.js';
 import { store } from './store.js';
-import { catalog, getChannels, visible, byAvailability } from './catalog.js';
+import { catalog, getChannels, visible, byAvailability, contentAllowed } from './catalog.js';
 import { epg } from './epg.js';
 import { player } from './player.js';
 import { openInfo, openModal } from './components.js';
@@ -242,7 +242,9 @@ function stateJson() {
     const n = epg.now(ch.id, Date.now());
     now = { name: ch.name, title: n?.cur?.title || '', next: n?.next ? `${new Date(n.next.start).toTimeString().slice(0, 5)} ${n.next.title}` : '', logo: httpLogo(ch), progress: n?.cur ? n.progress : null };
   }
-  const favs = getChannels(store.profile?.favorites || []).slice(0, 40).map(chItem);
+  // (X07) a kedvencek és az előzmények is a profil szűrésén át (gyerekprofil, felnőtt tartalom) – egy korábbi
+  // felnőtt kedvenc vagy utólag tiltott csatorna neve és logója sem jut a telefonra
+  const favs = getChannels(store.profile?.favorites || []).filter((c) => contentAllowed(c)).slice(0, 40).map(chItem);
   // rádió (a gyerekprofilban rejtett)
   const radioOn = radioMenuOn();
   const r = radioPlayer;
@@ -262,7 +264,7 @@ function stateJson() {
     : null;
   const stItem = (x) => ({ id: x.id, name: x.name, logo: /^https?:/.test(x.logo || '') ? x.logo : '', sub: [x.country, x.genres?.[0]].filter(Boolean).join(' · ') });
   const ch0 = player.active ? player.channel : null;
-  const recent = getChannels(store.profile?.recent || []).slice(0, 12).map(chItem);
+  const recent = getChannels(store.profile?.recent || []).filter((c) => contentAllowed(c)).slice(0, 12).map(chItem);
   return JSON.stringify({
     now, favs, recent, results, volume: player.shownVolume(), muted: player.shownVolume() === 0, paused: video.paused, profile: store.profile?.name || '',
     fav: !!(ch0 && !ch0.vod && store.profile?.favorites?.includes(ch0.id)),
@@ -629,6 +631,13 @@ export async function stopRemote() {
 if (canRemote) {
   api.onRemoteCmd((x) => command(x));
   for (const ev of ['player-opened', 'player-closed', 'profile', 'favorites']) bus.on(ev, pushState);
+  // (profil- vagy jogosultságváltáskor a korábbi keresési találatok sem maradnak a telefonon)
+  bus.on('profile', () => {
+    results = null;
+    rresults = null;
+    pushState();
+  });
+  bus.on('settings', (k) => (k === 'showAdult' || k === 'kidsMarks') && ((results = null), pushState()));
   setInterval(pushState, 15000);
   // bekapcsolt távirányító: indításkor elindul (kicsit később, hogy a lista betöltődjön)
   setTimeout(() => store.settings.remoteOn && startRemote().catch(() => {}), 4000);

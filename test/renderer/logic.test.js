@@ -284,6 +284,22 @@ test('sportnaptár (V10): RRULE + EXDATE + DTEND, módosított alkalom, élő á
   assert.equal(icsDuration('PT90M'), 90 * 60e3);
 });
 
+test('sportnaptár (W01): RDATE RRULE nélkül, régen induló napi sorozat, WKST=SU', async () => {
+  const { _sportsTest: { parseIcs } } = await import('../../src/js/sports.js');
+  const w = { id: 'x', name: 'N', sport: 'soccer' };
+  const day = (e) => new Date(e.start).toISOString().slice(5, 16);
+  const now = Date.UTC(2026, 9, 21, 12, 0, 0);
+  const rd = parseIcs(['BEGIN:VEVENT', 'UID:r', 'SUMMARY:RD', 'DTSTART:20261020T160000Z', 'RDATE:20261021T160000Z,20261022T160000Z', 'END:VEVENT'].join('\r\n'), w, now);
+  assert.deepEqual(rd.map(day), ['10-20T16:00', '10-21T16:00', '10-22T16:00']);
+  // (2010 óta naponta: az időablak – most −2 nap … +60 nap – minden napja megvan)
+  const old = parseIcs(['BEGIN:VEVENT', 'UID:o', 'SUMMARY:Régi', 'DTSTART:20100101T160000Z', 'RRULE:FREQ=DAILY', 'END:VEVENT'].join('\r\n'), w, now);
+  assert.equal(day(old[0]), '10-19T16:00');
+  assert.ok(old.length >= 61 && old.length <= 63, String(old.length));
+  // (vasárnappal kezdődő hét: V 10-18 – az ablakon kívül, de a COUNT-ba számít –, K 10-20, majd két hét múlva V, K)
+  const su = parseIcs(['BEGIN:VEVENT', 'UID:s', 'SUMMARY:WKST', 'DTSTART:20261018T160000Z', 'RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=SU,TU;WKST=SU;COUNT=4', 'END:VEVENT'].join('\r\n'), w, now);
+  assert.deepEqual(su.map((e) => day(e).slice(0, 5)), ['10-20', '11-01', '11-03']);
+});
+
 // ------------------------------------------------------------------ témák színváltozatai
 import { rotateColor, hueOf, variantsFor } from '../../src/js/themevariants.js';
 
@@ -342,4 +358,28 @@ test('gyorsítótár (kv): JSON-szövegként oda-vissza – nagy, egymásba ágy
   assert.equal(back.channels.length, 3000);
   assert.equal(back.channels[2999].name, 'Csatorna 2999 – ő ű');
   assert.equal(await api.kvGet('teszt:nincs-ilyen-kulcs'), undefined);
+});
+
+import { preserveForV1 } from '../../src/js/backup.js';
+
+test('mentési pontok (X09): felülírás előtt a régi (v1) pont a mostani tartalmat kapja meg, nem a frissítettet', async () => {
+  if (!api.docSet) return;
+  const saved = await api.docGet('backups');
+  try {
+    await api.docSet('vodtext:tesztx09', { text: 'RÉGI' });
+    const v1 = { v: 1, at: 1, reason: 'teszt', data: { settings: { vodCustom: [{ name: 'X09', textKey: 'vodtext:tesztx09' }] } } };
+    const other = { v: 1, at: 2, reason: 'teszt', data: { settings: { vodCustom: [] } } };
+    await api.docSet('backups', { items: [v1, other] });
+    await preserveForV1('vodtext:tesztx09');
+    const items = (await api.docGet('backups')).items;
+    const h = items[0].docs?.['vodtext:tesztx09'];
+    assert.ok(h, 'a v1 pont tartalom szerinti hivatkozást kapott');
+    assert.equal(items[1].docs, undefined, 'a nem hivatkozó pont érintetlen');
+    await api.docSet('vodtext:tesztx09', { text: 'ÚJ' });
+    assert.equal((await api.docGet('bkdoc:' + h))?.text, 'RÉGI');
+    await api.docSet('bkdoc:' + h, null);
+  } finally {
+    await api.docSet('vodtext:tesztx09', null);
+    await api.docSet('backups', saved ?? null);
+  }
 });

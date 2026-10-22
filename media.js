@@ -23,10 +23,14 @@ const token = crypto.randomBytes(12).toString('hex');
 const sessions = new Map(); // id -> { args, proc }
 let seq = 0;
 
-/** A csomagolt FFmpeg (resources/ffmpeg) vagy fejlesztéskor az ffmpeg-static csomagé. */
+/**
+ * A csomagolt FFmpeg (resources/ffmpeg) vagy fejlesztéskor az ffmpeg-static csomagé. Az ADAS_FFMPEG változó
+ * (fejlesztés, tesztek) mindent felülír – pl. Linuxon a vendor/ffmpeg/linux-x64 buildje (lásd tools/fetch-ffmpeg.mjs).
+ */
 function ffmpegPath() {
   const exe = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
   const cands = [];
+  if (process.env.ADAS_FFMPEG) cands.push(path.resolve(process.env.ADAS_FFMPEG));
   if (process.resourcesPath) cands.push(path.join(process.resourcesPath, 'ffmpeg', exe));
   try {
     cands.push(require('ffmpeg-static'));
@@ -60,18 +64,26 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
  *  - file://: helyi (vagy UNC) útvonal, mert a file: protokollt az FFmpeg nem dekódolja.
  * Hívás előtt a helyi kiszolgálónak futnia kell (ensureServer).
  */
-const srcKeys = new Map(); // eredeti cím -> kulcs
+const srcKeys = new Map(); // eredeti cím + fejlécek -> kulcs
 const srcUrls = new Map(); // kulcs -> eredeti cím
 const srcRoots = new Map(); // kulcs -> a felhasználó választotta forrás (a hálózati szabályhoz, lásd lan.fetchPolicy)
-/** root: a lista, amelyik erre a címre hivatkozik, a gyökérforrással (üres: ez maga a választott forrás) */
-function inputOf(url, root = '') {
+const srcHeaders = new Map(); // (U08) kulcs -> a munkamenet indulásakor érvényes fejlécek ({ ua, referrer } vagy null)
+/**
+ * root: a lista, amelyik erre a címre hivatkozik, a gyökérforrással (üres: ez maga a választott forrás). hdr: a
+ * munkamenet fejlécei – (U08) a kulcshoz rögzítve, így ugyanazon szerver két, eltérő fejlécet kérő adása (pl. egy
+ * felvétel és egy közben indított másik csatorna) végig a saját fejlécével megy; alapból a pillanatnyi beállítás.
+ */
+function inputOf(url, root = '', hdr = undefined) {
   if (/^https?:/i.test(url)) {
-    let k = srcKeys.get(url);
+    if (hdr === undefined) hdr = opts.headersFor(url) || null;
+    const sig = url + ' ' + (hdr ? JSON.stringify([hdr.ua || '', hdr.referrer || '']) : '');
+    let k = srcKeys.get(sig);
     if (!k) {
       k = crypto.randomBytes(8).toString('hex');
-      srcKeys.set(url, k);
+      srcKeys.set(sig, k);
       srcUrls.set(k, url);
       srcRoots.set(k, root || url);
+      srcHeaders.set(k, hdr);
     }
     return `http://127.0.0.1:${port}/${token}/src/${k}`;
   }
@@ -98,7 +110,8 @@ async function relay(key, req, res) {
     res.statusCode = 404;
     return res.end();
   }
-  const h = opts.headersFor(target) || {};
+  const hdr = srcHeaders.has(key) ? srcHeaders.get(key) : opts.headersFor(target) || null;
+  const h = hdr || {};
   const headers = { 'User-Agent': h.ua || UA, 'Accept-Encoding': 'identity', Accept: '*/*' };
   if (h.referrer) headers.Referer = h.referrer;
   if (req.headers.range) headers.Range = req.headers.range;
@@ -131,8 +144,9 @@ async function relay(key, req, res) {
           .map((line) => {
             const l = line.trim();
             if (!l) return line;
-            if (l.startsWith('#')) return line.replace(/URI="([^"]+)"/g, (_m, x) => `URI="${inputOf(abs(x), root)}"`);
-            return inputOf(abs(l), root);
+            // (a listában hivatkozott részek a lista munkamenetének fejléceivel)
+            if (l.startsWith('#')) return line.replace(/URI="([^"]+)"/g, (_m, x) => `URI="${inputOf(abs(x), root, hdr)}"`);
+            return inputOf(abs(l), root, hdr);
           })
           .join('\n');
         res.writeHead(200, { 'Content-Type': 'application/vnd.apple.mpegurl', 'Cache-Control': 'no-cache' });
@@ -485,9 +499,12 @@ async function recStart({ url, dir, name, until, audio }) {
     }
   }
   const hlsOpts = /\.m3u8?(\?|$)/i.test(url) ? ['-max_reload', '1000', '-m3u8_hold_counters', '1000'] : [];
+  // (U08) a felvétel a saját, induláskori fejléceivel megy – az újraindítások is (egy közben indított, ugyanazon
+  // szerverre más fejlécet kérő lejátszás nem írja át)
+  const hdr = opts.headersFor(url) || null;
   // Újraindításkor a kimenet ideje az addig eltelt idővel folytatódik (különben az összefűzött fájlban az idő visszaugrana)
   // (élő HLS-nél újraindításkor a legfrissebb résztől folytatjuk – különben a korábbi részek ismétlődnének)
-  const argsFor = (offset) => ['-hide_banner', '-nostdin', '-loglevel', 'error', ...headerArgs(url), ...hlsOpts, ...(offset > 0 && hlsOpts.length ? ['-live_start_index', '-1'] : []), '-i', inputOf(url), ...(aOut ? aOut.args : ['-c', 'copy', ...(offset > 0 ? ['-output_ts_offset', offset.toFixed(1)] : []), '-f', 'mpegts']), 'pipe:1'];
+  const argsFor = (offset) => ['-hide_banner', '-nostdin', '-loglevel', 'error', ...headerArgs(url), ...hlsOpts, ...(offset > 0 && hlsOpts.length ? ['-live_start_index', '-1'] : []), '-i', inputOf(url, '', hdr), ...(aOut ? aOut.args : ['-c', 'copy', ...(offset > 0 ? ['-output_ts_offset', offset.toFixed(1)] : []), '-f', 'mpegts']), 'pipe:1'];
   const id = String(++recSeq);
   const out = fs.createWriteStream(file, { fd, flags: 'a' });
   const rec = { proc: null, file, out, started: Date.now(), until: until || 0, restarts: 0, err: '' };
@@ -684,4 +701,5 @@ async function recRestore(p) {
 module.exports = {
   init, available: () => !!FF, status, probe, start, stop, stopAll, cover, parseInfo,
   recStart, recStop, recList, recTrim, recRestore, recSource, originalOf, isRecording, recStopAll: () => [...recordings.keys()].forEach(recStop),
+  _test: { inputOf, ensureServer },
 };

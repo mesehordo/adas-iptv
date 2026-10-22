@@ -106,14 +106,22 @@ export function renderLists(box) {
       setRefreshHours(key.slice(0, i), key.slice(i + 1), Number(e.target.value));
       return toast(_t('Mentve: a lista {h} óránként frissül.', { h: e.target.value }));
     }
+    // (X11) az utolsó bekapcsolt TV-lista nem kapcsolható ki – a bekapcsolt TV-csomagok is számítanak (ugyanazzal az
+    // alapállással, mint a fenti lista kapcsolói), és a beépített, a csomag és a saját lista kapcsolója is így véd
+    const lastList = () => {
+      const enabledCount =
+        BUILTIN_PLAYLISTS.filter((b) => s.builtinLists[b.id] !== false).length +
+        packsOf('tv').filter((p) => s.builtinLists?.[p.id] ?? !p.off).length +
+        s.customPlaylists.filter((p) => p.enabled).length;
+      if (e.target.checked || enabledCount > 1 || s.customChannels.length) return false;
+      e.target.checked = true;
+      toast(_t('Legalább egy csatornalistának bekapcsolva kell maradnia.'));
+      return true;
+    };
     const bi = e.target.closest('[data-builtin]');
     if (bi && e.target.matches('[data-l-builtin]')) {
       const id = bi.dataset.builtin;
-      const enabledCount = BUILTIN_PLAYLISTS.filter((b) => s.builtinLists[b.id] !== false).length + s.customPlaylists.filter((p) => p.enabled).length;
-      if (!e.target.checked && enabledCount <= 1 && !s.customChannels.length) {
-        e.target.checked = true;
-        return toast(_t('Legalább egy csatornalistának bekapcsolva kell maradnia.'));
-      }
+      if (lastList()) return;
       s.builtinLists = { ...s.builtinLists, [id]: e.target.checked };
       store.save();
       reload(box);
@@ -122,6 +130,7 @@ export function renderLists(box) {
     const li = e.target.closest('[data-pl]');
     if (li && e.target.matches('[data-l-toggle]')) {
       const pl = s.customPlaylists.find((x) => x.id === li.dataset.pl);
+      if (lastList()) return;
       pl.enabled = e.target.checked;
       store.save();
       reload(box);

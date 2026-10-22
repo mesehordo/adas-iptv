@@ -893,7 +893,8 @@ ipcMain.handle('sidecar-subs', async (_e, videoPath) => {
     const out = [];
     for (const n of files) {
       const buf = await readSmallFile(path.join(dir, n), 5 * 1024 * 1024);
-      if (buf) out.push({ name: n, text: buf.toString('utf8') });
+      // (X03) a kézi beolvasással azonos dekódoló: BOM-os UTF-8 / UTF-16, BOM nélkül UTF-8, különben Windows-1250
+      if (buf) out.push({ name: n, text: decodeText(buf) });
     }
     return out;
   } catch {

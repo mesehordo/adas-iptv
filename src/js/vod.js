@@ -857,19 +857,33 @@ function loadLib(lib, { force = false, recheck = false } = {}) {
       const saveKey = cacheKey(lib);
       const errors = {};
       const warnings = {}; // (tartalékból mutatott lista: nem hiba – a könyvtár ilyenkor is frissül)
+      // (W02) listánként az utolsó sikeresen olvasott tartalom: egy most olvashatatlan lista a régi tartalmával marad,
+      // a többi lista viszont frissül (eddig egyetlen hiba az egész ellenőrzést csendben eldobta)
+      const last = lib.lastEntries || new Map();
+      let missingPrev = false;
       const loaded = await Promise.all(
         lists.map(async (pl) => {
           try {
-            return { pl, entries: await (lib === own ? loadOwnList(pl, force) : loadList(pl, force, warnings)) };
+            const entries = await (lib === own ? loadOwnList(pl, force) : loadList(pl, force, warnings));
+            last.set(pl.id, entries);
+            return { pl, entries };
           } catch (err) {
             errors[pl.id] = String(err.message || err);
-            return { pl, entries: [] };
+            const prev = last.get(pl.id);
+            if (!prev) missingPrev = true;
+            return { pl, entries: prev || [] };
           }
         })
       );
-      // (V19) az időzített / oldalnyitáskori ellenőrzés olvasási hibájánál a meglévő könyvtár nem cserélődik le
-      // részleges vagy üres eredményre (a hiba a következő sikeres körig nem írja felül)
-      if (recheck && lib.ready && (Object.keys(errors).length || (lib === own && Object.keys(own.scanErrors || {}).length))) return;
+      lib.lastEntries = new Map(lists.filter((pl) => last.has(pl.id)).map((pl) => [pl.id, last.get(pl.id)]));
+      // (V19) az időzített / oldalnyitáskori ellenőrzés hibájánál a meglévő könyvtár nem cserélődik le részleges vagy
+      // üres eredményre: ha egy hibás listának nincs meg a régi tartalma (pl. gyorsítótárból indult a könyvtár), vagy
+      // egy forrásmappa nem olvasható, a könyvtár marad – de a hiba ilyenkor is látszik
+      if (recheck && lib.ready && (missingPrev || (lib === own && Object.keys(own.scanErrors || {}).length))) {
+        lib.errors = { ...warnings, ...errors };
+        bus.emit(lib.id === 'vod' ? 'vod' : 'own');
+        return;
+      }
       lib.errors = { ...warnings, ...errors };
       build(lib, loaded);
       lib.loadedAt = Date.now();

@@ -4,7 +4,7 @@
 import { esc, html } from './util.js';
 import { themePicker } from './themepicker.js';
 import { applyTheme } from './themes.js';
-import { store, PROFILE_COLORS, AVATAR_COUNT } from './store.js';
+import { store, PROFILE_COLORS, AVATAR_COUNT, BUILTIN_EPG } from './store.js';
 import { avatarPicker } from './views.js';
 import { _t, LANGS, lang, savedLang, suggestedLang, setLanguage } from './i18n.js';
 
@@ -244,10 +244,12 @@ export function runOnboarding(root) {
         s.homeCountry = homeCountryFor(l);
         // műsorújság: a magyar források helyett a hazai ország (ennek híján a nyelv) forrása
         const cc = EPG_CC[s.homeCountry] || LANGS.find((x) => x.id === l)?.epg;
-        s.epgSources = (s.epgSources || []).map((src) => ({
-          ...src,
-          enabled: /epg-hu\.|_HU1\./.test(src.url) ? false : cc && src.url.endsWith(`/epg-${cc}.xml.gz`) ? true : src.enabled,
-        }));
+        // (X06) a beépített forrás országa a metaadatából (így az open-epg.com magyar forrása is kikapcsol)
+        s.epgSources = (s.epgSources || []).map((src) => {
+          const country = BUILTIN_EPG.find((b) => b.url === src.url)?.country;
+          const on = country === 'HU' ? false : (country && country === s.homeCountry) || (cc && src.url.endsWith(`/epg-${cc}.xml.gz`)) ? true : src.enabled;
+          return { ...src, enabled: on };
+        });
       }
       store.firstRun = false;
       store.flush();

@@ -24,7 +24,7 @@ async function list() {
     throw new Error(String(err?.message || err).replace(/^Error invoking remote method '[^']+':\s*(Error:\s*)?/, ''));
   }
   if (v === undefined || v === null) return [];
-  if (!Array.isArray(v.items)) throw new Error(_t('a mentéstár sérült'));
+  if (!Array.isArray(v.items)) throw Object.assign(new Error(_t('a mentéstár sérült')), { corrupt: true });
   return v.items;
 }
 
@@ -93,6 +93,55 @@ export function backupNow(reason = 'auto') {
     store.settings.lastBackup = Date.now();
     store.save();
     return true;
+  });
+  chain = run.catch(() => {});
+  return run;
+}
+
+/**
+ * (X09) A régi (v1) pontok a közös dokumentumtárból olvasnak. Egy kulcs felülírása (pl. csomagfrissítés) előtt a rá
+ * hivatkozó v1 pontok a mostani tartalommal tartalom szerinti (v2-es) hivatkozást kapnak – így a régi pontból a régi
+ * tartalom áll vissza, nem a frissített. Hibánál (olvashatatlan tár, írási hiba) hibát ad: a hívó ilyenkor nem írhat
+ * felül, a mentéstár és a dokumentumok a korábbi állapotban maradnak.
+ */
+export function preserveForV1(docKey) {
+  const run = chain.then(async () => {
+    if (!api.docSet) return;
+    let items;
+    try {
+      items = await list();
+    } catch (err) {
+      // (sérült mentéstár: a pontjai úgysem állíthatók vissza – nincs mit megőrizni; olvasási hibánál viszont igen)
+      if (err.corrupt) return;
+      throw err;
+    }
+    const affected = items.filter((it) => !it.docs && it.data?.settings && referencedDocKeys(it.data.settings).some((r) => r.key === docKey));
+    if (!affected.length) return;
+    const oldRefs = refsOf(items);
+    const created = [];
+    try {
+      const cur = new Map();
+      for (const it of affected) {
+        const docs = {};
+        for (const r of referencedDocKeys(it.data.settings)) {
+          if (!cur.has(r.key)) cur.set(r.key, await api.docGet?.(r.key).catch(() => null));
+          const v = cur.get(r.key);
+          if (typeof v?.text !== 'string') continue; // (ami most sincs meg, az a v2-es pontban is hiányzóként marad)
+          const h = fingerprint(v.text);
+          const have = await api.docGet?.(DOC_PREFIX + h).catch(() => null);
+          if (typeof have?.text !== 'string' || have.text !== v.text) {
+            await api.docSet(DOC_PREFIX + h, { text: v.text });
+            if (!oldRefs.has(h)) created.push(h);
+          }
+          docs[r.key] = h;
+        }
+        it.docs = docs;
+      }
+      await api.docSet(KEY, { items });
+    } catch (err) {
+      await Promise.all(created.map((h) => Promise.resolve(api.docSet(DOC_PREFIX + h, null)).catch(() => {})));
+      throw err;
+    }
   });
   chain = run.catch(() => {});
   return run;

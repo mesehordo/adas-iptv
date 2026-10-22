@@ -161,7 +161,9 @@ const procLog = [];
   };
 }
 const media = require(path.join(ROOT, 'media'));
+// (Linuxos CI-n a vendor/ffmpeg buildje – ADAS_FFMPEG –: az ffmpeg-static ottani buildje az MPEG-TS-t nem tudja olvasni)
 const ffmpeg = (() => {
+  if (process.env.ADAS_FFMPEG) return path.resolve(process.env.ADAS_FFMPEG);
   try {
     return require('ffmpeg-static');
   } catch {
@@ -194,6 +196,26 @@ test('felvétel: retry közbeni leállítás pontosan egy rec-ended (H38); egyid
   // (ha az FFmpeg a környezetben összeomlik – egyes CI-gépeken SIGSEGV –, a fájl üres lehet; a lezárás akkor is egyszeri)
   if (!procLog.some((l) => /SIG(SEGV|ABRT|ILL|BUS)/.test(l))) assert.ok(ended.find((e) => e.id === a.id).size > 0);
   assert.equal(media.recStop(a.id), false);
+});
+
+test('továbbító (U08): a munkamenet a saját, induláskori fejléceivel megy – egy közben átállított fejléc nem keveredik bele', async (t) => {
+  const seen = [];
+  const srv = http.createServer((req, res) => {
+    seen.push(req.headers['user-agent']);
+    res.end('ok');
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  t.after(() => srv.close());
+  const target = `http://127.0.0.1:${srv.address().port}/adas.ts`;
+  let current = { ua: 'A-ügynök' };
+  media.init({ headersFor: () => current });
+  await media._test.ensureServer();
+  const a = media._test.inputOf(target);
+  current = { ua: 'B-ügynök' };
+  const b = media._test.inputOf(target);
+  assert.notEqual(a, b);
+  for (const u of [a, b, a]) await (await fetch(u)).text();
+  assert.deepEqual(seen, ['A-ügynök', 'B-ügynök', 'A-ügynök']);
 });
 
 // ------------------------------------------------------------------ távirányító és beállítás-átadás (helyi kiszolgáló)

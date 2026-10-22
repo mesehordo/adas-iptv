@@ -1612,7 +1612,6 @@ export default {
  "Távirányító és billentyűk": "Télécommande et touches",
  "A telefon távirányítóként (QR-kóddal csatlakozik). Itt találod a billentyűzet és a tévé-távirányító gombjait is.": "Le téléphone comme télécommande (connexion par QR code). Vous trouverez aussi ici les touches du clavier et de la télécommande TV.",
  "Szinkron eszközök között": "Synchronisation entre appareils",
- "Beállítások, profilok és listák átvitele egy másik eszközre a helyi hálózaton, egy hatjegyű kóddal.": "Transférer paramètres, profils et listes vers un autre appareil du réseau local, avec un code à six chiffres.",
  "A profilok kezelése, mentés fájlba és visszaállítás. Itt vannak az automatikus napi mentések is.": "Gestion des profils, sauvegarde dans un fichier et restauration. Les sauvegardes quotidiennes automatiques sont aussi ici.",
  "Új verzió keresése és telepítése a GitHubról. Itt kapcsolhatod ki azt is, hogy induláskor keressen frissítést.": "Rechercher et installer une nouvelle version depuis GitHub. Vous pouvez aussi désactiver ici la recherche de mises à jour au démarrage.",
  "A verzió, az adatmappa helye és az adatforrások.": "La version, l’emplacement du dossier de données et les sources de données.",

@@ -1128,7 +1128,7 @@ const SET_GROUPS = [
   ['kids', '👪', _t('Tartalom és gyerekek'), _t('A hazai ország, a felnőtt tartalom és a nyelvek. Itt állíthatod be, mit nézhetnek a gyerekprofilok.')],
   ['notify', '🔔', _t('Értesítések'), _t('Emlékeztetők a kedvenc műsoraidra, automatikus átkapcsolás. Itt dől el az is, hogy az Adás a háttérben fusson-e.')],
   ['remote', '📱', _t('Távirányító és billentyűk'), _t('A telefon távirányítóként (QR-kóddal csatlakozik). Itt találod a billentyűzet és a tévé-távirányító gombjait is.')],
-  ['sync', '🔄', _t('Szinkron eszközök között'), _t('Beállítások, profilok és listák átvitele egy másik eszközre a helyi hálózaton, egy hatjegyű kóddal.')],
+  ['sync', '🔄', _t('Szinkron eszközök között'), _t('Beállítások, profilok és listák átvitele egy másik eszközre a helyi hálózaton, egy 12 jegyű kóddal.')],
   ['data', '💾', _t('Profilok és mentés'), _t('A profilok kezelése, mentés fájlba és visszaállítás. Itt vannak az automatikus napi mentések is.')],
   ['update', '⬆️', _t('Frissítés'), _t('Új verzió keresése és telepítése a GitHubról. Itt kapcsolhatod ki azt is, hogy induláskor keressen frissítést.')],
   ['about', 'ℹ️', _t('Névjegy'), _t('A verzió, az adatmappa helye és az adatforrások.')],

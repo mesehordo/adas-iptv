@@ -889,7 +889,7 @@ ${go('#/settings', 'Megjelenés beállítása')}`,
 <tr><td><b>👪 Tartalom és gyerekek</b></td><td>Hazai ország, rejtett és felnőtt tartalom, mit nézhetnek a gyerekprofilok. ${t('kids', 'Részletek')}</td></tr>
 <tr><td><b>🔔 Értesítések</b></td><td>Emlékeztetők, automatikus átkapcsolás, futás a háttérben. ${t('reminders', 'Részletek')}</td></tr>
 <tr><td><b>📱 Távirányító és billentyűk</b></td><td>Telefon távirányítóként (QR-kóddal), billentyűparancsok, a tévé-távirányító gombjai. ${t('remote', 'Távirányító')}</td></tr>
-<tr><td><b>🔄 Szinkron eszközök között</b></td><td>Beállítások, profilok, listák átvitele egy másik eszközre hatjegyű kóddal.</td></tr>
+<tr><td><b>🔄 Szinkron eszközök között</b></td><td>Beállítások, profilok, listák átvitele egy másik eszközre 12 jegyű kóddal.</td></tr>
 <tr><td><b>💾 Profilok és mentés</b></td><td>Profilok, mentés és visszaállítás, automatikus mentések, gyorsítótár. ${t('backup', 'Részletek')}</td></tr>
 <tr><td><b>⬆️ Frissítés</b></td><td>Új verzió keresése és telepítése a GitHubról; az induláskori keresés ki is kapcsolható. ${t('update', 'Frissítés')}</td></tr>
 <tr><td><b>ℹ️ Névjegy</b></td><td>Verzió, az adatmappa helye, az adatok forrásai.</td></tr>

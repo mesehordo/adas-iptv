@@ -1622,7 +1622,7 @@ export default {
  "Távirányító és billentyűk": "Remote control and keys",
  "A telefon távirányítóként (QR-kóddal csatlakozik). Itt találod a billentyűzet és a tévé-távirányító gombjait is.": "Your phone as a remote (connects with a QR code). Here you also find the keyboard and TV remote buttons.",
  "Szinkron eszközök között": "Sync between devices",
- "Beállítások, profilok és listák átvitele egy másik eszközre a helyi hálózaton, egy hatjegyű kóddal.": "Transfer settings, profiles and lists to another device on the local network, with a six-digit code.",
+ "Beállítások, profilok és listák átvitele egy másik eszközre a helyi hálózaton, egy 12 jegyű kóddal.": "Transfer settings, profiles and lists to another device on the local network, with a 12-digit code.",
  "A profilok kezelése, mentés fájlba és visszaállítás. Itt vannak az automatikus napi mentések is.": "Managing profiles, saving to a file and restoring. The automatic daily backups are here too.",
  "Új verzió keresése és telepítése a GitHubról. Itt kapcsolhatod ki azt is, hogy induláskor keressen frissítést.": "Find and install a new version from GitHub. Here you can also switch off checking for updates at startup.",
  "A verzió, az adatmappa helye és az adatforrások.": "The version, the data folder location and the data sources.",
@@ -2307,5 +2307,6 @@ export default {
  "Lila": "Purple",
  "Rózsaszín": "Pink",
  "<b>Kinézet</b>": "<b>Look</b>",
- "(téma és színváltozat ehhez a profilhoz)": "(theme and colour variant for this profile)"
+ "(téma és színváltozat ehhez a profilhoz)": "(theme and colour variant for this profile)",
+ "A feliratfájl nem olvasható.": "The subtitle file can’t be read."
 };

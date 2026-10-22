@@ -110,7 +110,18 @@ export class MediaBridge {
     this.ms = ms;
     this.objUrl = URL.createObjectURL(ms);
     this.video.src = this.objUrl;
-    await new Promise((r) => ms.addEventListener('sourceopen', r, { once: true }));
+    // (X08) a megszüntetés (destroy) a várakozást is lezárja; utána – vagy egy későn érkező sourceopen után – nem
+    // indul folyam (a hívó a saját érvényességét ellenőrzi: a megszakított megnyitás csendben, hiba nélkül ér véget)
+    const opened = await new Promise((r) => {
+      const onOpen = () => r(true);
+      ms.addEventListener('sourceopen', onOpen, { once: true });
+      this.abortOpen = () => {
+        ms.removeEventListener('sourceopen', onOpen);
+        r(false);
+      };
+    });
+    this.abortOpen = null;
+    if (!opened || this.destroyed) return;
     if (this.info.duration > 0) ms.duration = this.info.duration;
     this.sb = ms.addSourceBuffer(this.mime);
     this.sb.mode = 'segments';
@@ -376,7 +387,9 @@ export class MediaBridge {
   }
 
   destroy() {
+    this.destroyed = true;
     this.gen++;
+    this.abortOpen?.();
     clearTimeout(this.seekTimer);
     this.stopStream();
     this.video.removeEventListener('seeking', this.onSeeking);

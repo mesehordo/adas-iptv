@@ -1612,7 +1612,6 @@ export default {
  "Távirányító és billentyűk": "Mando y teclas",
  "A telefon távirányítóként (QR-kóddal csatlakozik). Itt találod a billentyűzet és a tévé-távirányító gombjait is.": "El móvil como mando (se conecta con un código QR). Aquí también encontrarás las teclas del teclado y los botones del mando de la TV.",
  "Szinkron eszközök között": "Sincronización entre dispositivos",
- "Beállítások, profilok és listák átvitele egy másik eszközre a helyi hálózaton, egy hatjegyű kóddal.": "Transferir ajustes, perfiles y listas a otro dispositivo de la red local, con un código de seis dígitos.",
  "A profilok kezelése, mentés fájlba és visszaállítás. Itt vannak az automatikus napi mentések is.": "Gestión de perfiles, copia en archivo y restauración. Aquí están también las copias diarias automáticas.",
  "Új verzió keresése és telepítése a GitHubról. Itt kapcsolhatod ki azt is, hogy induláskor keressen frissítést.": "Buscar e instalar una versión nueva desde GitHub. Aquí también puedes desactivar la búsqueda de actualizaciones al iniciar.",
  "A verzió, az adatmappa helye és az adatforrások.": "La versión, la ubicación de la carpeta de datos y las fuentes de datos.",

@@ -942,13 +942,19 @@ function homeOrdered() {
   return orderedCache.list;
 }
 
+/** A csatorna tartalma megengedett-e a jelenlegi profilnak (felnőtt tartalom, gyerekprofil) – az elérhetőségtől függetlenül. */
+export function contentAllowed(ch, p = store.profile, s = store.settings) {
+  if (ch.nsfw && (!s.showAdult || p.kids)) return false;
+  if (p.kids && !kidsAllowed(p, 'ch', ch)) return false; // gyerekprofil: a jelölés / a profil engedélye szerint
+  return true;
+}
+
 /** A jelenlegi profil számára látható csatornák (a hazaiak elöl, azon belül név szerint). */
 export function visible(list = homeOrdered()) {
   const p = store.profile;
   const s = store.settings;
   return list.filter((ch) => {
-    if (ch.nsfw && (!s.showAdult || p.kids)) return false;
-    if (p.kids && !kidsAllowed(p, 'ch', ch)) return false; // gyerekprofil: a jelölés / a profil engedélye szerint
+    if (!contentAllowed(ch, p, s)) return false;
     if (s.hideOffline && channelStatus(ch) === 'bad') return false;
     return true;
   });
