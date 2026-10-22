@@ -12,6 +12,13 @@ const LOADERS = {
   es: () => import('./help/es.js'),
   fr: () => import('./help/fr.js'),
 };
+// A német, spanyol és francia súgó ezeknél a témáknál régebbi a javított magyar / angol szövegnél (elavult darabszámok,
+// telepítési lépések, adatvédelem, frissítés, szinkron, PIN-szabály…): amíg a fordításuk nem frissül, az angol
+// változat jelenik meg helyettük – a pontatlan fordítás ne előzze meg a helyes angolt.
+export const STALE_TRANSLATIONS = new Set([
+  'welcome', 'first-steps', 'themes', 'settings-overview', 'epg-sources', 'backup', 'profiles', 'transfer', 'kids', 'parental',
+  'android', 'tv-install', 'tv-limits', 'privacy', 'update', 'night-audio', 'sportwatch', 'stats', 'own', 'cast', 'sleep', 'recording',
+]);
 let HELP_CATEGORIES = [];
 let ARTICLES = [];
 let byId = new Map();
@@ -22,10 +29,10 @@ const loadHelp = () =>
     lang === 'hu' || lang === 'en' ? null : LOADERS.en(),
   ]).then(([m, en]) => {
     m = m || en;
-    // (az angol sorrendje és teljes témalistája, benne a meglévő fordításokkal)
-    const pick = (base, own) => (base && own !== base ? base.map((x) => own.find((y) => y.id === x.id) || x) : own);
+    // (az angol sorrendje és teljes témalistája, benne a meglévő – és nem elavult – fordításokkal)
+    const pick = (base, own, skip = new Set()) => (base && own !== base ? base.map((x) => (!skip.has(x.id) && own.find((y) => y.id === x.id)) || x) : own);
     HELP_CATEGORIES = pick(en && en.HELP_CATEGORIES, m.HELP_CATEGORIES);
-    ARTICLES = pick(en && en.ARTICLES, m.ARTICLES);
+    ARTICLES = pick(en && en.ARTICLES, m.ARTICLES, STALE_TRANSLATIONS);
     byId = new Map(ARTICLES.map((a) => [a.id, a]));
   }).catch((err) => {
     loading = null; // a következő megnyitás újrapróbálja

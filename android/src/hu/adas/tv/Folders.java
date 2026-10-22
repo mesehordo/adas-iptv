@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * (F02) Helyi / USB-mappák Androidon (Storage Access Framework): a rendszer mappaválasztójával kiválasztott
@@ -30,6 +31,35 @@ final class Folders {
 
   static final int MAX_FILES = 1000;
   static final int MAX_DEPTH = 4;
+
+  // (X02) A dokumentumazonosító a szolgáltató saját, átlátszatlan azonosítója – nem feltétlenül útvonal. A bejáráskor
+  // látott szülő–gyermek kapcsolatokat ezért megjegyezzük („szolgáltató|azonosító” → szülő azonosító / megjelenített
+  // név), és a jogosultság, valamint a feliratok keresése ezt használja; ismeretlen elemnél a szolgáltatót kérdezzük.
+  static final ConcurrentHashMap<String, String> parentOf = new ConcurrentHashMap<>();
+  static final ConcurrentHashMap<String, String> nameOf = new ConcurrentHashMap<>();
+  static final int MAX_KNOWN = 50000;
+
+  static void remember(String authority, String parent, String id, String name) {
+    if (parentOf.size() >= MAX_KNOWN) return;
+    parentOf.put(authority + "|" + id, parent);
+    if (name != null) nameOf.put(authority + "|" + id, name);
+  }
+
+  /** A bejáráskor látott szülőláncon át a mappa része-e (legfeljebb 64 szint). */
+  static boolean knownUnder(String authority, String doc, String treeId) {
+    String cur = doc;
+    for (int i = 0; i < 64 && cur != null; i++) {
+      if (cur.equals(treeId)) return true;
+      cur = parentOf.get(authority + "|" + cur);
+    }
+    return false;
+  }
+
+  /** Útvonal-alapú azonosító (pl. „primary:Filmek/a.m3u”) a mappán belül van-e. */
+  static boolean pathUnder(String doc, String treeId) {
+    if (doc.contains("/../") || doc.endsWith("/..")) return false;
+    return doc.equals(treeId) || doc.startsWith(treeId.endsWith("/") || treeId.endsWith(":") ? treeId : treeId + "/");
+  }
 
   /** A dokumentum egy engedélyezett mappán belül van-e (a felülettől kapott cím ellenőrzése). */
   static void checkAllowed(Context ctx, Uri uri) throws Exception {
@@ -46,10 +76,17 @@ final class Folders {
       try {
         if (DocumentsContract.getTreeDocumentId(t).equals(treeId)) {
           // a dokumentum azonosítója is a mappán belül legyen (útvonal-alapú azonosítóknál)
+          // (útvonal-alapú azonosító; a bejáráskor látott szülőlánc; vagy a szolgáltató szerint – API 24+)
           if (DocumentsContract.isDocumentUri(ctx, uri)) {
             String doc = DocumentsContract.getDocumentId(uri);
-            if (!doc.equals(treeId) && !doc.startsWith(treeId.endsWith("/") || treeId.endsWith(":") ? treeId : treeId + "/")) continue;
-            if (doc.contains("/../") || doc.endsWith("/..")) continue;
+            boolean ok = pathUnder(doc, treeId) || knownUnder(uri.getAuthority(), doc, treeId);
+            if (!ok && android.os.Build.VERSION.SDK_INT >= 24) {
+              try {
+                ok = DocumentsContract.isChildDocument(ctx.getContentResolver(), DocumentsContract.buildDocumentUriUsingTree(t, treeId), uri);
+              } catch (Exception ignored) {
+              }
+            }
+            if (!ok) continue;
           }
           return;
         }
@@ -95,6 +132,7 @@ final class Folders {
         String id = c.getString(0);
         String name = c.getString(1);
         String mime = c.getString(2);
+        remember(tree.getAuthority(), docId, id, name);
         if (name == null || name.startsWith(".") || name.startsWith("@") || name.equals("#recycle")) continue;
         if (DocumentsContract.Document.MIME_TYPE_DIR.equals(mime)) dirs.add(new String[] {id, name});
         else if (name.toLowerCase(Locale.ROOT).matches(".*\\.m3u8?$")) {
@@ -148,13 +186,33 @@ final class Folders {
     Uri u = Uri.parse(docUri);
     checkAllowed(ctx, u);
     String doc = DocumentsContract.getDocumentId(u);
-    int slash = doc.lastIndexOf('/');
-    int colon = doc.indexOf(':');
-    if (slash < 0 && colon < 0) return image ? "" : new JSONArray();
-    String parent = slash >= 0 ? doc.substring(0, slash) : doc.substring(0, colon + 1);
-    String file = doc.substring((slash >= 0 ? slash : colon) + 1);
-    String base = file.contains(".") ? file.substring(0, file.lastIndexOf('.')) : file;
     Uri tree = DocumentsContract.buildTreeDocumentUri(u.getAuthority(), DocumentsContract.getTreeDocumentId(u));
+    // (X02) a szülő és a fájlnév: a bejáráskor látott adatból, a szolgáltatótól, végül az útvonalszerű azonosítóból
+    String key = u.getAuthority() + "|" + doc;
+    String parent = parentOf.get(key);
+    String file = nameOf.get(key);
+    if (parent == null && android.os.Build.VERSION.SDK_INT >= 26) {
+      try {
+        DocumentsContract.Path p = DocumentsContract.findDocumentPath(ctx.getContentResolver(), u);
+        List<String> ids = p == null ? null : p.getPath();
+        if (ids != null && ids.size() >= 2) parent = ids.get(ids.size() - 2);
+      } catch (Exception ignored) {
+      }
+    }
+    if (file == null) {
+      try (Cursor c = ctx.getContentResolver().query(u, new String[] {DocumentsContract.Document.COLUMN_DISPLAY_NAME}, null, null, null)) {
+        if (c != null && c.moveToFirst()) file = c.getString(0);
+      } catch (Exception ignored) {
+      }
+    }
+    if (parent == null || file == null) {
+      int slash = doc.lastIndexOf('/');
+      int colon = doc.indexOf(':');
+      if (slash < 0 && colon < 0) return image ? "" : new JSONArray();
+      if (parent == null) parent = slash >= 0 ? doc.substring(0, slash) : doc.substring(0, colon + 1);
+      if (file == null) file = doc.substring((slash >= 0 ? slash : colon) + 1);
+    }
+    String base = file.contains(".") ? file.substring(0, file.lastIndexOf('.')) : file;
     Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, parent);
     String[] cols = {DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME};
     JSONArray subs = new JSONArray();

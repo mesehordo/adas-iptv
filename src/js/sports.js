@@ -326,15 +326,21 @@ function icsExpand(first, rule, from, to) {
   const days = freq === 'WEEKLY' && r.BYDAY ? r.BYDAY.split(',').map((x) => ICS_DAYS.indexOf(x.replace(/^[+-]?\d+/, ''))).filter((x) => x >= 0) : null;
   const w0 = first.wall;
   const dow0 = new Date(Date.UTC(w0.y, w0.mo, w0.d)).getUTCDay();
+  // (W01) a hét kezdőnapja a WKST szerint (alapból hétfő) – a kéthetes BYDAY-szabályoknál számít
+  const wkst = Math.max(0, ICS_DAYS.indexOf(r.WKST || 'MO'));
   const out = [];
   let n = 0;
-  for (let i = 0; n < (count || Infinity) && i < 5000; i++) {
+  // (W01) régen induló, darabszám nélküli sorozat: az ismétlés az időablak közeléből indul (a periódus hosszának
+  // alsó becslésével – így egy alkalom sem marad ki), nem az eredeti kezdettől; a COUNT-os sorozatot elejétől számoljuk
+  const per = { DAILY: 864e5, WEEKLY: 7 * 864e5, MONTHLY: 31 * 864e5, YEARLY: 366 * 864e5 }[freq] * step;
+  const i0 = count ? 0 : Math.max(0, Math.floor((from - first.start) / per) - 2);
+  for (let i = i0; n < (count || Infinity) && i < i0 + 5000; i++) {
     const k = i * step;
     let cands;
     if (freq === 'DAILY') cands = [{ ...w0, d: w0.d + k }];
     else if (freq === 'WEEKLY') {
-      // (a hét a kezdőnap hetéhez igazodik, hétfővel kezdve – RFC 5545: WKST=MO; BYDAY nélkül a kezdőnap napja)
-      const wk = (x) => (x + 6) % 7;
+      // (a hét a kezdőnap hetéhez igazodik, a WKST napjával kezdve; BYDAY nélkül a kezdőnap napja)
+      const wk = (x) => (x - wkst + 7) % 7;
       const weekStart = w0.d - wk(dow0) + k * 7;
       cands = (days?.length ? days.map(wk).sort((a, b) => a - b) : [wk(dow0)]).map((x) => ({ ...w0, d: weekStart + x }));
     } else if (freq === 'MONTHLY') cands = [{ ...w0, mo: w0.mo + k }];
@@ -394,7 +400,8 @@ function parseIcs(text, w, now = Date.now()) {
     const rrule = get('RRULE');
     const isOverride = !!icsLines(block, 'RECURRENCE-ID').length;
     let starts = rrule && !isOverride ? icsExpand(tm, rrule, from, to) : [tm.start];
-    if (rrule && !isOverride) {
+    // (W01) az RDATE / EXDATE RRULE nélkül is ismétlődési halmazt ad (a DTSTART + a további dátumok)
+    if (!isOverride && (rrule || icsLines(block, 'RDATE').length || icsLines(block, 'EXDATE').length)) {
       // RDATE: további alkalmak; EXDATE és a módosított alkalmak: kimaradnak
       for (const l of icsLines(block, 'RDATE')) for (const v of l.value.split(',')) {
         const t = icsValue(l.params, v);

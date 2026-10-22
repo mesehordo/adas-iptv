@@ -64,7 +64,7 @@ export const ARTICLES = [
 <h2>Ajánlott első beállítások</h2>
 <ul>
 <li><b>Hazai ország</b> (Beállítások → Tartalom és gyerekek → Tartalom): ennek a csatornái kerülnek előre, ezek kapják a csatornaszámokat. Alapból Magyarország.</li>
-<li><b>Felületstílus</b>: harminckét kinézet közül választhatsz, profilonként. ${t('themes', 'Stílusok')}</li>
+<li><b>Felületstílus</b>: harmincnégy kinézet közül választhatsz, profilonként. ${t('themes', 'Stílusok')}</li>
 <li><b>Gyerekprofil</b>: ha gyerek is használja, állíts be neki külön profilt. ${t('kids', 'Részletek')}</li>
 </ul>
 ${go('#/settings', 'Beállítások megnyitása')}`,
@@ -754,7 +754,7 @@ ${go('#/profiles', 'Profilok kezelése')}`,
 <p>A felület kinézete profilonként választható: <b>Beállítások → Megjelenés → Felület stílusa</b> (legördülő menü, vagy kattints a mintákra). A váltás azonnal érvényes.</p>
 <p>Az <b>elrendezés minden stílusban ugyanaz</b> (felső menüsáv, azonos kártyaméretek, sorok és kártyák a főoldalon) – a stílus csak a kinézetet adja: színek, betűtípus, keretek, árnyékok, háttérminták, animációk.</p>
 <h2>Színváltozatok</h2>
-<p>A legtöbb stílusnak az eredeti mellett <b>három színváltozata</b> is van (pl. Kék, Zöld, Lila): a minták alatt, a <i>Színváltozat</i> sorban választható. A változat a stílus minden színes elemét – kiemelés, gombok, keretek, díszítések – a választott színcsaládra fordítja; a háttér világossága és a szöveg olvashatósága nem változik, és a fekete, fehér, szürke árnyalatok, valamint az állapotjelzések (működik / hiba, felvétel, ÉLŐ) is maradnak. Fekete-fehér kiemelésű stílusnál (pl. Manga, Mu) a változat színes kiemelőt ad. A változat stílusonként és profilonként megmarad; a Kontraszt stílusnak – akadálymentességi okból – nincs változata.</p>
+<p>A legtöbb stílusnak az eredeti mellett <b>három színváltozata</b> is van – mindegyik a stílus hangulatához válogatott paletta, saját névvel (pl. Neon City: <i>Szintihullám</i>, <i>Savas zöld</i>, <i>Vörös neon</i>; Phosphor: a régi monitorok borostyán, cián és plazma színei; Deco: rózsaarany, smaragd, ezüst). A minták alatt, a <i>Színváltozat</i> sorban választható. A változat a stílus minden színes elemét – kiemelés, gombok, keretek, díszítések – a paletta színeire fordítja (a több színű stílusoknál, pl. Neon City, Pow!, Kikagaku, mindegyik színt külön); a háttér világossága és a szöveg olvashatósága nem változik, és a fekete, fehér, szürke árnyalatok, valamint az állapotjelzések (működik / hiba, felvétel, ÉLŐ) is maradnak. Fekete-fehér kiemelésű stílusnál (pl. Manga, Mu) a változat színes kiemelőt ad. A változat stílusonként és profilonként megmarad; a Kontraszt stílusnak – akadálymentességi okból – nincs változata.</p>
 <p>A stílus és a színváltozat már a profil létrehozásakor is választható (az első indításkor és a Profilok kezelése alatt), a profil szerkesztésekor is.</p>
 <table class="help-table">
 <tr><th colspan="2">Sötét stílusok</th></tr>
@@ -889,7 +889,7 @@ ${go('#/settings', 'Megjelenés beállítása')}`,
 <tr><td><b>👪 Tartalom és gyerekek</b></td><td>Hazai ország, rejtett és felnőtt tartalom, mit nézhetnek a gyerekprofilok. ${t('kids', 'Részletek')}</td></tr>
 <tr><td><b>🔔 Értesítések</b></td><td>Emlékeztetők, automatikus átkapcsolás, futás a háttérben. ${t('reminders', 'Részletek')}</td></tr>
 <tr><td><b>📱 Távirányító és billentyűk</b></td><td>Telefon távirányítóként (QR-kóddal), billentyűparancsok, a tévé-távirányító gombjai. ${t('remote', 'Távirányító')}</td></tr>
-<tr><td><b>🔄 Szinkron eszközök között</b></td><td>Beállítások, profilok, listák átvitele egy másik eszközre hatjegyű kóddal.</td></tr>
+<tr><td><b>🔄 Szinkron eszközök között</b></td><td>Beállítások, profilok, listák átvitele egy másik eszközre 12 jegyű kóddal.</td></tr>
 <tr><td><b>💾 Profilok és mentés</b></td><td>Profilok, mentés és visszaállítás, automatikus mentések, gyorsítótár. ${t('backup', 'Részletek')}</td></tr>
 <tr><td><b>⬆️ Frissítés</b></td><td>Új verzió keresése és telepítése a GitHubról; az induláskori keresés ki is kapcsolható. ${t('update', 'Frissítés')}</td></tr>
 <tr><td><b>ℹ️ Névjegy</b></td><td>Verzió, az adatmappa helye, az adatok forrásai.</td></tr>
@@ -1427,6 +1427,21 @@ ${go('#/stats', 'Statisztika megnyitása')}`,
 ${go('#/settings?section=transfer', 'Szinkronizálás eszközök között')}`,
   },
   {
+    id: 'keymap',
+    cat: 'personal',
+    title: 'Gombkiosztás (távirányító gombjainak betanítása)',
+    keywords: 'gombkiosztás gomb távirányító billentyű betanítás android tv doboz box gombkód nem működik átállítás kiosztás',
+    body: `
+<p>Sok (főleg olcsó) Android TV doboz távirányítója a megszokottól eltérő gombkódokat küld: egy-egy gomb ilyenkor nem csinál semmit, vagy mást csinál. A <b>Gombkiosztás</b> ablakban bármelyik gombot betaníthatod egy művelethez – fel, le, balra, jobbra, OK, vissza, lejátszás / szünet, leállítás, tekerés, csatornaváltás (CH+ / CH−), a négy színes gomb, hang és felirat.</p>
+<ol>
+<li>Nyisd meg: a <b>profil létrehozásakor</b> (első indításkor és a Profilok kezelése alatt a profil szerkesztőjében) a <b>🎮 Gombkiosztás</b> gombbal, vagy a <b>Beállítások → Távirányító és billentyűk → Gombkiosztás</b> alatt.</li>
+<li>A művelet sorában nyomd meg a <b>Betanítás</b> gombot, aztán 10 másodpercen belül a távirányító gombját. A gomb ettől kezdve ezt a műveletet végzi.</li>
+<li>A <b>✕</b> törli a betanított gombot, a <b>Mind törlése</b> az összeset.</li>
+</ol>
+<p>A beépített gombok mellette is működnek (egy művelethez több gomb is tartozhat). Egy gomb egyszerre csak egy művelethez tartozik: ha egy másikhoz tanítod be, onnan átkerül. A kiosztás <b>ehhez az eszközhöz</b> tartozik (minden profilnak ugyanaz) – a másik eszköz távirányítója más lehet, ezért a mentésbe és az eszközök közti szinkronba sem kerül bele.</p>
+<div class="note">Androidon a gomb közvetlenül a rendszertől érkezik, így olyan gomb is betanítható, amelyet a beépített böngészőmotor nem ismer. A rendszer saját gombjai (kezdőképernyő, be-/kikapcsolás, hangerő) nem taníthatók be. Asztalon a billentyűzet bármely gombja betanítható – gépelés közben a betűk és számok ilyenkor is betűk maradnak.</div>`,
+  },
+  {
     id: 'remote',
     cat: 'personal',
     title: 'Távirányító telefonról',
@@ -1471,7 +1486,7 @@ ${go('#/settings?section=remote', 'Távirányító telefonról')}`,
     id: 'recording',
     cat: 'watch',
     title: 'Felvétel',
-    keywords: 'felvétel rögzítés felvenni mentés ütemezés videó ts vágás ráhagyás eleje vége',
+    keywords: 'felvétel rögzítés felvenni mentés ütemezés videó ts vágás ráhagyás eleje vége reklám reklámblokk kivágás',
     body: `
 <p>Az asztali változatban (Windows, Mac, Linux) az élő adás felvehető – újrakódolás nélkül, eredeti minőségben, <code>.ts</code> fájlba, a <b>Videók / Adás felvételek</b> mappába.</p>
 <ul>
@@ -1481,7 +1496,11 @@ ${go('#/settings?section=remote', 'Távirányító telefonról')}`,
 </ul>
 <h2>Vágás</h2>
 <p>A felvétel kártyáján a <b>✂</b> gomb nyitja a vágót: előnézet, idővonal (sárga jelek: a műsor kezdete és vége a műsorújság szerint), léptetés (±1 mp / ±10 mp / ±1 perc), <b>⇤ Kezdet ide</b> és <b>Vége ide ⇥</b> (vagy az <kbd>I</kbd> / <kbd>O</kbd> billentyű), az időpontok be is írhatók; a <b>Kijelölés a műsorújság szerint</b> gomb egy lépésben beállítja őket. A <b>✂ Vágás és mentés</b> után a felvétel helyén a vágott változat lesz – ezt játssza le az Adás, és ezt nyitja meg a külső lejátszó is.</p>
-<p>Az <b>eredeti megmarad</b> (nem jelenik meg külön felvételként): újra megnyitva a vágót az eredetiből vághatsz újra (az előző kijelöléssel), vagy az <b>Eredeti visszaállítása</b> gombbal visszahozhatod a teljes felvételt. A vágott felvétel kártyáján a ✂ mellett pipa látszik. Törléskor mindkettő a Lomtárba kerül.</p>
+<h2>Reklámok kivágása</h2>
+<p>A vágóban a <b>Reklámok kivágása</b> résznél akárhány reklámot megjelölhetsz: lépj a reklám elejére, nyomd meg a <b>⟦ Reklám eleje ide</b> gombot (<kbd>[</kbd>), aztán a végén a <b>Reklám vége ide ⟧</b> gombot (<kbd>]</kbd>). A megjelölt reklámok listában és csíkozva az idővonalon is látszanak; az idejük átírható, a <b>✕</b> visszaveszi. Mentéskor a kezdet és a vég közötti részből <b>minden megjelölt reklám kimarad</b>, a többi egybefűzve marad meg. Az előnézet lejátszás közben átugorja a kijelölt reklámokat (kikapcsolható), így könnyű ellenőrizni a határokat.</p>
+<p>A <b>🔍 Reklámhatárok keresése</b> gomb segít megtalálni őket: a reklámok közé (és a műsor és a reklámblokk közé) a csatornák szinte mindig rövid csendet és fekete képet tesznek – ezeket keresi meg (kék jelek az idővonalon, köztük az <b>◀ Előző / Következő jelölt ▶</b> gombokkal lépkedhetsz). Ahol több ilyen határ sűrűn követi egymást, azt <b>Javasolt reklámblokk</b>ként ajánlja fel; a <b>+ Kivágandó</b> gomb felveszi a reklámok közé. Ez csak javaslat: mentés előtt nézz bele, és igazítsd a határokat – a műsorban is lehet csend, és nem minden csatorna tesz fekete képet a reklámok közé.</p>
+<div class="note">A vágás újrakódolás nélkül történik (gyors, a kép minősége nem romlik). Ezért a kép csak kulcskockánál folytatódhat: a reklám utáni rész az első kulcskockától indul, és az illesztéseknél egy pillanatra (legfeljebb kb. fél másodpercre) fekete kép vagy csend lehet.</div>
+<p>Az <b>eredeti megmarad</b> (nem jelenik meg külön felvételként): újra megnyitva a vágót az eredetiből vághatsz újra (az előző kijelöléssel és a megjelölt reklámokkal), vagy az <b>Eredeti visszaállítása</b> gombbal visszahozhatod a teljes felvételt. A vágott felvétel kártyáján a ✂ mellett pipa látszik. Törléskor mindkettő a Lomtárba kerül.</p>
 <p>A felvételek a <b>TV → Felvételek</b> fülön vannak (csatornalogóval, dátummal, mérettel; az elkezdettek haladásjelzővel). A <b>▶ Lejátszás</b> az Adás saját lejátszójában indítja a felvételt – tekerhetően, a félbehagyott felvétel onnan folytatódik, ahol abbahagytad. A <b>⧉</b> gomb a gép videólejátszójában (pl. VLC) nyitja meg, a <b>✕</b> a Lomtárba teszi. Itt látod a most rögzített és az ütemezett felvételeket is; a legutóbbiak a Beállítások → Felvételek alatt is ott vannak.</p>
 <div class="note">Csak a saját, otthoni nézésre: a felvett műsorok jogai a csatornáké. Néhány (titkosított vagy DRM-mel védett) adás nem rögzíthető.</div>
 ${go('#/recordings', 'Felvételek')}`,

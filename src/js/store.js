@@ -8,22 +8,25 @@ export const DEFAULT_PLAYLIST = 'https://iptv-org.github.io/iptv/index.m3u';
 /** A forrás megjelenített neve: a beépítetteké mindig a felület nyelvén (a mentett név az első indítás nyelvén van). */
 export const epgSourceName = (src) => BUILTIN_EPG.find((b) => b.url === src.url)?.name || src.name;
 
-/** Beépített műsorújság-források. A nem magyar források alapból ki vannak kapcsolva. */
+/**
+ * Beépített műsorújság-források. A nem magyar források alapból ki vannak kapcsolva. country: melyik ország forrása
+ * (az első indításkor a választott régióhoz ez alapján kapcsolódnak be / ki – nem a címből kitalálva).
+ */
 export const BUILTIN_EPG = [
-  { url: 'https://iptv-epg.org/files/epg-hu.xml.gz', name: _t('Magyarország (iptv-epg.org)'), enabled: true },
+  { url: 'https://iptv-epg.org/files/epg-hu.xml.gz', name: _t('Magyarország (iptv-epg.org)'), enabled: true, country: 'HU' },
   // (az open-epg.com az epgshare01 előtt: a két forrás címei és időpontjai a legtöbb csatornán percre egyeznek, de az
   // epgshare01 néhány csatornán – Nickelodeon, Nicktoons – a világidőt magyar időként jelöli, így 2 órát csúszik)
-  { url: 'https://www.open-epg.com/files/hungary1.xml.gz', name: _t('Magyarország (open-epg.com)'), enabled: true },
-  { url: 'https://epgshare01.online/epgshare01/epg_ripper_HU1.xml.gz', name: _t('Magyarország (epgshare01)'), enabled: true },
-  { url: 'https://epgshare01.online/epgshare01/epg_ripper_SK1.xml.gz', name: _t('Szlovákia (epgshare01)'), enabled: false },
-  { url: 'https://epgshare01.online/epgshare01/epg_ripper_RO1.xml.gz', name: _t('Románia (epgshare01)'), enabled: false },
-  { url: 'https://iptv-epg.org/files/epg-at.xml.gz', name: 'Ausztria (iptv-epg.org)', enabled: false },
-  { url: 'https://iptv-epg.org/files/epg-de.xml.gz', name: _t('Németország (iptv-epg.org)'), enabled: false },
-  { url: 'https://iptv-epg.org/files/epg-gb.xml.gz', name: _t('Egyesült Királyság (iptv-epg.org)'), enabled: false },
-  { url: 'https://iptv-epg.org/files/epg-us.xml.gz', name: _t('Egyesült Államok (iptv-epg.org)'), enabled: false },
-  { url: 'https://iptv-epg.org/files/epg-fr.xml.gz', name: _t('Franciaország (iptv-epg.org)'), enabled: false },
-  { url: 'https://iptv-epg.org/files/epg-it.xml.gz', name: _t('Olaszország (iptv-epg.org)'), enabled: false },
-  { url: 'https://iptv-epg.org/files/epg-es.xml.gz', name: _t('Spanyolország (iptv-epg.org)'), enabled: false },
+  { url: 'https://www.open-epg.com/files/hungary1.xml.gz', name: _t('Magyarország (open-epg.com)'), enabled: true, country: 'HU' },
+  { url: 'https://epgshare01.online/epgshare01/epg_ripper_HU1.xml.gz', name: _t('Magyarország (epgshare01)'), enabled: true, country: 'HU' },
+  { url: 'https://epgshare01.online/epgshare01/epg_ripper_SK1.xml.gz', name: _t('Szlovákia (epgshare01)'), enabled: false, country: 'SK' },
+  { url: 'https://epgshare01.online/epgshare01/epg_ripper_RO1.xml.gz', name: _t('Románia (epgshare01)'), enabled: false, country: 'RO' },
+  { url: 'https://iptv-epg.org/files/epg-at.xml.gz', name: 'Ausztria (iptv-epg.org)', enabled: false, country: 'AT' },
+  { url: 'https://iptv-epg.org/files/epg-de.xml.gz', name: _t('Németország (iptv-epg.org)'), enabled: false, country: 'DE' },
+  { url: 'https://iptv-epg.org/files/epg-gb.xml.gz', name: _t('Egyesült Királyság (iptv-epg.org)'), enabled: false, country: 'GB' },
+  { url: 'https://iptv-epg.org/files/epg-us.xml.gz', name: _t('Egyesült Államok (iptv-epg.org)'), enabled: false, country: 'US' },
+  { url: 'https://iptv-epg.org/files/epg-fr.xml.gz', name: _t('Franciaország (iptv-epg.org)'), enabled: false, country: 'FR' },
+  { url: 'https://iptv-epg.org/files/epg-it.xml.gz', name: _t('Olaszország (iptv-epg.org)'), enabled: false, country: 'IT' },
+  { url: 'https://iptv-epg.org/files/epg-es.xml.gz', name: _t('Spanyolország (iptv-epg.org)'), enabled: false, country: 'ES' },
   { url: 'https://i.mjh.nz/PlutoTV/all.xml.gz', name: _t('Pluto TV csatornák (i.mjh.nz)'), enabled: false },
   { url: 'https://i.mjh.nz/SamsungTVPlus/all.xml.gz', name: _t('Samsung TV Plus csatornák (i.mjh.nz)'), enabled: false },
   { url: 'https://i.mjh.nz/Plex/all.xml.gz', name: _t('Plex csatornák (i.mjh.nz)'), enabled: false },

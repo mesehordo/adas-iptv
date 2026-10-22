@@ -61,6 +61,13 @@ contextBridge.exposeInMainWorld('api', {
   recSchedule: (list) => ipcRenderer.invoke('rec-schedule', list),
   onRecDue: (cb) => ipcRenderer.on('rec-due', (_e, id) => cb(id)),
   recTrim: (o) => ipcRenderer.invoke('rec-trim', o),
+  recDetect: (p) => ipcRenderer.invoke('rec-detect', p),
+  recDetectStop: (p) => ipcRenderer.invoke('rec-detect-stop', p),
+  onRecDetectProgress: (cb) => {
+    const h = (_e, x) => cb(x);
+    ipcRenderer.on('rec-detect-progress', h);
+    return () => ipcRenderer.removeListener('rec-detect-progress', h);
+  },
   recOriginal: (p) => ipcRenderer.invoke('rec-original', p),
   recRestore: (p) => ipcRenderer.invoke('rec-restore', p),
   mediaCover: (url) => ipcRenderer.invoke('media-cover', url),

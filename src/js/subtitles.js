@@ -547,12 +547,24 @@ export function applyText(video, text, label) {
   root.addEventListener('dragover', (e) => {
     if (player.channel?.vod && [...(e.dataTransfer?.items || [])].some((i) => i.kind === 'file')) e.preventDefault();
   });
+  let dropGen = 0; // (X04) csak a legutóbbi behúzás, és csak arra a filmre, amelyiknél történt
   root.addEventListener('drop', async (e) => {
     const f = e.dataTransfer?.files?.[0];
     if (!f || !player.channel?.vod) return;
     e.preventDefault();
     if (!/\.(srt|vtt|txt)$/i.test(f.name)) return toast(_t('Csak .srt vagy .vtt feliratfájl húzható ide.'));
-    applyText(document.getElementById('video'), await f.text(), f.name);
+    const gen = ++dropGen;
+    const ch = player.channel;
+    let text;
+    try {
+      // (bájtként: a régi, Windows-1250 kódolású magyar felirat ékezetei is helyesek – a f.text() mindig UTF-8)
+      text = bytesToText(new Uint8Array(await f.arrayBuffer()));
+    } catch {
+      return gen === dropGen && toast(_t('A feliratfájl nem olvasható.'));
+    }
+    // (az olvasás közben a felhasználó másik filmre válthatott, bezárhatta a lejátszót, vagy újabb fájlt húzott be)
+    if (gen !== dropGen || player.channel !== ch || !player.active) return;
+    applyText(document.getElementById('video'), text, f.name);
   });
 }
 

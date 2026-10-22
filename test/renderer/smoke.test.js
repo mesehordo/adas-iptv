@@ -25,23 +25,34 @@ test('minden oldal hiba nélkül megnyílik', async () => {
 });
 
 test('a beállítások minden fejezete megnyílik', async () => {
-  location.hash = '#/settings';
+  const { store } = await import('../../src/js/store.js');
+  // (fül-elrendezés: a fejezetek a [data-sg] fülekkel válthatók; a teszt után a felhasználói beállítás visszaáll)
+  const view0 = store.settings.settingsView;
+  store.settings.settingsView = 'tabs';
+  location.hash = '#/settings?g=look';
   await sleep(1500);
-  const tabs = [...document.querySelectorAll('#view [data-sec], #view .settings-nav [data-section], #view .s-nav button, #view .s-nav a')];
+  const ids = [...document.querySelectorAll('#view .set-tabs [data-sg]')].map((t) => t.dataset.sg);
+  assert.ok(ids.length >= 10, `kevés fejezet: ${ids.length}`);
   const errors = [];
+  const empty = [];
   const onErr = (e) => errors.push(e.message || String(e.reason));
   window.addEventListener('error', onErr);
   window.addEventListener('unhandledrejection', onErr);
   try {
-    for (const t of tabs) {
-      t.click();
+    for (const id of ids) {
+      document.querySelector(`#view [data-sg="${id}"]`)?.click();
       await sleep(400);
+      // (a fejezet legalább egy része látszik)
+      const shown = [...document.querySelectorAll('#view .set-section')].filter((x) => x.dataset.g === id && !x.hidden && !x.hasAttribute('data-off'));
+      if (!shown.length) empty.push(id);
     }
   } finally {
     window.removeEventListener('error', onErr);
     window.removeEventListener('unhandledrejection', onErr);
+    store.settings.settingsView = view0;
   }
   assert.deepEqual(errors, [], 'hibák');
+  assert.deepEqual(empty, [], 'üres fejezetek');
   location.hash = '#/home';
 });
 

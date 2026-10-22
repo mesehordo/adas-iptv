@@ -311,6 +311,7 @@ export class Engine {
       } else if (this.type === 'dash' && window.dashjs) {
         const p = window.dashjs.MediaPlayer().create();
         this.dash = p;
+        this.dashLevel = -1; // (W04) új forrásnál automatikus
         // (nincs késleltetés-behozás gyorsított lejátszással – stabil puffer; dash.js 5-ben a lowLatencyEnabled megszűnt,
         // a liveCatchup.enabled a 4.x-ben és az 5-ben is érvényes)
         p.updateSettings({ debug: { logLevel: 0 }, streaming: { liveCatchup: { enabled: false }, text: { defaultEnabled: false } } });
@@ -438,12 +439,19 @@ export class Engine {
 
   get level() {
     if (this.hls) return this.hls.autoLevelEnabled ? -1 : this.hls.currentLevel;
+    // (W04) DASH: a kézi választás a munkamenetben (a dash.js-ben a reprezentáció indexe a szűrés miatt eltérhet);
+    // ha közben az automatikus mód visszakapcsolt, automatikus
+    if (this.dash) {
+      const auto = this.dash.getSettings?.()?.streaming?.abr?.autoSwitchBitrate?.video;
+      return auto !== true && this.dashLevel >= 0 && this.dashLevel < this.levels().length ? this.dashLevel : -1;
+    }
     return -1;
   }
 
   setLevel(i) {
     if (this.hls) this.hls.currentLevel = i;
     if (this.dash) {
+      this.dashLevel = i < 0 ? -1 : i;
       this.dash.updateSettings({ streaming: { abr: { autoSwitchBitrate: { video: i < 0 } } } });
       // (dash.js 5: setRepresentationForTypeByIndex; 4.x: setQualityFor)
       if (i >= 0) this.dash.setRepresentationForTypeByIndex ? this.dash.setRepresentationForTypeByIndex('video', i) : this.dash.setQualityFor?.('video', i);

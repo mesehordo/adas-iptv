@@ -17,8 +17,7 @@ function statsOf(p = store.profile) {
   return p.stats;
 }
 
-function record(ch, sec) {
-  const p = store.profile;
+function record(ch, sec, p = store.profile) {
   if (!p || p.statsOff) return;
   const s = statsOf(p);
   const now = new Date();
@@ -40,7 +39,7 @@ function record(ch, sec) {
     }
   } else {
     s.ch[ch.id] = (s.ch[ch.id] || 0) + sec;
-    const cats = ch.categories.length ? ch.categories : ['general'];
+    const cats = ch.categories?.length ? ch.categories : ['general']; // (pl. saját csatorna, megnyitott fájl: kategória nélkül)
     for (const c of cats) s.cat[c] = (s.cat[c] || 0) + sec / cats.length;
   }
   // 400 napnál régebbi napok törlése
@@ -50,20 +49,40 @@ function record(ch, sec) {
 }
 
 // (H19 / V12) a ténylegesen szóló adás számít: a kivetítés a vevőn, a helyi videó rejtett / kis ablaknál és Androidon
-// a háttérben is; az eltelt idő időbélyegből – a rejtett lapon a böngésző ritkítja az időzítőt –, alvás után
-// legfeljebb 2 perc
-let lastTickAt = Date.now();
-setInterval(() => {
-  const now = Date.now();
-  const gap = Math.min(Math.max((now - lastTickAt) / 1000, 0), 120);
-  lastTickAt = now;
+// a háttérben is. (W03) Mérési szakaszokban: a szakasz a lejátszás indulásakor kezdődik, és szünetnél, bezáráskor,
+// csatorna- és profilváltáskor (és kivetítés-váltáskor) lezárul – az ideje a saját csatornájához és profiljához kerül,
+// nem a következő ellenőrzés pillanatában szólóhoz. A 15 mp-es mentés csak közbenső könyvelés. Az idő időbélyegből (a
+// rejtett lapon a böngésző ritkítja az időzítőt), alvás után legfeljebb 2 perc.
+function nowPlaying() {
   const ch = player.channel;
-  if (!player.active || !ch) return;
+  if (!player.active || !ch) return null;
   const cast = !!player.castHooks?.active;
   // (a vevőn: csak ha ténylegesen megy – szünet, betöltés, leállt vevő nem)
   const playing = cast ? player.castHooks.playing : player.engine?.started && !video.paused;
-  if (playing && gap > 0) record(ch, Math.round(gap));
-}, TICK * 1000);
+  return playing ? { ch, cast } : null;
+}
+let seg = null; // { ch, cast, profile, since }
+function flush(now = Date.now()) {
+  if (!seg) return;
+  const sec = Math.min(Math.max((now - seg.since) / 1000, 0), 120);
+  seg.since = now;
+  if (sec >= 0.5) record(seg.ch, Math.round(sec * 10) / 10, seg.profile);
+}
+function checkSeg() {
+  const now = Date.now();
+  const cur = nowPlaying();
+  const p = store.profile;
+  if (!seg !== !cur || (seg && (seg.ch !== cur.ch || seg.cast !== cur.cast || seg.profile !== p))) {
+    flush(now);
+    seg = cur ? { ...cur, profile: p, since: now } : null;
+  } else if (seg && now - seg.since >= TICK * 1000) flush(now);
+}
+setInterval(checkSeg, 1000);
+for (const ev of ['play', 'pause', 'playing', 'ended', 'emptied']) video.addEventListener(ev, checkSeg);
+for (const ev of ['player-opened', 'player-closed', 'profile']) bus.on(ev, checkSeg);
+addEventListener('pagehide', () => flush());
+/** A futó mérési szakasz könyvelése most (háttérbe kerüléskor, a mentés előtt). */
+export const flushStats = () => flush();
 bus.on('player-closed', () => (lastKey = ''));
 
 // Hetente egyszer szól, ha kedvenc csatornák nem működtek (részletek: Statisztika)

@@ -1689,3 +1689,109 @@ body[data-theme="stardate"] {
 [data-theme="stardate"] .dcard { border-radius: 0 22px 0 22px; border-left: 12px solid var(--lav); background: #07070c; }
 [data-theme="stardate"] .dcard:nth-child(3n) { border-left-color: var(--peach); }
 [data-theme="stardate"] .dcard:nth-child(3n + 1) { border-left-color: var(--sky); }
+
+/* A kawaii stílusok betűi (src/fonts, SIL Open Font License 1.1 – a licenc a betűk mellett): a Fredoka kerek,
+   buborékos betűi (Yume) és a Dancing Script kézírása (Yami címei). Mindkettő ismeri a magyar ő / ű betűt. */
+@font-face { font-family: 'Adas Fredoka'; src: url('fonts/Fredoka.ttf') format('truetype'); font-weight: 300 700; font-stretch: 75% 125%; font-display: swap; }
+@font-face { font-family: 'Adas Dancing Script'; src: url('fonts/DancingScript.ttf') format('truetype'); font-weight: 400 700; font-display: swap; }
+
+/* ======================================================================
+   Yume – „álom-kawaii”: pasztell rózsaszín, levendula és menta, pöttyös háttér, buborékkártyák, csillámok
+   ====================================================================== */
+body[data-theme="yume"] {
+  --bg: #fff4fa; --bg-2: #ffffff; --bg-3: #fde6f2; --bg-4: #f8d6ea; --line: #f5cde2;
+  --text: #4a3a55; --text-strong: #2e2238; --muted: #8e7c9c;
+  --accent: #c42f7a; --accent-2: #ff7fb8; --lilac: #a78bfa; --mint: #5fd0b4; --radius: 20px; --focus: #a78bfa;
+  --font: 'Adas Fredoka', 'M PLUS Rounded 1c', 'Varela Round', 'Nunito', 'Arial Rounded MT Bold', system-ui, sans-serif;
+  background-color: #fff4fa;
+  background-image: radial-gradient(circle, rgba(255, 170, 212, 0.55) 1.6px, transparent 2.2px), radial-gradient(circle, rgba(200, 182, 255, 0.55) 1.4px, transparent 2px),
+    radial-gradient(circle at 12% 8%, #ffe1f0 0, transparent 38%), radial-gradient(circle at 88% 22%, #ece3ff 0, transparent 42%), radial-gradient(circle at 50% 105%, #dcf6ee 0, transparent 50%);
+  background-size: 28px 28px, 28px 28px, auto, auto, auto; background-position: 0 0, 14px 14px, 0 0, 0 0, 0 0; background-attachment: fixed;
+}
+[data-theme="yume"] #nav.solid { background: rgba(255, 244, 250, 0.92); border-bottom: 3px dotted #f7b6d6; }
+[data-theme="yume"] .brand { color: var(--accent); transform: none; letter-spacing: 0.04em; font-weight: 700; text-shadow: 2px 2px 0 #ffd3e8, -1px -1px 0 #fff; }
+[data-theme="yume"] .brand::after { content: '✧'; color: var(--lilac); font-size: 0.6em; margin-left: 4px; vertical-align: super; }
+[data-theme="yume"] .links a.active { color: var(--accent); font-weight: 800; }
+[data-theme="yume"] h1, [data-theme="yume"] h2, [data-theme="yume"] .row-title, [data-theme="yume"] .dc-title { font-weight: 600; letter-spacing: 0.01em; color: var(--text-strong); }
+[data-theme="yume"] .row-title::before { content: '♡ '; color: var(--accent-2); }
+[data-theme="yume"] .hero { border-radius: 28px; }
+[data-theme="yume"] .hero-slide { background: linear-gradient(135deg, #ffd9ec 0%, #e8deff 55%, #d6f5ec 100%); }
+[data-theme="yume"] .hero-shade { background: linear-gradient(90deg, rgba(255, 246, 251, 0.96) 0%, rgba(255, 246, 251, 0.6) 45%, transparent 80%); }
+[data-theme="yume"] .btn { border-radius: 999px; }
+/* (a fehér felirat kontrasztja a rózsaszín gombon legalább 4,5:1 – alapban 5,2, rámutatáskor 6,0) */
+[data-theme="yume"] .btn.white, [data-theme="yume"] .btn.primary { background: var(--accent); color: #fff; box-shadow: 0 4px 0 #8a1f55; }
+[data-theme="yume"] .btn.primary:hover, [data-theme="yume"] .btn.white:hover { background: #b52a70; }
+[data-theme="yume"] .thumb { border-radius: 18px; border: 3px solid #fff; background: linear-gradient(160deg, hsl(var(--h) 70% 86%), hsl(calc(var(--h) + 40) 60% 76%)); box-shadow: 0 6px 16px -8px rgba(224, 66, 143, 0.35); }
+[data-theme="yume"] .card:hover, [data-theme="yume"] .card:focus-visible { transform: translateY(-6px) scale(1.03); box-shadow: none; }
+[data-theme="yume"] .card:hover .thumb, [data-theme="yume"] .card:focus-visible .thumb { outline: none; box-shadow: 0 0 0 3px var(--accent-2), 0 14px 26px -10px rgba(167, 139, 250, 0.55); }
+[data-theme="yume"] .now-label, [data-theme="yume"] .live-badge { background: var(--accent); border-radius: 999px; }
+[data-theme="yume"] .bar i { background: linear-gradient(90deg, var(--accent-2), var(--lilac)); }
+[data-theme="yume"] .tile { border-radius: 22px; }
+[data-theme="yume"] .modal { background: var(--bg-2); border-radius: 26px; border: 3px solid #ffd6ea; }
+[data-theme="yume"] .tab { border-radius: 999px; }
+[data-theme="yume"] .tab.active { background: var(--accent); color: #fff; }
+[data-theme="yume"] .input { border-radius: 999px; }
+[data-theme="yume"] .dcard { border-radius: 24px; border: 2px solid #ffe0ef; box-shadow: 0 10px 24px -16px rgba(224, 66, 143, 0.45); }
+[data-theme="yume"] .dc-title::after { content: ' ✿'; color: var(--lilac); }
+
+/* ======================================================================
+   Yami – keserédes (bittersweet) gótikus lolita: fekete–levendula alap, élénk rózsaszín, krémszín csipke, masnik,
+   kameés keretek, fekete-fehér sakktábla, masnis kis koponyák és denevérek, kézírásos címek – édes és sötét egyszerre
+   (a díszek saját rajzok, beágyazott SVG-ként)
+   ====================================================================== */
+body[data-theme="yami"] {
+  --bg: #140c18; --bg-2: #1f1224; --bg-3: #2a1832; --bg-4: #36203f; --line: #4d2c58;
+  --text: #f6eaf2; --text-strong: #fff9fb; --muted: #c4a9c8;
+  --accent: #ff7eb6; --accent-2: #ffb3d4; --wine: #8e2a4d; --cream: #f7e7d8; --lilac: #c9a7ff; --ink: #120c16; --radius: 14px; --focus: #ff7eb6;
+  --font: 'Nunito', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  /* masni, masnis koponya, denevér, szív – a díszek */
+  --bow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 26'%3E%3Cpath d='M20 12C14 3 3 1 2.5 8.5 2 15 9 20 20 12Z' fill='%23ff7eb6' stroke='%23120c16' stroke-width='1.6'/%3E%3Cpath d='M20 12C26 3 37 1 37.5 8.5 38 15 31 20 20 12Z' fill='%23ff7eb6' stroke='%23120c16' stroke-width='1.6'/%3E%3Cpath d='M8 6.5c2 0 4 1.2 5 3M32 6.5c-2 0-4 1.2-5 3' fill='none' stroke='%23ffd0e4' stroke-width='1.3' stroke-linecap='round'/%3E%3Cpath d='M18 13 13.5 24l4.5-2.2Zm4 0 4.5 11-4.5-2.2Z' fill='%23ff7eb6' stroke='%23120c16' stroke-width='1.3' stroke-linejoin='round'/%3E%3Ccircle cx='20' cy='12' r='3.4' fill='%23ffd0e4' stroke='%23120c16' stroke-width='1.6'/%3E%3C/svg%3E");
+  --skull: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Cpath d='M13 5C7.5 5 4 8.6 4 13.2c0 2.9 1.4 5 3.3 6.1V23h11.4v-3.7c1.9-1.1 3.3-3.2 3.3-6.1C22 8.6 18.5 5 13 5Z' fill='%23fff' stroke='%23120c16' stroke-width='1.5'/%3E%3Cellipse cx='9.6' cy='13.6' rx='2.2' ry='2.5' fill='%23120c16'/%3E%3Cellipse cx='16.4' cy='13.6' rx='2.2' ry='2.5' fill='%23120c16'/%3E%3Cpath d='M12.2 17.2h1.6l-.8 1.6Z' fill='%23120c16'/%3E%3Cpath d='M9.5 23v-2.2M13 23v-2.2M16.5 23v-2.2' stroke='%23120c16' stroke-width='1.2'/%3E%3Cpath d='M20 5.5c-1.8-3-5.8-3-5.2-.6.5 2 3.6 1.6 5.2.6Zm0 0c1.8-3 5.8-3 5.2-.6-.5 2-3.6 1.6-5.2.6Z' fill='%23ff7eb6' stroke='%23120c16' stroke-width='1.1'/%3E%3Ccircle cx='20' cy='5.5' r='1.3' fill='%23ffd0e4' stroke='%23120c16' stroke-width='1'/%3E%3C/svg%3E");
+  --bat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 18'%3E%3Cpath d='M20 6c-1-2.5-2.2-3.2-2.2-3.2L18.4 6C14 3 8 1.5 1 4c3 1 4.5 3 4.5 5.5 2-1.2 4.5-1 5.5.8 1.5-1.4 4-1.2 5 .5L20 16l4-5.2c1-1.7 3.5-1.9 5-.5 1-1.8 3.5-2 5.5-.8C34.5 7 36 5 39 4c-7-2.5-13-1-17.4 2l.6-3.2S21 3.5 20 6Z' fill='%23c9a7ff'/%3E%3C/svg%3E");
+  --heart: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath transform='translate(19 19)' d='M5 9S0 6.2 0 3.4C0 1.7 1.2.6 2.6.6c1 0 1.8.6 2.4 1.4C5.6 1.2 6.4.6 7.4.6 8.8.6 10 1.7 10 3.4 10 6.2 5 9 5 9Z' fill='%23ff7eb6' fill-opacity='.16'/%3E%3C/svg%3E");
+  background-color: #140c18;
+  /* (apró szívecskék rácsban, finom levendula rombuszminta, sötét lila–bor színátmenet) */
+  background-image: var(--heart), linear-gradient(45deg, rgba(201, 167, 255, 0.045) 25%, transparent 25%, transparent 75%, rgba(201, 167, 255, 0.045) 75%),
+    radial-gradient(ellipse at 10% 0%, #3d1540 0, transparent 52%), radial-gradient(ellipse at 95% 30%, #2a1544 0, transparent 50%), linear-gradient(180deg, #140c18, #1c0d1d);
+  background-size: 48px 48px, 36px 36px, auto, auto, auto; background-position: 0 0, 0 0, 0 0, 0 0, 0 0; background-attachment: fixed;
+}
+/* menüsor: fekete-fehér sakktábla-csík és alatta krémszínű csipkefodor */
+[data-theme="yami"] #nav.solid { background: rgba(20, 12, 24, 0.95); border-bottom: 6px solid transparent; border-image: repeating-linear-gradient(90deg, #f7e7d8 0 6px, #120c16 6px 12px) 6; }
+[data-theme="yami"] #nav.solid::after { content: ''; position: absolute; left: 0; right: 0; bottom: -15px; height: 9px; pointer-events: none;
+  background: radial-gradient(circle at 9px 0, rgba(247, 231, 216, 0.7) 0 5px, rgba(247, 231, 216, 0.25) 5.5px 6.5px, transparent 7px) 0 0 / 18px 9px repeat-x; }
+[data-theme="yami"] .brand { color: var(--accent); transform: none; font-size: 2em; text-shadow: 1px 1px 0 var(--ink), 0 0 14px rgba(255, 126, 182, 0.5); }
+[data-theme="yami"] .brand::after { content: ''; display: inline-block; width: 24px; height: 24px; margin-left: 6px; vertical-align: middle; background: var(--skull) center / contain no-repeat; }
+[data-theme="yami"] .links a.active { color: var(--accent); font-weight: 800; }
+[data-theme="yami"] .links a.active::after { background: var(--lilac); }
+[data-theme="yami"] h1, [data-theme="yami"] h2, [data-theme="yami"] .row-title, [data-theme="yami"] .dc-title, [data-theme="yami"] .brand { font-family: 'Adas Dancing Script', 'Segoe Script', 'Brush Script MT', cursive; font-weight: 700; letter-spacing: 0; text-transform: none; }
+[data-theme="yami"] h1 { font-size: 2.1em; color: var(--cream); }
+[data-theme="yami"] h1::after { content: ''; display: inline-block; width: 40px; height: 18px; margin-left: 10px; vertical-align: middle; background: var(--bat) center / contain no-repeat; }
+[data-theme="yami"] .row-title, [data-theme="yami"] .dc-title { font-size: 1.3em; color: var(--cream); }
+/* (a címsorban lévő kis linkek – „Beállítás ›” – olvasható betűvel) */
+[data-theme="yami"] .dc-title .dc-link, [data-theme="yami"] .row-title .see-all { font-family: var(--font); font-size: 0.62em; font-weight: 700; color: var(--accent); }
+[data-theme="yami"] .row-title::before { content: ''; display: inline-block; width: 30px; height: 20px; margin-right: 8px; vertical-align: -3px; background: var(--bow) center / contain no-repeat; }
+[data-theme="yami"] .hero { border-radius: 18px; border: 1px solid rgba(247, 231, 216, 0.35); box-shadow: inset 0 0 0 5px var(--bg), inset 0 0 0 6px rgba(247, 231, 216, 0.25); }
+[data-theme="yami"] .hero-slide { background: linear-gradient(135deg, #4d1a45 0%, #2f1848 55%, #170e22 100%); }
+[data-theme="yami"] .hero-shade { background: linear-gradient(90deg, rgba(20, 12, 24, 0.95) 0%, rgba(20, 12, 24, 0.55) 45%, transparent 80%); }
+/* gombok: rózsaszín szalag, krémszín pöttyös csipkeszegéllyel */
+[data-theme="yami"] .btn { border-radius: 999px; }
+[data-theme="yami"] .btn.white, [data-theme="yami"] .btn.primary { background: linear-gradient(180deg, #ff9fc8, var(--accent)); color: #2a0c1e; border: 2px dotted rgba(255, 255, 255, 0.85); box-shadow: 0 2px 0 var(--wine); }
+[data-theme="yami"] .btn.primary:hover, [data-theme="yami"] .btn.white:hover { background: var(--accent-2); }
+/* csatornakártyák: kameés keret; rámutatásra krém–levendula dupla keret és rózsaszín fény */
+[data-theme="yami"] .thumb { border-radius: 14px; border: 1px solid rgba(247, 231, 216, 0.45); box-shadow: inset 0 0 0 3px rgba(20, 12, 24, 0.55), 0 8px 18px -10px rgba(142, 42, 77, 0.7); background: linear-gradient(160deg, hsl(var(--h) 35% 30%), hsl(300 35% 14%)); }
+[data-theme="yami"] .card:hover, [data-theme="yami"] .card:focus-visible { transform: translateY(-4px) scale(1.02); box-shadow: none; }
+[data-theme="yami"] .card:hover .thumb, [data-theme="yami"] .card:focus-visible .thumb { outline: none; box-shadow: 0 0 0 2px var(--cream), 0 0 0 4px var(--lilac), 0 12px 26px -8px rgba(255, 126, 182, 0.55); }
+[data-theme="yami"] .now-label, [data-theme="yami"] .live-badge { background: var(--ink); color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; }
+[data-theme="yami"] .bar i { background: repeating-linear-gradient(90deg, var(--accent) 0 8px, var(--lilac) 8px 16px); }
+[data-theme="yami"] .tile { border-radius: 16px; }
+[data-theme="yami"] .modal { background: var(--bg-2); border-radius: 18px; border: 1px solid rgba(247, 231, 216, 0.35); box-shadow: inset 0 0 0 5px var(--bg-2), inset 0 0 0 6px rgba(247, 231, 216, 0.2), 0 20px 50px -12px rgba(0, 0, 0, 0.7); }
+[data-theme="yami"] .tab { border-radius: 999px; }
+[data-theme="yami"] .tab.active { background: var(--accent); color: #2a0c1e; }
+[data-theme="yami"] .input { border-radius: 999px; }
+/* a főoldal kártyái: kameés keret, felül középen masni, alul csipkefodor */
+[data-theme="yami"] .dcard { position: relative; border-radius: 16px; border: 1px solid rgba(247, 231, 216, 0.3); padding-top: 26px; padding-bottom: 22px;
+  background: linear-gradient(180deg, rgba(142, 42, 77, 0.16), transparent 45%), var(--bg-2); box-shadow: inset 0 0 0 4px var(--bg-2), inset 0 0 0 5px rgba(247, 231, 216, 0.14); }
+[data-theme="yami"] .dcard::before { content: ''; position: absolute; top: 3px; left: 50%; width: 34px; height: 22px; margin-left: -17px; background: var(--bow) center / contain no-repeat; pointer-events: none; opacity: 0.95; }
+[data-theme="yami"] .dcard::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 9px; pointer-events: none;
+  background: radial-gradient(circle at 9px 9px, rgba(247, 231, 216, 0.4) 0 5px, rgba(247, 231, 216, 0.14) 5.5px 6.5px, transparent 7px) 0 0 / 18px 9px repeat-x; }
+[data-theme="yami"] .dc-title::after { content: ''; display: inline-block; flex: none; width: 20px; height: 20px; background: var(--skull) center / contain no-repeat; }

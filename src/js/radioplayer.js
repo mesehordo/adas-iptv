@@ -192,6 +192,10 @@ class RadioPlayer {
     }
     if (e.meta !== undefined) return void this.setNowText(String(e.meta).trim(), this.seq);
     if (e.st === 'buffering' || e.st === 'playing') this.nativeEvents.dispatchEvent(new Event(e.st === 'buffering' ? 'waiting' : 'playing'));
+    // (X05) a rendszer állította meg (tartós hangfókuszvesztés, kihúzott fejhallgató): a felület is szünetre vált, a
+    // médiavezérlés és az ébren tartás ezt követi. (Átmeneti elnyomásnál – 'suppressed', pl. telefonhívás – nincs teendő:
+    // a lejátszás magától folytatódik, és az akadás-statisztikába sem számít.)
+    if (e.st === 'paused' && this.state === 'playing') return this.pause();
     // lejátszás közben megszakadt adás: újraindítás (a tartalék címekkel együtt), mint a kezdéskor – percenként
     // legfeljebb háromszor (egy újra és újra azonnal megszakadó adás ne pörögjön a végtelenségig)
     if ((e.st === 'error' || e.st === 'ended') && this.station && this.state === 'playing') {

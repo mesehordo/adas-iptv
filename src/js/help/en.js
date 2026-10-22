@@ -64,7 +64,7 @@ export const ARTICLES = [
 <h2>Recommended first settings</h2>
 <ul>
 <li><b>Home country</b> (Settings → Content and kids → Content): its channels come first and get the channel numbers. It is set from the language chosen at the first start.</li>
-<li><b>Interface style</b>: choose from thirty-two looks, per profile. ${t('themes', 'Styles')}</li>
+<li><b>Interface style</b>: choose from thirty-four looks, per profile. ${t('themes', 'Styles')}</li>
 <li><b>Kids profile</b>: if a child uses the app too, give them a separate profile. ${t('kids', 'Details')}</li>
 </ul>
 ${go('#/settings', 'Open Settings')}`,
@@ -754,7 +754,7 @@ ${go('#/profiles', 'Manage profiles')}`,
 <p>The look of the interface can be chosen per profile: <b>Settings → Appearance → Interface style</b> (drop-down menu, or click the samples). The change takes effect immediately.</p>
 <p>The <b>layout is the same in every style</b> (top menu bar, the same card sizes, rows and cards on the home page) – the style only gives the look: colours, font, borders, shadows, background patterns, animations.</p>
 <h2>Colour variants</h2>
-<p>Besides the original, most styles have <b>three colour variants</b> (e.g. Blue, Green, Purple): choose one in the <i>Colour variant</i> row under the samples. A variant turns every coloured element of the style – highlights, buttons, borders, decorations – into the chosen colour family; the background brightness and the readability of text stay the same, and black, white and grey shades as well as status colours (working / error, recording, LIVE) are kept. For styles with a black-and-white highlight (e.g. Manga, Mu) the variant adds a coloured highlight. The variant is remembered per style and per profile; the High contrast style has no variants, for accessibility.</p>
+<p>Besides the original, most styles have <b>three colour variants</b> – each a palette picked to suit the style’s mood, with its own name (e.g. Neon City: <i>Synthwave</i>, <i>Acid green</i>, <i>Red neon</i>; Phosphor: the amber, cyan and plasma colours of old monitors; Deco: rose gold, emerald, silver). Choose one in the <i>Colour variant</i> row under the samples. A variant turns every coloured element of the style – highlights, buttons, borders, decorations – into the palette’s colours (in multi-coloured styles such as Neon City, Pow! and Kikagaku, each colour separately); the background brightness and the readability of text stay the same, and black, white and grey shades as well as status colours (working / error, recording, LIVE) are kept. For styles with a black-and-white highlight (e.g. Manga, Mu) the variant adds a coloured highlight. The variant is remembered per style and per profile; the High contrast style has no variants, for accessibility.</p>
 <p>The style and colour variant can already be chosen when creating a profile (at the first start and under Manage profiles), and when editing a profile.</p>
 <table class="help-table">
 <tr><th colspan="2">Dark styles</th></tr>
@@ -1427,6 +1427,21 @@ ${go('#/stats', 'Open statistics')}`,
 ${go('#/settings?section=transfer', 'Sync between devices')}`,
   },
   {
+    id: 'keymap',
+    cat: 'personal',
+    title: 'Button mapping (teaching the remote’s buttons)',
+    keywords: 'button mapping remote key learn teach android tv box keycode not working remap',
+    body: `
+<p>The remotes of many (mostly cheap) Android TV boxes send unusual key codes: a button then does nothing, or something else. In the <b>Button mapping</b> window you can teach any button to an action – up, down, left, right, OK, back, play / pause, stop, rewind / fast forward, channel change (CH+ / CH−), the four coloured buttons, audio and subtitles.</p>
+<ol>
+<li>Open it: when <b>creating a profile</b> (at the first start, and in the profile editor under Manage profiles) with the <b>🎮 Button mapping</b> button, or under <b>Settings → Remote control and keys → Button mapping</b>.</li>
+<li>In the action’s row press <b>Learn</b>, then within 10 seconds the button on the remote. From then on the button does this action.</li>
+<li><b>✕</b> removes a learned button, <b>Clear all</b> removes all of them.</li>
+</ol>
+<p>The built-in buttons keep working alongside (one action can have several buttons). A button belongs to one action at a time: teaching it to another action moves it there. The mapping belongs to <b>this device</b> (the same for every profile) – another device’s remote may be different, so it isn’t included in backups or in syncing between devices.</p>
+<div class="note">On Android the button comes straight from the system, so even a button the built-in browser engine doesn’t know can be learned. The system’s own buttons (home, power, volume) can’t be learned. On the desktop any keyboard key can be learned – while typing, letters and digits stay letters and digits.</div>`,
+  },
+  {
     id: 'remote',
     cat: 'personal',
     title: 'Remote control from your phone',
@@ -1471,7 +1486,7 @@ ${go('#/settings?section=remote', 'Remote from phone')}`,
     id: 'recording',
     cat: 'watch',
     title: 'Recording',
-    keywords: 'record recording save schedule video ts trim margin start end',
+    keywords: 'record recording save schedule video ts trim margin start end ad ads advert commercial break cut',
     body: `
 <p>In the desktop version (Windows, Mac, Linux) live TV can be recorded – without re-encoding, in the original quality, into a <code>.ts</code> file, in the <b>Videos / Adás recordings</b> folder.</p>
 <ul>
@@ -1481,7 +1496,11 @@ ${go('#/settings?section=remote', 'Remote from phone')}`,
 </ul>
 <h2>Trimming</h2>
 <p>The <b>✂</b> button on a recording’s card opens the trimmer: preview, timeline (yellow marks: the programme’s start and end according to the TV guide), stepping (±1 s / ±10 s / ±1 min), <b>⇤ Start here</b> and <b>End here ⇥</b> (or the <kbd>I</kbd> / <kbd>O</kbd> keys), and the times can be typed in too; the <b>Select according to the TV guide</b> button sets them in one step. After <b>✂ Trim and save</b>, the trimmed version takes the recording’s place – Adás plays this one, and the external player opens this one too.</p>
-<p>The <b>original is kept</b> (it doesn’t appear as a separate recording): opening the trimmer again lets you re-trim from the original (with the previous selection), or bring back the full recording with <b>Restore original</b>. A trimmed recording’s card shows a tick next to the ✂. When deleted, both go to the Recycle Bin.</p>
+<h2>Cutting out ads</h2>
+<p>In the <b>Cut out ads</b> part of the trimmer you can mark as many ads as you like: go to the start of the ad and press <b>⟦ Ad starts here</b> (<kbd>[</kbd>), then at its end press <b>Ad ends here ⟧</b> (<kbd>]</kbd>). The marked ads are listed and shown striped on the timeline; their times can be edited, and <b>✕</b> takes one back. When you save, <b>every marked ad is left out</b> of the part between the start and the end, and the rest is joined together. While playing, the preview skips the marked ads (this can be switched off), so the boundaries are easy to check.</p>
+<p><b>🔍 Find ad breaks</b> helps to find them: channels almost always put a short silence and a black picture between ads (and between the programme and the ad break) – this looks for those (blue marks on the timeline; step through them with <b>◀ Previous / Next candidate ▶</b>). Where several such boundaries follow each other closely, it offers a <b>Suggested ad break</b>; <b>+ Cut out</b> adds it to the ads. It is only a suggestion: check it before saving and adjust the boundaries – the programme can have silences too, and not every channel puts a black picture between ads.</p>
+<div class="note">Cutting happens without re-encoding (fast, with no loss of picture quality). Because of this the picture can only continue at a keyframe: the part after an ad starts at the first keyframe, and at the joins there can be a moment (at most about half a second) of black picture or silence.</div>
+<p>The <b>original is kept</b> (it doesn’t appear as a separate recording): opening the trimmer again lets you re-trim from the original (with the previous selection and the marked ads), or bring back the full recording with <b>Restore original</b>. A trimmed recording’s card shows a tick next to the ✂. When deleted, both go to the Recycle Bin.</p>
 <p>Recordings are on the <b>TV → Recordings</b> tab (with channel logo, date, size; started ones with a progress bar). <b>▶ Play</b> starts the recording in Adás’s own player – seekable, and an unfinished recording continues where you left off. The <b>⧉</b> button opens it in the computer’s video player (e.g. VLC), <b>✕</b> moves it to the Recycle Bin. Here you also see the recordings in progress and the scheduled ones; the latest are also listed under Settings → Recordings.</p>
 <div class="note">For your own home viewing only: the rights to recorded programmes belong to the channels. Some (encrypted or DRM-protected) streams can’t be recorded.</div>
 ${go('#/recordings', 'Recordings')}`,

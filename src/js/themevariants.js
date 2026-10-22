@@ -1,6 +1,7 @@
 // Témák színváltozatai. Egy változat a téma saját stílusszabályainak átszínezése: a színes (nem szürke) színek
-// árnyalata elfordul az OKLCH színtérben – az észlelt világosság és a telítettség marad, így a szöveg ugyanúgy
-// olvasható –, a fekete / fehér / szürke és az állapotszínek (működik / hiba / figyelmeztetés, felvétel) nem
+// árnyalata az OKLCH színtérben a téma saját színeihez rendelt célszínek felé fordul (map: [[forrás, cél], …] – a
+// téma fő- és kísérőszínei külön-külön, pl. Neon City neonsárga, cián és bíbor színe), a telítettség a változat
+// szerint marad, élénkül vagy tompul; az észlelt világosság nem változik, így a szöveg ugyanúgy olvasható –, a fekete / fehér / szürke és az állapotszínek (működik / hiba / figyelmeztetés, felvétel) nem
 // változnak. Az átszínezett szabályok futás közben, csak az aktív témához és változathoz készülnek (egy kis
 // stíluslap), így a beégetett díszítőszínek is követik a változatot, és a stíluslap mérete nem nő.
 import { _t } from './i18n.js';
@@ -66,6 +67,43 @@ export function rotateColor(css, deg) {
   if (C < 0.035) return css;
   return fmt([...oklchToRgb(L, C, (H + deg + 360) % 360), c[3]]);
 }
+/**
+ * Egy szín a változat szerint (v.map: [[forrás árnyalat, cél árnyalat], …] – a legközelebbi forrás eltolása; v.chroma:
+ * a telítettség szorzója). A szürke árnyalatok és a nagyon halvány színek maradnak.
+ */
+export function variantColor(css, v) {
+  const c = parseColor(css);
+  if (!c) return css;
+  const [L, C, H] = rgbToOklch(c[0], c[1], c[2]);
+  if (C < 0.035) return css;
+  let best = v.map[0];
+  for (const p of v.map) if (dist(p[0], H) < dist(best[0], H)) best = p;
+  const nh = (H + best[1] - best[0] + 360) % 360;
+  const want = Math.min(0.37, C * (v.chroma || 1));
+  // (élénk színnél: ha a célárnyalat ezen a világosságon nem lehet elég telített – pl. a neonsárga világosságán nincs
+  // élénk rózsaszín –, a világosság kissé csökken, amíg a telítettség nagy része megmarad; így a
+  // változat nem fakul pasztellé. A halvány háttérárnyalatok világossága marad.)
+  let L2 = L;
+  if (want >= 0.08) {
+    const mid = 0.7;
+    // (csak lefelé: a sötét kiemelő – világos témán a szöveg – világosítva a kontrasztot rontaná)
+    for (let i = 0; i < 20 && L2 > mid && maxChroma(L2, nh) < want * 0.85; i++) L2 -= 0.02;
+  }
+  return fmt([...oklchToRgb(L2, want, nh), c[3]]);
+}
+/** A legnagyobb, még megjeleníthető (sRGB) telítettség adott világosságnál és árnyalatnál. */
+function maxChroma(L, H) {
+  const h = (H * Math.PI) / 180;
+  let lo = 0;
+  let hi = 0.4;
+  for (let i = 0; i < 14; i++) {
+    const m = (lo + hi) / 2;
+    const rgb = oklabToRgb(L, m * Math.cos(h), m * Math.sin(h)).map(linToSrgb);
+    if (rgb.every((x) => x >= -0.001 && x <= 1.001)) lo = m;
+    else hi = m;
+  }
+  return lo;
+}
 /** A szín OKLCH-árnyalata (fok), vagy null, ha szürke. */
 export function hueOf(css) {
   const c = parseColor(String(css || '').trim());
@@ -94,7 +132,7 @@ const dist = (a, b) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
 export function variantsFor(accentHue, chosen = null) {
   // fekete-fehér kiemelésű téma (pl. Manga, Mu): nincs mit elforgatni – a változat színes kiemelőszínt ad
   if (accentHue == null) {
-    return (chosen || ['red', 'blue', 'green']).map((id) => FAMILIES.find((f) => f.id === id)).filter(Boolean).map((f) => ({ id: f.id, family: f, deg: 0, tint: true }));
+    return (chosen || ['red', 'blue', 'green']).map((id) => FAMILIES.find((f) => f.id === id)).filter(Boolean).map((f) => ({ id: f.id, name: f.name, family: f, deg: 0, tint: f.hue }));
   }
   const pick = chosen
     ? chosen.map((id) => FAMILIES.find((f) => f.id === id)).filter(Boolean)
@@ -107,8 +145,128 @@ export function variantsFor(accentHue, chosen = null) {
         for (const f of cands) if (out.length < 3 && !out.includes(f)) out.push(f);
         return out;
       })();
-  return pick.map((f) => ({ id: f.id, family: f, deg: f.hue - accentHue }));
+  return pick.map((f) => ({ id: f.id, name: f.name, family: f, deg: f.hue - accentHue, map: [[accentHue, f.hue]] }));
 }
+
+// ---------------------------------------------------------------- témánként válogatott változatok
+// A téma saját hangulatához illő paletták: a téma színeihez (forrás-árnyalat, mérve a stíluslapból) rendelt célszínek,
+// ahol kell, élénkebb / tompább telítettséggel. A fekete-fehér témáknál (tint) színes kiemelő. Üres lista: nincs
+// változat (a Kontraszt akadálymentességi okból).
+const V = (id, name, map, o = {}) => ({ id, name, map, ...o });
+const T = (id, name, tint, tint2) => ({ id, name, tint, tint2 });
+export const THEME_VARIANTS = {
+  netflix: [V('kobai', () => _t('Szilvavirág'), [[28, 352]]), V('ruri', () => _t('Lazúr'), [[28, 258]]), V('kohaku', () => _t('Borostyán'), [[28, 68]])],
+  disney: [V('fairy', () => _t('Tündérlila'), [[257, 300]]), V('dawn', () => _t('Hajnalpír'), [[257, 350]]), V('emerald', () => _t('Smaragd'), [[257, 165]])],
+  skyshowtime: [
+    V('deepsea', () => _t('Mélytenger'), [[289, 245], [315, 205], [0, 190]]),
+    V('sunset', () => _t('Naplemente'), [[289, 25], [315, 55], [0, 70]]),
+    V('forest', () => _t('Erdei mágia'), [[289, 150], [315, 115], [0, 95]]),
+  ],
+  rakuten: [V('cobalt', () => _t('Kobalt'), [[29, 255]]), V('emerald', () => _t('Smaragd'), [[29, 155]]), V('gold', () => _t('Arany'), [[29, 85]])],
+  prime: [V('coral', () => _t('Korallzátony'), [[250, 22]]), V('lagoon', () => _t('Lagúna'), [[250, 185]]), V('midnight', () => _t('Éjféli lila'), [[250, 295]])],
+  apple: [V('ice', () => _t('Jégkék'), [[21, 240]]), V('mint', () => _t('Menta'), [[21, 165]]), V('lavender', () => _t('Levendula'), [[21, 300]])],
+  zen: [V('sakura', () => _t('Sakura'), [[131, 355]], { chroma: 0.9 }), V('indigo', () => _t('Indigó'), [[131, 265]]), V('maple', () => _t('Juhar'), [[131, 40]])],
+  wabisabi: [
+    V('indigo', () => _t('Indigófesték'), [[45, 262], [75, 75], [255, 225]]),
+    V('moss', () => _t('Moha'), [[45, 128], [75, 80], [255, 255]]),
+    V('plum', () => _t('Szilva'), [[45, 345], [75, 75], [255, 280]]),
+  ],
+  nintendo: [
+    V('strawberry', () => _t('Eper'), [[235, 355], [30, 250]]),
+    V('lime', () => _t('Lime'), [[235, 128], [30, 30]]),
+    V('tangerine', () => _t('Mandarin'), [[235, 55], [30, 345]]),
+  ],
+  switch: [
+    V('neon', () => _t('Neon pár'), [[212, 130], [30, 345]], { chroma: 1.08 }),
+    V('coral', () => _t('Korall'), [[212, 25], [30, 250]]),
+    V('violet', () => _t('Ibolya'), [[212, 295], [30, 60]]),
+  ],
+  wii: [V('lime', () => _t('Lime'), [[226, 145]]), V('tangerine', () => _t('Mandarin'), [[226, 55]]), V('rose', () => _t('Rózsa'), [[226, 350]])],
+  // Neon City: a neonsárga / cián / bíbor / vörös négyes más éjszakai neonpalettákra
+  cyberpunk: [
+    V('synthwave', () => _t('Szintihullám'), [[105, 345], [210, 200], [15, 60], [285, 300]], { chroma: 1.1 }),
+    V('acid', () => _t('Savas zöld'), [[105, 135], [210, 320], [15, 15], [285, 265]], { chroma: 1.1 }),
+    V('redneon', () => _t('Vörös neon'), [[105, 25], [210, 190], [15, 350], [285, 300]], { chroma: 1.1 }),
+  ],
+  neotokyo: [
+    V('headlight', () => _t('Motorfény'), [[27, 245]], { chroma: 1.05 }),
+    V('psy', () => _t('Pszí lila'), [[27, 300]], { chroma: 1.05 }),
+    V('toxic', () => _t('Mérgező zöld'), [[27, 140]]),
+  ],
+  manga: [T('red', () => _t('Vörös tus'), 27), T('blue', () => _t('Kék tus'), 255), T('shojo', () => _t('Shōjo rózsa'), 350, 300)],
+  comic: [
+    V('night', () => _t('Éjféli hős'), [[26, 300], [256, 145], [90, 90]]),
+    V('orange', () => _t('Narancs–türkiz'), [[26, 50], [256, 200], [90, 95]]),
+    V('pop', () => _t('Rózsaszín pop'), [[26, 350], [256, 265], [90, 95]]),
+  ],
+  // (16-Bit: a színes A–B–X–Y pöttyök maradnak, csak a konzol lila gombjai változnak)
+  snes: [
+    V('burgundy', () => _t('Bordó'), [[289, 18], [30, 30], [90, 90], [150, 150]]),
+    V('emerald', () => _t('Smaragd'), [[289, 158], [30, 30], [90, 90], [150, 150]]),
+    V('cobalt', () => _t('Kobalt'), [[289, 245], [30, 30], [90, 90], [150, 150]]),
+  ],
+  // Kikagaku: a plakát alapszínei helyet cserélnek, ill. a másodlagos színek
+  bauhaus: [
+    V('blue', () => _t('Kék elöl'), [[30, 255], [255, 30], [90, 90]]),
+    V('yellow', () => _t('Sárga elöl'), [[30, 90], [90, 30], [255, 255]]),
+    V('secondary', () => _t('Másodlagos színek'), [[30, 55], [255, 145], [90, 310]]),
+  ],
+  aurora: [
+    V('dawn', () => _t('Hajnalpír'), [[286, 15], [177, 75], [210, 45]]),
+    V('deepsea', () => _t('Mélytenger'), [[286, 255], [177, 195], [210, 225]]),
+    V('forest', () => _t('Erdei fény'), [[286, 150], [177, 105], [210, 170]]),
+  ],
+  // Rakugaki: csak a „toll” színe változik, a füzet kék vonalai és a sárga kiemelő marad
+  sketch: [
+    V('green', () => _t('Zöld toll'), [[28, 145], [255, 255], [90, 90], [105, 105]]),
+    V('violet', () => _t('Lila toll'), [[28, 300], [255, 255], [90, 90], [105, 105]]),
+    V('crayon', () => _t('Narancs kréta'), [[28, 55], [255, 255], [90, 90], [105, 105]]),
+  ],
+  // Phosphor: a régi monitorok foszforszínei
+  terminal: [V('amber', () => _t('Borostyán'), [[147, 72]]), V('cyan', () => _t('Cián'), [[147, 200]]), V('plasma', () => _t('Plazma'), [[147, 40]])],
+  contrast: [],
+  large: [V('green', () => _t('Zöld'), [[254, 150]]), V('burgundy', () => _t('Bordó'), [[254, 18]]), V('violet', () => _t('Lila'), [[254, 300]])],
+  shiro: [V('sage', () => _t('Zsálya'), [[263, 150]]), V('coral', () => _t('Korall'), [[263, 28]]), V('violet', () => _t('Ibolya'), [[263, 300]])],
+  // Yoru: sötét szobába – tompa, nem vakító színek
+  yoru: [
+    V('ember', () => _t('Parázs'), [[72, 28], [30, 10]], { chroma: 0.95 }),
+    V('moon', () => _t('Holdfény'), [[72, 245], [30, 230]], { chroma: 0.8 }),
+    V('ash', () => _t('Hamuzöld'), [[72, 150], [30, 130]], { chroma: 0.8 }),
+  ],
+  mori: [V('autumn', () => _t('Ősz'), [[131, 52]]), V('lake', () => _t('Tópart'), [[131, 205]]), V('berry', () => _t('Áfonya'), [[131, 305]])],
+  // Natsu: a homokszín marad, a tenger és a korall más nyári színekre
+  natsu: [
+    V('sunset', () => _t('Naplemente'), [[200, 45], [30, 350], [90, 90]]),
+    V('tropic', () => _t('Trópusi'), [[200, 150], [30, 60], [90, 90]]),
+    V('lavender', () => _t('Levendulamező'), [[200, 290], [30, 340], [90, 90]]),
+  ],
+  fuyu: [V('dawn', () => _t('Hajnalpír'), [[251, 350]]), V('aurora', () => _t('Sarki fény'), [[251, 165]]), V('dusk', () => _t('Alkony'), [[251, 295]])],
+  // Deco: a fekete-arany mozipalota más nemesfémekkel és drágakövekkel
+  deco: [V('rosegold', () => _t('Rózsaarany'), [[85, 40]], { chroma: 0.85 }), V('emerald', () => _t('Smaragd'), [[85, 160]]), V('silver', () => _t('Ezüst'), [[85, 85]], { chroma: 0.12 })],
+  // Shōwa: a 70-es évek további lakberendezési színei
+  showa: [V('avocado', () => _t('Avokádó'), [[51, 118]]), V('burgundy', () => _t('Bordó'), [[51, 15]]), V('petrol', () => _t('Petrol'), [[51, 205]], { chroma: 0.85 })],
+  mu: [T('indigo', () => _t('Indigó'), 265), T('rust', () => _t('Rozsda'), 40), T('moss', () => _t('Moha'), 130)],
+  // Holo: a sci-fi kezelőfelület riasztási és üzemmódszínei
+  holo: [V('redalert', () => _t('Vörös riadó'), [[222, 25]]), V('amber', () => _t('Borostyán'), [[222, 70]]), V('matrix', () => _t('Mátrix'), [[222, 145]])],
+  // Yume: a pasztell hármas (rózsaszín / levendula / menta) más édességszínekben
+  yume: [
+    V('peach', () => _t('Barack'), [[350, 40], [295, 20], [175, 95]]),
+    V('soda', () => _t('Szóda'), [[350, 230], [295, 290], [175, 150]]),
+    V('melon', () => _t('Dinnye'), [[350, 145], [295, 350], [175, 85]]),
+  ],
+  // Yami (keserédes): a púderrózsaszín / borvörös / levendula hármas más keserédes színekben
+  yami: [
+    V('wine', () => _t('Bordó csipke'), [[355, 15], [305, 345], [5, 5]], { chroma: 1.05 }),
+    V('lavender', () => _t('Levendula'), [[355, 300], [305, 265], [5, 330]]),
+    V('mint', () => _t('Menta macaron'), [[355, 165], [305, 330], [5, 350]]),
+  ],
+  // Csillagidő: a parancsnoki híd sávjai riasztási és nyugalmi színekben
+  stardate: [
+    V('redalert', () => _t('Vörös riadó'), [[65, 25], [45, 15], [330, 350], [285, 330], [75, 35]]),
+    V('bluealert', () => _t('Kék riadó'), [[65, 250], [45, 235], [330, 205], [285, 280], [75, 260]]),
+    V('emerald', () => _t('Smaragd'), [[65, 150], [45, 135], [330, 190], [285, 250], [75, 160]]),
+  ],
+};
 
 // ---------------------------------------------------------------- a szabályok átszínezése
 // állapotot jelző színek: nem változnak (a „működik” zöld, a hiba / felvétel piros jelentést hordoz)
@@ -133,7 +291,7 @@ function* styleRules(list, media = '') {
   }
 }
 /** Egy szabály átszínezett másolata (szöveg) vagy '' (ha nincs mit átszínezni). */
-function recolorRule(rule, selector, deg, only = null) {
+function recolorRule(rule, selector, v, only = null) {
   const st = rule.style;
   const decls = [];
   let changed = false;
@@ -143,7 +301,7 @@ function recolorRule(rule, selector, deg, only = null) {
     if (!COLOR_RX.test(val)) continue;
     COLOR_RX.lastIndex = 0;
     if (KEEP_PROPS.test(prop)) continue;
-    const nv = val.replace(COLOR_RX, (c) => (!only || only(c) ? rotateColor(c, deg) : c));
+    const nv = val.replace(COLOR_RX, (c) => (!only || only(c) ? variantColor(c, v) : c));
     COLOR_RX.lastIndex = 0;
     if (nv !== val) {
       changed = true;
@@ -159,8 +317,8 @@ function recolorRule(rule, selector, deg, only = null) {
 function swatchCss(theme, v) {
   const pSel = `[data-preview="${theme}"]`;
   const vSel = `${pSel}[data-pvariant="${v.id}"]`;
-  if (v.tint) {
-    const acc = fmt([...oklchToRgb(0.62, 0.17, v.family.hue), 1]);
+  if (v.tint != null) {
+    const acc = fmt([...oklchToRgb(0.62, 0.17, v.tint), 1]);
     return `${vSel} i:first-child { background: ${acc} }`;
   }
   const out = [];
@@ -175,7 +333,7 @@ function swatchCss(theme, v) {
     for (const { rule, media } of styleRules(rules)) {
       const sel = rule.selectorText || '';
       if (!sel.includes(pSel)) continue;
-      const css = recolorRule(rule, sel.split(pSel).join(vSel), v.deg);
+      const css = recolorRule(rule, sel.split(pSel).join(vSel), v);
       if (css) out.push(media ? `@media ${media} { ${css} }` : css);
     }
   }
@@ -193,14 +351,14 @@ function restore() {
   document.body.style.removeProperty('--accent');
   document.body.style.removeProperty('--accent-2');
 }
-function recolorInPlace(style, deg, only) {
+function recolorInPlace(style, v, only) {
   for (let i = 0; i < style.length; i++) {
     const prop = style[i];
     if (KEEP_PROPS.test(prop)) continue;
     const val = style.getPropertyValue(prop);
     if (!COLOR_RX.test(val)) continue;
     COLOR_RX.lastIndex = 0;
-    const nv = val.replace(COLOR_RX, (c) => (!only || only(c) ? rotateColor(c, deg) : c));
+    const nv = val.replace(COLOR_RX, (c) => (!only || only(c) ? variantColor(c, v) : c));
     COLOR_RX.lastIndex = 0;
     if (nv === val) continue;
     const prio = style.getPropertyPriority(prop);
@@ -215,15 +373,16 @@ export function applyVariantCss(theme, variant) {
   restore();
   applied = key;
   if (!variant) return;
-  if (variant.tint) {
+  if (variant.tint != null) {
     // fekete-fehér témánál: színes kiemelő (a téma többi része marad)
     const light = document.body.dataset.tone === 'light';
-    document.body.style.setProperty('--accent', fmt([...oklchToRgb(light ? 0.55 : 0.66, 0.17, variant.family.hue), 1]));
-    document.body.style.setProperty('--accent-2', fmt([...oklchToRgb(light ? 0.62 : 0.74, 0.15, variant.family.hue), 1]));
+    document.body.style.setProperty('--accent', fmt([...oklchToRgb(light ? 0.55 : 0.66, 0.17, variant.tint), 1]));
+    document.body.style.setProperty('--accent-2', fmt([...oklchToRgb(light ? 0.62 : 0.74, 0.15, variant.tint2 ?? variant.tint), 1]));
     return;
   }
   const tSel = `[data-theme="${theme}"]`;
-  const baseDeg = variant.family.hue - BASE_HUE;
+  // (az általános szabályok piros családja a változat főszínére – a téma első színpárjának célja)
+  const baseV = { map: [[BASE_HUE, variant.base ?? variant.map[0][1]]], chroma: variant.chroma };
   for (const sheet of document.styleSheets) {
     if (sheet.ownerNode?.id === 'theme-variant-preview') continue;
     let rules;
@@ -235,9 +394,9 @@ export function applyVariantCss(theme, variant) {
     for (const { rule } of styleRules(rules)) {
       const sel = rule.selectorText || '';
       if (KEEP_SEL.test(sel)) continue;
-      if (sel.includes(tSel)) recolorInPlace(rule.style, variant.deg);
+      if (sel.includes(tSel)) recolorInPlace(rule.style, variant);
       // általános szabály (a :root változói is): csak a piros család – a téma saját szabálya továbbra is erősebb
-      else if (!/data-theme|data-preview/.test(sel) && (rule.style.cssText.match(COLOR_RX) || []).some(nearBase)) recolorInPlace(rule.style, baseDeg, nearBase);
+      else if (!/data-theme|data-preview/.test(sel) && (rule.style.cssText.match(COLOR_RX) || []).some(nearBase)) recolorInPlace(rule.style, baseV, nearBase);
     }
   }
 }

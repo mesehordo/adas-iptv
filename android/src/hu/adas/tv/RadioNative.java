@@ -58,6 +58,8 @@ class RadioNative implements Player.Listener {
     DefaultDataSource.Factory data = new DefaultDataSource.Factory(act, http);
     player = new ExoPlayer.Builder(act).setMediaSourceFactory(new DefaultMediaSourceFactory(data)).build();
     player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), true);
+    // (fejhallgató kihúzása / Bluetooth-eszköz lekapcsolódása: szünet – az onIsPlayingChanged jelzi a felületnek)
+    player.setHandleAudioBecomingNoisy(true);
     player.setVolume(clamp(o.optDouble("volume", 1)));
     player.addListener(this);
     player.setMediaItem(MediaItem.fromUri(uri));
@@ -111,7 +113,26 @@ class RadioNative implements Player.Listener {
     if (playing) {
       wasPlaying = true;
       send("st", "playing");
+      return;
     }
+    // (X05) a megállás is a felülethez jut (a médiavezérlés és az ébren tartás a felület állapotát követi): tartós
+    // hangfókuszvesztés vagy lekapcsolódó fejhallgató → szünet; átmeneti elnyomás (pl. telefonhívás) → „elnémítva”,
+    // ebből magától folytatódik. A pufferelés és a vég külön eseményt kap (onPlaybackStateChanged).
+    if (player == null) return;
+    int st = player.getPlaybackState();
+    if (st != Player.STATE_READY) return;
+    if (!player.getPlayWhenReady()) send("st", "paused");
+    else if (player.getPlaybackSuppressionReason() != Player.PLAYBACK_SUPPRESSION_REASON_NONE) send("st", "suppressed");
+  }
+
+  /**
+   * A rendszer szüneteltetett (tartós hangfókuszvesztés, kihúzott fejhallgató) – pufferelés közben is, amikor az
+   * isPlaying már előtte hamis volt, így az onIsPlayingChanged nem jelezne. (A felület saját szüneténél a lejátszó
+   * megszűnik – release –, ide nem jut esemény.)
+   */
+  @Override
+  public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {
+    if (!playWhenReady && reason != Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST) send("st", "paused");
   }
 
   @Override

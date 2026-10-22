@@ -132,15 +132,25 @@ export const health = {
     if (!api.caps.health || fullScan) return;
     queue.clear();
     const list = channels.flatMap((ch) => ch.streams).map((s) => ({ url: s.url, ua: s.ua, referrer: s.referrer }));
-    fullScan = { done: 0, total: list.length };
+    const scan = (fullScan = { done: 0, total: list.length });
     bus.emit('scan-progress', { ...fullScan });
+    // (X10) saját megszakítási jelzés: a háttérellenőrzésre várakozó teljes vizsgálat is leállítható
+    const finish = (cancelled, results = {}) => {
+      for (const [url, ok] of Object.entries(results)) applyProbe(url, ok);
+      store.save();
+      if (fullScan === scan) fullScan = null;
+      bus.emit('scan-progress', null);
+      bus.emit('health');
+      return { cancelled, checked: Object.keys(results).length };
+    };
     // Ha éppen fut egy háttérellenőrzés, megvárjuk (közben a kikapcsolás azt is megszakíthatja – scanWaiting).
     scanWaiting = true;
     try {
-      while (running) await new Promise((r) => setTimeout(r, 200));
+      while (running && !scan.cancelled) await new Promise((r) => setTimeout(r, 200));
     } finally {
       scanWaiting = false;
     }
+    if (scan.cancelled) return finish(true);
     running = true;
     let results = {};
     let cancelled = false;
@@ -152,15 +162,11 @@ export const health = {
     } finally {
       running = false;
     }
-    for (const [url, ok] of Object.entries(results)) applyProbe(url, ok);
-    store.save();
-    fullScan = null;
-    bus.emit('scan-progress', null);
-    bus.emit('health');
-    return { cancelled, checked: Object.keys(results).length };
+    return finish(cancelled || !!scan.cancelled, results);
   },
 
   cancelScan() {
+    if (fullScan) fullScan.cancelled = true;
     api.cancelCheck();
   },
 

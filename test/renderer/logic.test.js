@@ -284,6 +284,22 @@ test('sportnaptár (V10): RRULE + EXDATE + DTEND, módosított alkalom, élő á
   assert.equal(icsDuration('PT90M'), 90 * 60e3);
 });
 
+test('sportnaptár (W01): RDATE RRULE nélkül, régen induló napi sorozat, WKST=SU', async () => {
+  const { _sportsTest: { parseIcs } } = await import('../../src/js/sports.js');
+  const w = { id: 'x', name: 'N', sport: 'soccer' };
+  const day = (e) => new Date(e.start).toISOString().slice(5, 16);
+  const now = Date.UTC(2026, 9, 21, 12, 0, 0);
+  const rd = parseIcs(['BEGIN:VEVENT', 'UID:r', 'SUMMARY:RD', 'DTSTART:20261020T160000Z', 'RDATE:20261021T160000Z,20261022T160000Z', 'END:VEVENT'].join('\r\n'), w, now);
+  assert.deepEqual(rd.map(day), ['10-20T16:00', '10-21T16:00', '10-22T16:00']);
+  // (2010 óta naponta: az időablak – most −2 nap … +60 nap – minden napja megvan)
+  const old = parseIcs(['BEGIN:VEVENT', 'UID:o', 'SUMMARY:Régi', 'DTSTART:20100101T160000Z', 'RRULE:FREQ=DAILY', 'END:VEVENT'].join('\r\n'), w, now);
+  assert.equal(day(old[0]), '10-19T16:00');
+  assert.ok(old.length >= 61 && old.length <= 63, String(old.length));
+  // (vasárnappal kezdődő hét: V 10-18 – az ablakon kívül, de a COUNT-ba számít –, K 10-20, majd két hét múlva V, K)
+  const su = parseIcs(['BEGIN:VEVENT', 'UID:s', 'SUMMARY:WKST', 'DTSTART:20261018T160000Z', 'RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=SU,TU;WKST=SU;COUNT=4', 'END:VEVENT'].join('\r\n'), w, now);
+  assert.deepEqual(su.map((e) => day(e).slice(0, 5)), ['10-20', '11-01', '11-03']);
+});
+
 // ------------------------------------------------------------------ témák színváltozatai
 import { rotateColor, hueOf, variantsFor } from '../../src/js/themevariants.js';
 
@@ -342,4 +358,90 @@ test('gyorsítótár (kv): JSON-szövegként oda-vissza – nagy, egymásba ágy
   assert.equal(back.channels.length, 3000);
   assert.equal(back.channels[2999].name, 'Csatorna 2999 – ő ű');
   assert.equal(await api.kvGet('teszt:nincs-ilyen-kulcs'), undefined);
+});
+
+import { preserveForV1 } from '../../src/js/backup.js';
+
+test('mentési pontok (X09): felülírás előtt a régi (v1) pont a mostani tartalmat kapja meg, nem a frissítettet', async () => {
+  if (!api.docSet) return;
+  const saved = await api.docGet('backups');
+  try {
+    await api.docSet('vodtext:tesztx09', { text: 'RÉGI' });
+    const v1 = { v: 1, at: 1, reason: 'teszt', data: { settings: { vodCustom: [{ name: 'X09', textKey: 'vodtext:tesztx09' }] } } };
+    const other = { v: 1, at: 2, reason: 'teszt', data: { settings: { vodCustom: [] } } };
+    await api.docSet('backups', { items: [v1, other] });
+    await preserveForV1('vodtext:tesztx09');
+    const items = (await api.docGet('backups')).items;
+    const h = items[0].docs?.['vodtext:tesztx09'];
+    assert.ok(h, 'a v1 pont tartalom szerinti hivatkozást kapott');
+    assert.equal(items[1].docs, undefined, 'a nem hivatkozó pont érintetlen');
+    await api.docSet('vodtext:tesztx09', { text: 'ÚJ' });
+    assert.equal((await api.docGet('bkdoc:' + h))?.text, 'RÉGI');
+    await api.docSet('bkdoc:' + h, null);
+  } finally {
+    await api.docSet('vodtext:tesztx09', null);
+    await api.docSet('backups', saved ?? null);
+  }
+});
+
+import { THEME_VARIANTS, variantColor } from '../../src/js/themevariants.js';
+
+test('színváltozat: témánként válogatott paletták – 3 változat egyedi azonosítóval és névvel, élénk célszínekkel', async () => {
+  const { THEMES } = await import('../../src/js/themes.js');
+  for (const id of Object.keys(THEMES).filter((k) => !THEMES[k].custom && k !== 'contrast')) {
+    const vs = THEME_VARIANTS[id];
+    assert.ok(vs?.length === 3, `${id}: ${vs?.length}`);
+    assert.equal(new Set(vs.map((v) => v.id)).size, 3, id);
+    assert.ok(vs.every((v) => v.name() && (v.tint != null || v.map?.length)), id);
+  }
+  assert.deepEqual(THEME_VARIANTS.contrast, []);
+  // (Neon City szintihulláma: a neonsárgából élénk rózsaszín lesz, nem fakó pasztell; a szürke marad)
+  const pink = variantColor('#fcee0a', THEME_VARIANTS.cyberpunk[0]);
+  assert.ok(hueOf(pink) > 320 || hueOf(pink) < 10, pink);
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(pink.slice(i, i + 2), 16));
+  assert.ok(Math.max(r, g, b) - Math.min(r, g, b) > 120, `élénk: ${pink}`);
+  assert.equal(variantColor('#777777', THEME_VARIANTS.cyberpunk[0]), '#777777');
+});
+
+import { adSuggestions, keptLength } from '../../src/js/recorder.js';
+
+test('reklámkivágás: megmaradó hossz, reklámblokk-javaslat a sűrű csend + fekete határokból', () => {
+  assert.equal(keptLength(0, 100, []), 100);
+  assert.equal(keptLength(10, 100, [{ start: 0, end: 20 }, { start: 50, end: 60 }, { start: 95, end: 120 }]), 65);
+  // négy határ 15 mp-enként (három reklám) + egy magányos csend a műsorban → egy blokk, a csendek széléig
+  const sil = [[600, 600.6], [615, 615.6], [630, 630.6], [645.2, 645.8], [1200, 1200.5]];
+  const blk = sil.slice(0, 4).map(([s, e]) => [s, e]);
+  const r = adSuggestions({ silences: sil, blacks: blk, video: true });
+  // (jelölt minden csend; a blokkhoz képes felvételnél csak a fekete képpel együtt járó számít)
+  assert.equal(r.cands.length, 5);
+  assert.equal(r.cands.filter((c) => c.strong).length, 4);
+  assert.deepEqual(r.blocks, [{ start: 600, end: 645.8 }]);
+  // fekete kép nélkül (pl. rádió) a csendek számítanak; két határ még nem blokk
+  assert.equal(adSuggestions({ silences: [[10, 10.5], [40, 40.5]] }).blocks.length, 0);
+  assert.equal(adSuggestions({ silences: [[10, 10.5], [40, 40.5], [70, 70.5]] }).blocks.length, 1);
+  // a túl rövid csend nem jelölt
+  assert.equal(adSuggestions({ silences: [[1, 1.1]] }).cands.length, 0);
+});
+
+import { keyMapEntries, keyName, KEY_ACTIONS } from '../../src/js/keymap.js';
+
+test('gombkiosztás: a kiosztás tisztítása (ismeretlen művelet, hibás elem, kettőzött gomb kimarad), gombnevek', () => {
+  const list = keyMapEntries([
+    { action: 'ok', plat: 'android', android: 100023, name: 'SCAN 23' },
+    { action: 'down', plat: 'android', android: 100023, name: 'ismét ugyanaz a gomb' },
+    { action: 'nincs-ilyen', plat: 'desktop', keyCode: 74 },
+    { action: 'up', plat: 'desktop', keyCode: 74, code: 'KeyJ', key: 'j', name: 'J', extra: 'x' },
+    { action: 'up', plat: 'desktop', key: 'Unidentified' },
+    null,
+    'szöveg',
+  ]);
+  assert.equal(list.length, 2);
+  assert.deepEqual(list[1], { action: 'up', plat: 'desktop', keyCode: 74, code: 'KeyJ', key: 'j', name: 'J' });
+  assert.deepEqual(keyMapEntries('nem lista'), []);
+  assert.equal(keyName({ android: 100023, name: 'SCAN 23' }), 'SCAN 23');
+  assert.equal(keyName({ key: 'j' }), 'J');
+  assert.equal(keyName({ key: 'F9' }), 'F9');
+  // minden műveletnek van szabványos billentyűje és Android-kódja, az azonosítók egyediek
+  assert.ok(KEY_ACTIONS.every((a) => a.key && Number.isInteger(a.android)));
+  assert.equal(new Set(KEY_ACTIONS.map((a) => a.id)).size, KEY_ACTIONS.length);
 });

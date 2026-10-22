@@ -18,6 +18,7 @@ let indexFor = null; // melyik csatornalistához készült a háttérszálnak el
 let indexRadio = ''; // … és melyik rádióadó-körhöz (radioSigNow)
 // a műsorújság rádióként párosítható csatornáinak névkulcsai (a háttérszál adja); amíg nem ismert: null
 let radioKeys = null;
+let radioKeysBySource = new Map(); // forrás címe → az ott talált névkulcsok (a radioKeys ezek uniója)
 let indexEntries = []; // a legutóbb elküldött index rádióadói
 /**
  * A párosítandó rádióadók köre – csak azok, amelyeknek a neve a műsorújságban egyáltalán előfordul. Egy keresés vagy
@@ -334,8 +335,16 @@ export const epg = {
     bySource = nextBySource;
     // a rádióként párosítható nevek (forrásonként; a most sikertelen forrásé a korábbiból marad), és az index
     // rádiós lenyomata ezekkel – a következő összevetés már ugyanígy számol
-    const keys = new Set(parsed.every(Boolean) ? [] : radioKeys || []);
-    for (const p of parsed) for (const k of p?.radioKeys || []) keys.add(k);
+    // (X01) forrásonként tárolva: a sikertelen forrás korábbi kulcsai maradnak, a kikapcsolt / törölt forrásé eltűnik,
+    // a sikeresé az új (a ténylegesen megszűnt nevek is kiesnek). (A ritka tömb üres helyét az every() átugorta.)
+    const nextKeys = new Map();
+    sources.forEach((src, n) => {
+      const ks = parsed[n] ? parsed[n].radioKeys : radioKeysBySource.get(src.url);
+      if (ks) nextKeys.set(src.url, ks);
+    });
+    radioKeysBySource = nextKeys;
+    const keys = new Set();
+    for (const ks of nextKeys.values()) for (const k of ks || []) keys.add(k);
     radioKeys = keys;
     indexRadio = radioSig(indexEntries);
     this.lastAttempt = Date.now();

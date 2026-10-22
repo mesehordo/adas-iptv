@@ -41,6 +41,8 @@ A stílusok:
 | Shōwa | A 70-es évek: narancs, barna és mustár, lekerekített „tévéképernyő” kártyák, csíkos díszítés. |
 | Mu *(világos)* | (üresség) Szinte üres felület: csak a tartalom, sok tér, keretek, árnyékok és díszek nélkül. |
 | Holo | Sci-fi irányítópult: sötét kékes rácsos alap, cián hologramfény, vékony keretek, levágott sarkú gombok. |
+| Yume *(világos)* | (álom) Pasztell kawaii: rózsaszín, levendula és menta, pöttyös háttér, kerek buborékkártyák, szívecskék és csillámok. |
+| Yami | Keserédes gótikus lolita: fekete–levendula alap, élénk rózsaszín, krémszín csipkefodrok, masnik, kameés keretek, fekete-fehér sakktábla, masnis kis koponyák és denevérek, kézírásos címek. |
 | Csillagidő | Egy csillaghajó parancsnoki hídjának kezelőfelülete: fekete alap, lekerekített végű narancs, levendula és barack sávok, keskeny nagybetűk. |
 
 Ugyanitt profilonként **sorrendbe állíthatók és elrejthetők a főoldal sorai** (húzással vagy a nyilakkal,
@@ -50,6 +52,14 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
+**Reklámok kivágása, saját gombkiosztás, két kawaii stílus, új színváltozatok, Linux-javítás (1.30.0)**
+- **Két kawaii stílus**: *Yume* (világos, pasztell rózsaszín–levendula–menta, pöttyös háttér, buborékkártyák, szívecskék és csillámok) és *Yami* (keserédes gótikus lolita: fekete–levendula alap, élénk rózsaszín, csipkefodrok, masnik, sakktábla, masnis kis koponyák és denevérek, kézírásos címek) – mindkettő három színváltozattal (Barack, Szóda, Dinnye; Bordó csipke, Levendula, Menta macaron).
+- **Reklámok kivágása**: a felvétel vágójában akárhány reklám megjelölhető (eleje–vége, `[` / `]` billentyűvel is); mentéskor mind kimarad, a többi egybefűzve, újrakódolás nélkül. Az előnézet átugorja a kijelölt reklámokat; a megjelölések újravágáskor is megmaradnak.
+- **Reklámhatárok keresése**: a reklámok közti rövid csendet és fekete képet keresi (a hangot végig, a képet csak a csendek körül elemezve – gyors), a sűrű határokból reklámblokkot javasol. Csak javaslat, a felhasználó dönti el.
+- **Gombkiosztás**: a távirányító (vagy billentyűzet) bármely gombja betanítható egy művelethez (nyilak, OK, vissza, lejátszás, tekerés, CH+ / CH−, színes gombok, hang és felirat) – főleg olcsó Android TV dobozokhoz. Már a profil létrehozásakor elérhető (első indítás, profilszerkesztő), és a Beállítások → Távirányító és billentyűk alatt. Androidon a keret a nyers gombkóddal fordít (a WebView számára ismeretlen gomb is betanítható); a kiosztás eszközönként él.
+- **Színváltozatok, újragondolva**: minden stílus három, a hangulatához válogatott palettát kap saját névvel (pl. Neon City: Szintihullám, Savas zöld, Vörös neon; Phosphor: Borostyán, Cián, Plazma; Deco: Rózsaarany, Smaragd, Ezüst) – a több színű stílusoknál minden szín külön célszínt kap. (Az 1.29.1-ben választott változat helyett az eredeti színek jelennek meg – egy kattintással újra választható.)
+- **Linux: felvétel, vágás, lejátszási híd**: a Linux-csomag FFmpeg-je minden MPEG-TS olvasásakor összeomlott (felvétel, vágás, AC3 / DTS hangú adások) – helyette egy működő, ellenőrzött build kerül a csomagba.
+- **Javítások** (külső hibajegyzék alapján): rádiónevek a műsorújságban részleges hibánál; Android-mappák egyes szolgáltatóknál; régi kódolású és behúzott feliratok ékezetei; rossz filmre kerülő behúzott felirat; Androidon a rendszer által megállított rádió; nem magyar első beállításnál bekapcsolva maradó magyar műsorújság; a telefonos távirányító gyerekprofilban tiltott csatornákat mutathatott; bezárt lejátszó késői újraindulása; csomagfrissítés a régi mentési pontokban; megszakíthatatlan teljes ellenőrzés; csak csomagokból álló csatornalista kikapcsolása; sportnaptár-ismétlődések (RDATE, régi sorozat, hétkezdés); egy hibás NAS-forrás a többit is megakasztotta; pontosabb nézési statisztika; DASH kézi minőség kijelzése; 12 jegyű átadási kód a leírásokban; azonos szerver két adásának fejlécei; a weboldal iPad-ajánlása és adatvédelmi szövege.
 **Színváltozatok, gyorsabb működés, Android háttérlejátszás (1.29.1)**
 - **Színváltozatok**: a legtöbb felületstílusnak az eredeti mellett három színváltozata is van (pl. Kék, Zöld, Lila) – a Beállítások → Megjelenés alatt, a minták alatti *Színváltozat* sorban; a stílus és a változat már a profil létrehozásakor is választható (első indítás, Profilok kezelése).
 - **Gyorsabb**: a csatornalista gyorsítótárból jóval gyorsabban töltődik be; a Sport oldal kb. háromszor gyorsabban nyílik; rádiós keresés és böngészés után a műsorújság nem dolgozódik fel fölöslegesen újra; a TV oldal görgetése kevesebb munkával jár; a gyorsítótár magától takarít (eddig korlátlanul nőtt).
