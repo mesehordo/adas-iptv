@@ -206,7 +206,7 @@ test('vágás: megtartandó szakaszok a kivágások nélkül (rendezve, összevo
   assert.deepEqual(keepRanges(0, 100, [{ start: 'x' }, null]).keep, [[0, 100]]);
 });
 
-test('reklámkivágás: határok keresése (csend + fekete kép) és több rész kivágása újrakódolás nélkül', { skip: !media.available() || !ffmpeg ? 'nincs FFmpeg' : false, timeout: 90000 }, async () => {
+test('reklámkivágás: határok keresése (csend + fekete kép) és több rész kivágása újrakódolás nélkül', { skip: !media.available() || !ffmpeg ? 'nincs FFmpeg' : false, timeout: 90000 }, async (t) => {
   const dir = tmp('adcut');
   const file = path.join(dir, 'Műsor.ts');
   // 12 mp: 4–4,5 és 7–7,5 mp között fekete kép és csend (a „reklám” 4 és 7,5 között)
@@ -214,6 +214,9 @@ test('reklámkivágás: határok keresése (csend + fekete kép) és több rész
   const g = spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc=duration=12:size=160x120:rate=10', '-f', 'lavfi', '-i', 'sine=duration=12',
     '-vf', `drawbox=c=black:t=fill:enable='${win}'`, '-af', `volume=enable='${win}':volume=0`, '-c:v', 'mpeg2video', '-g', '10', '-c:a', 'mp2', '-f', 'mpegts', file]);
   assert.equal(g.status, 0, String(g.stderr));
+  // (egyes CI-gépeken az ffmpeg-static már a fájl olvasásakor összeomlik – lásd a felvétel-tesztet; ott nincs mit mérni)
+  const rd = spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-i', file, '-f', 'null', '-']);
+  if (rd.signal) return t.skip(`az FFmpeg ezen a gépen összeomlik a fájl olvasásakor (${rd.signal})`);
   const d = await media.recDetect(file);
   assert.equal(d.video, true);
   assert.equal(d.silences.length, 2, JSON.stringify(d));
