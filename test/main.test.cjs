@@ -232,7 +232,11 @@ test('reklámkivágás: határok keresése (csend + fekete kép) és több rész
   ts olvasás, csak másolás: ${sig(['-i', file, '-map', '0', '-c', 'copy', '-f', 'null', '-'])}
   ts bontás SIMD nélkül (-cpuflags 0): ${sig(['-cpuflags', '0', '-i', file, '-f', 'null', '-'])}
   csak a kép bontása: ${sig(['-i', file, '-an', '-f', 'null', '-'])}
-  csak a hang bontása: ${sig(['-i', file, '-vn', '-f', 'null', '-'])}`);
+  csak a hang bontása: ${sig(['-i', file, '-vn', '-f', 'null', '-'])}
+  ékezet nélküli fájlnév: ${(fs.copyFileSync(file, path.join(dir, 'abc.ts')), sig(['-i', path.join(dir, 'abc.ts'), '-f', 'null', '-']))}
+  szabványos bemenetről: ${spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-f', 'mpegts', '-i', 'pipe:0', '-f', 'null', '-'], { input: fs.readFileSync(file) }).signal || 'ok'}
+  ékezet nélküli mappa (/tmp): ${(() => { const p = path.join(os.tmpdir(), `adas-diag-${process.pid}.ts`); fs.copyFileSync(file, p); const r = sig(['-i', p, '-f', 'null', '-']); fs.rmSync(p, { force: true }); return r; })()}
+  mappa: ${dir}`);
     return t.skip(`az FFmpeg ezen a gépen összeomlik a fájl olvasásakor (${rd.signal})`);
   }
   const d = await media.recDetect(file);
