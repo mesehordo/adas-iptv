@@ -1427,6 +1427,21 @@ ${go('#/stats', 'Statisztika megnyitása')}`,
 ${go('#/settings?section=transfer', 'Szinkronizálás eszközök között')}`,
   },
   {
+    id: 'keymap',
+    cat: 'personal',
+    title: 'Gombkiosztás (távirányító gombjainak betanítása)',
+    keywords: 'gombkiosztás gomb távirányító billentyű betanítás android tv doboz box gombkód nem működik átállítás kiosztás',
+    body: `
+<p>Sok (főleg olcsó) Android TV doboz távirányítója a megszokottól eltérő gombkódokat küld: egy-egy gomb ilyenkor nem csinál semmit, vagy mást csinál. A <b>Gombkiosztás</b> ablakban bármelyik gombot betaníthatod egy művelethez – fel, le, balra, jobbra, OK, vissza, lejátszás / szünet, leállítás, tekerés, csatornaváltás (CH+ / CH−), a négy színes gomb, hang és felirat.</p>
+<ol>
+<li>Nyisd meg: a <b>profil létrehozásakor</b> (első indításkor és a Profilok kezelése alatt a profil szerkesztőjében) a <b>🎮 Gombkiosztás</b> gombbal, vagy a <b>Beállítások → Távirányító és billentyűk → Gombkiosztás</b> alatt.</li>
+<li>A művelet sorában nyomd meg a <b>Betanítás</b> gombot, aztán 10 másodpercen belül a távirányító gombját. A gomb ettől kezdve ezt a műveletet végzi.</li>
+<li>A <b>✕</b> törli a betanított gombot, a <b>Mind törlése</b> az összeset.</li>
+</ol>
+<p>A beépített gombok mellette is működnek (egy művelethez több gomb is tartozhat). Egy gomb egyszerre csak egy művelethez tartozik: ha egy másikhoz tanítod be, onnan átkerül. A kiosztás <b>ehhez az eszközhöz</b> tartozik (minden profilnak ugyanaz) – a másik eszköz távirányítója más lehet.</p>
+<div class="note">Androidon a gomb közvetlenül a rendszertől érkezik, így olyan gomb is betanítható, amelyet a beépített böngészőmotor nem ismer. A rendszer saját gombjai (kezdőképernyő, be-/kikapcsolás, hangerő) nem taníthatók be. Asztalon a billentyűzet bármely gombja betanítható – gépelés közben a betűk és számok ilyenkor is betűk maradnak.</div>`,
+  },
+  {
     id: 'remote',
     cat: 'personal',
     title: 'Távirányító telefonról',

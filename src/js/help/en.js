@@ -1427,6 +1427,21 @@ ${go('#/stats', 'Open statistics')}`,
 ${go('#/settings?section=transfer', 'Sync between devices')}`,
   },
   {
+    id: 'keymap',
+    cat: 'personal',
+    title: 'Button mapping (teaching the remote’s buttons)',
+    keywords: 'button mapping remote key learn teach android tv box keycode not working remap',
+    body: `
+<p>The remotes of many (mostly cheap) Android TV boxes send unusual key codes: a button then does nothing, or something else. In the <b>Button mapping</b> window you can teach any button to an action – up, down, left, right, OK, back, play / pause, stop, rewind / fast forward, channel change (CH+ / CH−), the four coloured buttons, audio and subtitles.</p>
+<ol>
+<li>Open it: when <b>creating a profile</b> (at the first start, and in the profile editor under Manage profiles) with the <b>🎮 Button mapping</b> button, or under <b>Settings → Remote control and keys → Button mapping</b>.</li>
+<li>In the action’s row press <b>Learn</b>, then within 10 seconds the button on the remote. From then on the button does this action.</li>
+<li><b>✕</b> removes a learned button, <b>Clear all</b> removes all of them.</li>
+</ol>
+<p>The built-in buttons keep working alongside (one action can have several buttons). A button belongs to one action at a time: teaching it to another action moves it there. The mapping belongs to <b>this device</b> (the same for every profile) – another device’s remote may be different.</p>
+<div class="note">On Android the button comes straight from the system, so even a button the built-in browser engine doesn’t know can be learned. The system’s own buttons (home, power, volume) can’t be learned. On the desktop any keyboard key can be learned – while typing, letters and digits stay letters and digits.</div>`,
+  },
+  {
     id: 'remote',
     cat: 'personal',
     title: 'Remote control from your phone',

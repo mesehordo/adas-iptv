@@ -34,6 +34,7 @@ import './watchtime.js';
 import { loadCustomThemes } from './customthemes.js'; // saját témák (feltöltött + téma-mappa) // gyerekprofilok napi nézési ideje és korhatár
 import { _t, lang, savedLang, setLanguage, translateDom } from './i18n.js';
 import { needsOnboarding, runOnboarding } from './onboarding.js';
+import { installKeyMap } from './keymap.js'; // saját gombkiosztás (a többi billentyűkezelő előtt fordít)
 
 // a lap nyelve és a statikus (index.html) szövegek fordítása – a felület felépítése előtt
 document.documentElement.lang = lang;
@@ -621,6 +622,7 @@ function pickDirectionIn(cur, list, dir, sameBand) {
 }
 
 const ARROWS = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
+installKeyMap();
 
 // TV-távirányítók gombkódjai (LG webOS; a 10009 a Samsung Tizen Vissza gombja) szabványos
 // billentyűnevekre fordítva, hogy a többi kezelő ugyanúgy működjön.

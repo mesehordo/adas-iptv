@@ -363,3 +363,26 @@ test('reklámkivágás: megmaradó hossz, reklámblokk-javaslat a sűrű csend +
   // a túl rövid csend nem jelölt
   assert.equal(adSuggestions({ silences: [[1, 1.1]] }).cands.length, 0);
 });
+
+import { keyMapEntries, keyName, KEY_ACTIONS } from '../../src/js/keymap.js';
+
+test('gombkiosztás: a kiosztás tisztítása (ismeretlen művelet, hibás elem, kettőzött gomb kimarad), gombnevek', () => {
+  const list = keyMapEntries([
+    { action: 'ok', plat: 'android', android: 100023, name: 'SCAN 23' },
+    { action: 'down', plat: 'android', android: 100023, name: 'ismét ugyanaz a gomb' },
+    { action: 'nincs-ilyen', plat: 'desktop', keyCode: 74 },
+    { action: 'up', plat: 'desktop', keyCode: 74, code: 'KeyJ', key: 'j', name: 'J', extra: 'x' },
+    { action: 'up', plat: 'desktop', key: 'Unidentified' },
+    null,
+    'szöveg',
+  ]);
+  assert.equal(list.length, 2);
+  assert.deepEqual(list[1], { action: 'up', plat: 'desktop', keyCode: 74, code: 'KeyJ', key: 'j', name: 'J' });
+  assert.deepEqual(keyMapEntries('nem lista'), []);
+  assert.equal(keyName({ android: 100023, name: 'SCAN 23' }), 'SCAN 23');
+  assert.equal(keyName({ key: 'j' }), 'J');
+  assert.equal(keyName({ key: 'F9' }), 'F9');
+  // minden műveletnek van szabványos billentyűje és Android-kódja, az azonosítók egyediek
+  assert.ok(KEY_ACTIONS.every((a) => a.key && Number.isInteger(a.android)));
+  assert.equal(new Set(KEY_ACTIONS.map((a) => a.id)).size, KEY_ACTIONS.length);
+});
