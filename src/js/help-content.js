@@ -54,7 +54,7 @@ export const ARTICLES = [
     title: 'Az első indítás',
     keywords: 'indítás betöltés lassú első alkalom profil ország',
     body: `
-<p>Az első indításkor egy rövid varázsló kéri a <b>felület nyelvét</b>, majd létrehozza a <b>profilodat</b> (név és profilkép), és ha szeretnéd, egy <b>gyerekprofilt</b> is (kihagyható). Ezután a program letölti a csatornalistát és a csatornák adatait (országok, nyelvek, logók, kategóriák – összesen kb. 25 MB). Ez a kapcsolat sebességétől függően fél perc is lehet; utána a feldolgozott lista elmentődik, így a következő indítások már néhány másodpercesek.</p>
+<p>Az első indításkor egy rövid varázsló kéri a <b>felület nyelvét</b>, majd létrehozza a <b>profilodat</b> (név és profilkép), kiválaszthatod a <b>kinézetét</b> (stílus és színváltozat), és ha szeretnéd, egy <b>gyerekprofilt</b> is létrehoz (kihagyható). Ezután a program letölti a csatornalistát és a csatornák adatait (országok, nyelvek, logók, kategóriák – összesen kb. 25 MB). Ez a kapcsolat sebességétől függően fél perc is lehet; utána a feldolgozott lista elmentődik, így a következő indítások már néhány másodpercesek.</p>
 <h2>Mi történik a háttérben?</h2>
 <ol>
 <li><b>Csatornalista</b>: letöltés és feldolgozás (6 óránként magától frissül).</li>
@@ -753,6 +753,9 @@ ${go('#/profiles', 'Profilok kezelése')}`,
     body: `
 <p>A felület kinézete profilonként választható: <b>Beállítások → Megjelenés → Felület stílusa</b> (legördülő menü, vagy kattints a mintákra). A váltás azonnal érvényes.</p>
 <p>Az <b>elrendezés minden stílusban ugyanaz</b> (felső menüsáv, azonos kártyaméretek, sorok és kártyák a főoldalon) – a stílus csak a kinézetet adja: színek, betűtípus, keretek, árnyékok, háttérminták, animációk.</p>
+<h2>Színváltozatok</h2>
+<p>A legtöbb stílusnak az eredeti mellett <b>három színváltozata</b> is van (pl. Kék, Zöld, Lila): a minták alatt, a <i>Színváltozat</i> sorban választható. A változat a stílus minden színes elemét – kiemelés, gombok, keretek, díszítések – a választott színcsaládra fordítja; a háttér világossága és a szöveg olvashatósága nem változik, és a fekete, fehér, szürke árnyalatok, valamint az állapotjelzések (működik / hiba, felvétel, ÉLŐ) is maradnak. Fekete-fehér kiemelésű stílusnál (pl. Manga, Mu) a változat színes kiemelőt ad. A változat stílusonként és profilonként megmarad; a Kontraszt stílusnak – akadálymentességi okból – nincs változata.</p>
+<p>A stílus és a színváltozat már a profil létrehozásakor is választható (az első indításkor és a Profilok kezelése alatt), a profil szerkesztésekor is.</p>
 <table class="help-table">
 <tr><th colspan="2">Sötét stílusok</th></tr>
 <tr><td><b>Kurenai</b></td><td>(bíborvörös) Esti mozi: fekete háttér, vörös kiemelés, rámutatásra kinagyuló kártyák.</td></tr>
