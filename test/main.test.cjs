@@ -216,7 +216,25 @@ test('reklámkivágás: határok keresése (csend + fekete kép) és több rész
   assert.equal(g.status, 0, String(g.stderr));
   // (egyes CI-gépeken az ffmpeg-static már a fájl olvasásakor összeomlik – lásd a felvétel-tesztet; ott nincs mit mérni)
   const rd = spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-i', file, '-f', 'null', '-']);
-  if (rd.signal) return t.skip(`az FFmpeg ezen a gépen összeomlik a fájl olvasásakor (${rd.signal})`);
+  if (rd.signal) {
+    // (diagnosztika: melyik lépés omlik össze – processzorfüggő-e, kodek- vagy demuxerfüggő)
+    const sig = (args) => spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', ...args]).signal || 'ok';
+    const cpu = (() => {
+      try {
+        return (fs.readFileSync('/proc/cpuinfo', 'utf8').match(/^model name\s*:\s*(.+)$/m) || [])[1] + ' | avx512: ' + /\bavx512f\b/.test(fs.readFileSync('/proc/cpuinfo', 'utf8'));
+      } catch {
+        return process.arch;
+      }
+    })();
+    console.log(`FFmpeg-diagnosztika (${cpu}):
+  lavfi → null: ${sig(['-f', 'lavfi', '-i', 'testsrc=duration=1:size=160x120:rate=10', '-f', 'null', '-'])}
+  ts olvasás + bontás: ${rd.signal}
+  ts olvasás, csak másolás: ${sig(['-i', file, '-map', '0', '-c', 'copy', '-f', 'null', '-'])}
+  ts bontás SIMD nélkül (-cpuflags 0): ${sig(['-cpuflags', '0', '-i', file, '-f', 'null', '-'])}
+  csak a kép bontása: ${sig(['-i', file, '-an', '-f', 'null', '-'])}
+  csak a hang bontása: ${sig(['-i', file, '-vn', '-f', 'null', '-'])}`);
+    return t.skip(`az FFmpeg ezen a gépen összeomlik a fájl olvasásakor (${rd.signal})`);
+  }
   const d = await media.recDetect(file);
   assert.equal(d.video, true);
   assert.equal(d.silences.length, 2, JSON.stringify(d));
