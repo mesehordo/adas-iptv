@@ -154,7 +154,7 @@ export const THEMES = {
   },
   yami: {
     label: 'Yami',
-    desc: _t('Yami: keserédes (bittersweet) divat – mélylila és borvörös alap, púderrózsaszín és krémszín csipke, rózsák, kameés keretek, kézírásos címek.'),
+    desc: _t('Yami: keserédes gótikus lolita – fekete–levendula alap, élénk rózsaszín, krémszín csipkefodrok, masnik, kameés keretek, fekete-fehér sakktábla, masnis kis koponyák és denevérek, kézírásos címek.'),
   },
   stardate: {
     label: _t('Csillagidő'),

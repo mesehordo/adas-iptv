@@ -256,9 +256,9 @@ export const THEME_VARIANTS = {
   ],
   // Yami (keserédes): a púderrózsaszín / borvörös / levendula hármas más keserédes színekben
   yami: [
-    V('wine', () => _t('Bordó csipke'), [[355, 15], [5, 5], [310, 345]], { chroma: 1.05 }),
-    V('lavender', () => _t('Levendula'), [[355, 305], [5, 330], [310, 270]]),
-    V('mint', () => _t('Menta macaron'), [[355, 170], [5, 350], [310, 330]]),
+    V('wine', () => _t('Bordó csipke'), [[355, 15], [305, 345], [5, 5]], { chroma: 1.05 }),
+    V('lavender', () => _t('Levendula'), [[355, 300], [305, 265], [5, 330]]),
+    V('mint', () => _t('Menta macaron'), [[355, 165], [305, 330], [5, 350]]),
   ],
   // Csillagidő: a parancsnoki híd sávjai riasztási és nyugalmi színekben
   stardate: [
