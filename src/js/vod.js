@@ -895,9 +895,9 @@ function loadLib(lib, { force = false, recheck = false } = {}) {
       // és a kézi frissítésnél sem: ha egy hibás listának nincs meg a régi tartalma (pl. gyorsítótárból indult a
       // könyvtár, vagy a forrásmappa már az első olvasáskor sem volt olvasható), a könyvtár marad, a hiba látszik.
       // Kivétel, ha közben a felhasználó forrást / listát kapcsolt ki vagy törölt: az azonnal érvényesüljön.
-      // (a nem olvasható forrás akkor számít, ha volt megjelenített tartalma, de a listáinak nincs meg a tartaléka)
-      const shown = (src) => Object.entries(lib.counts || {}).some(([id, n]) => id.startsWith(src + '|') && n > 0);
-      const scanGap = [...failedSrc].some((src) => shown(src) && ![...lib.lastEntries.keys()].some((id) => id.startsWith(src + '|')));
+      // (a nem olvasható forrás akkor számít, ha VALAMELYIK megjelenített listájának – a counts szerint – nincs meg a
+      // tartaléka; egy másik listájának megvolt tartaléka ezt nem pótolja)
+      const scanGap = Object.entries(lib.counts || {}).some(([id, n]) => n > 0 && failedSrc.has(id.split('|')[0]) && fileOff[id] !== false && !lib.lastEntries.has(id));
       const conf = libConf(lib);
       if (lib.ready && (missingPrev || scanGap) && conf === lib.conf) {
         lib.errors = { ...warnings, ...errors };
