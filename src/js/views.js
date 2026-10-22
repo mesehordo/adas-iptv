@@ -133,7 +133,7 @@ export function renderTv(view) {
   const catList = (cat) => {
     if (!byCat) {
       byCat = new Map();
-      for (const c of vis) for (const k of c.categories) (byCat.get(k) || byCat.set(k, []).get(k)).push(c);
+      for (const c of vis) for (const k of new Set(c.categories)) (byCat.get(k) || byCat.set(k, []).get(k)).push(c);
     }
     return byCat.get(cat) || [];
   };

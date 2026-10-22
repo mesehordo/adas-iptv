@@ -216,7 +216,8 @@ self.onmessage = (e) => {
         if (!progs || !progs.length) continue;
         const names = channels.get(epgId) || [];
         const chId = resolve(epgId, names, index);
-        if ((!chId || chId.startsWith('r:')) && radioKeys.size < 20000) {
+        // (korlát nélkül: egy kimaradt kulcs miatt egy később betöltött, illő adó műsora hiányozna)
+        if (!chId || chId.startsWith('r:')) {
           radioKeys.add(idKey(epgId).k);
           for (const n of names) radioKeys.add(stripSuffix(key(n)));
         }

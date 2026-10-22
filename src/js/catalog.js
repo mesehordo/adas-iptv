@@ -129,7 +129,9 @@ function detectFlags() {
 }
 
 export function countryFlag(code) {
-  return flagsSupported() ? catalog.countries.get(code)?.flag || '' : '';
+  // (a támogatás vizsgálata csak létező zászlónál – üres értékhez fölösleges a vászonrajzolás)
+  const flag = catalog.countries.get(code)?.flag || '';
+  return flag && flagsSupported() ? flag : '';
 }
 
 export function languageName(code, fallback) {

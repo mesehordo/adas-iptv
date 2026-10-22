@@ -5,7 +5,7 @@
 //  - műsorújság: bármilyen sportág / játék / csapat kulcsszóval – rögtön csatornával;
 //  - naptár (ICS / iCal): bármilyen szervezet nyilvános eseménynaptára.
 // A strukturált eseményekhez a műsorújságból keres csatornát (csapatnév, bajnokság, sportág + időpont).
-import { esc, toast, fmtTime, norm, debounce, html } from './util.js';
+import { esc, toast, fmtTime, norm, debounce, html, bus } from './util.js';
 import { api } from './api.js';
 import { store } from './store.js';
 import { epg } from './epg.js';
@@ -442,6 +442,17 @@ const dataKey = () => {
 };
 let epgIdxMaxLen = 0; // a leghosszabb műsor (ms) – a kezdés szerinti keresés ablakához
 const chFor = new Map(); // channelFor eredményei a mostani indexhez
+// profilváltáskor és a láthatóságot befolyásoló beállításnál azonnal újraépül (nem a 2 mp-es kulcs szerint)
+const invalidateEpgIndex = () => {
+  dataKeyAt = 0;
+  dataKeyVal = '';
+  epgIdx = null;
+  epgIdxKey = '';
+  epgIdxMaxLen = 0;
+  chFor.clear();
+};
+bus.on('profile', invalidateEpgIndex);
+bus.on('settings', (k) => ['hideOffline', 'showAdult', 'homeCountry'].includes(k) && invalidateEpgIndex());
 function epgIndex() {
   // Újraépítés, ha közben betöltődött a műsorújság vagy a csatornalista (induláskor még üresek lehetnek)
   const key = dataKey();
@@ -518,7 +529,7 @@ export function channelFor(ev) {
   const teams = [...tokens(ev.home), ...tokens(ev.away), ...tokens(ev.title)];
   const league = tokens(ev.leagueName || '');
   const idx = epgIndex();
-  const memo = `${ev.id}|${ev.start}|${ev.home || ''}|${ev.away || ''}|${ev.title || ''}`;
+  const memo = `${ev.id}|${ev.start}|${ev.home || ''}|${ev.away || ''}|${ev.title || ''}|${ev.sport || ''}|${ev.leagueName || ''}`;
   if (chFor.has(memo)) return chFor.get(memo);
   const sp = kwRx(norm(sportOf(ev.sport).kw));
   let best = null;
