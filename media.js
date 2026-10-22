@@ -634,7 +634,7 @@ function ffRun(args, { onLine, onSpawn } = {}) {
     proc.on('error', reject);
     proc.on('close', (code, sig) => {
       if (buf && onLine) onLine(buf);
-      if (sig) return reject(new Error(_t('megszakítva')));
+      if (sig) return reject(new Error(`FFmpeg: ${sig}`)); // (leállítva, vagy összeomlott)
       const last = err.trim().split(/\r?\n/).filter((l) => !/^\s*(frame|size)=/.test(l)).pop();
       code ? reject(new Error(last || _t('kilépési kód: {code}', { code }))) : resolve();
     });
@@ -795,8 +795,9 @@ async function recDetect(p, onProgress) {
   try {
     let info = '';
     let probeErr = null;
-    // (kimenet nélkül az FFmpeg hibával lép ki – ez a várt eset; a hibaüzenete csak akkor kell, ha nincs adatfolyam)
-    await ffRun(['-hide_banner', '-nostdin', '-i', file], { onLine: (l) => (info += l + '\n') }).catch((e) => (probeErr = e));
+    // (üres kimenettel: kimenet nélkül egyes – pl. CI-beli Linuxos – FFmpeg-ek összeomlanak; a hibaüzenet csak akkor
+    // kell, ha nincs adatfolyam)
+    await ffRun(['-hide_banner', '-nostdin', '-i', file, '-t', '0', '-f', 'null', '-'], { onSpawn, onLine: (l) => (info += l + '\n') }).catch((e) => (probeErr = e));
     check();
     const pi = parseInfo(info);
     const base = +(/Duration:.*?, start: (-?[\d.]+)/.exec(info) || [])[1] || 0;
