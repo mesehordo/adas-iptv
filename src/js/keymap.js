@@ -73,11 +73,17 @@ function loadMap() {
     return [];
   }
 }
+/** → sikerült-e (letiltott vagy megtelt tárolónál nem: ilyenkor a felhasználó hibaüzenetet kap). */
 function save(list) {
+  let ok = true;
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(keyMapEntries(list)));
-  } catch {}
+  } catch {
+    ok = false;
+    toast(_t('A gombkiosztás nem menthető: a böngésző tárolója nem érhető el vagy megtelt.'), { timeout: 8000 });
+  }
   syncNative();
+  return ok;
 }
 
 /** Androidon a keret kapja meg a kiosztást (nyers kód → a művelet gombkódja). */
@@ -232,8 +238,7 @@ export async function openKeymapDialog() {
     if (k && keyId(k)) {
       // (egy gomb egy művelethez tartozik: ha máshoz volt betanítva, onnan átkerül)
       const entry = { ...k, action: act, plat: KEY_PLATFORM, name: k.name || keyName(k) };
-      save([...keyMapEntries().filter((m) => !(m.plat === KEY_PLATFORM && keyId(m) === keyId(entry))), entry]);
-      toast(_t('{key} → {action}', { key: keyName(entry), action: ACTION[act].label() }));
+      if (save([...keyMapEntries().filter((m) => !(m.plat === KEY_PLATFORM && keyId(m) === keyId(entry))), entry])) toast(_t('{key} → {action}', { key: keyName(entry), action: ACTION[act].label() }));
     } else if (k) toast(_t('Ezt a gombot a rendszer nem adja át az Adásnak – próbálj egy másikat.'));
     draw();
     el.querySelector(`[data-km-learn="${CSS.escape(act)}"]`)?.focus();

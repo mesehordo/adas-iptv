@@ -2376,5 +2376,6 @@ export default {
  "🎮 Gombok betanítása…": "🎮 Learn buttons…",
  "<b>Gombkiosztás</b>": "<b>Button mapping</b>",
  "A távirányító gombjainak betanítása (ehhez az eszközhöz, minden profilnak).": "Teach the remote’s buttons (for this device, for every profile).",
- "🎮 Megnyitás…": "🎮 Open…"
+ "🎮 Megnyitás…": "🎮 Open…",
+ "A gombkiosztás nem menthető: a böngésző tárolója nem érhető el vagy megtelt.": "The button mapping can’t be saved: the browser storage is unavailable or full."
 };

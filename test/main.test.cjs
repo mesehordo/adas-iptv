@@ -214,35 +214,10 @@ test('reklámkivágás: határok keresése (csend + fekete kép) és több rész
   const g = spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc=duration=12:size=160x120:rate=10', '-f', 'lavfi', '-i', 'sine=duration=12',
     '-vf', `drawbox=c=black:t=fill:enable='${win}'`, '-af', `volume=enable='${win}':volume=0`, '-c:v', 'mpeg2video', '-g', '10', '-c:a', 'mp2', '-f', 'mpegts', file]);
   assert.equal(g.status, 0, String(g.stderr));
-  // (egyes CI-gépeken az ffmpeg-static már a fájl olvasásakor összeomlik – lásd a felvétel-tesztet; ott nincs mit mérni)
   const rd = spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-i', file, '-f', 'null', '-']);
-  if (rd.signal) {
-    // (diagnosztika: melyik lépés omlik össze – processzorfüggő-e, kodek- vagy demuxerfüggő)
-    const sig = (args) => spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', ...args]).signal || 'ok';
-    const cpu = (() => {
-      try {
-        return (fs.readFileSync('/proc/cpuinfo', 'utf8').match(/^model name\s*:\s*(.+)$/m) || [])[1] + ' | avx512: ' + /\bavx512f\b/.test(fs.readFileSync('/proc/cpuinfo', 'utf8'));
-      } catch {
-        return process.arch;
-      }
-    })();
-    console.log(`FFmpeg-diagnosztika (${cpu}):
-  lavfi → null: ${sig(['-f', 'lavfi', '-i', 'testsrc=duration=1:size=160x120:rate=10', '-f', 'null', '-'])}
-  ts olvasás + bontás: ${rd.signal}
-  ts olvasás, csak másolás: ${sig(['-i', file, '-map', '0', '-c', 'copy', '-f', 'null', '-'])}
-  ts bontás SIMD nélkül (-cpuflags 0): ${sig(['-cpuflags', '0', '-i', file, '-f', 'null', '-'])}
-  csak a kép bontása: ${sig(['-i', file, '-an', '-f', 'null', '-'])}
-  csak a hang bontása: ${sig(['-i', file, '-vn', '-f', 'null', '-'])}
-  ékezet nélküli fájlnév: ${(fs.copyFileSync(file, path.join(dir, 'abc.ts')), sig(['-i', path.join(dir, 'abc.ts'), '-f', 'null', '-']))}
-  szabványos bemenetről: ${spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-f', 'mpegts', '-i', 'pipe:0', '-f', 'null', '-'], { input: fs.readFileSync(file) }).signal || 'ok'}
-  ékezet nélküli mappa (/tmp): ${(() => { const p = path.join(os.tmpdir(), `adas-diag-${process.pid}.ts`); fs.copyFileSync(file, p); const r = sig(['-i', p, '-f', 'null', '-']); fs.rmSync(p, { force: true }); return r; })()}
-  más formátumok olvasása: ${['mkv', 'mp4', 'mp3', 'ts'].map((ext) => {
-    const p = path.join(dir, 'fmt.' + ext);
-    const w = spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'sine=duration=1', ...(ext === 'mp3' ? [] : ['-f', 'lavfi', '-i', 'testsrc=duration=1:size=160x120:rate=10']), p]);
-    return `${ext}: írás ${w.signal || w.status}, olvasás ${sig(['-i', p, '-f', 'null', '-'])}`;
-  }).join('; ')}`);
-    return t.skip(`az FFmpeg ezen a gépen összeomlik a fájl olvasásakor (${rd.signal})`);
-  }
+  // (a johnvansickle-féle statikus Linux-build – így az ffmpeg-static is – a CI-gépen minden MPEG-TS olvasásakor
+  // SIGSEGV-vel leáll, H.264 / AAC-nál is; ott nincs mit mérni)
+  if (rd.signal) return t.skip(`az FFmpeg ezen a gépen összeomlik a fájl olvasásakor (${rd.signal})`);
   const d = await media.recDetect(file);
   assert.equal(d.video, true);
   assert.equal(d.silences.length, 2, JSON.stringify(d));
