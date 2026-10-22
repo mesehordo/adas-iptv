@@ -81,6 +81,8 @@ setInterval(checkSeg, 1000);
 for (const ev of ['play', 'pause', 'playing', 'ended', 'emptied']) video.addEventListener(ev, checkSeg);
 for (const ev of ['player-opened', 'player-closed', 'profile']) bus.on(ev, checkSeg);
 addEventListener('pagehide', () => flush());
+/** A futó mérési szakasz könyvelése most (háttérbe kerüléskor, a mentés előtt). */
+export const flushStats = () => flush();
 bus.on('player-closed', () => (lastKey = ''));
 
 // Hetente egyszer szól, ha kedvenc csatornák nem működtek (részletek: Statisztika)

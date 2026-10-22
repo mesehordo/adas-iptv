@@ -28,18 +28,40 @@ const BTBN = {
   },
 };
 
-async function get(url) {
+// Az ffmpeg-static kiadás fájljainak SHA-256 lenyomata (a GitHub-kiadás közzétett „digest” értékei). A csomag új
+// kiadásánál (binary-release-tag) ezeket is frissíteni kell – addig a letöltés hibával leáll, nem ellenőrizetlen.
+const STATIC_TAG = 'b6.1.1';
+const STATIC_SHA = {
+  'ffmpeg-win32-x64.gz': '8883a3dffbd0a16cf4ef95206ea05283f78908dbfb118f73c83f4951dcc06d77',
+  'win32-x64.LICENSE': '8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903',
+  'win32-x64.README': 'a636a7183c58006351acbaf35303c0ed85c6e1320fd4e80de453ba6157de6311',
+  'ffmpeg-darwin-x64.gz': '929b375c1182d956c51f7ac25e0b2b0411fb01f6f407aa15c9758efeb4242106',
+  'darwin-x64.LICENSE': '2e1d16c72fd74e12063776371da757322f8b77589386532f4fd8634bde7de1af',
+  'darwin-x64.README': 'e88a0325f8e5b75210355e37341824f074d3cd82def2125be54c914b62848a36',
+  'ffmpeg-darwin-arm64.gz': '8923876afa8db5585022d7860ec7e589af192f441c56793971276d450ed3bbfa',
+  'darwin-arm64.LICENSE': 'cb48bf09a11f5fb576cddb0431c8f5ed0a60157a9ec942adffc13907cbe083f2',
+  'darwin-arm64.README': '05ba4b92c96605434b1aaae3eedf5a2c280c9607bf78ffca9a5b536d9af2dc6a',
+};
+
+/** Letöltés a várt SHA-256 lenyomat ellenőrzésével (eltérésnél hiba – semmi nem íródik ki). */
+async function get(url, sha256) {
+  if (!/^[0-9a-f]{64}$/.test(sha256 || '')) throw new Error(`${url}: nincs rögzített SHA-256 lenyomat`);
   const res = await fetch(url, { redirect: 'follow' });
   if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
-  return Buffer.from(await res.arrayBuffer());
+  const buf = Buffer.from(await res.arrayBuffer());
+  const got = crypto.createHash('sha256').update(buf).digest('hex');
+  if (got !== sha256) throw new Error(`${url}: hibás SHA-256 (${got}, várt: ${sha256})`);
+  return buf;
 }
+const staticFile = (name) => {
+  if (meta['binary-release-tag'] !== STATIC_TAG) throw new Error(`Az ffmpeg-static kiadása (${meta['binary-release-tag']}) nem ${STATIC_TAG}: frissítsd a STATIC_SHA táblát (tools/fetch-ffmpeg.mjs).`);
+  return get(`${base}/${name}`, STATIC_SHA[name]);
+};
 
 /** BtbN-csomag: letöltés, SHA-256 ellenőrzés, a bin/ffmpeg és a LICENSE kicsomagolása (tar -xJ). */
 async function fetchBtbn(t, dir, exe) {
   const { url, sha256 } = BTBN[t];
-  const buf = await get(url);
-  const got = crypto.createHash('sha256').update(buf).digest('hex');
-  if (got !== sha256) throw new Error(`${url}: hibás SHA-256 (${got}, várt: ${sha256})`);
+  const buf = await get(url, sha256);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'adas-ffmpeg-'));
   try {
     const tarFile = path.join(tmp, 'ffmpeg.tar.xz');
@@ -62,7 +84,12 @@ for (const t of targets) {
   fs.mkdirSync(dir, { recursive: true });
   // (a meglévő bináris csak akkor jó, ha ugyanonnan való – pl. a régi, összeomló Linux-build újra letöltődik)
   const same = () => (fs.existsSync(sourceFile) ? fs.readFileSync(sourceFile, 'utf8').trim() === source : !BTBN[t]);
-  if (fs.existsSync(exe) && fs.statSync(exe).size > 1e6 && same()) {
+  // (egyetlen stat – nem létezés-ellenőrzés, majd külön olvasás)
+  let size = 0;
+  try {
+    size = fs.statSync(exe).size;
+  } catch {}
+  if (size > 1e6 && same()) {
     console.log('Megvan:', path.relative(root, exe));
     continue;
   }
@@ -75,8 +102,8 @@ for (const t of targets) {
     process.stdout.write(`Letöltés: ${t}… `);
     if (BTBN[t]) await fetchBtbn(t, dir, exe);
     else {
-      fs.writeFileSync(exe, zlib.gunzipSync(await get(`${base}/ffmpeg-${t}.gz`)));
-      for (const ext of ['LICENSE', 'README']) fs.writeFileSync(path.join(dir, ext), await get(`${base}/${t}.${ext}`));
+      fs.writeFileSync(exe, zlib.gunzipSync(await staticFile(`ffmpeg-${t}.gz`)));
+      for (const ext of ['LICENSE', 'README']) fs.writeFileSync(path.join(dir, ext), await staticFile(`${t}.${ext}`));
     }
     console.log('kész');
   }

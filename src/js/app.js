@@ -15,7 +15,7 @@ import { syncPackFolder } from './packs.js';
 import './subtitles.js'; // a lejátszó felirat-kezelője
 import { unlockProfile, requireAdult, adultGuardNeeded, markUnlocked, hasPin } from './pin.js';
 import './cast.js'; // kivetítés (Chromecast / DLNA)
-import { renderStats } from './stats.js';
+import { renderStats, flushStats } from './stats.js';
 import { renderSport, sportMenuOn } from './sportpage.js';
 import { renderRadio, radioMenuOn } from './radiopage.js';
 import { radioPlayer } from './radioplayer.js';
@@ -427,6 +427,7 @@ function candidates(scope) {
 const flushNow = () => {
   if (!started) return;
   player.saveVodProgress();
+  flushStats(); // (a nézési statisztika futó mérési szakasza is – Androidon a lap-életciklus esemény elmaradhat)
   store.flush();
 };
 document.addEventListener('visibilitychange', () => document.hidden && flushNow());

@@ -86,7 +86,8 @@ export async function installPack(pk) {
   const k = PACK_KINDS[pk.kind];
   // (X09) frissítéskor a régi (v1) mentési pontok a felülírt közös dokumentumból állítanák vissza a csomagot: előbb
   // a mostani tartalmat kapják meg (tartalom szerinti hivatkozással); ha ez nem sikerül, a csomag sem íródik felül
-  const prev = await api.docGet?.(k.doc + pk.id).catch(() => null);
+  // (szigorú olvasás: olvasási hibánál a csomag sem íródik felül – a hiányzó dokumentum undefined, nem hiba)
+  const prev = await api.docGet?.(k.doc + pk.id, { strict: true });
   if (typeof prev?.text === 'string' && prev.text !== pk.text) await import('./backup.js').then((m) => m.preserveForV1(k.doc + pk.id));
   await api.docSet(k.doc + pk.id, { text: pk.text });
   const s = store.settings;

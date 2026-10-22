@@ -119,6 +119,8 @@ export function installKeyMap() {
       }
       return;
     }
+    // (módosítóbillentyűvel – Ctrl+F, Ctrl+C, Alt+… – az eredeti parancs marad, nem fordítunk)
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
     const t = e.target;
     // (gépelés közben a betűk és számok maradnak, amik)
     if (e.key?.length === 1 && t?.matches?.('input:not([type=checkbox]):not([type=range]), textarea, [contenteditable]')) return;

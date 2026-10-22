@@ -875,11 +875,14 @@ function loadLib(lib, { force = false, recheck = false } = {}) {
           }
         })
       );
-      lib.lastEntries = new Map(lists.filter((pl) => last.has(pl.id)).map((pl) => [pl.id, last.get(pl.id)]));
-      // (V19) az időzített / oldalnyitáskori ellenőrzés hibájánál a meglévő könyvtár nem cserélődik le részleges vagy
-      // üres eredményre: ha egy hibás listának nincs meg a régi tartalma (pl. gyorsítótárból indult a könyvtár), vagy
-      // egy forrásmappa nem olvasható, a könyvtár marad – de a hiba ilyenkor is látszik
-      if (recheck && lib.ready && (missingPrev || (lib === own && Object.keys(own.scanErrors || {}).length))) {
+      // (a megszűnt listáké kiesik – kivéve, ha egy forrásmappa most nem olvasható: annak listái hiányoznak a
+      // felsorolásból, de a tartalmuk addig tartalék marad, amíg a forrást el nem távolítják vagy ki nem kapcsolják)
+      const scanFailed = lib === own && Object.keys(own.scanErrors || {}).length > 0;
+      lib.lastEntries = scanFailed ? last : new Map(lists.filter((pl) => last.has(pl.id)).map((pl) => [pl.id, last.get(pl.id)]));
+      // (V19) olvasási hibánál a meglévő könyvtár nem cserélődik le részleges vagy üres eredményre – az időzített
+      // ellenőrzésnél és a kézi frissítésnél sem: ha egy hibás listának nincs meg a régi tartalma (pl. gyorsítótárból
+      // indult a könyvtár), vagy egy forrásmappa nem olvasható, a könyvtár marad – de a hiba ilyenkor is látszik
+      if (lib.ready && (missingPrev || scanFailed)) {
         lib.errors = { ...warnings, ...errors };
         bus.emit(lib.id === 'vod' ? 'vod' : 'own');
         return;

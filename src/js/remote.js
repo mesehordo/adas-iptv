@@ -231,6 +231,10 @@ async function findRadio(q) {
 const httpLogo = (c) => (/^https?:/.test(c?.logo || '') ? c.logo : '');
 const chItem = (c) => ({ id: c.id, name: c.name, logo: httpLogo(c), sub: epg.now(c.id, Date.now())?.cur?.title || '' });
 
+// (X07) a keresési találatok is minden küldéskor a profil szűrésén át – egy közben tiltott csatorna (pl. a gyerekprofil
+// engedélyeinek változása után) a korábbi találati listából sem jut a telefonra
+const shownResults = () => results && { ...results, items: results.items.filter((x) => { const c = catalog.byId.get(x.id); return c && contentAllowed(c); }) };
+
 /** A telefonra küldött állapot: mi megy (haladással, következő műsorral), hangerő, kedvencek, előzmények, találatok. */
 function stateJson() {
   const ch = player.active ? player.channel : null;
@@ -266,7 +270,7 @@ function stateJson() {
   const ch0 = player.active ? player.channel : null;
   const recent = getChannels(store.profile?.recent || []).filter((c) => contentAllowed(c)).slice(0, 12).map(chItem);
   return JSON.stringify({
-    now, favs, recent, results, volume: player.shownVolume(), muted: player.shownVolume() === 0, paused: video.paused, profile: store.profile?.name || '',
+    now, favs, recent, results: shownResults(), volume: player.shownVolume(), muted: player.shownVolume() === 0, paused: video.paused, profile: store.profile?.name || '',
     fav: !!(ch0 && !ch0.vod && store.profile?.favorites?.includes(ch0.id)),
     rec: !!(ch0 && player.recHooks?.isRec?.(ch0.id)),
     canRecord,

@@ -125,6 +125,16 @@ class RadioNative implements Player.Listener {
     else if (player.getPlaybackSuppressionReason() != Player.PLAYBACK_SUPPRESSION_REASON_NONE) send("st", "suppressed");
   }
 
+  /**
+   * A rendszer szüneteltetett (tartós hangfókuszvesztés, kihúzott fejhallgató) – pufferelés közben is, amikor az
+   * isPlaying már előtte hamis volt, így az onIsPlayingChanged nem jelezne. (A felület saját szüneténél a lejátszó
+   * megszűnik – release –, ide nem jut esemény.)
+   */
+  @Override
+  public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {
+    if (!playWhenReady && reason != Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST) send("st", "paused");
+  }
+
   @Override
   public void onPlayerError(PlaybackException e) {
     send("st", "error");

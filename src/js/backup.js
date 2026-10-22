@@ -124,7 +124,8 @@ export function preserveForV1(docKey) {
       for (const it of affected) {
         const docs = {};
         for (const r of referencedDocKeys(it.data.settings)) {
-          if (!cur.has(r.key)) cur.set(r.key, await api.docGet?.(r.key).catch(() => null));
+          // (szigorú olvasás: a hiba nem „hiányzó dokumentum” – a hívó ekkor nem írhat felül)
+          if (!cur.has(r.key)) cur.set(r.key, await api.docGet?.(r.key, { strict: true }));
           const v = cur.get(r.key);
           if (typeof v?.text !== 'string') continue; // (ami most sincs meg, az a v2-es pontban is hiányzóként marad)
           const h = fingerprint(v.text);
