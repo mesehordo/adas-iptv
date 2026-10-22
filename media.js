@@ -794,11 +794,16 @@ async function recDetect(p, onProgress) {
   };
   try {
     let info = '';
-    await ffRun(['-hide_banner', '-nostdin', '-i', file], { onLine: (l) => (info += l + '\n') }).catch(() => {}); // (kimenet nélkül hibával lép ki)
+    let probeErr = null;
+    // (kimenet nélkül az FFmpeg hibával lép ki – ez a várt eset; a hibaüzenete csak akkor kell, ha nincs adatfolyam)
+    await ffRun(['-hide_banner', '-nostdin', '-i', file], { onLine: (l) => (info += l + '\n') }).catch((e) => (probeErr = e));
     check();
     const pi = parseInfo(info);
     const base = +(/Duration:.*?, start: (-?[\d.]+)/.exec(info) || [])[1] || 0;
-    if (!pi.audio.length && !pi.video.length) throw new Error(_t('a fájl nem elemezhető'));
+    if (!pi.audio.length && !pi.video.length) {
+      const why = (/(Invalid data found[^\r\n]*|No such file[^\r\n]*|Permission denied[^\r\n]*)/.exec(info) || [])[1] || probeErr?.message || info.trim().split(/\r?\n/).pop();
+      throw new Error(`${_t('a fájl nem elemezhető')}${why ? ` (${why})` : ''}`);
+    }
     const silences = [];
     const blacks = [];
     let lastPct = -1;

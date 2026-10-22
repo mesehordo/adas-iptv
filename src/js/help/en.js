@@ -1438,7 +1438,7 @@ ${go('#/settings?section=transfer', 'Sync between devices')}`,
 <li>In the action’s row press <b>Learn</b>, then within 10 seconds the button on the remote. From then on the button does this action.</li>
 <li><b>✕</b> removes a learned button, <b>Clear all</b> removes all of them.</li>
 </ol>
-<p>The built-in buttons keep working alongside (one action can have several buttons). A button belongs to one action at a time: teaching it to another action moves it there. The mapping belongs to <b>this device</b> (the same for every profile) – another device’s remote may be different.</p>
+<p>The built-in buttons keep working alongside (one action can have several buttons). A button belongs to one action at a time: teaching it to another action moves it there. The mapping belongs to <b>this device</b> (the same for every profile) – another device’s remote may be different, so it isn’t included in backups or in syncing between devices.</p>
 <div class="note">On Android the button comes straight from the system, so even a button the built-in browser engine doesn’t know can be learned. The system’s own buttons (home, power, volume) can’t be learned. On the desktop any keyboard key can be learned – while typing, letters and digits stay letters and digits.</div>`,
   },
   {

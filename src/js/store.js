@@ -146,7 +146,6 @@ const DEFAULT_SETTINGS = {
   ownNewOn: true, // az újonnan megjelenő lejátszólisták alapból bekapcsolva
   settingsView: 'tabs', // a Beállítások elrendezése: 'tabs' (fülek) vagy 'tiles' (csempés kezdőlap)
   recMeta: {}, // felvételek: fájl → { chId, title, at }
-  keyMap: [], // saját gombkiosztás (keymap.js): { action, plat, android? | keyCode?, code?, key?, name } – eszközönként
   huInfo: true, // magyar információk (Wikidata / Wikipédia / TMDB)
   tmdbKey: '', // opcionális TMDB API-kulcs vagy olvasási token
   omdbKey: '', // opcionális OMDb API-kulcs (borítókép-kereső)
@@ -200,7 +199,7 @@ const kindOf = (v) => (Array.isArray(v) ? 'array' : v === null ? 'null' : typeof
 // az alapértékek között nem szereplő, de ismert szerkezetű beállítások
 const EXTRA_KINDS = { sportWatch: 'array', customThemes: 'array', rssFeeds: 'array', recSchedule: 'array', kidsMarks: 'object', listRefresh: 'object', tvPacks: 'array', vodPacks: 'array', weatherLoc: 'object', rssDefaultsSeen: 'array', radioPacks: 'array' };
 // objektumelemekből álló tömbök (a nem objektum elem kimarad)
-const OBJECT_LISTS = ['keyMap', 'sportWatch', 'customThemes', 'customPlaylists', 'customChannels', 'vodCustom', 'ownSources', 'epgSources', 'rssFeeds', 'recSchedule', 'tvPacks', 'vodPacks', 'radioLists', 'radioPacks'];
+const OBJECT_LISTS = ['sportWatch', 'customThemes', 'customPlaylists', 'customChannels', 'vodCustom', 'ownSources', 'epgSources', 'rssFeeds', 'recSchedule', 'tvPacks', 'vodPacks', 'radioLists', 'radioPacks'];
 /** → { settings: javított másolat, fixed: [a javított kulcsok] } */
 export function sanitizeSettings(raw) {
   const fixed = [];

@@ -1,10 +1,10 @@
 // Saját gombkiosztás: a távirányító (vagy billentyűzet) bármely gombja betanítható egy művelethez (fel, le, OK,
 // vissza, lejátszás, csatornaváltás, színes gombok…). Főleg olcsó Android TV dobozokhoz, amelyek távirányítója
-// eltérő gombkódokat küld. A kiosztás eszközönként él (a beállításokban), mert a távirányítóhoz tartozik.
+// eltérő gombkódokat küld. A kiosztás az eszközön, helyben él (localStorage – nem kerül a mentésbe és a szinkronba,
+// így másik eszközre sem jut át), mert a távirányítóhoz tartozik.
 //  - Asztalon, böngészőben és LG tévén a felület fordítja át a lenyomást a művelet szabványos billentyűjére.
 //  - Androidon a keret (MainActivity) teszi ugyanezt a nyers gombkóddal, még a WebView előtt – így az olyan
 //    gomb is betanítható, amelyet a WebView nem ismer (a felületen „Unidentified” lenne).
-import { store } from './store.js';
 import { IS_ANDROID, IS_WEBOS } from './api.js';
 import { esc, toast } from './util.js';
 import { _t } from './i18n.js';
@@ -35,7 +35,7 @@ const ACTION = Object.fromEntries(KEY_ACTIONS.map((a) => [a.id, a]));
 export const KEY_PLATFORM = IS_ANDROID ? 'android' : IS_WEBOS ? 'webos' : window.api ? 'desktop' : 'web';
 
 /** A kiosztás tisztítva: [{ action, plat, code?, keyCode?, key?, name }] – csak ismert művelet, gombonként egy. */
-export function keyMapEntries(list = store.settings.keyMap) {
+export function keyMapEntries(list = loadMap()) {
   const out = [];
   const seen = new Set();
   for (const e of Array.isArray(list) ? list : []) {
@@ -65,9 +65,18 @@ function keyId(e) {
 }
 const mine = () => keyMapEntries().filter((e) => e.plat === KEY_PLATFORM);
 
+const LS_KEY = 'adas-keymap';
+function loadMap() {
+  try {
+    return JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
 function save(list) {
-  store.settings.keyMap = keyMapEntries(list);
-  store.save();
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(keyMapEntries(list)));
+  } catch {}
   syncNative();
 }
 
@@ -90,29 +99,32 @@ export function installKeyMap() {
   if (installed) return;
   installed = true;
   syncNative();
-  window.addEventListener(
-    'keydown',
-    (e) => {
-      if (!e.isTrusted) return; // (a saját, átfordított eseményünk)
-      if (learning) {
-        if (IS_ANDROID) return; // (Androidon a keret tanul – a nyers kóddal)
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        if (!e.repeat) learning({ keyCode: e.keyCode || 0, code: e.code || '', key: e.key || '' });
-        return;
-      }
-      if (IS_ANDROID) return;
-      const t = e.target;
-      // (gépelés közben a betűk és számok maradnak, amik)
-      if (e.key?.length === 1 && t?.matches?.('input:not([type=checkbox]):not([type=range]), textarea, [contenteditable]')) return;
-      const hit = mine().find((m) => (m.code ? m.code === e.code && (!m.keyCode || m.keyCode === e.keyCode) : m.keyCode > 0 ? m.keyCode === e.keyCode : m.key === e.key));
-      if (!hit) return;
+  let learnedUp = null; // a betanított gomb felengedése sem megy tovább
+  const handle = (e) => {
+    if (!e.isTrusted || IS_ANDROID) return; // (a saját, átfordított eseményünk; Androidon a keret fordít és tanul)
+    const sig = `${e.keyCode}|${e.code}|${e.key}`;
+    if (learning || (e.type === 'keyup' && learnedUp === sig)) {
       e.preventDefault();
       e.stopImmediatePropagation();
-      fire(ACTION[hit.action], t, e.repeat);
-    },
-    true,
-  );
+      if (e.type === 'keyup') learnedUp = null;
+      else if (!e.repeat) {
+        learnedUp = sig;
+        learning({ keyCode: e.keyCode || 0, code: e.code || '', key: e.key || '' });
+      }
+      return;
+    }
+    const t = e.target;
+    // (gépelés közben a betűk és számok maradnak, amik)
+    if (e.key?.length === 1 && t?.matches?.('input:not([type=checkbox]):not([type=range]), textarea, [contenteditable]')) return;
+    const hit = mine().find((m) => (m.code ? m.code === e.code && (!m.keyCode || m.keyCode === e.keyCode) : m.keyCode > 0 ? m.keyCode === e.keyCode : m.key === e.key));
+    if (!hit) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    fire(ACTION[hit.action], t, e.type, e.repeat);
+  };
+  // (a felengedés is kell: pl. a rádiókártyán az OK felengedése indítja a lejátszást, a hosszú lenyomás mást csinál)
+  window.addEventListener('keydown', handle, true);
+  window.addEventListener('keyup', handle, true);
   // Androidon a keret küldi a betanított gombot
   window.__adasKeyLearned = (code, name) => learning?.({ android: Number(code), name: String(name || '') });
   // a [data-keymap] gombok (első indítás, profilszerkesztő, Beállítások) mind ezt nyitják
@@ -129,12 +141,12 @@ export function keyMapSummary() {
   return n ? esc(_t('{n} betanított gomb ezen az eszközön.', { n })) : esc(_t('Nincs betanított gomb – csak a beépítettek működnek.'));
 }
 
-/** A művelet szabványos billentyűjének elküldése (OK-nál a gomb, link megnyomása is, mint igazi Enternél). */
-function fire(a, target, repeat = false) {
+/** A művelet szabványos billentyűjének elküldése (OK lenyomásakor a gomb, link megnyomása is, mint igazi Enternél). */
+function fire(a, target, type = 'keydown', repeat = false) {
   const t = target || document.activeElement || document.body;
-  const ev = new KeyboardEvent('keydown', { key: a.key, bubbles: true, cancelable: true, repeat });
+  const ev = new KeyboardEvent(type, { key: a.key, bubbles: true, cancelable: true, repeat });
   t.dispatchEvent(ev);
-  if (a.id === 'ok' && !ev.defaultPrevented && t.matches?.('button, a[href], [role=button], summary, input[type=checkbox], input[type=radio], select, [tabindex]:not(input):not(textarea)')) t.click?.();
+  if (type === 'keydown' && a.id === 'ok' && !ev.defaultPrevented && t.matches?.('button, a[href], [role=button], summary, input[type=checkbox], input[type=radio], select, [tabindex]:not(input):not(textarea)')) t.click?.();
 }
 
 /** Egy gomb betanítása: a következő lenyomás (legfeljebb ms ideig). → { keyCode, code, key } / { android, name } / null */

@@ -228,7 +228,8 @@ public class MainActivity extends Activity {
       web.evaluateJavascript("window.__adasKeyLearned&&window.__adasKeyLearned(" + id + "," + JSONObject.quote(name) + ")", null);
       return true;
     }
-    if (id == swallowUp && ev.getAction() != KeyEvent.ACTION_DOWN) {
+    // (nyomva tartva az Android ismételt ACTION_DOWN-okat küld – a felengedésig mind elnyeljük)
+    if (id == swallowUp) {
       if (ev.getAction() == KeyEvent.ACTION_UP) swallowUp = Integer.MIN_VALUE;
       return true;
     }

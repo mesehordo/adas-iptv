@@ -1438,7 +1438,7 @@ ${go('#/settings?section=transfer', 'Szinkronizálás eszközök között')}`,
 <li>A művelet sorában nyomd meg a <b>Betanítás</b> gombot, aztán 10 másodpercen belül a távirányító gombját. A gomb ettől kezdve ezt a műveletet végzi.</li>
 <li>A <b>✕</b> törli a betanított gombot, a <b>Mind törlése</b> az összeset.</li>
 </ol>
-<p>A beépített gombok mellette is működnek (egy művelethez több gomb is tartozhat). Egy gomb egyszerre csak egy művelethez tartozik: ha egy másikhoz tanítod be, onnan átkerül. A kiosztás <b>ehhez az eszközhöz</b> tartozik (minden profilnak ugyanaz) – a másik eszköz távirányítója más lehet.</p>
+<p>A beépített gombok mellette is működnek (egy művelethez több gomb is tartozhat). Egy gomb egyszerre csak egy művelethez tartozik: ha egy másikhoz tanítod be, onnan átkerül. A kiosztás <b>ehhez az eszközhöz</b> tartozik (minden profilnak ugyanaz) – a másik eszköz távirányítója más lehet, ezért a mentésbe és az eszközök közti szinkronba sem kerül bele.</p>
 <div class="note">Androidon a gomb közvetlenül a rendszertől érkezik, így olyan gomb is betanítható, amelyet a beépített böngészőmotor nem ismer. A rendszer saját gombjai (kezdőképernyő, be-/kikapcsolás, hangerő) nem taníthatók be. Asztalon a billentyűzet bármely gombja betanítható – gépelés közben a betűk és számok ilyenkor is betűk maradnak.</div>`,
   },
   {
