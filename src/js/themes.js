@@ -1,6 +1,6 @@
 // Felületstílusok (profilonként választható) és a főoldali sorok sorrendje.
 import { store } from './store.js';
-import { variantsFor, hueOf, applyVariantCss } from './themevariants.js';
+import { variantsFor, hueOf, applyVariantCss, THEME_VARIANTS } from './themevariants.js';
 import { categoryName, countryName } from './catalog.js';
 
 import { _t } from './i18n.js';
@@ -155,10 +155,6 @@ export const THEMES = {
 
 // ---------------------------------------------------------------- színváltozatok (themevariants.js)
 // témánként kézzel választott színcsaládok – ahol az automatikus választás nem szép (a sorrend a választóban)
-const VARIANT_PICKS = {
-  // (akadálymentes téma: a sárga fókuszkeret és a nagy kontraszt a lényege – nincs színváltozata)
-  contrast: [],
-};
 const accentCache = new Map();
 /** A téma kiemelőszíne a stíluslapból (body[data-theme] / az alaptémánál :root --accent). */
 function themeAccent(id) {
@@ -177,10 +173,13 @@ function themeAccent(id) {
   accentCache.set(id, acc);
   return acc;
 }
-/** A téma színváltozatai (az eredeti nélkül): [{ id, family, deg }]; saját témának nincs. */
+/**
+ * A téma színváltozatai (az eredeti nélkül): [{ id, name, map, chroma? } | { id, name, tint }] – a beépített témáké
+ * kézzel válogatott (themevariants.js, THEME_VARIANTS; a Kontrasztnak nincs); saját témának nincs.
+ */
 export function themeVariants(id) {
   if (!THEMES[id] || THEMES[id].custom) return [];
-  return variantsFor(hueOf(themeAccent(id)), VARIANT_PICKS[id]);
+  return THEME_VARIANTS[id] || variantsFor(hueOf(themeAccent(id)));
 }
 /** A profil választott változata az adott témához (vagy null: eredeti). */
 export function currentVariant(id = currentTheme(), p = store.profile) {

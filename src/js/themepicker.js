@@ -18,7 +18,7 @@ export function variantRowHtml(theme, variant = '') {
   if (!vs.length) return '';
   const chip = (vid, label) =>
     `<button type="button" class="theme-swatch tv-chip ${(variant || '') === vid ? 'sel' : ''}" data-variant-pick="${esc(vid)}" data-preview="${esc(theme)}" ${vid ? `data-pvariant="${esc(vid)}"` : ''} aria-pressed="${(variant || '') === vid}"><i></i><i></i><i></i><span>${esc(label)}</span></button>`;
-  return `<div class="tv-variants" role="group" aria-label="${esc(_t('Színváltozat'))}"><span class="tv-label">${esc(_t('Színváltozat'))}</span>${chip('', _t('Eredeti'))}${vs.map((v) => chip(v.id, v.family.name())).join('')}</div>`;
+  return `<div class="tv-variants" role="group" aria-label="${esc(_t('Színváltozat'))}"><span class="tv-label">${esc(_t('Színváltozat'))}</span>${chip('', _t('Eredeti'))}${vs.map((v) => chip(v.id, v.name())).join('')}</div>`;
 }
 
 /**

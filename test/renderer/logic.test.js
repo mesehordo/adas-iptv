@@ -383,3 +383,22 @@ test('mentési pontok (X09): felülírás előtt a régi (v1) pont a mostani tar
     await api.docSet('backups', saved ?? null);
   }
 });
+
+import { THEME_VARIANTS, variantColor } from '../../src/js/themevariants.js';
+
+test('színváltozat: témánként válogatott paletták – 3 változat egyedi azonosítóval és névvel, élénk célszínekkel', async () => {
+  const { THEMES } = await import('../../src/js/themes.js');
+  for (const id of Object.keys(THEMES).filter((k) => !THEMES[k].custom && k !== 'contrast')) {
+    const vs = THEME_VARIANTS[id];
+    assert.ok(vs?.length === 3, `${id}: ${vs?.length}`);
+    assert.equal(new Set(vs.map((v) => v.id)).size, 3, id);
+    assert.ok(vs.every((v) => v.name() && (v.tint != null || v.map?.length)), id);
+  }
+  assert.deepEqual(THEME_VARIANTS.contrast, []);
+  // (Neon City szintihulláma: a neonsárgából élénk rózsaszín lesz, nem fakó pasztell; a szürke marad)
+  const pink = variantColor('#fcee0a', THEME_VARIANTS.cyberpunk[0]);
+  assert.ok(hueOf(pink) > 320 || hueOf(pink) < 10, pink);
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(pink.slice(i, i + 2), 16));
+  assert.ok(Math.max(r, g, b) - Math.min(r, g, b) > 120, `élénk: ${pink}`);
+  assert.equal(variantColor('#777777', THEME_VARIANTS.cyberpunk[0]), '#777777');
+});
