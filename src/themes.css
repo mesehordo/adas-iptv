@@ -1701,7 +1701,7 @@ body[data-theme="stardate"] {
 body[data-theme="yume"] {
   --bg: #fff4fa; --bg-2: #ffffff; --bg-3: #fde6f2; --bg-4: #f8d6ea; --line: #f5cde2;
   --text: #4a3a55; --text-strong: #2e2238; --muted: #8e7c9c;
-  --accent: #e0428f; --accent-2: #ff7fb8; --lilac: #a78bfa; --mint: #5fd0b4; --radius: 20px; --focus: #a78bfa;
+  --accent: #c42f7a; --accent-2: #ff7fb8; --lilac: #a78bfa; --mint: #5fd0b4; --radius: 20px; --focus: #a78bfa;
   --font: 'Adas Fredoka', 'M PLUS Rounded 1c', 'Varela Round', 'Nunito', 'Arial Rounded MT Bold', system-ui, sans-serif;
   background-color: #fff4fa;
   background-image: radial-gradient(circle, rgba(255, 170, 212, 0.55) 1.6px, transparent 2.2px), radial-gradient(circle, rgba(200, 182, 255, 0.55) 1.4px, transparent 2px),
@@ -1718,8 +1718,9 @@ body[data-theme="yume"] {
 [data-theme="yume"] .hero-slide { background: linear-gradient(135deg, #ffd9ec 0%, #e8deff 55%, #d6f5ec 100%); }
 [data-theme="yume"] .hero-shade { background: linear-gradient(90deg, rgba(255, 246, 251, 0.96) 0%, rgba(255, 246, 251, 0.6) 45%, transparent 80%); }
 [data-theme="yume"] .btn { border-radius: 999px; }
-[data-theme="yume"] .btn.white, [data-theme="yume"] .btn.primary { background: var(--accent); color: #fff; box-shadow: 0 4px 0 #b83273; }
-[data-theme="yume"] .btn.primary:hover, [data-theme="yume"] .btn.white:hover { background: #ea559c; }
+/* (a fehér felirat kontrasztja a rózsaszín gombon legalább 4,5:1 – alapban 5,2, rámutatáskor 6,0) */
+[data-theme="yume"] .btn.white, [data-theme="yume"] .btn.primary { background: var(--accent); color: #fff; box-shadow: 0 4px 0 #8a1f55; }
+[data-theme="yume"] .btn.primary:hover, [data-theme="yume"] .btn.white:hover { background: #b52a70; }
 [data-theme="yume"] .thumb { border-radius: 18px; border: 3px solid #fff; background: linear-gradient(160deg, hsl(var(--h) 70% 86%), hsl(calc(var(--h) + 40) 60% 76%)); box-shadow: 0 6px 16px -8px rgba(224, 66, 143, 0.35); }
 [data-theme="yume"] .card:hover, [data-theme="yume"] .card:focus-visible { transform: translateY(-6px) scale(1.03); box-shadow: none; }
 [data-theme="yume"] .card:hover .thumb, [data-theme="yume"] .card:focus-visible .thumb { outline: none; box-shadow: 0 0 0 3px var(--accent-2), 0 14px 26px -10px rgba(167, 139, 250, 0.55); }

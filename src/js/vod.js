@@ -799,6 +799,13 @@ function libLists(lib) {
   return lib === own ? ownLists() : vodLists();
 }
 
+/** A felhasználó listaválasztásának lenyomata (bekapcsolt források, kikapcsolt listák) – nem a mappák tartalmáé. */
+function libConf(lib) {
+  if (lib !== own) return vodLists().map((pl) => pl.id).join(',');
+  const off = store.settings.ownFileState || {};
+  return JSON.stringify([(store.settings.ownSources || []).filter((x) => x.enabled).map((x) => x.id), Object.keys(off).filter((k) => off[k] === false)]);
+}
+
 function cacheKey(lib) {
   return `${lib.id}:${VOD_CACHE_VERSION}:${lang}:` + libLists(lib).map((p) => p.id + (p.url || p.loc || p.asset || (p.entries ? 'e' + p.entries.length : '') || (p.text || '').length) + (p.mtime || '') + (p.at || '')).join(',');
 }
@@ -845,7 +852,7 @@ function loadLib(lib, { force = false, recheck = false } = {}) {
       if (!force && !recheck && api.kvGet) {
         const snap = await api.kvGet(readKey).catch(() => null);
         if (snap && Date.now() - snap.at < libMaxAge(lib) * 3600e3) {
-          Object.assign(lib, { movies: snap.movies, series: snap.series, counts: snap.counts, errors: snap.errors, loadedAt: snap.at });
+          Object.assign(lib, { movies: snap.movies, series: snap.series, counts: snap.counts, errors: snap.errors, loadedAt: snap.at, conf: libConf(lib) });
           index(lib);
           lib.ready = true;
           bus.emit(lib.id === 'vod' ? 'vod' : 'own');
@@ -859,34 +866,41 @@ function loadLib(lib, { force = false, recheck = false } = {}) {
       const warnings = {}; // (tartalékból mutatott lista: nem hiba – a könyvtár ilyenkor is frissül)
       // (W02) listánként az utolsó sikeresen olvasott tartalom: egy most olvashatatlan lista a régi tartalmával marad,
       // a többi lista viszont frissül (eddig egyetlen hiba az egész ellenőrzést csendben eldobta)
-      const last = lib.lastEntries || new Map();
+      const last = lib.lastEntries || new Map(); // lista azonosító → { pl, entries }
       let missingPrev = false;
       const loaded = await Promise.all(
         lists.map(async (pl) => {
           try {
             const entries = await (lib === own ? loadOwnList(pl, force) : loadList(pl, force, warnings));
-            last.set(pl.id, entries);
+            last.set(pl.id, { pl, entries });
             return { pl, entries };
           } catch (err) {
             errors[pl.id] = String(err.message || err);
             const prev = last.get(pl.id);
             if (!prev) missingPrev = true;
-            return { pl, entries: prev || [] };
+            return { pl, entries: prev?.entries || [] };
           }
         })
       );
-      // (a megszűnt listáké kiesik – kivéve, ha egy forrásmappa most nem olvasható: annak listái hiányoznak a
-      // felsorolásból, de a tartalmuk addig tartalék marad, amíg a forrást el nem távolítják vagy ki nem kapcsolják)
-      const scanFailed = lib === own && Object.keys(own.scanErrors || {}).length > 0;
-      lib.lastEntries = scanFailed ? last : new Map(lists.filter((pl) => last.has(pl.id)).map((pl) => [pl.id, last.get(pl.id)]));
-      // (V19) olvasási hibánál a meglévő könyvtár nem cserélődik le részleges vagy üres eredményre – az időzített
-      // ellenőrzésnél és a kézi frissítésnél sem: ha egy hibás listának nincs meg a régi tartalma (pl. gyorsítótárból
-      // indult a könyvtár), vagy egy forrásmappa nem olvasható, a könyvtár marad – de a hiba ilyenkor is látszik
-      if (lib.ready && (missingPrev || scanFailed)) {
+      // Egy most nem olvasható (de bekapcsolt) forrásmappa listái hiányoznak a felsorolásból: a tartalmuk tartalék marad
+      // (a listakulcs „forrás|fájl”). A kikapcsolt / törölt forrásé és a kikapcsolt listáé viszont kiesik.
+      const failedSrc = new Set(lib === own ? Object.keys(own.scanErrors || {}) : []);
+      const fileOff = store.settings.ownFileState || {};
+      const listIds = new Set(lists.map((pl) => pl.id));
+      for (const [id, v] of last) if (!listIds.has(id) && failedSrc.has(id.split('|')[0]) && fileOff[id] !== false) loaded.push(v);
+      lib.lastEntries = new Map([...last].filter(([id]) => listIds.has(id) || (failedSrc.has(id.split('|')[0]) && fileOff[id] !== false)));
+      // (V19) olvasási hibánál a meglévő könyvtár nem cserélődik le részleges eredményre – az időzített ellenőrzésnél
+      // és a kézi frissítésnél sem: ha egy hibás listának nincs meg a régi tartalma (pl. gyorsítótárból indult a
+      // könyvtár, vagy a forrásmappa már az első olvasáskor sem volt olvasható), a könyvtár marad, a hiba látszik.
+      // Kivétel, ha közben a felhasználó forrást / listát kapcsolt ki vagy törölt: az azonnal érvényesüljön.
+      const scanGap = [...failedSrc].some((src) => ![...lib.lastEntries.keys()].some((id) => id.startsWith(src + '|')));
+      const conf = libConf(lib);
+      if (lib.ready && (missingPrev || scanGap) && conf === lib.conf) {
         lib.errors = { ...warnings, ...errors };
         bus.emit(lib.id === 'vod' ? 'vod' : 'own');
         return;
       }
+      lib.conf = conf;
       lib.errors = { ...warnings, ...errors };
       build(lib, loaded);
       lib.loadedAt = Date.now();

@@ -58,6 +58,8 @@ const staticFile = (name) => {
   return get(`${base}/${name}`, STATIC_SHA[name]);
 };
 
+const sha256File = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+
 /** BtbN-csomag: letöltés, SHA-256 ellenőrzés, a bin/ffmpeg és a LICENSE kicsomagolása (tar -xJ). */
 async function fetchBtbn(t, dir, exe) {
   const { url, sha256 } = BTBN[t];
@@ -82,8 +84,19 @@ for (const t of targets) {
   const source = BTBN[t]?.url || `${base}/ffmpeg-${t}.gz`;
   const sourceFile = path.join(dir, 'SOURCE');
   fs.mkdirSync(dir, { recursive: true });
-  // (a meglévő bináris csak akkor jó, ha ugyanonnan való – pl. a régi, összeomló Linux-build újra letöltődik)
-  const same = () => (fs.existsSync(sourceFile) ? fs.readFileSync(sourceFile, 'utf8').trim() === source : !BTBN[t]);
+  // (a meglévő bináris csak akkor jó, ha ugyanonnan való – pl. a régi, összeomló Linux-build újra letöltődik –, és a
+  // tartalma is ép: a SOURCE a letöltéskori, ellenőrzött bináris SHA-256-ját is őrzi; a sérült vagy jelölő nélküli
+  // régi fájl újra letöltődik, nem kerül így a kiadásba)
+  const same = () => {
+    let mark = '';
+    try {
+      mark = fs.readFileSync(sourceFile, 'utf8');
+    } catch {
+      return false;
+    }
+    const [src, sha] = mark.trim().split('\n');
+    return src === source && /^[0-9a-f]{64}$/.test(sha || '') && sha === sha256File(exe);
+  };
   // (egyetlen stat – nem létezés-ellenőrzés, majd külön olvasás)
   let size = 0;
   try {
@@ -107,7 +120,7 @@ for (const t of targets) {
     }
     console.log('kész');
   }
-  fs.writeFileSync(sourceFile, source + '\n');
+  fs.writeFileSync(sourceFile, `${source}\n${sha256File(exe)}\n`);
   if (!t.startsWith('win32')) fs.chmodSync(exe, 0o755);
   console.log(path.relative(root, exe), (fs.statSync(exe).size / 1e6).toFixed(1), 'MB');
 }
