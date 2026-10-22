@@ -14,6 +14,7 @@ import android.os.PowerManager;
 import android.app.KeyguardManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -195,6 +196,49 @@ public class MainActivity extends Activity {
       web.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, !mediaActive);
     } catch (Exception ignored) {
     }
+  }
+
+  // -------------------------------------------------------------------------------------------
+  // Saját gombkiosztás (keymap.js): a betanított nyers gombkód a művelet gombkódjaként megy tovább – még a WebView
+  // előtt, így a WebView számára ismeretlen gomb is használható. A KEYCODE_UNKNOWN (0) gombokat sok olcsó távirányító
+  // küldi, ezeket a hardveres kódjuk (scan code) különbözteti meg: azonosítójuk 100000 + scan code.
+  // -------------------------------------------------------------------------------------------
+  final java.util.concurrent.ConcurrentHashMap<Integer, Integer> keyMap = new java.util.concurrent.ConcurrentHashMap<>();
+  volatile boolean learnKey = false;
+  private int swallowUp = Integer.MIN_VALUE; // a betanított gomb felengedése sem megy tovább
+
+  static int keyIdOf(KeyEvent ev) {
+    int code = ev.getKeyCode();
+    return code == KeyEvent.KEYCODE_UNKNOWN ? 100000 + ev.getScanCode() : code;
+  }
+
+  // (a rendszer gombjai nem taníthatók be: kezdőképernyő, be-/kikapcsolás, hangerő, alkalmazásváltó)
+  static boolean systemKey(int code) {
+    return code == KeyEvent.KEYCODE_HOME || code == KeyEvent.KEYCODE_POWER || code == KeyEvent.KEYCODE_VOLUME_UP || code == KeyEvent.KEYCODE_VOLUME_DOWN
+        || code == KeyEvent.KEYCODE_VOLUME_MUTE || code == KeyEvent.KEYCODE_APP_SWITCH;
+  }
+
+  @Override
+  public boolean dispatchKeyEvent(KeyEvent ev) {
+    int id = keyIdOf(ev);
+    if (learnKey && ev.getAction() == KeyEvent.ACTION_DOWN && ev.getRepeatCount() == 0 && !systemKey(ev.getKeyCode())) {
+      learnKey = false;
+      swallowUp = id;
+      String name = ev.getKeyCode() == KeyEvent.KEYCODE_UNKNOWN ? "SCAN " + ev.getScanCode() : KeyEvent.keyCodeToString(ev.getKeyCode()).replaceFirst("^KEYCODE_", "");
+      web.evaluateJavascript("window.__adasKeyLearned&&window.__adasKeyLearned(" + id + "," + JSONObject.quote(name) + ")", null);
+      return true;
+    }
+    // (nyomva tartva az Android ismételt ACTION_DOWN-okat küld – a felengedésig mind elnyeljük)
+    if (id == swallowUp) {
+      if (ev.getAction() == KeyEvent.ACTION_UP) swallowUp = Integer.MIN_VALUE;
+      return true;
+    }
+    Integer to = keyMap.get(id);
+    if (to != null && to != ev.getKeyCode()) {
+      return super.dispatchKeyEvent(new KeyEvent(ev.getDownTime(), ev.getEventTime(), ev.getAction(), to, ev.getRepeatCount(), ev.getMetaState(),
+          ev.getDeviceId(), ev.getScanCode(), ev.getFlags(), ev.getSource()));
+    }
+    return super.dispatchKeyEvent(ev);
   }
 
   /** Vissza gomb: az oldal kezeli (menük, lejátszó, előző oldal; a főoldalon kilépés). */
@@ -408,6 +452,29 @@ public class MainActivity extends Activity {
   }
 
   class Bridge {
+    /** A saját gombkiosztás: {"nyers azonosító": cél gombkód} (keymap.js). */
+    @JavascriptInterface
+    public void setKeyMap(String json) {
+      try {
+        JSONObject o = new JSONObject(json);
+        java.util.HashMap<Integer, Integer> m = new java.util.HashMap<>();
+        java.util.Iterator<String> it = o.keys();
+        while (it.hasNext()) {
+          String k = it.next();
+          m.put(Integer.parseInt(k), o.getInt(k));
+        }
+        keyMap.clear();
+        keyMap.putAll(m);
+      } catch (Exception ignored) {
+      }
+    }
+
+    /** Betanítás: a következő gomb lenyomása a felülethez megy (window.__adasKeyLearned), nem a szokásos helyére. */
+    @JavascriptInterface
+    public void learnKey(boolean on) {
+      learnKey = on;
+    }
+
     /** A felület nyelve (a keret értesítéseihez és üzeneteihez). */
     @JavascriptInterface
     public void setLang(String l) {

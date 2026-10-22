@@ -1427,6 +1427,21 @@ ${go('#/stats', 'Statisztika megnyitása')}`,
 ${go('#/settings?section=transfer', 'Szinkronizálás eszközök között')}`,
   },
   {
+    id: 'keymap',
+    cat: 'personal',
+    title: 'Gombkiosztás (távirányító gombjainak betanítása)',
+    keywords: 'gombkiosztás gomb távirányító billentyű betanítás android tv doboz box gombkód nem működik átállítás kiosztás',
+    body: `
+<p>Sok (főleg olcsó) Android TV doboz távirányítója a megszokottól eltérő gombkódokat küld: egy-egy gomb ilyenkor nem csinál semmit, vagy mást csinál. A <b>Gombkiosztás</b> ablakban bármelyik gombot betaníthatod egy művelethez – fel, le, balra, jobbra, OK, vissza, lejátszás / szünet, leállítás, tekerés, csatornaváltás (CH+ / CH−), a négy színes gomb, hang és felirat.</p>
+<ol>
+<li>Nyisd meg: a <b>profil létrehozásakor</b> (első indításkor és a Profilok kezelése alatt a profil szerkesztőjében) a <b>🎮 Gombkiosztás</b> gombbal, vagy a <b>Beállítások → Távirányító és billentyűk → Gombkiosztás</b> alatt.</li>
+<li>A művelet sorában nyomd meg a <b>Betanítás</b> gombot, aztán 10 másodpercen belül a távirányító gombját. A gomb ettől kezdve ezt a műveletet végzi.</li>
+<li>A <b>✕</b> törli a betanított gombot, a <b>Mind törlése</b> az összeset.</li>
+</ol>
+<p>A beépített gombok mellette is működnek (egy művelethez több gomb is tartozhat). Egy gomb egyszerre csak egy művelethez tartozik: ha egy másikhoz tanítod be, onnan átkerül. A kiosztás <b>ehhez az eszközhöz</b> tartozik (minden profilnak ugyanaz) – a másik eszköz távirányítója más lehet, ezért a mentésbe és az eszközök közti szinkronba sem kerül bele.</p>
+<div class="note">Androidon a gomb közvetlenül a rendszertől érkezik, így olyan gomb is betanítható, amelyet a beépített böngészőmotor nem ismer. A rendszer saját gombjai (kezdőképernyő, be-/kikapcsolás, hangerő) nem taníthatók be. Asztalon a billentyűzet bármely gombja betanítható – gépelés közben a betűk és számok ilyenkor is betűk maradnak.</div>`,
+  },
+  {
     id: 'remote',
     cat: 'personal',
     title: 'Távirányító telefonról',
@@ -1471,7 +1486,7 @@ ${go('#/settings?section=remote', 'Távirányító telefonról')}`,
     id: 'recording',
     cat: 'watch',
     title: 'Felvétel',
-    keywords: 'felvétel rögzítés felvenni mentés ütemezés videó ts vágás ráhagyás eleje vége',
+    keywords: 'felvétel rögzítés felvenni mentés ütemezés videó ts vágás ráhagyás eleje vége reklám reklámblokk kivágás',
     body: `
 <p>Az asztali változatban (Windows, Mac, Linux) az élő adás felvehető – újrakódolás nélkül, eredeti minőségben, <code>.ts</code> fájlba, a <b>Videók / Adás felvételek</b> mappába.</p>
 <ul>
@@ -1481,7 +1496,11 @@ ${go('#/settings?section=remote', 'Távirányító telefonról')}`,
 </ul>
 <h2>Vágás</h2>
 <p>A felvétel kártyáján a <b>✂</b> gomb nyitja a vágót: előnézet, idővonal (sárga jelek: a műsor kezdete és vége a műsorújság szerint), léptetés (±1 mp / ±10 mp / ±1 perc), <b>⇤ Kezdet ide</b> és <b>Vége ide ⇥</b> (vagy az <kbd>I</kbd> / <kbd>O</kbd> billentyű), az időpontok be is írhatók; a <b>Kijelölés a műsorújság szerint</b> gomb egy lépésben beállítja őket. A <b>✂ Vágás és mentés</b> után a felvétel helyén a vágott változat lesz – ezt játssza le az Adás, és ezt nyitja meg a külső lejátszó is.</p>
-<p>Az <b>eredeti megmarad</b> (nem jelenik meg külön felvételként): újra megnyitva a vágót az eredetiből vághatsz újra (az előző kijelöléssel), vagy az <b>Eredeti visszaállítása</b> gombbal visszahozhatod a teljes felvételt. A vágott felvétel kártyáján a ✂ mellett pipa látszik. Törléskor mindkettő a Lomtárba kerül.</p>
+<h2>Reklámok kivágása</h2>
+<p>A vágóban a <b>Reklámok kivágása</b> résznél akárhány reklámot megjelölhetsz: lépj a reklám elejére, nyomd meg a <b>⟦ Reklám eleje ide</b> gombot (<kbd>[</kbd>), aztán a végén a <b>Reklám vége ide ⟧</b> gombot (<kbd>]</kbd>). A megjelölt reklámok listában és csíkozva az idővonalon is látszanak; az idejük átírható, a <b>✕</b> visszaveszi. Mentéskor a kezdet és a vég közötti részből <b>minden megjelölt reklám kimarad</b>, a többi egybefűzve marad meg. Az előnézet lejátszás közben átugorja a kijelölt reklámokat (kikapcsolható), így könnyű ellenőrizni a határokat.</p>
+<p>A <b>🔍 Reklámhatárok keresése</b> gomb segít megtalálni őket: a reklámok közé (és a műsor és a reklámblokk közé) a csatornák szinte mindig rövid csendet és fekete képet tesznek – ezeket keresi meg (kék jelek az idővonalon, köztük az <b>◀ Előző / Következő jelölt ▶</b> gombokkal lépkedhetsz). Ahol több ilyen határ sűrűn követi egymást, azt <b>Javasolt reklámblokk</b>ként ajánlja fel; a <b>+ Kivágandó</b> gomb felveszi a reklámok közé. Ez csak javaslat: mentés előtt nézz bele, és igazítsd a határokat – a műsorban is lehet csend, és nem minden csatorna tesz fekete képet a reklámok közé.</p>
+<div class="note">A vágás újrakódolás nélkül történik (gyors, a kép minősége nem romlik). Ezért a kép csak kulcskockánál folytatódhat: a reklám utáni rész az első kulcskockától indul, és az illesztéseknél egy pillanatra (legfeljebb kb. fél másodpercre) fekete kép vagy csend lehet.</div>
+<p>Az <b>eredeti megmarad</b> (nem jelenik meg külön felvételként): újra megnyitva a vágót az eredetiből vághatsz újra (az előző kijelöléssel és a megjelölt reklámokkal), vagy az <b>Eredeti visszaállítása</b> gombbal visszahozhatod a teljes felvételt. A vágott felvétel kártyáján a ✂ mellett pipa látszik. Törléskor mindkettő a Lomtárba kerül.</p>
 <p>A felvételek a <b>TV → Felvételek</b> fülön vannak (csatornalogóval, dátummal, mérettel; az elkezdettek haladásjelzővel). A <b>▶ Lejátszás</b> az Adás saját lejátszójában indítja a felvételt – tekerhetően, a félbehagyott felvétel onnan folytatódik, ahol abbahagytad. A <b>⧉</b> gomb a gép videólejátszójában (pl. VLC) nyitja meg, a <b>✕</b> a Lomtárba teszi. Itt látod a most rögzített és az ütemezett felvételeket is; a legutóbbiak a Beállítások → Felvételek alatt is ott vannak.</p>
 <div class="note">Csak a saját, otthoni nézésre: a felvett műsorok jogai a csatornáké. Néhány (titkosított vagy DRM-mel védett) adás nem rögzíthető.</div>
 ${go('#/recordings', 'Felvételek')}`,

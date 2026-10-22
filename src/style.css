@@ -1602,7 +1602,40 @@ body.rc-nav .tile:focus, body.rc-nav .see-all:focus { transform: scale(1.06); z-
 .trim-ed .tr-pt .input { width: 6.5em; font-variant-numeric: tabular-nums; text-align: center; }
 .trim-ed .tr-epg p { margin: 0; }
 .trim-ed .tr-foot .grow { flex: 1; }
+.trim-ed .tr-cutmarks { position: absolute; inset: 0; }
+/* kivágott rész: sötét, csíkos (bármely téma kiemelőszínén látszik) */
+.trim-ed .tr-cut { position: absolute; top: -3px; bottom: -3px; border-radius: 3px; background: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0 4px, rgba(255, 255, 255, 0.35) 4px 7px); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6); }
+.trim-ed .tr-cut.open { width: 4px; margin-left: -2px; background: #fff; box-shadow: 0 0 0 2px #000; }
+.trim-ed .tr-cand { position: absolute; top: 12px; height: 10px; width: 2px; margin-left: -1px; background: #4aa3ff; opacity: 0.55; }
+.trim-ed .tr-cand.strong { opacity: 1; }
+.trim-ed .tr-ads { display: grid; gap: 8px; padding: 10px 12px; border-radius: 8px; background: var(--bg-3); }
+.trim-ed .tr-ads p { margin: 0; }
+.trim-ed .tr-ads p:empty { display: none; }
+.trim-ed .tr-ad-btns { justify-content: flex-start; }
+.trim-ed .tr-ad-btns .grow { flex: 1; }
+.trim-ed .tr-cuts { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.trim-ed .tr-cuts:empty { display: none; }
+.trim-ed .tr-cuts li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.trim-ed .tr-cuts li > span:first-child { min-width: 6em; font-weight: 600; }
+.trim-ed .tr-cuts .input { width: 6.5em; font-variant-numeric: tabular-nums; text-align: center; }
+.trim-ed .tr-cuts.sugg li > span:first-child { font-weight: 400; }
+.trim-ed .tr-sugg { display: grid; gap: 6px; justify-items: start; }
+.trim-ed .tr-sugg:empty { display: none; }
+.trim-ed .tr-cand-nav { justify-content: flex-start; }
+.trim-ed .tr-skip { padding: 0; }
 @media (max-height: 560px) { .trim-ed .tr-video { max-width: calc(34vh * 16 / 9); } }
+/* Gombkiosztás */
+.keymap .km-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: min(56vh, 520px); overflow: auto; }
+.keymap .km-list li { display: grid; grid-template-columns: minmax(9em, 1fr) 2fr auto; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; background: var(--bg-3); }
+.keymap .km-list li.busy { outline: 2px solid var(--accent); }
+.keymap .km-act { font-weight: 600; }
+.keymap .km-keys { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+.keymap .km-key { display: inline-flex; align-items: center; gap: 2px; padding: 2px 2px 2px 8px; border-radius: 6px; background: var(--bg-2, rgba(255, 255, 255, 0.08)); font-family: ui-monospace, monospace; font-size: 0.85em; }
+.keymap .km-wait { color: var(--accent); animation: km-blink 1s ease-in-out infinite; }
+@keyframes km-blink { 50% { opacity: 0.45; } }
+.keymap .dialog-btns .grow { flex: 1; }
+.ob .ob-km { justify-self: center; margin: 4px auto 0; }
+@media (max-width: 520px) { .keymap .km-list li { grid-template-columns: 1fr auto; } .keymap .km-keys { grid-column: 1 / -1; grid-row: 2; } }
 
 /* Távirányító: QR-kód a beállításokban */
 .rc-box { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }

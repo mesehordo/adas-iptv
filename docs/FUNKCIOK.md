@@ -50,6 +50,10 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
+**Reklámok kivágása, saját gombkiosztás (következő kiadás)**
+- **Reklámok kivágása**: a felvétel vágójában akárhány reklám megjelölhető (eleje–vége, `[` / `]` billentyűvel is); mentéskor mind kimarad, a többi egybefűzve, újrakódolás nélkül. Az előnézet átugorja a kijelölt reklámokat; a megjelölések újravágáskor is megmaradnak.
+- **Reklámhatárok keresése**: a reklámok közti rövid csendet és fekete képet keresi (a hangot végig, a képet csak a csendek körül elemezve – gyors), a sűrű határokból reklámblokkot javasol. Csak javaslat, a felhasználó dönti el.
+- **Gombkiosztás**: a távirányító (vagy billentyűzet) bármely gombja betanítható egy művelethez (nyilak, OK, vissza, lejátszás, tekerés, CH+ / CH−, színes gombok, hang és felirat) – főleg olcsó Android TV dobozokhoz. Már a profil létrehozásakor elérhető (első indítás, profilszerkesztő), és a Beállítások → Távirányító és billentyűk alatt. Androidon a keret a nyers gombkóddal fordít (a WebView számára ismeretlen gomb is betanítható); a kiosztás eszközönként él.
 **Színváltozatok, gyorsabb működés, Android háttérlejátszás (1.29.1)**
 - **Színváltozatok**: a legtöbb felületstílusnak az eredeti mellett három színváltozata is van (pl. Kék, Zöld, Lila) – a Beállítások → Megjelenés alatt, a minták alatti *Színváltozat* sorban; a stílus és a változat már a profil létrehozásakor is választható (első indítás, Profilok kezelése).
 - **Gyorsabb**: a csatornalista gyorsítótárból jóval gyorsabban töltődik be; a Sport oldal kb. háromszor gyorsabban nyílik; rádiós keresés és böngészés után a műsorújság nem dolgozódik fel fölöslegesen újra; a TV oldal görgetése kevesebb munkával jár; a gyorsítótár magától takarít (eddig korlátlanul nőtt).

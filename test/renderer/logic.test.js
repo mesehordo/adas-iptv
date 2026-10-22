@@ -402,3 +402,46 @@ test('színváltozat: témánként válogatott paletták – 3 változat egyedi 
   assert.ok(Math.max(r, g, b) - Math.min(r, g, b) > 120, `élénk: ${pink}`);
   assert.equal(variantColor('#777777', THEME_VARIANTS.cyberpunk[0]), '#777777');
 });
+
+import { adSuggestions, keptLength } from '../../src/js/recorder.js';
+
+test('reklámkivágás: megmaradó hossz, reklámblokk-javaslat a sűrű csend + fekete határokból', () => {
+  assert.equal(keptLength(0, 100, []), 100);
+  assert.equal(keptLength(10, 100, [{ start: 0, end: 20 }, { start: 50, end: 60 }, { start: 95, end: 120 }]), 65);
+  // négy határ 15 mp-enként (három reklám) + egy magányos csend a műsorban → egy blokk, a csendek széléig
+  const sil = [[600, 600.6], [615, 615.6], [630, 630.6], [645.2, 645.8], [1200, 1200.5]];
+  const blk = sil.slice(0, 4).map(([s, e]) => [s, e]);
+  const r = adSuggestions({ silences: sil, blacks: blk, video: true });
+  // (jelölt minden csend; a blokkhoz képes felvételnél csak a fekete képpel együtt járó számít)
+  assert.equal(r.cands.length, 5);
+  assert.equal(r.cands.filter((c) => c.strong).length, 4);
+  assert.deepEqual(r.blocks, [{ start: 600, end: 645.8 }]);
+  // fekete kép nélkül (pl. rádió) a csendek számítanak; két határ még nem blokk
+  assert.equal(adSuggestions({ silences: [[10, 10.5], [40, 40.5]] }).blocks.length, 0);
+  assert.equal(adSuggestions({ silences: [[10, 10.5], [40, 40.5], [70, 70.5]] }).blocks.length, 1);
+  // a túl rövid csend nem jelölt
+  assert.equal(adSuggestions({ silences: [[1, 1.1]] }).cands.length, 0);
+});
+
+import { keyMapEntries, keyName, KEY_ACTIONS } from '../../src/js/keymap.js';
+
+test('gombkiosztás: a kiosztás tisztítása (ismeretlen művelet, hibás elem, kettőzött gomb kimarad), gombnevek', () => {
+  const list = keyMapEntries([
+    { action: 'ok', plat: 'android', android: 100023, name: 'SCAN 23' },
+    { action: 'down', plat: 'android', android: 100023, name: 'ismét ugyanaz a gomb' },
+    { action: 'nincs-ilyen', plat: 'desktop', keyCode: 74 },
+    { action: 'up', plat: 'desktop', keyCode: 74, code: 'KeyJ', key: 'j', name: 'J', extra: 'x' },
+    { action: 'up', plat: 'desktop', key: 'Unidentified' },
+    null,
+    'szöveg',
+  ]);
+  assert.equal(list.length, 2);
+  assert.deepEqual(list[1], { action: 'up', plat: 'desktop', keyCode: 74, code: 'KeyJ', key: 'j', name: 'J' });
+  assert.deepEqual(keyMapEntries('nem lista'), []);
+  assert.equal(keyName({ android: 100023, name: 'SCAN 23' }), 'SCAN 23');
+  assert.equal(keyName({ key: 'j' }), 'J');
+  assert.equal(keyName({ key: 'F9' }), 'F9');
+  // minden műveletnek van szabványos billentyűje és Android-kódja, az azonosítók egyediek
+  assert.ok(KEY_ACTIONS.every((a) => a.key && Number.isInteger(a.android)));
+  assert.equal(new Set(KEY_ACTIONS.map((a) => a.id)).size, KEY_ACTIONS.length);
+});

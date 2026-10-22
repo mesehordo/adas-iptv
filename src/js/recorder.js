@@ -314,6 +314,39 @@ const clock = (s) => {
   const m = Math.floor((s % 3600) / 60);
   return (h ? `${h}:${String(m).padStart(2, '0')}` : m) + ':' + String(s % 60).padStart(2, '0');
 };
+/** A megmaradó hossz: [tin, tout] a kivágott részek nélkül (a kivágások rendezettek, nem fednek át). */
+export function keptLength(tin, tout, cuts = []) {
+  let len = Math.max(0, tout - tin);
+  for (const c of cuts) len -= Math.max(0, Math.min(tout, c.end) - Math.max(tin, c.start));
+  return Math.max(0, len);
+}
+/**
+ * Reklámblokk-javaslatok a reklámhatár-keresés eredményéből. A reklámok közé (és a műsor és a blokk közé) rövid
+ * csend – tévén többnyire fekete képpel – kerül: ahol ilyen határok sűrűn, legfeljebb 75 mp-enként követik egymást,
+ * és legalább három van belőlük (két reklám), az valószínűleg reklámblokk.
+ * → { cands: [{ t, strong }], blocks: [{ start, end }] }
+ */
+export function adSuggestions({ silences = [], blacks = [], video = false } = {}) {
+  const cands = silences
+    .filter(([s, e]) => e - s >= 0.25)
+    .map(([s, e]) => ({ t: (s + e) / 2, s, e, strong: blacks.some(([bs, be]) => bs <= e + 0.5 && be >= s - 0.5) }));
+  // (képes felvételnél, ha van fekete kép, csak a csend + fekete számít: a műsor szünetei így kiesnek)
+  const pts = video && cands.some((c) => c.strong) ? cands.filter((c) => c.strong) : cands;
+  const blocks = [];
+  let g = [];
+  const flush = () => {
+    const span = g.length ? g[g.length - 1].t - g[0].t : 0;
+    // (a blokk az első határ csendjének elejétől az utolsóénak a végéig)
+    if (g.length >= 3 && span >= 20 && span <= 15 * 60) blocks.push({ start: g[0].s, end: g[g.length - 1].e });
+    g = [];
+  };
+  for (const c of pts) {
+    if (g.length && c.t - g[g.length - 1].t > 75) flush();
+    g.push(c);
+  }
+  flush();
+  return { cands, blocks };
+}
 const parseClock = (txt) => {
   const p = String(txt).trim().split(':').map(Number);
   if (!p.length || p.some((x) => !Number.isFinite(x) || x < 0)) return NaN;
@@ -334,7 +367,7 @@ export async function openTrimEditor(f, onDone) {
     <p class="muted small">${esc(info.title)}${info.chName ? ' · ' + esc(info.chName) : ''}${src.trimmed ? ` ${_t('· már vágva – az eredetiből vágsz újra')}` : ''}</p>
     <div class="tr-video"><video playsinline></video><div class="tr-wait"><div class="spinner"></div><p class="muted small">${_t('A felvétel betöltése…')}</p></div></div>
     <div class="tr-line">
-      <div class="tr-bar"><div class="tr-sel"></div><div class="tr-marks"></div></div>
+      <div class="tr-bar"><div class="tr-sel"></div><div class="tr-cutmarks"></div><div class="tr-marks"></div></div>
       <input type="range" class="tr-pos" min="0" max="1" step="0.1" value="0" aria-label="${_t('Lejátszási pozíció')}" />
     </div>
     <div class="tr-row tr-play">
@@ -354,6 +387,20 @@ export async function openTrimEditor(f, onDone) {
     </div>
     <p class="muted small tr-len"></p>
     <div class="tr-epg"></div>
+    <div class="tr-ads">
+      <div><b>${_t('Reklámok kivágása')}</b> <small class="muted">${_t('Jelöld meg a reklámok elejét és végét – akár többet is; mentéskor mind kimarad.')}</small></div>
+      <div class="tr-row tr-ad-btns">
+        <button class="btn small" data-tr="ad-in" title="${_t('Billentyű: [')}">${_t('⟦ Reklám eleje ide')}</button>
+        <button class="btn small" data-tr="ad-out" title="${_t('Billentyű: ]')}">${_t('Reklám vége ide ⟧')}</button>
+        <span class="grow"></span>
+        <button class="btn small" data-tr="detect" title="${_t('A reklámok közti rövid csendet és fekete képet keresi – csak javaslat')}">${_t('🔍 Reklámhatárok keresése')}</button>
+      </div>
+      <p class="muted small tr-ad-hint" aria-live="polite"></p>
+      <p class="muted small tr-ad-status" aria-live="polite"></p>
+      <ul class="tr-cuts"></ul>
+      <div class="tr-sugg"></div>
+      <label class="setting tr-skip"><span>${_t('Az előnézetben a kijelölt reklámok átugrása')}</span><input type="checkbox" class="switch" checked /></label>
+    </div>
     <div class="dialog-btns tr-foot">
       ${src.trimmed ? `<button class="btn" data-tr="restore" title="${_t('A vágás elvetése: az eredeti teljes felvétel lesz újra a helyén')}">${_t('Eredeti visszaállítása')}</button>` : ''}
       <span class="grow"></span>
@@ -366,10 +413,17 @@ export async function openTrimEditor(f, onDone) {
   let dur = 0;
   let tin = 0;
   let tout = 0;
+  let cuts = []; // kivágandó részek (reklámok): [{ start, end }], rendezve
+  let adIn = null; // a megjelölt reklámkezdet (még nincs vége)
+  let cands = []; // reklámhatár-jelöltek: [{ t, strong }]
+  let detecting = false;
+  let offProgress = null;
   const close = openModal(el, {
     cls: 'wide',
     onClose: () => {
       clearInterval(timer);
+      offProgress?.();
+      if (detecting) api.recDetectStop?.(f.path);
       try {
         video.pause();
       } catch {}
@@ -390,12 +444,51 @@ export async function openTrimEditor(f, onDone) {
     $('.tr-sel').style.width = (Math.max(0, tout - tin) / dur) * 100 + '%';
     $('.tr-in').value = clock(tin);
     $('.tr-out').value = clock(tout);
-    $('.tr-len').textContent = `${_t('A vágott felvétel hossza: {clock} (az eredeti: {clock2}). A kezdet a legközelebbi előző kulcskockára esik – néhány tized másodperc eltérés lehet.', { clock: clock(tout - tin), clock2: clock(dur) })}`;
+    const keep = keptLength(tin, tout, cuts);
+    $('.tr-len').textContent = `${_t('A vágott felvétel hossza: {clock} (az eredeti: {clock2}). A kezdet a legközelebbi előző kulcskockára esik – néhány tized másodperc eltérés lehet.', { clock: clock(keep), clock2: clock(dur) })}`;
+    $('.tr-cutmarks').innerHTML =
+      cuts.map((c) => `<i class="tr-cut" style="left:${(c.start / dur) * 100}%;width:${((c.end - c.start) / dur) * 100}%"></i>`).join('') +
+      (adIn != null ? `<i class="tr-cut open" style="left:${(adIn / dur) * 100}%"></i>` : '') +
+      cands.map((c) => `<i class="tr-cand ${c.strong ? 'strong' : ''}" style="left:${(c.t / dur) * 100}%"></i>`).join('');
+    $('.tr-cuts').innerHTML = cuts
+      .map(
+        (c, i) => `<li><span>${_t('{n}. reklám', { n: i + 1 })}</span>
+          <input class="input" data-cut-start="${i}" value="${clock(c.start)}" aria-label="${_t('Reklám eleje (perc:mp)')}" /> –
+          <input class="input" data-cut-end="${i}" value="${clock(c.end)}" aria-label="${_t('Reklám vége (perc:mp)')}" />
+          <small class="muted">(${clock(c.end - c.start)})</small>
+          <button class="btn small" data-tr="cut-go" data-i="${i}" title="${_t('Odaugrás (a reklám előtt 3 mp-cel)')}">▶</button>
+          <button class="btn small" data-tr="cut-del" data-i="${i}" title="${_t('Ez a reklám mégse maradjon ki')}">✕</button></li>`,
+      )
+      .join('');
+    $('.tr-ad-hint').innerHTML = adIn != null ? _t('Reklám eleje: <b>{clock}</b> – lépj a reklám végére, és nyomd meg: <i>Reklám vége ide</i>.', { clock: clock(adIn) }) : '';
   };
+  // a megjelölt reklámok rendezve, összevonva (az átfedők egybe)
+  const setCuts = (list) => {
+    const out = [];
+    for (const c of list.map((x) => ({ start: Math.max(0, Math.min(x.start, x.end)), end: Math.min(dur || Infinity, Math.max(x.start, x.end)) })).filter((x) => x.end - x.start >= 1).sort((a, b) => a.start - b.start)) {
+      const last = out[out.length - 1];
+      if (last && c.start <= last.end + 0.2) last.end = Math.max(last.end, c.end);
+      else out.push(c);
+    }
+    cuts = out;
+    draw();
+  };
+  let lastNow = 0;
   const tick = () => {
     if (!dur) return;
-    if (document.activeElement !== pos) pos.value = now();
-    $('.tr-now').textContent = clock(now());
+    const t = now();
+    // előnézet: lejátszás közben a kijelölt reklám átugorva (tekeréssel bele lehet nézni)
+    if (!video.paused && $('.tr-skip input').checked) {
+      const c = cuts.find((c) => lastNow < c.start && t >= c.start && t - lastNow < 1.5);
+      if (c) {
+        seek(c.end);
+        lastNow = c.end;
+        return;
+      }
+    }
+    lastNow = t;
+    if (document.activeElement !== pos) pos.value = t;
+    $('.tr-now').textContent = clock(t);
   };
   const timer = setInterval(tick, 250);
   // A műsorújság szerinti kezdet és vég (ütemezett felvételnél pontos, azonnalinál a futó műsoré)
@@ -407,6 +500,7 @@ export async function openTrimEditor(f, onDone) {
     const saved = meta.trim && !src.trimmed ? null : meta.trim;
     tin = saved ? saved.start : 0;
     tout = saved ? Math.min(dur, saved.end) : dur;
+    if (Array.isArray(saved?.cuts)) setCuts(saved.cuts.filter((c) => Number.isFinite(c?.start) && Number.isFinite(c?.end)));
     $('.tr-dur').textContent = '/ ' + clock(dur);
     const marks = [];
     if (epgIn > 0 && epgIn < dur) marks.push(`<i class="tr-mark" style="left:${(epgIn / dur) * 100}%" title="${_t('Műsor kezdete a műsorújság szerint')}"></i>`);
@@ -425,6 +519,27 @@ export async function openTrimEditor(f, onDone) {
     if (a === 'play') return video.paused ? video.play().catch(() => {}) : video.pause();
     if (a === 'set-in') (tin = Math.min(now(), tout - 1)), draw();
     else if (a === 'set-out') (tout = Math.max(now(), tin + 1)), draw();
+    else if (a === 'ad-in') (adIn = now()), draw();
+    else if (a === 'ad-out') {
+      if (adIn == null) return toast(_t('Előbb a reklám elejét jelöld meg (Reklám eleje ide).'));
+      if (Math.abs(now() - adIn) < 1) return toast(_t('A reklám legyen legalább 1 másodperc.'));
+      const c = { start: adIn, end: now() };
+      adIn = null;
+      setCuts([...cuts, c]);
+    } else if (a === 'cut-go') seek(cuts[Number(b.dataset.i)].start - 3);
+    else if (a === 'cut-del') cuts.splice(Number(b.dataset.i), 1), draw();
+    else if (a === 'sugg-add' || a === 'sugg-all') {
+      const add = a === 'sugg-all' ? sugg : [sugg[Number(b.dataset.i)]];
+      sugg = sugg.filter((s) => !add.includes(s));
+      setCuts([...cuts, ...add]);
+      drawSugg();
+    } else if (a === 'sugg-go') seek(sugg[Number(b.dataset.i)].start - 3);
+    else if (a === 'cand-prev' || a === 'cand-next') {
+      const t = now();
+      const c = a === 'cand-next' ? cands.find((c) => c.t > t + 1.5) : [...cands].reverse().find((c) => c.t < t - 1.5);
+      if (c) seek(Math.max(0, c.t - 1));
+      else toast(_t('Nincs több jelölt erre.'));
+    } else if (a === 'detect') detect(b);
     else if (a === 'go-in') seek(tin);
     else if (a === 'go-out') seek(tout - 5);
     else if (a === 'epg') {
@@ -462,12 +577,19 @@ export async function openTrimEditor(f, onDone) {
       try {
         bridge?.destroy();
         bridge = null;
-        await api.recTrim({ path: f.path, start: tin, end: tout });
+        const inside = cuts.filter((c) => c.end > tin && c.start < tout);
+        const r = await api.recTrim({ path: f.path, start: tin, end: tout, cuts: inside });
         forgetProbe(pathToUrl(f.path));
-        (store.settings.recMeta ||= {})[f.path] = { ...meta, trim: { start: tin, end: tout } };
+        (store.settings.recMeta ||= {})[f.path] = { ...meta, trim: { start: tin, end: tout, ...(inside.length ? { cuts: inside.map((c) => ({ start: c.start, end: c.end })) } : {}) } };
         if (store.profile.vodProgress) delete store.profile.vodProgress['rec:' + f.path]; // a régi folytatási pont már nem érvényes
         store.save();
-        toast(`${_t('Kész: a vágott felvétel {clock} hosszú. Az eredeti megmaradt – bármikor újravághatod.', { clock: clock(tout - tin) })}`, { timeout: 7000 });
+        const len = r?.length > 0 ? r.length : keptLength(tin, tout, inside);
+        toast(
+          inside.length
+            ? _t('Kész: {n} reklám kivágva, a felvétel {clock} hosszú. Az eredeti megmaradt – bármikor újravághatod.', { n: inside.length, clock: clock(len) })
+            : _t('Kész: a vágott felvétel {clock} hosszú. Az eredeti megmaradt – bármikor újravághatod.', { clock: clock(len) }),
+          { timeout: 7000 },
+        );
         close();
         onDone?.();
       } catch (err) {
@@ -478,6 +600,69 @@ export async function openTrimEditor(f, onDone) {
     }
   });
   pos.addEventListener('input', () => seek(Number(pos.value)));
+  // a reklámok ideje kézzel is átírható
+  el.addEventListener('change', (e) => {
+    const i = e.target.dataset.cutStart ?? e.target.dataset.cutEnd;
+    if (i == null) return;
+    const v = parseClock(e.target.value);
+    const c = cuts[Number(i)];
+    if (c && Number.isFinite(v)) c[e.target.dataset.cutStart != null ? 'start' : 'end'] = Math.min(Math.max(0, v), dur);
+    setCuts(cuts);
+  });
+  // Reklámhatárok keresése (a főfolyamatban, FFmpeg-gel): jelöltek a sávon, a sűrűjükből blokkjavaslat
+  let sugg = [];
+  const drawSugg = () => {
+    const list = sugg
+      .map(
+        (s, i) => `<li><span>${_t('Javasolt reklámblokk')}</span> <b>${clock(s.start)} – ${clock(s.end)}</b> <small class="muted">(${clock(s.end - s.start)})</small>
+          <button class="btn small" data-tr="sugg-go" data-i="${i}" title="${_t('Odaugrás (a blokk előtt 3 mp-cel)')}">▶</button>
+          <button class="btn small" data-tr="sugg-add" data-i="${i}">${_t('+ Kivágandó')}</button></li>`,
+      )
+      .join('');
+    $('.tr-sugg').innerHTML = cands.length
+      ? `<div class="tr-row tr-cand-nav"><span class="small">${_t('{n} reklámhatár-jelölt (kék jelek)', { n: cands.length })}</span>
+          <button class="btn small" data-tr="cand-prev">${_t('◀ Előző jelölt')}</button><button class="btn small" data-tr="cand-next">${_t('Következő jelölt ▶')}</button></div>
+        ${list ? `<ul class="tr-cuts sugg">${list}</ul>` : ''}
+        ${sugg.length > 1 ? `<button class="btn small" data-tr="sugg-all">${_t('Mind kivágandó ({n})', { n: sugg.length })}</button>` : ''}
+        <p class="muted small">${_t('Csak javaslat: a reklámok között szokásos rövid csendet és fekete képet keresi. Mentés előtt nézz bele, és igazítsd a határokat – a műsorban is lehet csend.')}</p>`
+      : '';
+  };
+  const detect = async (b) => {
+    if (detecting) {
+      api.recDetectStop?.(f.path);
+      return;
+    }
+    if (!api.recDetect) return toast(_t('A reklámhatárok keresése ebben a változatban nem érhető el.'));
+    detecting = true;
+    b.textContent = _t('■ Keresés leállítása');
+    const hint = $('.tr-ad-status');
+    hint.textContent = _t('Reklámhatárok keresése…');
+    offProgress = api.onRecDetectProgress?.((x) => x.path === f.path && el.isConnected && (hint.textContent = _t('Reklámhatárok keresése… {pct}%', { pct: x.pct })));
+    try {
+      const res = await api.recDetect(f.path);
+      if (!el.isConnected) return;
+      const s = adSuggestions(res);
+      cands = s.cands;
+      // (a már kijelölttel átfedő javaslat nem kell)
+      sugg = s.blocks.filter((x) => !cuts.some((c) => c.start < x.end && c.end > x.start));
+      hint.textContent = cands.length
+        ? sugg.length
+          ? _t('{n} valószínű reklámblokk.', { n: sugg.length })
+          : _t('Reklámblokkot nem találtam, de a jelöltek között lépkedhetsz.')
+        : _t('Nem találtam reklámhatárt (csendet / fekete képet).');
+    } catch (err) {
+      if (el.isConnected) hint.textContent = _t('A keresés megszakadt: {msg}', { msg: err.message || err });
+    } finally {
+      detecting = false;
+      offProgress?.();
+      offProgress = null;
+      if (el.isConnected) {
+        b.textContent = _t('🔍 Reklámhatárok keresése');
+        drawSugg();
+        draw();
+      }
+    }
+  };
   for (const [sel, set] of [['.tr-in', (v) => (tin = Math.min(v, tout - 1))], ['.tr-out', (v) => (tout = Math.max(v, tin + 1))]]) {
     $(sel).addEventListener('change', (e) => {
       const v = parseClock(e.target.value);
@@ -492,6 +677,8 @@ export async function openTrimEditor(f, onDone) {
     else if (e.key === 'ArrowRight' && e.target === pos) (e.preventDefault(), seek(now() + (e.shiftKey ? 60 : 5)));
     else if (e.key === 'i' || e.key === 'I') (tin = Math.min(now(), tout - 1)), draw();
     else if (e.key === 'o' || e.key === 'O') (tout = Math.max(now(), tin + 1)), draw();
+    else if (e.key === '[') $('[data-tr="ad-in"]').click();
+    else if (e.key === ']') $('[data-tr="ad-out"]').click();
   });
   // Előnézet a lejátszási hídon (a .ts-t a böngésző magától nem játssza)
   try {

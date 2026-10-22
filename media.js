@@ -632,15 +632,88 @@ function assertNotRecording(p) {
   if (isRecording(p)) throw new Error(_t('A felvétel még fut – a vágás a leállítása után lehetséges.'));
 }
 
+/** Egy FFmpeg-futtatás (kimenet nélkül); onLine(sor) a hibakimenet minden sorára. Hibánál az utolsó üzenetsorral. */
+function ffRun(args, { onLine, onSpawn } = {}) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(FF, args, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
+    onSpawn?.(proc);
+    let err = '';
+    let buf = '';
+    proc.stderr.on('data', (b) => {
+      const s = String(b);
+      err = (err + s).slice(-4000); // (a vége kell: ott az oka)
+      if (!onLine) return;
+      buf += s;
+      const lines = buf.split(/\r?\n|\r/);
+      buf = lines.pop();
+      lines.forEach(onLine);
+    });
+    proc.on('error', reject);
+    proc.on('close', (code, sig) => {
+      if (buf && onLine) onLine(buf);
+      if (sig) return reject(new Error(`FFmpeg: ${sig}`)); // (leállítva, vagy összeomlott)
+      const last = err.trim().split(/\r?\n/).filter((l) => !/^\s*(frame|size)=/.test(l)).pop();
+      code ? reject(new Error(last || _t('kilépési kód: {code}', { code }))) : resolve();
+    });
+  });
+}
+
 /**
- * Vágás start és end (mp, a forrás idejében) között, újrakódolás nélkül. → { ok, size }
- * (A kezdet a legközelebbi előző kulcskockára esik – a kép így hibátlan marad.)
+ * A kulcskockák ideje (mp, a fájl kezdetéhez képest) – csak ezeket bontja ki, ezért gyors. Hang nélküli
+ * vagy kép nélküli (rádió) fájlnál üres.
  */
-async function recTrim(p, start, end) {
+async function keyframes(file) {
+  const out = [];
+  let start = NaN;
+  await ffRun(['-hide_banner', '-nostdin', '-nostats', '-copyts', '-skip_frame:v', 'nokey', '-i', file, '-map', '0:v:0?', '-vf', 'showinfo', '-f', 'null', '-'], {
+    onLine: (l) => {
+      if (Number.isNaN(start)) {
+        const m = /Duration:.*?, start: (-?[\d.]+)/.exec(l);
+        if (m) start = +m[1];
+      }
+      const t = /\bpts_time:(-?[\d.]+)/.exec(l);
+      if (t) out.push(+t[1]);
+    },
+  });
+  const s0 = Number.isFinite(start) ? start : 0;
+  return out.map((t) => t - s0).sort((a, b) => a - b);
+}
+
+/** A megtartandó szakaszok: [start, end] a kivágott részek (cuts) nélkül, rendezve, összevonva. */
+function keepRanges(start, end, cuts = []) {
+  const cs = (Array.isArray(cuts) ? cuts : [])
+    .map((c) => [Math.max(start, +c?.start || 0), Math.min(end, +c?.end || 0)])
+    .filter(([a, b]) => b - a > 0.2)
+    .sort((x, y) => x[0] - y[0]);
+  const merged = [];
+  for (const c of cs) {
+    const last = merged[merged.length - 1];
+    if (last && c[0] <= last[1] + 0.2) last[1] = Math.max(last[1], c[1]);
+    else merged.push(c);
+  }
+  const keep = [];
+  let at = start;
+  for (const [a, b] of merged) {
+    if (a - at > 0.5) keep.push([at, a]);
+    at = Math.max(at, b);
+  }
+  if (end - at > 0.5) keep.push([at, end]);
+  return { keep, cuts: merged };
+}
+
+/**
+ * Vágás start és end (mp, a forrás idejében) között, újrakódolás nélkül; a cuts ([{ start, end }], pl. reklámok)
+ * részek kimaradnak. → { ok, size, length }
+ * (A kezdet a legközelebbi előző kulcskockára esik – a kép így hibátlan marad. A kivágott részek után a kép csak
+ * kulcskockától indulhat: ott a folytatás a vége utáni első kulcskockára kerül, így a reklámból nem marad benne.)
+ */
+async function recTrim(p, start, end, cuts = []) {
   if (!FF) throw new Error(_t('Az FFmpeg nem érhető el.'));
   start = Math.max(0, +start || 0);
   end = +end || 0;
   if (!(end > start + 1)) throw new Error(_t('A vége legyen a kezdet után.'));
+  const { keep } = keepRanges(start, end, cuts);
+  if (!keep.length) throw new Error(_t('A kivágások után nem marad semmi a felvételből.'));
   assertNotRecording(p);
   const orig = originalOf(p);
   await fs.promises.mkdir(path.dirname(orig), { recursive: true });
@@ -649,25 +722,48 @@ async function recTrim(p, start, end) {
   const ext = (/\.(mp3|aac)$/i.exec(p)?.[1] || 'ts').toLowerCase();
   const fmt = { mp3: 'mp3', aac: 'adts', ts: 'mpegts' }[ext];
   const tmp = p.replace(/\.[^.]+$/, '') + '.vagas.tmp.' + ext;
-  const args = ['-hide_banner', '-nostdin', '-loglevel', 'error', '-y', '-ss', start.toFixed(3), '-i', orig, '-t', (end - start).toFixed(3), '-map', '0', '-c', 'copy', '-avoid_negative_ts', 'make_zero', '-f', fmt, tmp];
-  await new Promise((resolve, reject) => {
-    const proc = spawn(FF, args, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
-    let err = '';
-    proc.stderr.on('data', (b) => err.length < 2000 && (err += b));
-    proc.on('error', reject);
-    proc.on('close', (code) => (code ? reject(new Error(err.trim().split('\n').pop() || _t('kilépési kód: {code}', { code }))) : resolve()));
-  }).catch(async (e) => {
-    await fs.promises.rm(tmp, { force: true });
-    // ha még nem volt vágott változat, az eredeti visszakerül a helyére (ha ez sem sikerül, azt jelezzük)
-    if (!fs.existsSync(p)) {
-      try {
-        await fs.promises.rename(orig, p);
-      } catch (e2) {
-        throw new Error(`${e.message} – az eredeti a(z) ${orig} helyen maradt (${e2.message})`);
-      }
+  // a részek az eredeti mellett, a rejtett mappában (a felvételek listájában nem látszanak)
+  const partBase = path.join(path.dirname(orig), path.basename(p).replace(/\.[^.]+$/, ''));
+  const parts = [];
+  const list = partBase + '.lista.tmp.txt';
+  const cut = (ss, len, out) => ['-hide_banner', '-nostdin', '-loglevel', 'error', '-y', '-ss', ss.toFixed(3), '-i', orig, '-t', len.toFixed(3), '-map', '0', '-c', 'copy', '-avoid_negative_ts', 'make_zero', '-f', fmt, out];
+  let length = 0;
+  await (async () => {
+    if (keep.length === 1) {
+      length = keep[0][1] - keep[0][0];
+      return ffRun(cut(keep[0][0], length, tmp));
     }
-    throw e;
-  });
+    const kf = ext === 'ts' ? await keyframes(orig) : [];
+    for (let i = 0; i < keep.length; i++) {
+      let [a, b] = keep[i];
+      if (i > 0 && kf.length) {
+        // (másolásnál a kép az első kulcskockánál indul, ami a megadott pont után jön – a hang is onnan)
+        const k = kf.find((t) => t >= a - 0.05);
+        if (k == null || k > b - 0.5) continue; // (a szakaszban nincs kulcskocka: kimarad)
+        a = Math.max(0, k - 0.02);
+      }
+      const out = `${partBase}.resz${parts.length}.tmp.${ext}`;
+      parts.push(out);
+      await ffRun(cut(a, b - a, out));
+      length += b - a;
+    }
+    const q = (f) => `file '${f.replace(/\\/g, '/').replace(/'/g, "'\\''")}'`;
+    await fs.promises.writeFile(list, 'ffconcat version 1.0\n' + parts.map(q).join('\n') + '\n');
+    await ffRun(['-hide_banner', '-nostdin', '-loglevel', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', list, '-map', '0', '-c', 'copy', '-f', fmt, tmp]);
+  })()
+    .finally(() => Promise.all([list, ...parts].map((f) => fs.promises.rm(f, { force: true }).catch(() => {}))))
+    .catch(async (e) => {
+      await fs.promises.rm(tmp, { force: true });
+      // ha még nem volt vágott változat, az eredeti visszakerül a helyére (ha ez sem sikerül, azt jelezzük)
+      if (!fs.existsSync(p)) {
+        try {
+          await fs.promises.rename(orig, p);
+        } catch (e2) {
+          throw new Error(`${e.message} – az eredeti a(z) ${orig} helyen maradt (${e2.message})`);
+        }
+      }
+      throw e;
+    });
   // a rename felülírja a régi vágott változatot (nincs fájl nélküli pillanat). (H33) Ha maga a csere bukik el: az
   // ideiglenes fájl törlődik, első vágásnál az eredeti visszakerül a helyére (különben eltűnne a listából); korábban
   // vágott felvételnél a régi vágott változat érintetlen marad
@@ -685,7 +781,7 @@ async function recTrim(p, start, end) {
     throw e;
   }
   forgetFile(p);
-  return { ok: true, size: (await fs.promises.stat(p)).size };
+  return { ok: true, size: (await fs.promises.stat(p)).size, length };
 }
 
 /** Az eredeti visszaállítása (a vágás elvetése). */
@@ -698,8 +794,120 @@ async function recRestore(p) {
   return true;
 }
 
+// Reklámhatárok keresése: a tévéreklámok közé (és a műsor és a reklámblokk közé) szinte mindig rövid csend és
+// fekete kép kerül. Először a hangot elemezzük végig (gyors), aztán csak a csendek környékén a képet: volt-e ott
+// fekete. Ez csak javaslat – a felület jelöltként mutatja, a kivágást a felhasználó dönti el.
+const detecting = new Map(); // fájl -> { proc, stopped }
+/** → { duration, video, silences: [[kezdet, vég]], blacks: [[kezdet, vég]] } (mp, a fájl kezdetéhez képest) */
+async function recDetect(p, onProgress) {
+  if (!FF) throw new Error(_t('Az FFmpeg nem érhető el.'));
+  const file = recSource(p);
+  recDetectStop(p);
+  const job = { proc: null, stopped: false };
+  detecting.set(p, job);
+  const onSpawn = (proc) => (job.proc = proc);
+  const check = () => {
+    if (job.stopped) throw new Error(_t('megszakítva'));
+  };
+  try {
+    let info = '';
+    let probeErr = null;
+    // (üres kimenettel: kimenet nélkül egyes – pl. CI-beli Linuxos – FFmpeg-ek összeomlanak; a hibaüzenet csak akkor
+    // kell, ha nincs adatfolyam)
+    await ffRun(['-hide_banner', '-nostdin', '-i', file, '-t', '0', '-f', 'null', '-'], { onSpawn, onLine: (l) => (info += l + '\n') }).catch((e) => (probeErr = e));
+    check();
+    const pi = parseInfo(info);
+    const base = +(/Duration:.*?, start: (-?[\d.]+)/.exec(info) || [])[1] || 0;
+    if (!pi.audio.length && !pi.video.length) {
+      const why = (/(Invalid data found[^\r\n]*|No such file[^\r\n]*|Permission denied[^\r\n]*)/.exec(info) || [])[1] || probeErr?.message || info.trim().split(/\r?\n/).pop();
+      throw new Error(`${_t('a fájl nem elemezhető')}${why ? ` (${why})` : ''}`);
+    }
+    const silences = [];
+    const blacks = [];
+    let lastPct = -1;
+    const progress = (pct) => onProgress && (pct = Math.min(99, Math.floor(pct))) !== lastPct && onProgress((lastPct = pct));
+    const timeOf = (l) => {
+      const m = /time=(\d+):(\d+):(\d+(?:\.\d+)?)/.exec(l);
+      return m ? +m[1] * 3600 + +m[2] * 60 + +m[3] : NaN;
+    };
+    if (pi.audio.length) {
+      // 1. a hang végig: csendek
+      let sStart = null;
+      const share = pi.video.length ? 70 : 100;
+      await ffRun(['-hide_banner', '-nostdin', '-stats', '-vn', '-sn', '-dn', '-i', file, '-map', '0:a:0', '-af', 'silencedetect=n=-45dB:d=0.25', '-f', 'null', '-'], {
+        onSpawn,
+        onLine: (l) => {
+          let m;
+          if ((m = /silence_start: (-?[\d.]+)/.exec(l))) sStart = Math.max(0, +m[1]);
+          else if ((m = /silence_end: (-?[\d.]+)/.exec(l)) && sStart != null) silences.push([sStart, +m[1]]), (sStart = null);
+          else if (pi.duration) {
+            const t = timeOf(l);
+            if (t >= 0) progress((t / pi.duration) * share);
+          }
+        },
+      });
+      check();
+      if (sStart != null && pi.duration) silences.push([sStart, pi.duration]);
+      // 2. a kép csak a csendek körül (néhány másodperc bontás csendenként): volt-e fekete. (Az MPEG-TS-ben a
+      // tekerés pontatlan – akár egy másodperccel később is érkezhet –, ezért bővebb az ablak; az idők a kimenet
+      // kezdetéhez (a fájl start-értékéhez) képest jönnek.)
+      if (pi.video.length) {
+        const list = silences.slice(0, 600);
+        for (let i = 0; i < list.length; i++) {
+          const [s, e] = list[i];
+          const from = Math.max(0, s - 5);
+          let black = null;
+          await ffRun(['-hide_banner', '-nostdin', '-ss', from.toFixed(3), '-i', file, '-t', (Math.min(10, e - s) + 7.6).toFixed(3), '-map', '0:v:0', '-an', '-sn', '-vf', 'scale=64:-2,blackdetect=d=0:pix_th=0.12', '-f', 'null', '-'], {
+            onSpawn,
+            onLine: (l) => {
+              const m = /black_start:(-?[\d.]+) black_end:(-?[\d.]+)/.exec(l);
+              if (m && !black) black = [from + Math.max(0, +m[1] - base), from + Math.max(0, +m[2] - base)];
+            },
+          }).catch((err) => {
+            check();
+            throw err;
+          });
+          check();
+          if (black) blacks.push(black);
+          progress(70 + ((i + 1) / list.length) * 30);
+        }
+      }
+    } else {
+      // (hang nélküli felvétel: csak a kulcskockák feketesége – durva, de gyors)
+      await ffRun(['-hide_banner', '-nostdin', '-stats', '-skip_frame:v', 'nokey', '-i', file, '-map', '0:v:0', '-vf', 'scale=64:-2,blackdetect=d=0:pix_th=0.12', '-f', 'null', '-'], {
+        onSpawn,
+        onLine: (l) => {
+          const m = /black_start:(-?[\d.]+) black_end:(-?[\d.]+)/.exec(l);
+          if (m) return blacks.push([Math.max(0, +m[1]), +m[2]]);
+          const t = timeOf(l);
+          if (t >= 0 && pi.duration) progress((t / pi.duration) * 100);
+        },
+      });
+      check();
+      // (a fekete részek számítanak határnak)
+      silences.push(...blacks);
+    }
+    return { duration: pi.duration, video: pi.video.length > 0, silences, blacks };
+  } catch (err) {
+    if (job.stopped) throw new Error(_t('megszakítva'));
+    throw err;
+  } finally {
+    if (detecting.get(p) === job) detecting.delete(p);
+  }
+}
+function recDetectStop(p) {
+  const job = detecting.get(p);
+  if (!job) return false;
+  detecting.delete(p);
+  job.stopped = true;
+  try {
+    job.proc?.kill();
+  } catch {}
+  return true;
+}
+
 module.exports = {
   init, available: () => !!FF, status, probe, start, stop, stopAll, cover, parseInfo,
-  recStart, recStop, recList, recTrim, recRestore, recSource, originalOf, isRecording, recStopAll: () => [...recordings.keys()].forEach(recStop),
+  recStart, recStop, recList, recTrim, recRestore, recDetect, recDetectStop, keepRanges, recSource, originalOf, isRecording, recStopAll: () => [...recordings.keys()].forEach(recStop),
   _test: { inputOf, ensureServer },
 };

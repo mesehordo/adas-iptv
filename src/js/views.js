@@ -31,6 +31,7 @@ import { dropUnreferenced } from './snapshot.js';
 import { v1BackupDocKeys } from './backup.js';
 import { renderRecordings } from './recorder.js';
 import { renderRemoteSettings } from './remote.js';
+import { keyMapSummary } from './keymap.js';
 import { renderBackups } from './backup.js';
 import { renderThemeTools } from './customthemes.js';
 import { renderUpdate } from './update.js';
@@ -914,6 +915,10 @@ export function renderSettings(view) {
         <tr><td>${_t('Felirat (CC)')}</td><td>${_t('Hang és felirat')}</td></tr>
       </table></section>`
         : ''}
+    <section class="set-section" id="keymap" data-g="remote"><h2>${_t('Gombkiosztás')} <button class="help-link" data-help="keymap" title="${_t('Súgó')}">?</button></h2>
+      <p class="muted small">${_t('Ha a távirányítód (vagy billentyűzeted) valamelyik gombja nem működik, vagy máshová tennéd, itt betaníthatod: a gomb a választott műveletként működik. A beépített gombok mellett él, és ehhez az eszközhöz tartozik.')}</p>
+      <p class="km-summary small">${keyMapSummary()}</p>
+      <button class="btn" data-keymap>${_t('🎮 Gombok betanítása…')}</button></section>
     <section class="set-section" id="keys" data-g="remote" ${IS_TV ? 'data-off' : ''}><h2>${_t('Billentyűparancsok')}</h2>
       <table class="keys">
         <tr><td>${_t('Nyilak')}</td><td>${_t('Mozgás a felületen (távirányítóval is)')}</td></tr>
@@ -1468,6 +1473,8 @@ function editProfile(prof, done) {
     <div class="tp-slot"></div>
     <label class="setting"><span>${_t('<b>Gyerekprofil</b>')}<small>${_t('Csak gyerek-, családi, animációs és oktatási csatornák.')}</small></span>
       <input type="checkbox" class="switch" name="kids" ${prof?.kids ? 'checked' : ''} /></label>
+    <div class="setting"><span>${_t('<b>Gombkiosztás</b>')}<small>${_t('A távirányító gombjainak betanítása (ehhez az eszközhöz, minden profilnak).')}</small></span>
+      <button type="button" class="btn small" data-keymap>${_t('🎮 Megnyitás…')}</button></div>
     <div class="setting"><span>${_t('<b>Profilzár (PIN-kód)</b>')}<small class="pin-state"></small></span>
       <span class="inline"><button type="button" class="btn small" data-pin="set"></button><button type="button" class="btn small" data-pin="clear">${_t('PIN törlése')}</button></span></div>
     <p class="muted small">${_t('Ha egy felnőtt profilnak van PIN-kódja, a gyerekprofilból csak azzal lehet másik profilra váltani, a beállításokat és a profilokat módosítani.')}</p>
