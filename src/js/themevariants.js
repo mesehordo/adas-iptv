@@ -254,11 +254,11 @@ export const THEME_VARIANTS = {
     V('soda', () => _t('Szóda'), [[350, 230], [295, 290], [175, 150]]),
     V('melon', () => _t('Dinnye'), [[350, 145], [295, 350], [175, 85]]),
   ],
-  // Yami: a sötét kawaii fényei – rózsaszín / levendula / menta helyett
+  // Yami (keserédes): a púderrózsaszín / borvörös / levendula hármas más keserédes színekben
   yami: [
-    V('vampire', () => _t('Vámpír'), [[350, 15], [295, 330], [175, 300]], { chroma: 1.05 }),
-    V('moonlight', () => _t('Holdfény'), [[350, 240], [295, 200], [175, 280]]),
-    V('slime', () => _t('Nyálka'), [[350, 135], [295, 300], [175, 90]], { chroma: 1.05 }),
+    V('wine', () => _t('Bordó csipke'), [[355, 15], [5, 5], [310, 345]], { chroma: 1.05 }),
+    V('lavender', () => _t('Levendula'), [[355, 305], [5, 330], [310, 270]]),
+    V('mint', () => _t('Menta macaron'), [[355, 170], [5, 350], [310, 330]]),
   ],
   // Csillagidő: a parancsnoki híd sávjai riasztási és nyugalmi színekben
   stardate: [

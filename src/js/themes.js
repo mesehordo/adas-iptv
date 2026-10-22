@@ -154,7 +154,7 @@ export const THEMES = {
   },
   yami: {
     label: 'Yami',
-    desc: _t('Yami (sötétség): sötét kawaii – éjlila alap, pasztell rózsaszín és levendula fény, csillagos ég, szívek és holdsarló.'),
+    desc: _t('Yami: keserédes (bittersweet) divat – mélylila és borvörös alap, púderrózsaszín és krémszín csipke, rózsák, kameés keretek, kézírásos címek.'),
   },
   stardate: {
     label: _t('Csillagidő'),

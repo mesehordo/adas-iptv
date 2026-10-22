@@ -2450,10 +2450,10 @@ export default {
  "🎮 Megnyitás…": "🎮 Open…",
  "A gombkiosztás nem menthető: a böngésző tárolója nem érhető el vagy megtelt.": "The button mapping can’t be saved: the browser storage is unavailable or full.",
  "Yume (álom): pasztell kawaii – rózsaszín, levendula és menta, pöttyös háttér, kerek buborékkártyák, szívecskék és csillámok.": "Yume (dream): pastel kawaii – pink, lavender and mint, polka-dot background, round bubble cards, little hearts and sparkles.",
- "Yami (sötétség): sötét kawaii – éjlila alap, pasztell rózsaszín és levendula fény, csillagos ég, szívek és holdsarló.": "Yami (darkness): dark kawaii – midnight-purple base, pastel pink and lavender glow, starry sky, hearts and a crescent moon.",
+ "Yami: keserédes (bittersweet) divat – mélylila és borvörös alap, púderrózsaszín és krémszín csipke, rózsák, kameés keretek, kézírásos címek.": "Yami: bittersweet fashion – deep purple and wine base, powder-pink and cream lace, roses, cameo frames, handwritten titles.",
  "Barack": "Peach",
  "Szóda": "Soda",
  "Dinnye": "Melon",
- "Vámpír": "Vampire",
- "Nyálka": "Slime"
+ "Bordó csipke": "Burgundy lace",
+ "Menta macaron": "Mint macaron"
 };
