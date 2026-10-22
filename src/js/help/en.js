@@ -64,7 +64,7 @@ export const ARTICLES = [
 <h2>Recommended first settings</h2>
 <ul>
 <li><b>Home country</b> (Settings → Content and kids → Content): its channels come first and get the channel numbers. It is set from the language chosen at the first start.</li>
-<li><b>Interface style</b>: choose from thirty-two looks, per profile. ${t('themes', 'Styles')}</li>
+<li><b>Interface style</b>: choose from thirty-four looks, per profile. ${t('themes', 'Styles')}</li>
 <li><b>Kids profile</b>: if a child uses the app too, give them a separate profile. ${t('kids', 'Details')}</li>
 </ul>
 ${go('#/settings', 'Open Settings')}`,

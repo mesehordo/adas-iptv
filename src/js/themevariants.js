@@ -248,6 +248,18 @@ export const THEME_VARIANTS = {
   mu: [T('indigo', () => _t('Indigó'), 265), T('rust', () => _t('Rozsda'), 40), T('moss', () => _t('Moha'), 130)],
   // Holo: a sci-fi kezelőfelület riasztási és üzemmódszínei
   holo: [V('redalert', () => _t('Vörös riadó'), [[222, 25]]), V('amber', () => _t('Borostyán'), [[222, 70]]), V('matrix', () => _t('Mátrix'), [[222, 145]])],
+  // Yume: a pasztell hármas (rózsaszín / levendula / menta) más édességszínekben
+  yume: [
+    V('peach', () => _t('Barack'), [[350, 40], [295, 20], [175, 95]]),
+    V('soda', () => _t('Szóda'), [[350, 230], [295, 290], [175, 150]]),
+    V('melon', () => _t('Dinnye'), [[350, 145], [295, 350], [175, 85]]),
+  ],
+  // Yami: a sötét kawaii fényei – rózsaszín / levendula / menta helyett
+  yami: [
+    V('vampire', () => _t('Vámpír'), [[350, 15], [295, 330], [175, 300]], { chroma: 1.05 }),
+    V('moonlight', () => _t('Holdfény'), [[350, 240], [295, 200], [175, 280]]),
+    V('slime', () => _t('Nyálka'), [[350, 135], [295, 300], [175, 90]], { chroma: 1.05 }),
+  ],
   // Csillagidő: a parancsnoki híd sávjai riasztási és nyugalmi színekben
   stardate: [
     V('redalert', () => _t('Vörös riadó'), [[65, 25], [45, 15], [330, 350], [285, 330], [75, 35]]),

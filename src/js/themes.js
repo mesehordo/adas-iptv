@@ -147,6 +147,15 @@ export const THEMES = {
     label: 'Holo',
     desc: _t('Holo: sci-fi irányítópult – sötét kékes alap rácsvonalakkal, cián hologramfény, vékony keretek, levágott sarkú gombok.'),
   },
+  yume: {
+    label: 'Yume',
+    desc: _t('Yume (álom): pasztell kawaii – rózsaszín, levendula és menta, pöttyös háttér, kerek buborékkártyák, szívecskék és csillámok.'),
+    light: true,
+  },
+  yami: {
+    label: 'Yami',
+    desc: _t('Yami (sötétség): sötét kawaii – éjlila alap, pasztell rózsaszín és levendula fény, csillagos ég, szívek és holdsarló.'),
+  },
   stardate: {
     label: _t('Csillagidő'),
     desc: _t('Csillagidő: egy csillaghajó parancsnoki hídjának kezelőfelülete – fekete alap, lekerekített végű narancs, levendula és barack színsávok, keskeny, nagybetűs feliratok.'),

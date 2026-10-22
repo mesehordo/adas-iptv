@@ -2448,5 +2448,12 @@ export default {
  "<b>Gombkiosztás</b>": "<b>Button mapping</b>",
  "A távirányító gombjainak betanítása (ehhez az eszközhöz, minden profilnak).": "Teach the remote’s buttons (for this device, for every profile).",
  "🎮 Megnyitás…": "🎮 Open…",
- "A gombkiosztás nem menthető: a böngésző tárolója nem érhető el vagy megtelt.": "The button mapping can’t be saved: the browser storage is unavailable or full."
+ "A gombkiosztás nem menthető: a böngésző tárolója nem érhető el vagy megtelt.": "The button mapping can’t be saved: the browser storage is unavailable or full.",
+ "Yume (álom): pasztell kawaii – rózsaszín, levendula és menta, pöttyös háttér, kerek buborékkártyák, szívecskék és csillámok.": "Yume (dream): pastel kawaii – pink, lavender and mint, polka-dot background, round bubble cards, little hearts and sparkles.",
+ "Yami (sötétség): sötét kawaii – éjlila alap, pasztell rózsaszín és levendula fény, csillagos ég, szívek és holdsarló.": "Yami (darkness): dark kawaii – midnight-purple base, pastel pink and lavender glow, starry sky, hearts and a crescent moon.",
+ "Barack": "Peach",
+ "Szóda": "Soda",
+ "Dinnye": "Melon",
+ "Vámpír": "Vampire",
+ "Nyálka": "Slime"
 };

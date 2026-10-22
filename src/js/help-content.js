@@ -64,7 +64,7 @@ export const ARTICLES = [
 <h2>Ajánlott első beállítások</h2>
 <ul>
 <li><b>Hazai ország</b> (Beállítások → Tartalom és gyerekek → Tartalom): ennek a csatornái kerülnek előre, ezek kapják a csatornaszámokat. Alapból Magyarország.</li>
-<li><b>Felületstílus</b>: harminckét kinézet közül választhatsz, profilonként. ${t('themes', 'Stílusok')}</li>
+<li><b>Felületstílus</b>: harmincnégy kinézet közül választhatsz, profilonként. ${t('themes', 'Stílusok')}</li>
 <li><b>Gyerekprofil</b>: ha gyerek is használja, állíts be neki külön profilt. ${t('kids', 'Részletek')}</li>
 </ul>
 ${go('#/settings', 'Beállítások megnyitása')}`,

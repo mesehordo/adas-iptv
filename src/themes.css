@@ -1689,3 +1689,79 @@ body[data-theme="stardate"] {
 [data-theme="stardate"] .dcard { border-radius: 0 22px 0 22px; border-left: 12px solid var(--lav); background: #07070c; }
 [data-theme="stardate"] .dcard:nth-child(3n) { border-left-color: var(--peach); }
 [data-theme="stardate"] .dcard:nth-child(3n + 1) { border-left-color: var(--sky); }
+
+/* ======================================================================
+   Yume – „álom-kawaii”: pasztell rózsaszín, levendula és menta, pöttyös háttér, buborékkártyák, csillámok
+   ====================================================================== */
+body[data-theme="yume"] {
+  --bg: #fff4fa; --bg-2: #ffffff; --bg-3: #fde6f2; --bg-4: #f8d6ea; --line: #f5cde2;
+  --text: #4a3a55; --text-strong: #2e2238; --muted: #8e7c9c;
+  --accent: #e0428f; --accent-2: #ff7fb8; --lilac: #a78bfa; --mint: #5fd0b4; --radius: 20px; --focus: #a78bfa;
+  --font: 'M PLUS Rounded 1c', 'Varela Round', 'Nunito', 'Arial Rounded MT Bold', 'Segoe UI', system-ui, sans-serif;
+  background-color: #fff4fa;
+  background-image: radial-gradient(circle, rgba(255, 170, 212, 0.55) 1.6px, transparent 2.2px), radial-gradient(circle, rgba(200, 182, 255, 0.55) 1.4px, transparent 2px),
+    radial-gradient(circle at 12% 8%, #ffe1f0 0, transparent 38%), radial-gradient(circle at 88% 22%, #ece3ff 0, transparent 42%), radial-gradient(circle at 50% 105%, #dcf6ee 0, transparent 50%);
+  background-size: 28px 28px, 28px 28px, auto, auto, auto; background-position: 0 0, 14px 14px, 0 0, 0 0, 0 0; background-attachment: fixed;
+}
+[data-theme="yume"] #nav.solid { background: rgba(255, 244, 250, 0.92); border-bottom: 3px dotted #f7b6d6; }
+[data-theme="yume"] .brand { color: var(--accent); transform: none; letter-spacing: 0.06em; text-shadow: 2px 2px 0 #ffd3e8; }
+[data-theme="yume"] .brand::after { content: '✧'; color: var(--lilac); font-size: 0.6em; margin-left: 4px; vertical-align: super; }
+[data-theme="yume"] .links a.active { color: var(--accent); font-weight: 800; }
+[data-theme="yume"] h1, [data-theme="yume"] h2, [data-theme="yume"] .row-title { font-weight: 800; color: var(--text-strong); }
+[data-theme="yume"] .row-title::before { content: '♡ '; color: var(--accent-2); }
+[data-theme="yume"] .hero { border-radius: 28px; }
+[data-theme="yume"] .hero-slide { background: linear-gradient(135deg, #ffd9ec 0%, #e8deff 55%, #d6f5ec 100%); }
+[data-theme="yume"] .hero-shade { background: linear-gradient(90deg, rgba(255, 246, 251, 0.96) 0%, rgba(255, 246, 251, 0.6) 45%, transparent 80%); }
+[data-theme="yume"] .btn { border-radius: 999px; }
+[data-theme="yume"] .btn.white, [data-theme="yume"] .btn.primary { background: var(--accent); color: #fff; box-shadow: 0 4px 0 #b83273; }
+[data-theme="yume"] .btn.primary:hover, [data-theme="yume"] .btn.white:hover { background: #ea559c; }
+[data-theme="yume"] .thumb { border-radius: 18px; border: 3px solid #fff; background: linear-gradient(160deg, hsl(var(--h) 70% 86%), hsl(calc(var(--h) + 40) 60% 76%)); box-shadow: 0 6px 16px -8px rgba(224, 66, 143, 0.35); }
+[data-theme="yume"] .card:hover, [data-theme="yume"] .card:focus-visible { transform: translateY(-6px) scale(1.03); box-shadow: none; }
+[data-theme="yume"] .card:hover .thumb, [data-theme="yume"] .card:focus-visible .thumb { outline: none; box-shadow: 0 0 0 3px var(--accent-2), 0 14px 26px -10px rgba(167, 139, 250, 0.55); }
+[data-theme="yume"] .now-label, [data-theme="yume"] .live-badge { background: var(--accent); border-radius: 999px; }
+[data-theme="yume"] .bar i { background: linear-gradient(90deg, var(--accent-2), var(--lilac)); }
+[data-theme="yume"] .tile { border-radius: 22px; }
+[data-theme="yume"] .modal { background: var(--bg-2); border-radius: 26px; border: 3px solid #ffd6ea; }
+[data-theme="yume"] .tab { border-radius: 999px; }
+[data-theme="yume"] .tab.active { background: var(--accent); color: #fff; }
+[data-theme="yume"] .input { border-radius: 999px; }
+[data-theme="yume"] .dcard { border-radius: 24px; border: 2px solid #ffe0ef; box-shadow: 0 10px 24px -16px rgba(224, 66, 143, 0.45); }
+[data-theme="yume"] .dc-title::after { content: ' ✿'; color: var(--lilac); }
+
+/* ======================================================================
+   Yami – „sötét kawaii”: éjlila alap, pasztell neon rózsaszín és levendula, szívek, csillagok, puha fény
+   ====================================================================== */
+body[data-theme="yami"] {
+  --bg: #170e20; --bg-2: #21142e; --bg-3: #2c1a3d; --bg-4: #38224d; --line: #46295f;
+  --text: #f0e4ff; --text-strong: #fff; --muted: #b8a2cf;
+  --accent: #ff8fcf; --accent-2: #ffb3df; --lilac: #c4a3ff; --mint: #8ff0dc; --radius: 18px; --focus: #ff8fcf;
+  --font: 'M PLUS Rounded 1c', 'Varela Round', 'Nunito', 'Arial Rounded MT Bold', 'Segoe UI', system-ui, sans-serif;
+  background-color: #170e20;
+  background-image: radial-gradient(1.4px 1.4px at 30px 40px, rgba(255, 255, 255, 0.7), transparent), radial-gradient(1.2px 1.2px at 140px 90px, rgba(255, 198, 232, 0.7), transparent), radial-gradient(1.6px 1.6px at 220px 20px, rgba(217, 196, 255, 0.7), transparent), radial-gradient(1px 1px at 90px 170px, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(circle at 15% 0%, #3b1a4f 0, transparent 45%), radial-gradient(circle at 90% 30%, #2a1b52 0, transparent 45%);
+  background-size: 260px 200px, 260px 200px, 260px 200px, 260px 200px, auto, auto; background-attachment: fixed;
+}
+[data-theme="yami"] #nav.solid { background: rgba(23, 14, 32, 0.92); border-bottom: 2px solid transparent; border-image: linear-gradient(90deg, var(--accent), var(--lilac), var(--mint)) 1; }
+[data-theme="yami"] .brand { color: var(--accent); transform: none; letter-spacing: 0.06em; text-shadow: 0 0 12px rgba(255, 143, 207, 0.6); }
+[data-theme="yami"] .brand::after { content: '♡'; color: var(--lilac); font-size: 0.6em; margin-left: 4px; vertical-align: super; }
+[data-theme="yami"] .links a.active { color: var(--accent); font-weight: 800; text-shadow: 0 0 10px rgba(255, 143, 207, 0.5); }
+[data-theme="yami"] h1, [data-theme="yami"] h2, [data-theme="yami"] .row-title { font-weight: 800; }
+[data-theme="yami"] .row-title::before { content: '✦ '; color: var(--lilac); }
+[data-theme="yami"] .hero { border-radius: 26px; }
+[data-theme="yami"] .hero-slide { background: linear-gradient(135deg, #4a1d5e 0%, #2b1f5c 60%, #173a4a 100%); }
+[data-theme="yami"] .hero-shade { background: linear-gradient(90deg, rgba(23, 14, 32, 0.95) 0%, rgba(23, 14, 32, 0.55) 45%, transparent 80%); }
+[data-theme="yami"] .btn { border-radius: 999px; }
+[data-theme="yami"] .btn.white, [data-theme="yami"] .btn.primary { background: var(--accent); color: #2a1238; box-shadow: 0 0 16px -2px rgba(255, 143, 207, 0.55); }
+[data-theme="yami"] .btn.primary:hover, [data-theme="yami"] .btn.white:hover { background: var(--accent-2); }
+[data-theme="yami"] .thumb { border-radius: 16px; border: 2px solid rgba(255, 179, 223, 0.35); background: linear-gradient(160deg, hsl(var(--h) 45% 32%), hsl(calc(var(--h) + 50) 50% 18%)); }
+[data-theme="yami"] .card:hover, [data-theme="yami"] .card:focus-visible { transform: translateY(-5px) scale(1.03); box-shadow: none; }
+[data-theme="yami"] .card:hover .thumb, [data-theme="yami"] .card:focus-visible .thumb { outline: none; box-shadow: 0 0 0 2px var(--accent), 0 0 24px -2px rgba(255, 143, 207, 0.6); }
+[data-theme="yami"] .now-label, [data-theme="yami"] .live-badge { background: var(--accent); color: #2a1238; border-radius: 999px; }
+[data-theme="yami"] .bar i { background: linear-gradient(90deg, var(--accent), var(--lilac)); }
+[data-theme="yami"] .tile { border-radius: 20px; }
+[data-theme="yami"] .modal { background: var(--bg-2); border-radius: 24px; border: 1px solid var(--line); box-shadow: 0 0 40px -10px rgba(196, 163, 255, 0.45); }
+[data-theme="yami"] .tab { border-radius: 999px; }
+[data-theme="yami"] .tab.active { background: var(--accent); color: #2a1238; }
+[data-theme="yami"] .input { border-radius: 999px; }
+[data-theme="yami"] .dcard { border-radius: 22px; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(255, 143, 207, 0.07), transparent 40%), var(--bg-2); }
+[data-theme="yami"] .dc-title::after { content: ' ☾'; color: var(--lilac); }
