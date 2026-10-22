@@ -1271,9 +1271,10 @@ function renderAppearance(box) {
     box.querySelector('[data-theme-select]').value = id;
     box.querySelector('.theme-desc').textContent = THEMES[id].desc;
   };
-  const tp = themePicker({ theme, variant: currentVariant(theme)?.id || '', compact: false, onChange: save });
+  const tp = themePicker({ theme, variant: currentVariant(theme)?.id || '', compact: false, savedVariant: (id) => store.profile.themeVariants?.[id] || '', onChange: save });
   box.querySelector('.tp-slot').replaceWith(tp.el);
-  box.addEventListener('change', (e) => {
+  // (értékadással: az újrarajzolás után sem halmozódik a figyelő)
+  box.onchange = (e) => {
     if (e.target.matches('[data-theme-select]')) {
       e.stopPropagation();
       // (a legördülőből választva a téma megjegyzett változata él tovább)
@@ -1281,7 +1282,7 @@ function renderAppearance(box) {
       save(id, store.profile.themeVariants?.[id] || '');
       renderAppearance(box);
     }
-  });
+  };
 }
 
 
@@ -1475,7 +1476,7 @@ function editProfile(prof, done) {
   </form>`);
   el.querySelector('.avatar-slot').replaceWith(picker.el);
   const pTheme = prof?.theme && THEMES[prof.theme] ? prof.theme : 'netflix';
-  const tp = themePicker({ theme: pTheme, variant: prof?.themeVariants?.[pTheme] || '' });
+  const tp = themePicker({ theme: pTheme, variant: prof?.themeVariants?.[pTheme] || '', savedVariant: (id) => prof?.themeVariants?.[id] || '' });
   el.querySelector('.tp-slot').replaceWith(tp.el);
   const close = openModal(el, { cls: 'medium' });
   // PIN: mentéskor érvényesül. undefined = nem változik, null = törlés, '1234' = új

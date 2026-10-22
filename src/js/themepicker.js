@@ -23,9 +23,10 @@ export function variantRowHtml(theme, variant = '') {
 
 /**
  * Teljes választó (minták + változatok) egy elemben. onChange(theme, variant) minden választáskor (pl. előnézethez).
+ * savedVariant(téma): a téma korábban megjegyzett változata (témaváltáskor az él tovább, nem az eredeti).
  * → { el, value(): { theme, variant } }
  */
-export function themePicker({ theme = 'netflix', variant = '', compact = true, onChange = () => {} } = {}) {
+export function themePicker({ theme = 'netflix', variant = '', compact = true, onChange = () => {}, savedVariant = () => '' } = {}) {
   if (!THEMES[theme]) theme = 'netflix';
   const el = document.createElement('div');
   el.className = 'theme-picker' + (compact ? ' compact' : '');
@@ -41,7 +42,7 @@ export function themePicker({ theme = 'netflix', variant = '', compact = true, o
     if (t) {
       if (t.dataset.themePick === theme) return;
       theme = t.dataset.themePick;
-      variant = '';
+      variant = savedVariant(theme) || '';
     } else if (v) variant = v.dataset.variantPick;
     else return;
     e.preventDefault();

@@ -9,6 +9,22 @@ import { avatarPicker } from './views.js';
 import { _t, LANGS, lang, savedLang, suggestedLang, setLanguage } from './i18n.js';
 
 const STEP_KEY = 'adas-onboard';
+// a varázslóban választott kinézet (újratöltés után sem vész el – a mentés csak a végén keletkezik)
+const LOOK_KEY = 'adas-onboard-look';
+const getLook = () => {
+  try {
+    const v = JSON.parse(localStorage.getItem(LOOK_KEY) || 'null');
+    return v && typeof v.theme === 'string' ? { theme: v.theme, variant: typeof v.variant === 'string' ? v.variant : '' } : null;
+  } catch {
+    return null;
+  }
+};
+const setLook = (v) => {
+  try {
+    if (v) localStorage.setItem(LOOK_KEY, JSON.stringify(v));
+    else localStorage.removeItem(LOOK_KEY);
+  } catch {}
+};
 const getStep = () => {
   try {
     return localStorage.getItem(STEP_KEY) || '';
@@ -70,7 +86,7 @@ export function runOnboarding(root) {
   root.classList.add('onboarding');
   document.body.classList.add('picking');
   return new Promise((resolve) => {
-    const state = { name: '', kidsName: _t('Gyerekek'), me: null, kids: null, theme: 'netflix', variant: '' };
+    const state = { name: '', kidsName: _t('Gyerekek'), me: null, kids: null, theme: 'netflix', variant: '', ...(getLook() || {}) };
 
     // 1. lépés: nyelv
     const stepLang = () => {
@@ -164,6 +180,7 @@ export function runOnboarding(root) {
         onChange: (theme, variant) => {
           state.theme = theme;
           state.variant = variant;
+          setLook({ theme, variant });
           applyTheme({ theme, variant });
         },
       });
@@ -235,6 +252,7 @@ export function runOnboarding(root) {
       store.firstRun = false;
       store.flush();
       setStep('');
+      setLook(null);
       root.onclick = null;
       root.hidden = true;
       root.classList.remove('onboarding');
