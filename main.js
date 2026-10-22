@@ -680,11 +680,15 @@ function queueFileOp(file, op) {
 }
 /** JSON-fájl írása sorban, átmeneti fájlon és átnevezésen át (megszakadt írás után sem sérül a régi). */
 function writeJsonFile(file, value) {
+  return writeTextFile(file, () => JSON.stringify(value));
+}
+/** Szöveg atomi írása (ideiglenes fájl + átnevezés), a fájl írási sorában. text: szöveg vagy azt adó függvény. */
+function writeTextFile(file, text) {
   return queueFileOp(file, async () => {
     await fs.promises.mkdir(path.dirname(file), { recursive: true });
     const tmp = `${file}.${process.pid}.tmp`;
     try {
-      await fs.promises.writeFile(tmp, JSON.stringify(value), 'utf8');
+      await fs.promises.writeFile(tmp, typeof text === 'function' ? text() : text, 'utf8');
       await fs.promises.rename(tmp, file);
     } catch (err) {
       await fs.promises.rm(tmp, { force: true }).catch(() => {}); // (sikertelen írás után ne maradjon ideiglenes fájl)
@@ -907,6 +911,52 @@ ipcMain.handle('kv-get', async (_e, key) => {
   }
 });
 ipcMain.handle('kv-set', (_e, key, value) => writeJsonFile(kvFile(key), value));
+// (gyors út) JSON-szövegként: a nagy pillanatképek (pl. a ~10 MB-os csatornakatalógus) objektumként az IPC-n át a
+// felület szálán másodpercekig tartó strukturált klónozással és szemétgyűjtéssel érkeznének – szövegként csak egy
+// másolás, a JSON.parse a felületen töredéke ennek. Olvasáskor a fájl ideje frissül (a takarítás ehhez igazodik).
+ipcMain.handle('kv-get-text', async (_e, key) => {
+  const f = kvFile(String(key));
+  try {
+    const text = await fs.promises.readFile(f, 'utf8');
+    const now = new Date();
+    fs.promises.utimes(f, now, now).catch(() => {});
+    return text;
+  } catch {
+    return null;
+  }
+});
+ipcMain.handle('kv-set-text', (_e, key, text) => (typeof text === 'string' ? writeTextFile(kvFile(String(key)), text) : undefined));
+
+/**
+ * A gyorsítótár takarítása (indulás után, a háttérben): a nagy pillanatképekből (katalógus, VOD) a legutóbb
+ * használt 4 marad, ezek is legfeljebb 7 napig – egy lista vagy beállítás változásakor új kulcs keletkezik, a régi
+ * eddig örökre megmaradt (több száz MB); a kis bejegyzések (borító, adatlap) 60, a letöltések 45 nap után törlődnek.
+ */
+async function pruneCache() {
+  const dir = cacheDir();
+  let names = [];
+  try {
+    names = await fs.promises.readdir(dir);
+  } catch {
+    return;
+  }
+  const now = Date.now();
+  const big = [];
+  for (const n of names) {
+    const isKv = /^kv-[0-9a-f]{40}\.json$/.test(n);
+    if (!isKv && !/^[0-9a-f]{40}\.dat$/.test(n)) continue;
+    const f = path.join(dir, n);
+    try {
+      const st = await fs.promises.stat(f);
+      const age = now - st.mtimeMs;
+      if (isKv && st.size > 1e6) big.push({ f, t: st.mtimeMs, age });
+      else if (age > (isKv ? 60 : 45) * 864e5) await fs.promises.rm(f, { force: true });
+    } catch {}
+  }
+  big.sort((a, b) => b.t - a.t);
+  for (const [i, x] of big.entries()) if (i >= 4 || x.age > 7 * 864e5) await queueFileOp(x.f, () => fs.promises.rm(x.f, { force: true })).catch(() => {});
+}
+app.whenReady().then(() => setTimeout(() => pruneCache().catch(() => {}), 60e3));
 
 // Tartós dokumentumok (pl. fájlból felvett nagy listák) a felhasználói adatok mellett, „lists” mappában.
 const docFile = (key) => path.join(app.getPath('userData'), 'lists', String(key).replace(/[^\w.-]+/g, '_') + '.json');

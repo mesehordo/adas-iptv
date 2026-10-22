@@ -5,7 +5,7 @@
 //  - műsorújság: bármilyen sportág / játék / csapat kulcsszóval – rögtön csatornával;
 //  - naptár (ICS / iCal): bármilyen szervezet nyilvános eseménynaptára.
 // A strukturált eseményekhez a műsorújságból keres csatornát (csapatnév, bajnokság, sportág + időpont).
-import { esc, toast, fmtTime, norm, debounce, html } from './util.js';
+import { esc, toast, fmtTime, norm, debounce, html, bus } from './util.js';
 import { api } from './api.js';
 import { store } from './store.js';
 import { epg } from './epg.js';
@@ -428,7 +428,31 @@ async function loadIcs(w) {
 let epgIdx = null;
 let epgIdxAt = 0;
 let epgIdxKey = '';
-const dataKey = () => `${epg.loadedAt || 0}:${epg.byChannel?.size || 0}:${visible().length}`;
+// (a kulcs a látható csatornák számát is tartalmazza – a visible() a teljes csatornalistát szűri, ezért legfeljebb
+// 2 másodpercenként számoljuk: egy Sport oldal eseményenként kéri, ami eddig oldalanként tucatnyi teljes szűrés volt)
+let dataKeyAt = 0;
+let dataKeyVal = '';
+const dataKey = () => {
+  const now = Date.now();
+  if (now - dataKeyAt > 2000 || !dataKeyVal.startsWith(`${epg.loadedAt || 0}:`)) {
+    dataKeyAt = now;
+    dataKeyVal = `${epg.loadedAt || 0}:${epg.byChannel?.size || 0}:${visible().length}`;
+  }
+  return dataKeyVal;
+};
+let epgIdxMaxLen = 0; // a leghosszabb műsor (ms) – a kezdés szerinti keresés ablakához
+const chFor = new Map(); // channelFor eredményei a mostani indexhez
+// profilváltáskor és a láthatóságot befolyásoló beállításnál azonnal újraépül (nem a 2 mp-es kulcs szerint)
+const invalidateEpgIndex = () => {
+  dataKeyAt = 0;
+  dataKeyVal = '';
+  epgIdx = null;
+  epgIdxKey = '';
+  epgIdxMaxLen = 0;
+  chFor.clear();
+};
+bus.on('profile', invalidateEpgIndex);
+bus.on('settings', (k) => ['hideOffline', 'showAdult', 'homeCountry'].includes(k) && invalidateEpgIndex());
 function epgIndex() {
   // Újraépítés, ha közben betöltődött a műsorújság vagy a csatornalista (induláskor még üresek lehetnek)
   const key = dataKey();
@@ -445,6 +469,10 @@ function epgIndex() {
     const sportsCh = !!ch.categories?.includes('sports');
     for (const p of epg.range(ch.id, from, to)) epgIdx.push({ ch, p, bonus, sporty: sportsCh || /sport/i.test(p.category || ''), text:norm(`${p.title} ${p.category || ''} ${/sport/i.test(p.category || '') ? p.subtitle || '' : ''}`) });
   }
+  // kezdés szerint rendezve: az eseményhez illő műsorok bináris kereséssel, az időablakban (nem a teljes listán)
+  epgIdx.sort((a, b) => a.p.start - b.p.start);
+  epgIdxMaxLen = epgIdx.reduce((m, x) => Math.max(m, x.p.stop - x.p.start), 0);
+  chFor.clear();
   epgIdxAt = Date.now();
   return epgIdx;
 }
@@ -500,9 +528,24 @@ export function channelFor(ev) {
   if (!ev.start || !epg.byChannel?.size) return null;
   const teams = [...tokens(ev.home), ...tokens(ev.away), ...tokens(ev.title)];
   const league = tokens(ev.leagueName || '');
+  const idx = epgIndex();
+  const memo = `${ev.id}|${ev.start}|${ev.home || ''}|${ev.away || ''}|${ev.title || ''}|${ev.sport || ''}|${ev.leagueName || ''}`;
+  if (chFor.has(memo)) return chFor.get(memo);
   const sp = kwRx(norm(sportOf(ev.sport).kw));
   let best = null;
-  for (const x of epgIndex()) {
+  // (csak a szóba jöhető műsorok: kezdés legfeljebb 45 perccel az esemény után, és legfeljebb a leghosszabb műsor
+  // hosszával előtte – a korábban kezdődő, még futó műsor is így marad benne)
+  const lo = ev.start - Math.max(45 * 60e3, epgIdxMaxLen);
+  const hi = ev.start + 45 * 60e3;
+  let a = 0;
+  let b = idx.length;
+  while (a < b) {
+    const m = (a + b) >> 1;
+    if (idx[m].p.start < lo) a = m + 1;
+    else b = m;
+  }
+  for (let i = a; i < idx.length && idx[i].p.start <= hi; i++) {
+    const x = idx[i];
     const dt = Math.abs(x.p.start - ev.start);
     const running = x.p.start <= ev.start && x.p.stop > ev.start + 20 * 60e3;
     if (dt > 45 * 60e3 && !running) continue;
@@ -515,7 +558,9 @@ export function channelFor(ev) {
     score += x.bonus * 0.3 - dt / 3600e3;
     if (!best || score > best.score) best = { score, ch: x.ch, p: x.p };
   }
-  return best ? { id: best.ch.id, name: best.ch.name, start: best.p.start, title: best.p.title, sure: best.score >= 3 } : null;
+  const res = best ? { id: best.ch.id, name: best.ch.name, start: best.p.start, title: best.p.title, sure: best.score >= 3 } : null;
+  chFor.set(memo, res);
+  return res;
 }
 
 /**

@@ -15,7 +15,23 @@ try {
 }
 let reqId = 0;
 let indexFor = null; // melyik csatornalistához készült a háttérszálnak elküldött index
-let indexRadio = ''; // … és melyik rádióadó-körhöz (radioEpgSig)
+let indexRadio = ''; // … és melyik rádióadó-körhöz (radioSigNow)
+// a műsorújság rádióként párosítható csatornáinak névkulcsai (a háttérszál adja); amíg nem ismert: null
+let radioKeys = null;
+let indexEntries = []; // a legutóbb elküldött index rádióadói
+/**
+ * A párosítandó rádióadók köre – csak azok, amelyeknek a neve a műsorújságban egyáltalán előfordul. Egy keresés vagy
+ * böngészés által betöltött, a műsorújságban nem szereplő adó így nem indítja újra a teljes műsorújság feldolgozását
+ * (eddig ez minden rádiós keresés / ország megnyitása után megtörtént).
+ */
+function radioSig(entries) {
+  if (!radioKeys) return radioEpgSig();
+  const ids = entries.filter((e) => e.names.some((n) => radioKeys.has(stripSuffix(key(n))))).map((e) => e.id).sort();
+  let h = 0;
+  for (const id of ids) for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return `k:${ids.length}:${h}`;
+}
+const radioSigNow = () => radioSig(radioEpgEntries());
 let reloadAfter = false; // betöltés közben újabb kérés érkezett
 let reloadForce = false;
 // (B24) csatorna → a forrás címe, amelyből a mostani műsora jött: egy forrás sikertelen frissítésekor a
@@ -232,7 +248,7 @@ export const epg = {
     bus.emit('epg');
     // ha közben kérték, vagy a csatornalista cserélődött (régi indexszel párosítottunk): még egy kör. Hiba után
     // csak kifejezett újabb kérésre – az érvénytelen index magában ne indítson azonnali, végtelen újrapróbálást.
-    if (reloadAfter || (!failed && (indexFor !== catalog.channels || indexRadio !== radioEpgSig()))) {
+    if (reloadAfter || (!failed && (indexFor !== catalog.channels || indexRadio !== radioSigNow()))) {
       const f = reloadForce;
       reloadAfter = false;
       reloadForce = false;
@@ -243,12 +259,14 @@ export const epg = {
   async loadOnce(force) {
     // A párosításhoz szükséges index a háttérszálba megy – csak ha a csatornalista azóta változott; érvényesnek
     // csak a sikeres átadás után számít
-    if (indexFor !== catalog.channels || indexRadio !== radioEpgSig()) {
+    if (indexFor !== catalog.channels || indexRadio !== radioSigNow()) {
       const forList = catalog.channels;
-      const forRadio = radioEpgSig();
-      (await getWorker()).postMessage({ type: 'index', index: buildIndex() });
+      const entries = radioEpgEntries();
+      const forRadio = radioSig(entries);
+      (await getWorker()).postMessage({ type: 'index', index: buildIndex(entries) });
       indexFor = forList;
       indexRadio = forRadio;
+      indexEntries = entries;
     }
     const sources = this.sources();
     const parsed = new Array(sources.length);
@@ -314,6 +332,12 @@ export const epg = {
     });
     this.byChannel = result;
     bySource = nextBySource;
+    // a rádióként párosítható nevek (forrásonként; a most sikertelen forrásé a korábbiból marad), és az index
+    // rádiós lenyomata ezekkel – a következő összevetés már ugyanígy számol
+    const keys = new Set(parsed.every(Boolean) ? [] : radioKeys || []);
+    for (const p of parsed) for (const k of p?.radioKeys || []) keys.add(k);
+    radioKeys = keys;
+    indexRadio = radioSig(indexEntries);
     this.lastAttempt = Date.now();
     // (teljes kudarcnál – és ha csak régi gyorsítótár jött – a „frissítve” időpont nem lesz friss)
     if (parsed.some((x) => x && !x.stale)) this.loadedAt = Date.now();
@@ -338,7 +362,7 @@ function idKey(id) {
 }
 
 /** Párosítási index a csatornalistából (pontos tvg-id, azonosító-kulcs + ország, név + ország, név). */
-function buildIndex() {
+function buildIndex(radioEntries = radioEpgEntries()) {
   const exact = new Map();
   const withCc = new Map();
   const nameCc = new Map();
@@ -364,7 +388,7 @@ function buildIndex() {
   }
   // rádióadók: csak név szerint, és csak ahol egyetlen tévécsatorna neve sem ugyanaz (a tévé elsőbbséget élvez)
   const tvNames = new Set(nameOnly.keys());
-  for (const r of radioEpgEntries()) {
+  for (const r of radioEntries) {
     for (const n of r.names) {
       const k = stripSuffix(key(n));
       if (!k || tvNames.has(k)) continue;
@@ -380,7 +404,7 @@ let radioEpgTimer = 0;
 bus.on('radio', () => {
   clearTimeout(radioEpgTimer);
   radioEpgTimer = setTimeout(() => {
-    if (radio.ready && epg.loadedAt && !epg.loading && indexRadio !== radioEpgSig()) epg.load();
+    if (radio.ready && epg.loadedAt && !epg.loading && indexRadio !== radioSigNow()) epg.load();
   }, 4000);
 });
 bus.on('radio-favs', () => bus.emit('radio'));

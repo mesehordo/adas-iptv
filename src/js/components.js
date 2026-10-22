@@ -37,7 +37,7 @@ export const ICON = {
 export function logoHtml(ch, cls = 'logo') {
   const fallback = `<span class="initials">${esc(initials(ch.name))}</span>`;
   if (!ch.logo) return fallback;
-  return `<img class="${cls}" src="${esc(ch.logo)}" alt="" loading="lazy" referrerpolicy="no-referrer" />`;
+  return `<img class="${cls}" src="${esc(ch.logo)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />`;
 }
 
 // Hibás logó helyett monogram.
