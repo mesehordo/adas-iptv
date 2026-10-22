@@ -1471,7 +1471,7 @@ ${go('#/settings?section=remote', 'Remote from phone')}`,
     id: 'recording',
     cat: 'watch',
     title: 'Recording',
-    keywords: 'record recording save schedule video ts trim margin start end',
+    keywords: 'record recording save schedule video ts trim margin start end ad ads advert commercial break cut',
     body: `
 <p>In the desktop version (Windows, Mac, Linux) live TV can be recorded – without re-encoding, in the original quality, into a <code>.ts</code> file, in the <b>Videos / Adás recordings</b> folder.</p>
 <ul>
@@ -1481,7 +1481,11 @@ ${go('#/settings?section=remote', 'Remote from phone')}`,
 </ul>
 <h2>Trimming</h2>
 <p>The <b>✂</b> button on a recording’s card opens the trimmer: preview, timeline (yellow marks: the programme’s start and end according to the TV guide), stepping (±1 s / ±10 s / ±1 min), <b>⇤ Start here</b> and <b>End here ⇥</b> (or the <kbd>I</kbd> / <kbd>O</kbd> keys), and the times can be typed in too; the <b>Select according to the TV guide</b> button sets them in one step. After <b>✂ Trim and save</b>, the trimmed version takes the recording’s place – Adás plays this one, and the external player opens this one too.</p>
-<p>The <b>original is kept</b> (it doesn’t appear as a separate recording): opening the trimmer again lets you re-trim from the original (with the previous selection), or bring back the full recording with <b>Restore original</b>. A trimmed recording’s card shows a tick next to the ✂. When deleted, both go to the Recycle Bin.</p>
+<h2>Cutting out ads</h2>
+<p>In the <b>Cut out ads</b> part of the trimmer you can mark as many ads as you like: go to the start of the ad and press <b>⟦ Ad starts here</b> (<kbd>[</kbd>), then at its end press <b>Ad ends here ⟧</b> (<kbd>]</kbd>). The marked ads are listed and shown striped on the timeline; their times can be edited, and <b>✕</b> takes one back. When you save, <b>every marked ad is left out</b> of the part between the start and the end, and the rest is joined together. While playing, the preview skips the marked ads (this can be switched off), so the boundaries are easy to check.</p>
+<p><b>🔍 Find ad breaks</b> helps to find them: channels almost always put a short silence and a black picture between ads (and between the programme and the ad break) – this looks for those (blue marks on the timeline; step through them with <b>◀ Previous / Next candidate ▶</b>). Where several such boundaries follow each other closely, it offers a <b>Suggested ad break</b>; <b>+ Cut out</b> adds it to the ads. It is only a suggestion: check it before saving and adjust the boundaries – the programme can have silences too, and not every channel puts a black picture between ads.</p>
+<div class="note">Cutting happens without re-encoding (fast, with no loss of picture quality). Because of this the picture can only continue at a keyframe: the part after an ad starts at the first keyframe, and at the joins there can be a moment (at most about half a second) of black picture or silence.</div>
+<p>The <b>original is kept</b> (it doesn’t appear as a separate recording): opening the trimmer again lets you re-trim from the original (with the previous selection and the marked ads), or bring back the full recording with <b>Restore original</b>. A trimmed recording’s card shows a tick next to the ✂. When deleted, both go to the Recycle Bin.</p>
 <p>Recordings are on the <b>TV → Recordings</b> tab (with channel logo, date, size; started ones with a progress bar). <b>▶ Play</b> starts the recording in Adás’s own player – seekable, and an unfinished recording continues where you left off. The <b>⧉</b> button opens it in the computer’s video player (e.g. VLC), <b>✕</b> moves it to the Recycle Bin. Here you also see the recordings in progress and the scheduled ones; the latest are also listed under Settings → Recordings.</p>
 <div class="note">For your own home viewing only: the rights to recorded programmes belong to the channels. Some (encrypted or DRM-protected) streams can’t be recorded.</div>
 ${go('#/recordings', 'Recordings')}`,

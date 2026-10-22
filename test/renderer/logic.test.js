@@ -343,3 +343,23 @@ test('gyorsítótár (kv): JSON-szövegként oda-vissza – nagy, egymásba ágy
   assert.equal(back.channels[2999].name, 'Csatorna 2999 – ő ű');
   assert.equal(await api.kvGet('teszt:nincs-ilyen-kulcs'), undefined);
 });
+
+import { adSuggestions, keptLength } from '../../src/js/recorder.js';
+
+test('reklámkivágás: megmaradó hossz, reklámblokk-javaslat a sűrű csend + fekete határokból', () => {
+  assert.equal(keptLength(0, 100, []), 100);
+  assert.equal(keptLength(10, 100, [{ start: 0, end: 20 }, { start: 50, end: 60 }, { start: 95, end: 120 }]), 65);
+  // négy határ 15 mp-enként (három reklám) + egy magányos csend a műsorban → egy blokk, a csendek széléig
+  const sil = [[600, 600.6], [615, 615.6], [630, 630.6], [645.2, 645.8], [1200, 1200.5]];
+  const blk = sil.slice(0, 4).map(([s, e]) => [s, e]);
+  const r = adSuggestions({ silences: sil, blacks: blk, video: true });
+  // (jelölt minden csend; a blokkhoz képes felvételnél csak a fekete képpel együtt járó számít)
+  assert.equal(r.cands.length, 5);
+  assert.equal(r.cands.filter((c) => c.strong).length, 4);
+  assert.deepEqual(r.blocks, [{ start: 600, end: 645.8 }]);
+  // fekete kép nélkül (pl. rádió) a csendek számítanak; két határ még nem blokk
+  assert.equal(adSuggestions({ silences: [[10, 10.5], [40, 40.5]] }).blocks.length, 0);
+  assert.equal(adSuggestions({ silences: [[10, 10.5], [40, 40.5], [70, 70.5]] }).blocks.length, 1);
+  // a túl rövid csend nem jelölt
+  assert.equal(adSuggestions({ silences: [[1, 1.1]] }).cands.length, 0);
+});

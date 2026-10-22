@@ -1471,7 +1471,7 @@ ${go('#/settings?section=remote', 'Távirányító telefonról')}`,
     id: 'recording',
     cat: 'watch',
     title: 'Felvétel',
-    keywords: 'felvétel rögzítés felvenni mentés ütemezés videó ts vágás ráhagyás eleje vége',
+    keywords: 'felvétel rögzítés felvenni mentés ütemezés videó ts vágás ráhagyás eleje vége reklám reklámblokk kivágás',
     body: `
 <p>Az asztali változatban (Windows, Mac, Linux) az élő adás felvehető – újrakódolás nélkül, eredeti minőségben, <code>.ts</code> fájlba, a <b>Videók / Adás felvételek</b> mappába.</p>
 <ul>
@@ -1481,7 +1481,11 @@ ${go('#/settings?section=remote', 'Távirányító telefonról')}`,
 </ul>
 <h2>Vágás</h2>
 <p>A felvétel kártyáján a <b>✂</b> gomb nyitja a vágót: előnézet, idővonal (sárga jelek: a műsor kezdete és vége a műsorújság szerint), léptetés (±1 mp / ±10 mp / ±1 perc), <b>⇤ Kezdet ide</b> és <b>Vége ide ⇥</b> (vagy az <kbd>I</kbd> / <kbd>O</kbd> billentyű), az időpontok be is írhatók; a <b>Kijelölés a műsorújság szerint</b> gomb egy lépésben beállítja őket. A <b>✂ Vágás és mentés</b> után a felvétel helyén a vágott változat lesz – ezt játssza le az Adás, és ezt nyitja meg a külső lejátszó is.</p>
-<p>Az <b>eredeti megmarad</b> (nem jelenik meg külön felvételként): újra megnyitva a vágót az eredetiből vághatsz újra (az előző kijelöléssel), vagy az <b>Eredeti visszaállítása</b> gombbal visszahozhatod a teljes felvételt. A vágott felvétel kártyáján a ✂ mellett pipa látszik. Törléskor mindkettő a Lomtárba kerül.</p>
+<h2>Reklámok kivágása</h2>
+<p>A vágóban a <b>Reklámok kivágása</b> résznél akárhány reklámot megjelölhetsz: lépj a reklám elejére, nyomd meg a <b>⟦ Reklám eleje ide</b> gombot (<kbd>[</kbd>), aztán a végén a <b>Reklám vége ide ⟧</b> gombot (<kbd>]</kbd>). A megjelölt reklámok listában és csíkozva az idővonalon is látszanak; az idejük átírható, a <b>✕</b> visszaveszi. Mentéskor a kezdet és a vég közötti részből <b>minden megjelölt reklám kimarad</b>, a többi egybefűzve marad meg. Az előnézet lejátszás közben átugorja a kijelölt reklámokat (kikapcsolható), így könnyű ellenőrizni a határokat.</p>
+<p>A <b>🔍 Reklámhatárok keresése</b> gomb segít megtalálni őket: a reklámok közé (és a műsor és a reklámblokk közé) a csatornák szinte mindig rövid csendet és fekete képet tesznek – ezeket keresi meg (kék jelek az idővonalon, köztük az <b>◀ Előző / Következő jelölt ▶</b> gombokkal lépkedhetsz). Ahol több ilyen határ sűrűn követi egymást, azt <b>Javasolt reklámblokk</b>ként ajánlja fel; a <b>+ Kivágandó</b> gomb felveszi a reklámok közé. Ez csak javaslat: mentés előtt nézz bele, és igazítsd a határokat – a műsorban is lehet csend, és nem minden csatorna tesz fekete képet a reklámok közé.</p>
+<div class="note">A vágás újrakódolás nélkül történik (gyors, a kép minősége nem romlik). Ezért a kép csak kulcskockánál folytatódhat: a reklám utáni rész az első kulcskockától indul, és az illesztéseknél egy pillanatra (legfeljebb kb. fél másodpercre) fekete kép vagy csend lehet.</div>
+<p>Az <b>eredeti megmarad</b> (nem jelenik meg külön felvételként): újra megnyitva a vágót az eredetiből vághatsz újra (az előző kijelöléssel és a megjelölt reklámokkal), vagy az <b>Eredeti visszaállítása</b> gombbal visszahozhatod a teljes felvételt. A vágott felvétel kártyáján a ✂ mellett pipa látszik. Törléskor mindkettő a Lomtárba kerül.</p>
 <p>A felvételek a <b>TV → Felvételek</b> fülön vannak (csatornalogóval, dátummal, mérettel; az elkezdettek haladásjelzővel). A <b>▶ Lejátszás</b> az Adás saját lejátszójában indítja a felvételt – tekerhetően, a félbehagyott felvétel onnan folytatódik, ahol abbahagytad. A <b>⧉</b> gomb a gép videólejátszójában (pl. VLC) nyitja meg, a <b>✕</b> a Lomtárba teszi. Itt látod a most rögzített és az ütemezett felvételeket is; a legutóbbiak a Beállítások → Felvételek alatt is ott vannak.</p>
 <div class="note">Csak a saját, otthoni nézésre: a felvett műsorok jogai a csatornáké. Néhány (titkosított vagy DRM-mel védett) adás nem rögzíthető.</div>
 ${go('#/recordings', 'Felvételek')}`,

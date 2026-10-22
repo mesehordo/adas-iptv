@@ -196,6 +196,46 @@ test('felvétel: retry közbeni leállítás pontosan egy rec-ended (H38); egyid
   assert.equal(media.recStop(a.id), false);
 });
 
+test('vágás: megtartandó szakaszok a kivágások nélkül (rendezve, összevonva, a határokra vágva)', () => {
+  const { keepRanges } = media;
+  assert.deepEqual(keepRanges(0, 100, []).keep, [[0, 100]]);
+  assert.deepEqual(keepRanges(0, 100, [{ start: 60, end: 70 }, { start: 20, end: 30 }]).keep, [[0, 20], [30, 60], [70, 100]]);
+  // átfedők egybe; a tartományon kívüli rész levágva; a túl rövid (< 0,2 mp) kivágás és maradék elhagyva
+  assert.deepEqual(keepRanges(10, 100, [{ start: 20, end: 40 }, { start: 35, end: 50 }, { start: 0, end: 12 }, { start: 80, end: 80.1 }]).keep, [[12, 20], [50, 100]]);
+  assert.deepEqual(keepRanges(0, 100, [{ start: 0, end: 100 }]).keep, []);
+  assert.deepEqual(keepRanges(0, 100, [{ start: 'x' }, null]).keep, [[0, 100]]);
+});
+
+test('reklámkivágás: határok keresése (csend + fekete kép) és több rész kivágása újrakódolás nélkül', { skip: !media.available() || !ffmpeg ? 'nincs FFmpeg' : false, timeout: 90000 }, async () => {
+  const dir = tmp('adcut');
+  const file = path.join(dir, 'Műsor.ts');
+  // 12 mp: 4–4,5 és 7–7,5 mp között fekete kép és csend (a „reklám” 4 és 7,5 között)
+  const win = "between(t,4,4.5)+between(t,7,7.5)";
+  const g = spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc=duration=12:size=160x120:rate=10', '-f', 'lavfi', '-i', 'sine=duration=12',
+    '-vf', `drawbox=c=black:t=fill:enable='${win}'`, '-af', `volume=enable='${win}':volume=0`, '-c:v', 'mpeg2video', '-g', '10', '-c:a', 'mp2', '-f', 'mpegts', file]);
+  assert.equal(g.status, 0, String(g.stderr));
+  const d = await media.recDetect(file);
+  assert.equal(d.video, true);
+  assert.equal(d.silences.length, 2, JSON.stringify(d));
+  assert.ok(Math.abs(d.silences[0][0] - 4) < 0.3 && Math.abs(d.silences[1][1] - 7.5) < 0.3, JSON.stringify(d.silences));
+  assert.equal(d.blacks.length, 2, JSON.stringify(d.blacks));
+  const r = await media.recTrim(file, 0, 12, [{ start: 4, end: 7.5 }]);
+  assert.ok(r.ok && Math.abs(r.length - 8.5) < 1.1, JSON.stringify(r));
+  // az eredeti félretéve, ideiglenes fájl nem marad; a vágott változat rövidebb
+  assert.ok(fs.existsSync(media.originalOf(file)));
+  assert.deepEqual(fs.readdirSync(path.dirname(media.originalOf(file))), ['Műsor.ts']);
+  assert.deepEqual(fs.readdirSync(dir).sort(), ['.eredeti', 'Műsor.ts']);
+  const info = media.parseInfo(String(spawnSync(ffmpeg, ['-hide_banner', '-i', file]).stderr));
+  assert.ok(info.duration > 7.5 && info.duration < 10, String(info.duration));
+  // minden kivágva → hiba, a felvétel érintetlen
+  await assert.rejects(media.recTrim(file, 0, 12, [{ start: 0, end: 12 }]));
+  assert.ok(fs.existsSync(file));
+  // a keresés leállítható
+  const p = media.recDetect(file);
+  media.recDetectStop(file);
+  await assert.rejects(p);
+});
+
 // ------------------------------------------------------------------ távirányító és beállítás-átadás (helyi kiszolgáló)
 test('távirányító: aláírt parancs (PIN és QR-kulcs), visszajátszás és hibás PIN elutasítva, korlátozás', async (t) => {
   const crypto = require('crypto');

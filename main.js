@@ -1231,7 +1231,12 @@ ipcMain.handle('rec-trash', async (_e, p) => {
   if (fs.existsSync(orig)) await shell.trashItem(orig).catch(() => {});
   return true;
 });
-ipcMain.handle('rec-trim', (_e, { path: p, start, end } = {}) => (inRecDir(p) ? media.recTrim(path.resolve(p), start, end) : Promise.reject(new Error(_t('Érvénytelen fájl')))));
+ipcMain.handle('rec-trim', (_e, { path: p, start, end, cuts } = {}) => (inRecDir(p) ? media.recTrim(path.resolve(p), start, end, cuts) : Promise.reject(new Error(_t('Érvénytelen fájl')))));
+// reklámhatárok keresése (csend + fekete kép); a haladás 'rec-detect-progress' eseményként jön
+ipcMain.handle('rec-detect', (e, p) =>
+  inRecDir(p) ? media.recDetect(path.resolve(p), (pct) => !e.sender.isDestroyed() && e.sender.send('rec-detect-progress', { path: p, pct })) : Promise.reject(new Error(_t('Érvénytelen fájl'))),
+);
+ipcMain.handle('rec-detect-stop', (_e, p) => (inRecDir(p) ? media.recDetectStop(path.resolve(p)) : false));
 ipcMain.handle('rec-original', (_e, p) => (inRecDir(p) ? { source: media.recSource(path.resolve(p)), trimmed: fs.existsSync(media.originalOf(path.resolve(p))) } : null));
 ipcMain.handle('rec-restore', (_e, p) => (inRecDir(p) ? media.recRestore(path.resolve(p)) : false));
 ipcMain.handle('cast-play', (_e, opts) => lan.castPlay(opts));
