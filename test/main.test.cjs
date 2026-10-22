@@ -236,7 +236,11 @@ test('reklámkivágás: határok keresése (csend + fekete kép) és több rész
   ékezet nélküli fájlnév: ${(fs.copyFileSync(file, path.join(dir, 'abc.ts')), sig(['-i', path.join(dir, 'abc.ts'), '-f', 'null', '-']))}
   szabványos bemenetről: ${spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-f', 'mpegts', '-i', 'pipe:0', '-f', 'null', '-'], { input: fs.readFileSync(file) }).signal || 'ok'}
   ékezet nélküli mappa (/tmp): ${(() => { const p = path.join(os.tmpdir(), `adas-diag-${process.pid}.ts`); fs.copyFileSync(file, p); const r = sig(['-i', p, '-f', 'null', '-']); fs.rmSync(p, { force: true }); return r; })()}
-  mappa: ${dir}`);
+  más formátumok olvasása: ${['mkv', 'mp4', 'mp3', 'ts'].map((ext) => {
+    const p = path.join(dir, 'fmt.' + ext);
+    const w = spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'sine=duration=1', ...(ext === 'mp3' ? [] : ['-f', 'lavfi', '-i', 'testsrc=duration=1:size=160x120:rate=10']), p]);
+    return `${ext}: írás ${w.signal || w.status}, olvasás ${sig(['-i', p, '-f', 'null', '-'])}`;
+  }).join('; ')}`);
     return t.skip(`az FFmpeg ezen a gépen összeomlik a fájl olvasásakor (${rd.signal})`);
   }
   const d = await media.recDetect(file);
