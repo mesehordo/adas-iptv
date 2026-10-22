@@ -1690,6 +1690,11 @@ body[data-theme="stardate"] {
 [data-theme="stardate"] .dcard:nth-child(3n) { border-left-color: var(--peach); }
 [data-theme="stardate"] .dcard:nth-child(3n + 1) { border-left-color: var(--sky); }
 
+/* A kawaii stílusok betűi (src/fonts, SIL Open Font License 1.1 – a licenc a betűk mellett): a Fredoka kerek,
+   buborékos betűi (Yume) és a Dancing Script kézírása (Yami címei). Mindkettő ismeri a magyar ő / ű betűt. */
+@font-face { font-family: 'Adas Fredoka'; src: url('fonts/Fredoka.ttf') format('truetype'); font-weight: 300 700; font-stretch: 75% 125%; font-display: swap; }
+@font-face { font-family: 'Adas Dancing Script'; src: url('fonts/DancingScript.ttf') format('truetype'); font-weight: 400 700; font-display: swap; }
+
 /* ======================================================================
    Yume – „álom-kawaii”: pasztell rózsaszín, levendula és menta, pöttyös háttér, buborékkártyák, csillámok
    ====================================================================== */
@@ -1697,17 +1702,17 @@ body[data-theme="yume"] {
   --bg: #fff4fa; --bg-2: #ffffff; --bg-3: #fde6f2; --bg-4: #f8d6ea; --line: #f5cde2;
   --text: #4a3a55; --text-strong: #2e2238; --muted: #8e7c9c;
   --accent: #e0428f; --accent-2: #ff7fb8; --lilac: #a78bfa; --mint: #5fd0b4; --radius: 20px; --focus: #a78bfa;
-  --font: 'M PLUS Rounded 1c', 'Varela Round', 'Nunito', 'Arial Rounded MT Bold', 'Segoe UI', system-ui, sans-serif;
+  --font: 'Adas Fredoka', 'M PLUS Rounded 1c', 'Varela Round', 'Nunito', 'Arial Rounded MT Bold', system-ui, sans-serif;
   background-color: #fff4fa;
   background-image: radial-gradient(circle, rgba(255, 170, 212, 0.55) 1.6px, transparent 2.2px), radial-gradient(circle, rgba(200, 182, 255, 0.55) 1.4px, transparent 2px),
     radial-gradient(circle at 12% 8%, #ffe1f0 0, transparent 38%), radial-gradient(circle at 88% 22%, #ece3ff 0, transparent 42%), radial-gradient(circle at 50% 105%, #dcf6ee 0, transparent 50%);
   background-size: 28px 28px, 28px 28px, auto, auto, auto; background-position: 0 0, 14px 14px, 0 0, 0 0, 0 0; background-attachment: fixed;
 }
 [data-theme="yume"] #nav.solid { background: rgba(255, 244, 250, 0.92); border-bottom: 3px dotted #f7b6d6; }
-[data-theme="yume"] .brand { color: var(--accent); transform: none; letter-spacing: 0.06em; text-shadow: 2px 2px 0 #ffd3e8; }
+[data-theme="yume"] .brand { color: var(--accent); transform: none; letter-spacing: 0.04em; font-weight: 700; text-shadow: 2px 2px 0 #ffd3e8, -1px -1px 0 #fff; }
 [data-theme="yume"] .brand::after { content: '✧'; color: var(--lilac); font-size: 0.6em; margin-left: 4px; vertical-align: super; }
 [data-theme="yume"] .links a.active { color: var(--accent); font-weight: 800; }
-[data-theme="yume"] h1, [data-theme="yume"] h2, [data-theme="yume"] .row-title { font-weight: 800; color: var(--text-strong); }
+[data-theme="yume"] h1, [data-theme="yume"] h2, [data-theme="yume"] .row-title, [data-theme="yume"] .dc-title { font-weight: 600; letter-spacing: 0.01em; color: var(--text-strong); }
 [data-theme="yume"] .row-title::before { content: '♡ '; color: var(--accent-2); }
 [data-theme="yume"] .hero { border-radius: 28px; }
 [data-theme="yume"] .hero-slide { background: linear-gradient(135deg, #ffd9ec 0%, #e8deff 55%, #d6f5ec 100%); }
@@ -1735,17 +1740,21 @@ body[data-theme="yami"] {
   --bg: #170e20; --bg-2: #21142e; --bg-3: #2c1a3d; --bg-4: #38224d; --line: #46295f;
   --text: #f0e4ff; --text-strong: #fff; --muted: #b8a2cf;
   --accent: #ff8fcf; --accent-2: #ffb3df; --lilac: #c4a3ff; --mint: #8ff0dc; --radius: 18px; --focus: #ff8fcf;
-  --font: 'M PLUS Rounded 1c', 'Varela Round', 'Nunito', 'Arial Rounded MT Bold', 'Segoe UI', system-ui, sans-serif;
+  --font: 'Nunito', 'Segoe UI', system-ui, -apple-system, sans-serif;
   background-color: #170e20;
   background-image: radial-gradient(1.4px 1.4px at 30px 40px, rgba(255, 255, 255, 0.7), transparent), radial-gradient(1.2px 1.2px at 140px 90px, rgba(255, 198, 232, 0.7), transparent), radial-gradient(1.6px 1.6px at 220px 20px, rgba(217, 196, 255, 0.7), transparent), radial-gradient(1px 1px at 90px 170px, rgba(255, 255, 255, 0.6), transparent),
     radial-gradient(circle at 15% 0%, #3b1a4f 0, transparent 45%), radial-gradient(circle at 90% 30%, #2a1b52 0, transparent 45%);
   background-size: 260px 200px, 260px 200px, 260px 200px, 260px 200px, auto, auto; background-attachment: fixed;
 }
 [data-theme="yami"] #nav.solid { background: rgba(23, 14, 32, 0.92); border-bottom: 2px solid transparent; border-image: linear-gradient(90deg, var(--accent), var(--lilac), var(--mint)) 1; }
-[data-theme="yami"] .brand { color: var(--accent); transform: none; letter-spacing: 0.06em; text-shadow: 0 0 12px rgba(255, 143, 207, 0.6); }
+[data-theme="yami"] .brand { color: var(--accent); transform: none; font-size: 2em; text-shadow: 0 0 12px rgba(255, 143, 207, 0.6); }
 [data-theme="yami"] .brand::after { content: '♡'; color: var(--lilac); font-size: 0.6em; margin-left: 4px; vertical-align: super; }
 [data-theme="yami"] .links a.active { color: var(--accent); font-weight: 800; text-shadow: 0 0 10px rgba(255, 143, 207, 0.5); }
-[data-theme="yami"] h1, [data-theme="yami"] h2, [data-theme="yami"] .row-title { font-weight: 800; }
+[data-theme="yami"] h1, [data-theme="yami"] h2, [data-theme="yami"] .row-title, [data-theme="yami"] .dc-title, [data-theme="yami"] .brand { font-family: 'Adas Dancing Script', 'Segoe Script', 'Brush Script MT', cursive; font-weight: 700; letter-spacing: 0; text-transform: none; }
+[data-theme="yami"] h1 { font-size: 2.1em; }
+[data-theme="yami"] .row-title, [data-theme="yami"] .dc-title { font-size: 1.3em; }
+/* (a címsorban lévő kis linkek – „Beállítás ›” – olvasható betűvel) */
+[data-theme="yami"] .dc-title .dc-link, [data-theme="yami"] .row-title .see-all { font-family: var(--font); font-size: 0.62em; font-weight: 700; }
 [data-theme="yami"] .row-title::before { content: '✦ '; color: var(--lilac); }
 [data-theme="yami"] .hero { border-radius: 26px; }
 [data-theme="yami"] .hero-slide { background: linear-gradient(135deg, #4a1d5e 0%, #2b1f5c 60%, #173a4a 100%); }

@@ -117,6 +117,8 @@ export async function buildWebBundle(appDir, { flagScript }) {
   fs.writeFileSync(path.join(appDir, 'index.html'), htmlSrc);
 
   for (const f of fs.readdirSync(r('src/avatars'))) copy(r('src/avatars', f), path.join(appDir, 'avatars', f));
+  // a stílusok betűi a licencükkel (a stíluslap a csomag gyökeréből hivatkozik rájuk: fonts/…)
+  if (fs.existsSync(r('src/fonts'))) for (const f of fs.readdirSync(r('src/fonts'))) copy(r('src/fonts', f), path.join(appDir, 'fonts', f));
   // Beépített (a programmal szállított) VOD-listák
   if (fs.existsSync(r('src/lists'))) for (const f of fs.readdirSync(r('src/lists'))) copy(r('src/lists', f), path.join(appDir, 'lists', f));
   if (fs.existsSync(r('src/data'))) for (const f of fs.readdirSync(r('src/data'))) copy(r('src/data', f), path.join(appDir, 'data', f));
