@@ -50,6 +50,12 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
+**Színváltozatok, gyorsabb működés, Android háttérlejátszás (1.29.1)**
+- **Színváltozatok**: a legtöbb felületstílusnak az eredeti mellett három színváltozata is van (pl. Kék, Zöld, Lila) – a Beállítások → Megjelenés alatt, a minták alatti *Színváltozat* sorban; a stílus és a változat már a profil létrehozásakor is választható (első indítás, Profilok kezelése).
+- **Gyorsabb**: a csatornalista gyorsítótárból jóval gyorsabban töltődik be; a Sport oldal kb. háromszor gyorsabban nyílik; rádiós keresés és böngészés után a műsorújság nem dolgozódik fel fölöslegesen újra; a TV oldal görgetése kevesebb munkával jár; a gyorsítótár magától takarít (eddig korlátlanul nőtt).
+- **Android háttérlejátszás**: a háttérben szóló adás nem szakad meg, és visszatéréskor az Adás nem indul újra elölről; a kis ablak bezárása leállítja a lejátszást; lezárt képernyőnél sem alszik el a Wi-Fi.
+- **DASH-adások**: dash.js 5 (a minőségválasztás és a hangsávok is működnek).
+- **Javítások**: régi LG tévéken (webOS 4) betöltési hiba; feliratok ZIP-ből LG-n; ismétlődő naptáresemények a Sportfigyelőben; elalvási időzítő kivetítéskor; statisztika háttérlejátszásnál; NAS-listák frissítése; a súgó számos pontosítása.
 **12 új felületstílus, Android fektetve, műsorújság (1.29.0)**
 - **Új stílusok**: Kontraszt (nagy kontrasztú, gyengénlátóknak), Nagybetűs (idősebb nézőknek), Shiro, Yoru (éjszakai mozi), Mori (erdő), Natsu (nyár), Fuyu (tél), Deco (art deco), Shōwa (70-es évek), Mu (szinte üres), Holo (sci-fi irányítópult), Csillagidő (egy csillaghajó hídjának kezelőfelülete).
 - **Android, fektetett telefon**: a főoldal csempéi nem préselődnek a képernyő magasságába (levágott címek, kicsúszó tartalom helyett két oszlop, görgethető); a rádió mini-lejátszója nem takarja el az alsó menüsávot; a menüpontok mellett nincs sárga fókuszcsík.
