@@ -1,5 +1,6 @@
 // Nézetek: főoldal, böngészés, kedvencek, keresés, műsorújság, beállítások, profilok.
 import { $, $$, esc, html, norm, hashHue, fmtTime, fmtDay, dayStart, dayLabel, toast, bus, seededShuffle, debounce } from './util.js';
+import { themePicker } from './themepicker.js';
 import { api, IS_TV, IS_ANDROID } from './api.js';
 import { store, BUILTIN_EPG, epgSourceName, PROFILE_COLORS, DEFAULT_PLAYLIST, BUILTIN_PLAYLISTS, AVATAR_COUNT, avatarUrl, validateImport } from './store.js';
 import { epg } from './epg.js';
@@ -13,7 +14,7 @@ import {
   logoHtml, emptyState, avatarHtml, rowTitleHtml, seeAllHtml, rowOrderEditor, tvTabs, safeImgData,
 } from './components.js';
 import { player, stopPreview, PLAYER_BUTTONS } from './player.js';
-import { THEMES, currentTheme, applyTheme, profileRows, defaultRows, rowLabel } from './themes.js';
+import { THEMES, currentTheme, currentVariant, applyTheme, profileRows, defaultRows, rowLabel } from './themes.js';
 import { renderLists } from './lists.js';
 import { renderVodLists, renderOwnLists, searchVod, vcardHtml, vod, vodFavItems, loadVod } from './vod.js';
 import { renderHuSettings } from './subtitles.js';
@@ -51,14 +52,6 @@ function popular(list) {
   );
 }
 
-/** Világos-e egy #rgb / #rrggbb szín (a saját témák előnézetén ehhez igazodik a felirat színe). */
-function isLightColor(c) {
-  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(c || '').trim());
-  if (!m) return false;
-  const h = m[1].length === 3 ? m[1].replace(/./g, '$&$&') : m[1];
-  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
-  return 0.299 * r + 0.587 * g + 0.114 * b > 160;
-}
 
 
 function lazyRows(container, factories, initial = 4) {
@@ -1245,9 +1238,7 @@ function renderAppearance(box) {
       <select data-theme-select>${Object.entries(THEMES)
         .map(([id, t]) => `<option value="${id}" ${id === theme ? 'selected' : ''}>${esc(t.label)}</option>`)
         .join('')}</select></label>
-    <div class="theme-swatches">${Object.keys(THEMES)
-      .map((id) => { const cp = THEMES[id].custom?.preview || []; return `<button class="theme-swatch ${id === theme ? 'sel' : ''} ${isLightColor(cp[0]) ? 'light' : ''}" data-theme-pick="${esc(id)}" data-preview="${esc(id)}" title="${esc(THEMES[id].label)}" ${cp[0] ? `style="background:${esc(cp[0])}"` : ''}><i ${cp[1] ? `style="background:${esc(cp[1])}"` : ''}></i><i ${cp[2] ? `style="background:${esc(cp[2])}"` : ''}></i><i></i><span>${esc(THEMES[id].label)}</span></button>`; })
-      .join('')}</div>
+    <div class="tp-slot"></div>
     <div class="ct-box"></div>
     <h3>${_t('A TV oldal sorai')}</h3>
     <p class="muted">${_t('Húzással vagy a nyilakkal rendezheted, a kapcsolóval elrejtheted a sorokat.')}</p>
@@ -1262,24 +1253,24 @@ function renderAppearance(box) {
     resetMsg: _t('A TV oldal sorai visszaálltak az alapértelmezettre'),
   });
 
-  const setTheme = (id) => {
+  // minták + a kiválasztott téma színváltozatai (azonnal alkalmazva; a változat témánként megmarad)
+  const save = (id, variant) => {
+    store.profile.themeVariants = { ...(store.profile.themeVariants || {}), [id]: variant };
+    if (!variant) delete store.profile.themeVariants[id];
     store.setProfileValue('theme', id);
     applyTheme();
     box.querySelector('[data-theme-select]').value = id;
     box.querySelector('.theme-desc').textContent = THEMES[id].desc;
-    box.querySelectorAll('.theme-swatch').forEach((b) => b.classList.toggle('sel', b.dataset.themePick === id));
   };
+  const tp = themePicker({ theme, variant: currentVariant(theme)?.id || '', compact: false, onChange: save });
+  box.querySelector('.tp-slot').replaceWith(tp.el);
   box.addEventListener('change', (e) => {
     if (e.target.matches('[data-theme-select]')) {
       e.stopPropagation();
-      setTheme(e.target.value);
-    }
-  });
-  box.addEventListener('click', (e) => {
-    const pick = e.target.closest('[data-theme-pick]');
-    if (pick) {
-      e.stopPropagation();
-      setTheme(pick.dataset.themePick);
+      // (a legördülőből választva a téma megjegyzett változata él tovább)
+      const id = e.target.value;
+      save(id, store.profile.themeVariants?.[id] || '');
+      renderAppearance(box);
     }
   });
 }
@@ -1463,6 +1454,8 @@ function editProfile(prof, done) {
     <div class="avatar-slot"></div>
     <div>${_t('<b>Szín</b>')} <small class="muted">${_t('(a betűs profilképhez és a kiemelésekhez)')}</small></div>
     <div class="swatches">${PROFILE_COLORS.map((c) => `<button type="button" class="swatch ${c === color ? 'sel' : ''}" data-c="${c}" style="background:${c}" aria-label="${_t('Szín')}"></button>`).join('')}</div>
+    <div>${_t('<b>Kinézet</b>')} <small class="muted">${_t('(téma és színváltozat ehhez a profilhoz)')}</small></div>
+    <div class="tp-slot"></div>
     <label class="setting"><span>${_t('<b>Gyerekprofil</b>')}<small>${_t('Csak gyerek-, családi, animációs és oktatási csatornák.')}</small></span>
       <input type="checkbox" class="switch" name="kids" ${prof?.kids ? 'checked' : ''} /></label>
     <div class="setting"><span>${_t('<b>Profilzár (PIN-kód)</b>')}<small class="pin-state"></small></span>
@@ -1472,6 +1465,9 @@ function editProfile(prof, done) {
       ${!isNew && store.profiles.length > 1 ? `<button class="btn danger" type="button" data-del>${_t('Profil törlése')}</button>` : ''}</div>
   </form>`);
   el.querySelector('.avatar-slot').replaceWith(picker.el);
+  const pTheme = prof?.theme && THEMES[prof.theme] ? prof.theme : 'netflix';
+  const tp = themePicker({ theme: pTheme, variant: prof?.themeVariants?.[pTheme] || '' });
+  el.querySelector('.tp-slot').replaceWith(tp.el);
   const close = openModal(el, { cls: 'medium' });
   // PIN: mentéskor érvényesül. undefined = nem változik, null = törlés, '1234' = új
   let newPin;
@@ -1511,6 +1507,10 @@ function editProfile(prof, done) {
     const target = isNew ? store.addProfile(name, color, kids, avatar) : Object.assign(prof, { name, color, kids, avatar });
     // A saját kép csak akkor marad meg, ha az van kiválasztva (ne foglaljon fölöslegesen helyet).
     target.avatarData = avatarData;
+    const look = tp.value();
+    target.theme = look.theme;
+    target.themeVariants = { ...(target.themeVariants || {}), [look.theme]: look.variant };
+    if (!look.variant) delete target.themeVariants[look.theme];
     if (newPin !== undefined) setPin(target, newPin);
     store.save();
     bus.emit('profile');

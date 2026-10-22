@@ -354,6 +354,8 @@ export function cleanProfile(p) {
   for (const k of ['dailyLimit', 'maxAge']) if (p[k] != null) p[k] = Math.max(0, Math.min(k === 'maxAge' ? 18 : 24 * 60, Math.round(num(p[k]))));
   for (const k of ['statsOff', 'nightAudio', 'dashAuto']) if (p[k] != null) p[k] = !!p[k];
   for (const [k, max] of [['prefAudio', 20], ['prefSubs', 20], ['lastChannel', 500], ['theme', 100], ['dashNote', 5000]]) if (p[k] != null) p[k] = str(p[k], max);
+  // témánként a választott színváltozat (themes.js): { téma: változat }
+  if (p.themeVariants != null) p.themeVariants = objMap(p.themeVariants, (x) => (typeof x === 'string' && /^[a-z]{2,12}$/.test(x) ? x : null), 200);
   if (p.dash != null) {
     const d = p.dash;
     p.dash = d && typeof d === 'object' && Array.isArray(d.units)

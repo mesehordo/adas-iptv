@@ -4,7 +4,9 @@
 
 ## Felületstílusok
 
-Profilonként választható a **Beállítások → Megjelenés** legördülő menüjében:
+Profilonként választható a **Beállítások → Megjelenés** alatt, és már a profil létrehozásakor (első indítás, Profilok kezelése). A legtöbb stílusnak az eredeti mellett **három színváltozata** is van (pl. Kék, Zöld, Lila): a változat a stílus színes elemeit a választott színcsaládra fordítja (OKLCH-árnyalat, a világosság és az olvashatóság marad; a szürke árnyalatok és az állapotszínek nem változnak). A fekete-fehér kiemelésű stílusok (Manga, Mu) színes kiemelőt kapnak, a Kontraszt akadálymentességi okból változat nélküli.
+
+A stílusok:
 
 | Stílus | Jellemzői |
 |---|---|

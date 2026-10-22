@@ -2,6 +2,8 @@
 // A nyelvválasztás újratöltéssel jár (a felület minden szövege az új nyelven épül fel); a folytatás
 // helyét a localStorage őrzi, így a varázsló a következő lépéssel folytatódik.
 import { esc, html } from './util.js';
+import { themePicker } from './themepicker.js';
+import { applyTheme } from './themes.js';
 import { store, PROFILE_COLORS, AVATAR_COUNT } from './store.js';
 import { avatarPicker } from './views.js';
 import { _t, LANGS, lang, savedLang, suggestedLang, setLanguage } from './i18n.js';
@@ -57,7 +59,7 @@ function enterToAvatars(input, picker) {
   };
 }
 
-const dots = (i) => `<div class="ob-dots" aria-hidden="true">${[0, 1, 2].map((k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>`;
+const dots = (i) => `<div class="ob-dots" aria-hidden="true">${[0, 1, 2, 3].map((k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>`;
 
 /**
  * A varázsló futtatása a megadott (teljes képernyős) elemben. → Promise, amely a profilok
@@ -68,7 +70,7 @@ export function runOnboarding(root) {
   root.classList.add('onboarding');
   document.body.classList.add('picking');
   return new Promise((resolve) => {
-    const state = { name: '', kidsName: _t('Gyerekek'), me: null, kids: null };
+    const state = { name: '', kidsName: _t('Gyerekek'), me: null, kids: null, theme: 'netflix', variant: '' };
 
     // 1. lépés: nyelv
     const stepLang = () => {
@@ -130,8 +132,8 @@ export function runOnboarding(root) {
           return;
         }
         state.me = picker.value();
-        setStep('kids');
-        stepKids();
+        setStep('look');
+        stepLook();
       };
       enterToAvatars(input, picker);
       root.onclick = (e) => {
@@ -146,7 +148,38 @@ export function runOnboarding(root) {
       input.focus();
     };
 
-    // 3. lépés: gyerekprofil (átugorható)
+    // 3. lépés: kinézet (téma és színváltozat) – azonnali előnézettel; később a Beállítások → Megjelenés alatt is
+    const stepLook = () => {
+      root.innerHTML = `<div class="ob">
+        <div class="brand big">ADÁS</div>
+        <h1>${esc(_t('Válassz kinézetet'))}</h1>
+        <p class="muted">${esc(_t('A téma és a színe profilonként választható – később a Beállítások → Megjelenés alatt is módosíthatod.'))}</p>
+        <div class="ob-tp"></div>
+        <div class="ob-btns"><button class="btn" data-back>${esc(_t('Vissza'))}</button><button class="btn primary big" data-next>${esc(_t('Tovább'))} →</button></div>
+        ${dots(2)}
+      </div>`;
+      const tp = themePicker({
+        theme: state.theme,
+        variant: state.variant,
+        onChange: (theme, variant) => {
+          state.theme = theme;
+          state.variant = variant;
+          applyTheme({ theme, variant });
+        },
+      });
+      root.querySelector('.ob-tp').replaceWith(tp.el);
+      applyTheme({ theme: state.theme, variant: state.variant });
+      root.onclick = (e) => {
+        if (e.target.closest('[data-back]')) return stepProfile();
+        if (e.target.closest('[data-next]')) {
+          setStep('kids');
+          stepKids();
+        }
+      };
+      (tp.el.querySelector('.theme-swatch.sel') || root.querySelector('[data-next]'))?.focus();
+    };
+
+    // 4. lépés: gyerekprofil (átugorható)
     const stepKids = () => {
       const picker = avatarPicker({ avatar: state.kids ? state.kids.avatar : 6, avatarData: state.kids?.avatarData, color: PROFILE_COLORS[3], name: state.kidsName });
       root.innerHTML = `<div class="ob">
@@ -156,7 +189,7 @@ export function runOnboarding(root) {
         <label class="ob-field">${esc(_t('Név'))}<input class="input" name="kname" maxlength="20" autocomplete="off" value="${esc(state.kidsName)}" /></label>
         <div class="ob-av"></div>
         <div class="ob-btns"><button class="btn" data-back>${esc(_t('Vissza'))}</button><button class="btn" data-skip>${esc(_t('Kihagyom'))}</button><button class="btn primary big" data-create>${esc(_t('Létrehozom'))}</button></div>
-        ${dots(2)}
+        ${dots(3)}
       </div>`;
       root.querySelector('.ob-av').replaceWith(picker.el);
       const input = root.querySelector('input[name="kname"]');
@@ -166,7 +199,7 @@ export function runOnboarding(root) {
         if (e.target.closest('[data-back]')) {
           state.kidsName = input.value;
           state.kids = picker.value();
-          return stepProfile();
+          return stepLook();
         }
         if (e.target.closest('[data-skip]')) return finish(null);
         if (e.target.closest('[data-create]')) finish({ name: input.value.trim() || _t('Gyerekek'), ...picker.value() });
@@ -178,6 +211,9 @@ export function runOnboarding(root) {
       store.profiles = [];
       const me = store.addProfile(state.name, PROFILE_COLORS[0], false, state.me.avatar);
       me.avatarData = state.me.avatarData;
+      // a választott kinézet (a gyerekprofil az alapértelmezettel indul)
+      me.theme = state.theme;
+      if (state.variant) me.themeVariants = { [state.theme]: state.variant };
       if (kids) {
         const k = store.addProfile(kids.name, PROFILE_COLORS[3], true, kids.avatar);
         k.avatarData = kids.avatarData;
@@ -208,7 +244,8 @@ export function runOnboarding(root) {
 
     const step = getStep();
     if (step === 'kids' && state.me) stepKids();
-    else if (step === 'profile' || step === 'kids') stepProfile();
+    else if (step === 'look' && state.me) stepLook();
+    else if (step === 'profile' || step === 'kids' || step === 'look') stepProfile();
     else stepLang();
   });
 }

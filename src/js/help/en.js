@@ -54,7 +54,7 @@ export const ARTICLES = [
     title: 'The first start',
     keywords: 'start loading slow first time profile country language',
     body: `
-<p>At the first start, a short wizard asks for the <b>interface language</b>, then creates your <b>profile</b> (name and profile picture) and, if you like, a <b>kids profile</b> (this can be skipped). Then the program downloads the channel list and the channel data (countries, languages, logos, categories – about 25 MB in total). Depending on your connection this can take half a minute; afterwards the processed list is saved, so later starts take only a few seconds.</p>
+<p>At the first start, a short wizard asks for the <b>interface language</b>, then creates your <b>profile</b> (name and profile picture), lets you choose its <b>look</b> (style and colour variant) and, if you like, creates a <b>kids profile</b> (this can be skipped). Then the program downloads the channel list and the channel data (countries, languages, logos, categories – about 25 MB in total). Depending on your connection this can take half a minute; afterwards the processed list is saved, so later starts take only a few seconds.</p>
 <h2>What happens in the background?</h2>
 <ol>
 <li><b>Channel list</b>: download and processing (refreshes itself every 6 hours).</li>
@@ -753,6 +753,9 @@ ${go('#/profiles', 'Manage profiles')}`,
     body: `
 <p>The look of the interface can be chosen per profile: <b>Settings → Appearance → Interface style</b> (drop-down menu, or click the samples). The change takes effect immediately.</p>
 <p>The <b>layout is the same in every style</b> (top menu bar, the same card sizes, rows and cards on the home page) – the style only gives the look: colours, font, borders, shadows, background patterns, animations.</p>
+<h2>Colour variants</h2>
+<p>Besides the original, most styles have <b>three colour variants</b> (e.g. Blue, Green, Purple): choose one in the <i>Colour variant</i> row under the samples. A variant turns every coloured element of the style – highlights, buttons, borders, decorations – into the chosen colour family; the background brightness and the readability of text stay the same, and black, white and grey shades as well as status colours (working / error, recording, LIVE) are kept. For styles with a black-and-white highlight (e.g. Manga, Mu) the variant adds a coloured highlight. The variant is remembered per style and per profile; the High contrast style has no variants, for accessibility.</p>
+<p>The style and colour variant can already be chosen when creating a profile (at the first start and under Manage profiles), and when editing a profile.</p>
 <table class="help-table">
 <tr><th colspan="2">Dark styles</th></tr>
 <tr><td><b>Kurenai</b></td><td>(crimson) Evening cinema: black background, red highlights, cards that grow on hover.</td></tr>

@@ -41,6 +41,15 @@ try {
   NON_WORD = /[^0-9A-Za-zÀ-ɏͰ-ϿЀ-ӿ ]/g;
 }
 
+/** Világos-e egy #rgb / #rrggbb szín (a saját témák előnézetén ehhez igazodik a felirat színe). */
+export function isLightColor(c) {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(c || '').trim());
+  if (!m) return false;
+  const h = m[1].length === 3 ? m[1].replace(/./g, '$&$&') : m[1];
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+  return 0.299 * r + 0.587 * g + 0.114 * b > 160;
+}
+
 export function initials(name) {
   const words = String(name).replace(NON_WORD, ' ').split(/\s+/).filter(Boolean);
   if (!words.length) return '?';

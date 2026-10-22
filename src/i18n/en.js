@@ -2296,5 +2296,16 @@ export default {
  "Az Adás nem tudott elindulni: {msg}": "Adás could not start: {msg}",
  "Kontraszt": "High contrast",
  "Nagybetűs": "Large text",
- "Csillagidő": "Stardate"
+ "Csillagidő": "Stardate",
+ "Válassz kinézetet": "Choose a look",
+ "A téma és a színe profilonként választható – később a Beállítások → Megjelenés alatt is módosíthatod.": "Theme and colour are chosen per profile – you can change them later under Settings → Appearance.",
+ "Színváltozat": "Colour variant",
+ "Eredeti": "Original",
+ "Narancs": "Orange",
+ "Arany": "Gold",
+ "Türkiz": "Teal",
+ "Lila": "Purple",
+ "Rózsaszín": "Pink",
+ "<b>Kinézet</b>": "<b>Look</b>",
+ "(téma és színváltozat ehhez a profilhoz)": "(theme and colour variant for this profile)"
 };

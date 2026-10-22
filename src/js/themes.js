@@ -1,5 +1,6 @@
 // Felületstílusok (profilonként választható) és a főoldali sorok sorrendje.
 import { store } from './store.js';
+import { variantsFor, hueOf, applyVariantCss } from './themevariants.js';
 import { categoryName, countryName } from './catalog.js';
 
 import { _t } from './i18n.js';
@@ -152,13 +153,49 @@ export const THEMES = {
   },
 };
 
+// ---------------------------------------------------------------- színváltozatok (themevariants.js)
+// témánként kézzel választott színcsaládok – ahol az automatikus választás nem szép (a sorrend a választóban)
+const VARIANT_PICKS = {
+  // (akadálymentes téma: a sárga fókuszkeret és a nagy kontraszt a lényege – nincs színváltozata)
+  contrast: [],
+};
+const accentCache = new Map();
+/** A téma kiemelőszíne a stíluslapból (body[data-theme] / az alaptémánál :root --accent). */
+function themeAccent(id) {
+  if (accentCache.has(id)) return accentCache.get(id);
+  let acc = '';
+  const want = id === 'netflix' ? /^:root$/ : new RegExp(`^body\\[data-theme="${id}"\\]$|^\\[data-theme="${id}"\\]$`);
+  for (const sheet of document.styleSheets) {
+    let rules;
+    try {
+      rules = sheet.cssRules;
+    } catch {
+      continue;
+    }
+    for (const r of rules) if (r.type === 1 && want.test(r.selectorText) && r.style.getPropertyValue('--accent')) acc = r.style.getPropertyValue('--accent').trim();
+  }
+  accentCache.set(id, acc);
+  return acc;
+}
+/** A téma színváltozatai (az eredeti nélkül): [{ id, family, deg }]; saját témának nincs. */
+export function themeVariants(id) {
+  if (!THEMES[id] || THEMES[id].custom) return [];
+  return variantsFor(hueOf(themeAccent(id)), VARIANT_PICKS[id]);
+}
+/** A profil választott változata az adott témához (vagy null: eredeti). */
+export function currentVariant(id = currentTheme(), p = store.profile) {
+  const vid = p?.themeVariants?.[id];
+  return (vid && themeVariants(id).find((v) => v.id === vid)) || null;
+}
+
 export function currentTheme() {
   const id = store.profile?.theme;
   return THEMES[id] ? id : 'netflix';
 }
 
-export function applyTheme() {
-  const id = currentTheme();
+/** A téma alkalmazása – a profilé, vagy (forced: { theme, variant }) egy megadott, profil nélkül (pl. előnézet). */
+export function applyTheme(forced = null) {
+  const id = forced && THEMES[forced.theme] ? forced.theme : currentTheme();
   const t = THEMES[id];
   const def = t.custom;
   // Saját téma: a body egy beépített témára (vagy semmire) épül, a saját színek / CSS a data-custom alatt
@@ -174,6 +211,11 @@ export function applyTheme() {
     document.head.append(style);
   }
   style.textContent = def ? def.compiled : '';
+  // színváltozat (saját témánál nincs)
+  const variant = def ? null : forced ? themeVariants(id).find((v) => v.id === forced.variant) || null : currentVariant(id);
+  if (variant) document.body.dataset.variant = variant.id;
+  else delete document.body.dataset.variant;
+  applyVariantCss(id, variant);
   fitThumbInk();
 }
 

@@ -283,3 +283,54 @@ test('sportnaptár (V10): RRULE + EXDATE + DTEND, módosított alkalom, élő á
   assert.equal(icsDuration('P1DT2H'), 26 * 3600e3);
   assert.equal(icsDuration('PT90M'), 90 * 60e3);
 });
+
+// ------------------------------------------------------------------ témák színváltozatai
+import { rotateColor, hueOf, variantsFor } from '../../src/js/themevariants.js';
+
+test('színváltozat: az árnyalat fordul, a szürke / fekete / fehér és az átlátszóság marad', () => {
+  assert.equal(rotateColor('#ffffff', 120), '#ffffff');
+  assert.equal(rotateColor('#141414', 120), '#141414');
+  assert.equal(rotateColor('rgba(128, 128, 128, 0.5)', 90), 'rgba(128, 128, 128, 0.5)');
+  const red = '#e50914';
+  const blue = rotateColor(red, 228);
+  assert.ok(blue !== red);
+  assert.ok(Math.abs(((hueOf(blue) - 255 + 540) % 360) - 180) < 12, 'kékbe fordult: ' + blue);
+  assert.ok(/rgba\(\d+, \d+, \d+, 0\.3\)/.test(rotateColor('rgba(229, 9, 20, 0.3)', 120)), 'az átlátszóság marad');
+});
+
+test('színváltozat: témánként 3 változat, egymástól és az eredetitől távoli színcsaládok; fekete-fehér kiemelésnél színes kiemelő', () => {
+  const v = variantsFor(27);
+  assert.equal(v.length, 3);
+  assert.ok(v.every((x) => Math.abs(x.deg) >= 60 || Math.abs(x.deg) > 300));
+  assert.equal(new Set(v.map((x) => x.id)).size, 3);
+  const tint = variantsFor(null);
+  assert.equal(tint.length, 3);
+  assert.ok(tint.every((x) => x.tint));
+  assert.deepEqual(variantsFor(27, []), [], 'kézzel kizárva (pl. a Kontraszt)');
+});
+
+test('színváltozat: alkalmazás és visszaállítás – a stíluslap az eredeti értékre áll vissza', async () => {
+  const { store } = await import('../../src/js/store.js');
+  const T = await import('../../src/js/themes.js');
+  const before = { theme: store.profile.theme, tv: store.profile.themeVariants };
+  try {
+    store.profile.theme = 'holo';
+    store.profile.themeVariants = {};
+    T.applyTheme();
+    const acc0 = getComputedStyle(document.body).getPropertyValue('--accent').trim();
+    const v = T.themeVariants('holo')[0];
+    store.profile.themeVariants = { holo: v.id };
+    T.applyTheme();
+    assert.equal(document.body.dataset.variant, v.id);
+    const acc1 = getComputedStyle(document.body).getPropertyValue('--accent').trim();
+    assert.ok(acc1 !== acc0, acc1);
+    store.profile.themeVariants = {};
+    T.applyTheme();
+    assert.equal(getComputedStyle(document.body).getPropertyValue('--accent').trim(), acc0);
+    assert.ok(!document.body.dataset.variant);
+  } finally {
+    store.profile.theme = before.theme;
+    store.profile.themeVariants = before.tv;
+    T.applyTheme();
+  }
+});
