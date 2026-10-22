@@ -217,7 +217,8 @@ test('reklámkivágás: határok keresése (csend + fekete kép) és több rész
   const rd = spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-i', file, '-f', 'null', '-']);
   // (a johnvansickle-féle statikus Linux-build – így az ffmpeg-static is – a CI-gépen minden MPEG-TS olvasásakor
   // SIGSEGV-vel leáll, H.264 / AAC-nál is; ott nincs mit mérni)
-  if (rd.signal) return t.skip(`az FFmpeg ezen a gépen összeomlik a fájl olvasásakor (${rd.signal})`);
+  if (rd.signal === 'SIGSEGV' && process.platform === 'linux') return t.skip(`az FFmpeg ezen a gépen összeomlik a fájl olvasásakor (${rd.signal})`);
+  assert.equal(rd.signal, null, 'az FFmpeg váratlanul leállt'); // (más jel – pl. SIGKILL – hiba, nem kihagyás)
   const d = await media.recDetect(file);
   assert.equal(d.video, true);
   assert.equal(d.silences.length, 2, JSON.stringify(d));
