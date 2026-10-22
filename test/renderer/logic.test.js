@@ -334,3 +334,12 @@ test('színváltozat: alkalmazás és visszaállítás – a stíluslap az erede
     T.applyTheme();
   }
 });
+
+test('gyorsítótár (kv): JSON-szövegként oda-vissza – nagy, egymásba ágyazott objektum, ékezet, hiányzó kulcs', async () => {
+  const big = { v: 1, at: 1, channels: Array.from({ length: 3000 }, (_, i) => ({ id: 'c' + i, name: 'Csatorna ' + i + ' – ő ű', tags: ['a', 'b'], n: i })) };
+  await api.kvSet('teszt:kv-nagy', big);
+  const back = await api.kvGet('teszt:kv-nagy');
+  assert.equal(back.channels.length, 3000);
+  assert.equal(back.channels[2999].name, 'Csatorna 2999 – ő ű');
+  assert.equal(await api.kvGet('teszt:nincs-ilyen-kulcs'), undefined);
+});

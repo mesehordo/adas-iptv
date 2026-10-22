@@ -98,8 +98,24 @@ function regionLabel(code) {
   return code;
 }
 
-// Windowson nincsenek zászló-emojik (csak betűpár jelenik meg), ott inkább elhagyjuk őket.
-const FLAGS_OK = (() => {
+// Windowson nincsenek zászló-emojik (csak betűpár jelenik meg), ott inkább elhagyjuk őket. A vizsgálat (vászonra
+// rajzolás – a betűkészlet keresése) indításkor ~0,3 mp volt: csak az első zászlónál fut, és az eredmény megmarad.
+let flagsOk = null;
+const FLAGS_KEY = 'adas-flags-ok';
+function flagsSupported() {
+  if (flagsOk !== null) return flagsOk;
+  if (/Windows/i.test(navigator.userAgent)) return (flagsOk = false);
+  try {
+    const saved = localStorage.getItem(FLAGS_KEY);
+    if (saved === '1' || saved === '0') return (flagsOk = saved === '1');
+  } catch {}
+  flagsOk = detectFlags();
+  try {
+    localStorage.setItem(FLAGS_KEY, flagsOk ? '1' : '0');
+  } catch {}
+  return flagsOk;
+}
+function detectFlags() {
   try {
     const c = document.createElement('canvas');
     c.width = c.height = 24;
@@ -110,10 +126,12 @@ const FLAGS_OK = (() => {
     for (let i = 0; i < d.length; i += 4) if (d[i + 3] && (d[i] !== d[i + 1] || d[i + 1] !== d[i + 2])) return true;
   } catch {}
   return false;
-})();
+}
 
 export function countryFlag(code) {
-  return FLAGS_OK ? catalog.countries.get(code)?.flag || '' : '';
+  // (a támogatás vizsgálata csak létező zászlónál – üres értékhez fölösleges a vászonrajzolás)
+  const flag = catalog.countries.get(code)?.flag || '';
+  return flag && flagsSupported() ? flag : '';
 }
 
 export function languageName(code, fallback) {

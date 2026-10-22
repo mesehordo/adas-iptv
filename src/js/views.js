@@ -121,6 +121,15 @@ export function renderTv(view) {
     countries: () => !p.kids && countryTiles(),
     cattiles: () => categoryTiles(vis),
   };
+  // (kategóriánként egyszer, egy menetben – eddig minden kategória-sor a teljes listát szűrte, görgetés közben)
+  let byCat = null;
+  const catList = (cat) => {
+    if (!byCat) {
+      byCat = new Map();
+      for (const c of vis) for (const k of new Set(c.categories)) (byCat.get(k) || byCat.set(k, []).get(k)).push(c);
+    }
+    return byCat.get(cat) || [];
+  };
   const factories = profileRows()
     .filter((r) => r.on)
     .map((r) => {
@@ -128,7 +137,7 @@ export function renderTv(view) {
         const cat = r.key.slice(4);
         if (p.kids && !KIDS_CATEGORIES.has(cat)) return null;
         return () => {
-          const list = vis.filter((c) => c.categories.includes(cat));
+          const list = catList(cat);
           return list.length >= 3 ? rowEl(categoryName(cat), popular(list), { href: `#/browse?cat=${cat}` }) : null;
         };
       }

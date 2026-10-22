@@ -18,6 +18,8 @@ contextBridge.exposeInMainWorld('api', {
   sidecarImage: (videoPath) => ipcRenderer.invoke('sidecar-image', videoPath),
   kvGet: (key) => ipcRenderer.invoke('kv-get', key),
   kvSet: (key, value) => ipcRenderer.invoke('kv-set', key, value),
+  kvGetText: (key) => ipcRenderer.invoke('kv-get-text', key),
+  kvSetText: (key, text) => ipcRenderer.invoke('kv-set-text', key, text),
   docGet: (key, opts) => ipcRenderer.invoke('doc-get', key, opts),
   docSet: (key, value) => ipcRenderer.invoke('doc-set', key, value),
   packsScan: () => ipcRenderer.invoke('packs-scan'),
