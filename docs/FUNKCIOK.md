@@ -52,7 +52,7 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
-**Kontroller, feliratkeresés csak felirat nélküli fájlnál (következő kiadás)**
+**Kontroller (játékvezérlő), feliratkeresés csak felirat nélküli fájlnál (1.31.0)**
 - **Kontroller (játékvezérlő)**: asztali gépen (HTPC, Batocera-gép, kézikonzol) kontrollerrel is kezelhető – bal kar / D-pad = nyilak, A = OK, B = vissza, X = adatok, Y = keresés, LB / RB = csatornaváltás, LT / RT = tekerés, Start = lejátszás / szünet, Select = kedvencek, L3 = kedvenc, R3 = hang és felirat; a gombok a gombkiosztásban át is taníthatók, a Beállításokban kikapcsolható; már a profil létrehozásakor (első indítás, új profil) bekapcsolható és betanítható, az első gombnyomásra felismeri és kiírja a nevét. (Androidon a rendszer kezeli a kontrollert.)
 - **Feliratkeresés**: ha a fájl maga tartalmaz megjeleníthető feliratot (beágyazott MKV / MP4 felirat, HLS / DASH feliratsáv), az Adás nem keres feliratot – se a videó mellett, se online –, hanem a beágyazottat használja; kézzel ilyenkor is lehet keresni, és a filmhez korábban választott felirat is visszatöltődik.
 **Reklámok kivágása, saját gombkiosztás, két kawaii stílus, új színváltozatok, Linux-javítás (1.30.0)**
