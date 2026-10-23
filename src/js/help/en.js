@@ -424,6 +424,7 @@ ${go('#/settings?section=ownlists', 'Set up own media library')}`,
 <li><i>Off</i>: hide the subtitles.</li>
 </ul>
 <p>The chosen subtitles <b>stay with that film / episode</b> and load by themselves next time. With the <i>Search subtitles automatically</i> setting, the best subtitles (in your language or English) load automatically whenever a film / episode starts.</p>
+<p><b>If the file itself contains subtitles</b> (embedded subtitles in the MKV / MP4 file, a subtitle track of the HLS / DASH stream), Adás <b>doesn’t search anywhere</b> – neither next to the video nor online – but uses the embedded subtitles according to your profile’s setting. (Image-based subtitles such as PGS don’t count: it can’t display those, so it searches then.) You can still search by hand from the <i>Audio and subtitles</i> menu, and subtitles you chose earlier for the film load again.</p>
 <div class="note">OpenSubtitles data (key, username, password) is stored only on this device and is only ever sent to opensubtitles.com. Matching is based on the film’s title and year; old or rare films may have no subtitles in your language.</div>
 ${go('#/settings?section=huinfo', 'Subtitle settings')}`,
   },
@@ -1430,7 +1431,7 @@ ${go('#/settings?section=transfer', 'Sync between devices')}`,
     id: 'keymap',
     cat: 'personal',
     title: 'Button mapping (teaching the remote’s buttons)',
-    keywords: 'button mapping remote key learn teach android tv box keycode not working remap',
+    keywords: 'button mapping remote key learn teach android tv box keycode not working remap controller gamepad joystick htpc batocera',
     body: `
 <p>The remotes of many (mostly cheap) Android TV boxes send unusual key codes: a button then does nothing, or something else. In the <b>Button mapping</b> window you can teach any button to an action – up, down, left, right, OK, back, play / pause, stop, rewind / fast forward, channel change (CH+ / CH−), the four coloured buttons, audio and subtitles.</p>
 <ol>
@@ -1438,6 +1439,18 @@ ${go('#/settings?section=transfer', 'Sync between devices')}`,
 <li>In the action’s row press <b>Learn</b>, then within 10 seconds the button on the remote. From then on the button does this action.</li>
 <li><b>✕</b> removes a learned button, <b>Clear all</b> removes all of them.</li>
 </ol>
+<h2>Controller (gamepad)</h2>
+<p>On a computer (Windows, macOS, Linux – e.g. an HTPC or a Batocera machine) Adás can also be used with a <b>controller</b>, without mouse and keyboard: connect it (USB or Bluetooth) and press any of its buttons – Adás then detects it and shows its name. (For privacy reasons a controller only becomes visible after its first button press; until then even a plugged-in controller isn’t “seen”.) It can be switched on and set up right when creating a profile.</p>
+<table class="help-table">
+<tr><td><b>Left stick / D-pad</b></td><td>move (arrows) – repeats while held</td></tr>
+<tr><td><b>A</b> / <b>B</b></td><td>OK (select, play) / back</td></tr>
+<tr><td><b>X</b> / <b>Y</b></td><td>channel details, TV guide / search (during playback: quality, source)</td></tr>
+<tr><td><b>LB</b> / <b>RB</b></td><td>previous / next channel</td></tr>
+<tr><td><b>LT</b> / <b>RT</b></td><td>rewind / fast forward</td></tr>
+<tr><td><b>Start</b> / <b>Select</b></td><td>play / pause – favourites (during playback: channel list)</td></tr>
+<tr><td><b>L3</b> / <b>R3</b></td><td>favourite on / off – audio and subtitles</td></tr>
+</table>
+<p>The controller’s buttons can be <b>re-taught</b> in the Button mapping window (a learned button overrides the built-in assignment above). It can be switched off under Settings → Remote control and keys, where the connected controller’s name is also shown. On Android the system handles the controller itself (A = OK, B = back, D-pad = arrows); there its buttons are learned by their raw key code.</p>
 <p>The built-in buttons keep working alongside (one action can have several buttons). A button belongs to one action at a time: teaching it to another action moves it there. The mapping belongs to <b>this device</b> (the same for every profile) – another device’s remote may be different, so it isn’t included in backups or in syncing between devices.</p>
 <div class="note">On Android the button comes straight from the system, so even a button the built-in browser engine doesn’t know can be learned. The system’s own buttons (home, power, volume) can’t be learned. On the desktop any keyboard key can be learned – while typing, letters and digits stay letters and digits.</div>`,
   },

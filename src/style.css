@@ -1637,6 +1637,8 @@ body.rc-nav .tile:focus, body.rc-nav .see-all:focus { transform: scale(1.06); z-
 @keyframes km-blink { 50% { opacity: 0.45; } }
 .keymap .dialog-btns .grow { flex: 1; }
 .ob .ob-km { justify-self: center; margin: 4px auto 0; }
+.ob .ob-pad { width: 100%; margin: 4px 0 0; text-align: left; }
+.pad-setup .pad-status { margin-top: 2px; opacity: 0.85; }
 @media (max-width: 520px) { .keymap .km-list li { grid-template-columns: 1fr auto; } .keymap .km-keys { grid-column: 1 / -1; grid-row: 2; } }
 
 /* Távirányító: QR-kód a beállításokban */

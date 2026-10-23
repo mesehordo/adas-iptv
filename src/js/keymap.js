@@ -34,7 +34,10 @@ const ACTION = Object.fromEntries(KEY_ACTIONS.map((a) => [a.id, a]));
 /** Ezen a felületen melyik kiosztás érvényes (a máshol – pl. asztalon – betanított gombok itt nem számítanak). */
 export const KEY_PLATFORM = IS_ANDROID ? 'android' : IS_WEBOS ? 'webos' : window.api ? 'desktop' : 'web';
 
-/** A kiosztás tisztítva: [{ action, plat, code?, keyCode?, key?, name }] – csak ismert művelet, gombonként egy. */
+/**
+ * A kiosztás tisztítva: [{ action, plat, code?, keyCode?, key?, android?, pad?, name }] – csak ismert művelet, gombonként
+ * egy. plat: 'pad' – kontrollergomb (gamepad.js; minden felületen, ahol a kontrollert a felület kezeli).
+ */
 export function keyMapEntries(list = loadMap()) {
   const out = [];
   const seen = new Set();
@@ -47,6 +50,7 @@ export function keyMapEntries(list = loadMap()) {
       action: e.action,
       plat: e.plat,
       ...(Number.isInteger(e.android) ? { android: e.android } : {}),
+      ...(Number.isInteger(e.pad) && e.pad >= 0 && e.pad < 64 ? { pad: e.pad } : {}),
       ...(Number.isInteger(e.keyCode) ? { keyCode: e.keyCode } : {}),
       ...(typeof e.code === 'string' ? { code: e.code } : {}),
       ...(typeof e.key === 'string' ? { key: e.key } : {}),
@@ -57,13 +61,16 @@ export function keyMapEntries(list = loadMap()) {
 }
 // egy gomb azonosítója (Androidon a nyers kód; máshol a fizikai gomb kódja, a gombkód vagy a billentyű neve)
 function keyId(e) {
+  if (Number.isInteger(e.pad)) return 'p' + e.pad;
   if (Number.isInteger(e.android)) return 'a' + e.android;
   if (e.code) return 'c' + e.code;
   if (e.keyCode > 0) return 'k' + e.keyCode;
   if (e.key && e.key !== 'Unidentified') return 'n' + e.key;
   return '';
 }
-const mine = () => keyMapEntries().filter((e) => e.plat === KEY_PLATFORM);
+// (ezen a felületen érvényes: a felület saját billentyűi és a kontroller gombjai)
+const isMine = (e) => e.plat === KEY_PLATFORM || e.plat === 'pad';
+const mine = () => keyMapEntries().filter(isMine);
 
 const LS_KEY = 'adas-keymap';
 function loadMap() {
@@ -149,6 +156,24 @@ export function keyMapSummary() {
   return n ? esc(_t('{n} betanított gomb ezen az eszközön.', { n })) : esc(_t('Nincs betanított gomb – csak a beépítettek működnek.'));
 }
 
+// ---------------------------------------------------------------------------
+// Kontroller (gamepad.js): a művelet elküldése, a betanított kontrollergombok, betanítás
+// ---------------------------------------------------------------------------
+/** A szabványos kontroller-kiosztás gombjainak neve. */
+export const PAD_BUTTONS = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'Select', 'Start', 'L3', 'R3', '↑', '↓', '←', '→', 'Guide'];
+/** Egy művelet elküldése (mintha a távirányító gombját nyomták volna meg / engedték volna fel). */
+export function fireAction(id, type = 'keydown', repeat = false) {
+  if (ACTION[id]) fire(ACTION[id], null, type, repeat);
+}
+/** A kontroller i. gombjához betanított művelet (vagy null). */
+export const padOverride = (i) => mine().find((m) => m.pad === i)?.action || null;
+/** Betanítás alatt a kontroller lenyomott gombja a betanítóhoz megy. → átvette-e */
+export function padLearning(i) {
+  if (!learning) return false;
+  learning({ pad: i, name: `🎮 ${PAD_BUTTONS[i] || _t('{n}. gomb', { n: i + 1 })}` });
+  return true;
+}
+
 /** A művelet szabványos billentyűjének elküldése (OK lenyomásakor a gomb, link megnyomása is, mint igazi Enternél). */
 function fire(a, target, type = 'keydown', repeat = false) {
   const t = target || document.activeElement || document.body;
@@ -179,6 +204,7 @@ export function learnKey(ms = 10000) {
 
 /** A gomb neve emberi alakban. */
 export function keyName(e) {
+  if (Number.isInteger(e.pad)) return e.name || `🎮 ${PAD_BUTTONS[e.pad] || e.pad + 1}`;
   if (Number.isInteger(e.android)) return e.name || _t('{n}. gomb', { n: e.android });
   if (e.key && e.key !== 'Unidentified' && e.key !== ' ') return e.key.length === 1 ? e.key.toUpperCase() : e.key;
   if (e.key === ' ') return _t('Szóköz');
@@ -196,7 +222,7 @@ export async function openKeymapDialog() {
   const draw = () => {
     const list = mine();
     el.innerHTML = `<h2>${_t('🎮 Gombkiosztás')}</h2>
-      <p class="muted small">${_t('Ha a távirányítód valamelyik gombja nem működik, vagy máshová tennéd: válaszd a műveletet, nyomd meg a <b>Betanítás</b> gombot, aztán a távirányító gombját. A beépített gombok továbbra is működnek; a kiosztás ehhez az eszközhöz tartozik.')}</p>
+      <p class="muted small">${_t('Ha a távirányítód vagy a kontrollered valamelyik gombja nem működik, vagy máshová tennéd: válaszd a műveletet, nyomd meg a <b>Betanítás</b> gombot, aztán a távirányító vagy a kontroller gombját. A beépített gombok továbbra is működnek; a kiosztás ehhez az eszközhöz tartozik.')}</p>
       <ul class="km-list">${KEY_ACTIONS.map((a) => {
         const keys = list.filter((m) => m.action === a.id);
         return `<li class="${busy === a.id ? 'busy' : ''}"><span class="km-act">${esc(a.label())}</span>
@@ -220,12 +246,12 @@ export async function openKeymapDialog() {
     if (b.dataset.kmCancel != null) return learnKey.cancel?.();
     if (b.dataset.kmReset != null) {
       if (!(await confirmDialog(_t('Törlöd az összes betanított gombot? (A beépített gombok megmaradnak.)'), { ok: _t('Törlés'), danger: true }))) return;
-      save(keyMapEntries().filter((m) => m.plat !== KEY_PLATFORM));
+      save(keyMapEntries().filter((m) => !isMine(m)));
       return draw();
     }
     if (b.dataset.kmDel) {
       const [act, id] = b.dataset.kmDel.split('|');
-      save(keyMapEntries().filter((m) => !(m.plat === KEY_PLATFORM && m.action === act && keyId(m) === id)));
+      save(keyMapEntries().filter((m) => !(isMine(m) && m.action === act && keyId(m) === id)));
       draw();
       return el.querySelector(`[data-km-learn="${CSS.escape(act)}"]`)?.focus();
     }
@@ -239,8 +265,8 @@ export async function openKeymapDialog() {
     if (!el.isConnected) return;
     if (k && keyId(k)) {
       // (egy gomb egy művelethez tartozik: ha máshoz volt betanítva, onnan átkerül)
-      const entry = { ...k, action: act, plat: KEY_PLATFORM, name: k.name || keyName(k) };
-      if (save([...keyMapEntries().filter((m) => !(m.plat === KEY_PLATFORM && keyId(m) === keyId(entry))), entry])) toast(_t('{key} → {action}', { key: keyName(entry), action: ACTION[act].label() }));
+      const entry = { ...k, action: act, plat: Number.isInteger(k.pad) ? 'pad' : KEY_PLATFORM, name: k.name || keyName(k) };
+      if (save([...keyMapEntries().filter((m) => !(isMine(m) && keyId(m) === keyId(entry))), entry])) toast(_t('{key} → {action}', { key: keyName(entry), action: ACTION[act].label() }));
     } else if (k) toast(_t('Ezt a gombot a rendszer nem adja át az Adásnak – próbálj egy másikat.'));
     draw();
     el.querySelector(`[data-km-learn="${CSS.escape(act)}"]`)?.focus();

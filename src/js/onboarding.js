@@ -6,6 +6,7 @@ import { themePicker } from './themepicker.js';
 import { applyTheme } from './themes.js';
 import { store, PROFILE_COLORS, AVATAR_COUNT, BUILTIN_EPG } from './store.js';
 import { avatarPicker } from './views.js';
+import { padSetupHtml } from './gamepad.js';
 import { _t, LANGS, lang, savedLang, suggestedLang, setLanguage } from './i18n.js';
 
 const STEP_KEY = 'adas-onboard';
@@ -133,7 +134,8 @@ export function runOnboarding(root) {
         <p class="muted">${esc(_t('Hozd létre a profilodat: add meg a neved, és válassz profilképet.'))}</p>
         <label class="ob-field">${esc(_t('Név'))}<input class="input" name="name" maxlength="20" autocomplete="off" value="${esc(state.name)}" /></label>
         <div class="ob-av"></div>
-        <button class="btn small ob-km" data-keymap title="${esc(_t('Ha a távirányítód valamelyik gombja nem működik, itt betaníthatod'))}">${esc(_t('🎮 Gombkiosztás (távirányító)…'))}</button>
+        <button class="btn small ob-km" data-keymap title="${esc(_t('Ha a távirányítód valamelyik gombja nem működik, itt betaníthatod'))}">${esc(_t('🎮 Gombkiosztás (távirányító, kontroller)…'))}</button>
+        ${padSetupHtml() && `<div class="ob-pad">${padSetupHtml()}</div>`}
         <div class="ob-btns"><button class="btn" data-back>${esc(_t('Vissza'))}</button><button class="btn primary big" data-next>${esc(_t('Tovább'))} →</button></div>
         ${dots(1)}
       </div>`;

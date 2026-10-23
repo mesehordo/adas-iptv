@@ -424,6 +424,7 @@ ${go('#/settings?section=ownlists', 'Saját médiatár beállítása')}`,
 <li><i>Kikapcsolva</i>: a felirat elrejtése.</li>
 </ul>
 <p>A kiválasztott felirat <b>az adott filmhez / részhez megmarad</b>, legközelebb magától betöltődik. A <i>Felirat automatikus keresése</i> beállítással minden film / rész indításakor a legjobb (magyar vagy angol) felirat automatikusan betöltődik.</p>
+<p><b>Ha a fájl maga tartalmaz feliratot</b> (beágyazott felirat az MKV / MP4 fájlban, a HLS / DASH adás feliratsávja), az Adás <b>sehol nem keres</b> – se a videó mellett, se online –, hanem a beágyazott feliratot használja a profilod beállítása szerint. (A képalapú, pl. PGS-felirat nem számít: azt nem tudja megjeleníteni, ilyenkor keres.) Kézzel a <i>Hang és felirat</i> menüből ilyenkor is kereshetsz, és a filmhez korábban választott feliratod is visszatöltődik.</p>
 <div class="note">Az OpenSubtitles adatai (kulcs, felhasználónév, jelszó) csak ezen az eszközön tárolódnak, és kizárólag az opensubtitles.com felé kerülnek elküldésre. A felirat találata a film címén és évén alapul; régi vagy ritka filmekhez lehet, hogy nincs magyar felirat.</div>
 ${go('#/settings?section=huinfo', 'Felirat-beállítások')}`,
   },
@@ -1430,7 +1431,7 @@ ${go('#/settings?section=transfer', 'Szinkronizálás eszközök között')}`,
     id: 'keymap',
     cat: 'personal',
     title: 'Gombkiosztás (távirányító gombjainak betanítása)',
-    keywords: 'gombkiosztás gomb távirányító billentyű betanítás android tv doboz box gombkód nem működik átállítás kiosztás',
+    keywords: 'gombkiosztás gomb távirányító billentyű betanítás android tv doboz box gombkód nem működik átállítás kiosztás kontroller játékvezérlő gamepad joystick xbox playstation htpc batocera',
     body: `
 <p>Sok (főleg olcsó) Android TV doboz távirányítója a megszokottól eltérő gombkódokat küld: egy-egy gomb ilyenkor nem csinál semmit, vagy mást csinál. A <b>Gombkiosztás</b> ablakban bármelyik gombot betaníthatod egy művelethez – fel, le, balra, jobbra, OK, vissza, lejátszás / szünet, leállítás, tekerés, csatornaváltás (CH+ / CH−), a négy színes gomb, hang és felirat.</p>
 <ol>
@@ -1438,6 +1439,18 @@ ${go('#/settings?section=transfer', 'Szinkronizálás eszközök között')}`,
 <li>A művelet sorában nyomd meg a <b>Betanítás</b> gombot, aztán 10 másodpercen belül a távirányító gombját. A gomb ettől kezdve ezt a műveletet végzi.</li>
 <li>A <b>✕</b> törli a betanított gombot, a <b>Mind törlése</b> az összeset.</li>
 </ol>
+<h2>Kontroller (játékvezérlő)</h2>
+<p>Asztali gépen (Windows, macOS, Linux – pl. HTPC-n vagy Batocera-gépen) az Adás <b>kontrollerrel</b> is kezelhető, egér és billentyűzet nélkül: csatlakoztasd (USB-n vagy Bluetooth-on), és nyomd meg bármelyik gombját – az Adás ekkor felismeri, és jelzi a nevét. (Biztonsági okból a kontroller csak az első gombnyomás után látszik, addig a bedugott kontrollert sem „látja”.) Már a profil létrehozásakor bekapcsolható és betanítható.</p>
+<table class="help-table">
+<tr><td><b>Bal kar / D-pad</b></td><td>mozgás (nyilak) – nyomva tartva ismétlődik</td></tr>
+<tr><td><b>A</b> / <b>B</b></td><td>OK (kiválasztás, lejátszás) / vissza</td></tr>
+<tr><td><b>X</b> / <b>Y</b></td><td>a csatorna adatai, műsorújság / keresés (lejátszás közben: minőség, forrás)</td></tr>
+<tr><td><b>LB</b> / <b>RB</b></td><td>előző / következő csatorna</td></tr>
+<tr><td><b>LT</b> / <b>RT</b></td><td>visszatekerés / előretekerés</td></tr>
+<tr><td><b>Start</b> / <b>Select</b></td><td>lejátszás / szünet – kedvencek (lejátszás közben: csatornalista)</td></tr>
+<tr><td><b>L3</b> / <b>R3</b></td><td>kedvenc be / ki – hang és felirat</td></tr>
+</table>
+<p>A kontroller gombjai a Gombkiosztás ablakban <b>át is taníthatók</b> (a betanított gomb a fenti beépített hozzárendelést felülírja). A Beállítások → Távirányító és billentyűk alatt ki is kapcsolható, és ott látszik a csatlakoztatott kontroller neve. Androidon a rendszer maga kezeli a kontrollert (A = OK, B = vissza, D-pad = nyilak); ott a gombjai a nyers gombkóddal taníthatók be.</p>
 <p>A beépített gombok mellette is működnek (egy művelethez több gomb is tartozhat). Egy gomb egyszerre csak egy művelethez tartozik: ha egy másikhoz tanítod be, onnan átkerül. A kiosztás <b>ehhez az eszközhöz</b> tartozik (minden profilnak ugyanaz) – a másik eszköz távirányítója más lehet, ezért a mentésbe és az eszközök közti szinkronba sem kerül bele.</p>
 <div class="note">Androidon a gomb közvetlenül a rendszertől érkezik, így olyan gomb is betanítható, amelyet a beépített böngészőmotor nem ismer. A rendszer saját gombjai (kezdőképernyő, be-/kikapcsolás, hangerő) nem taníthatók be. Asztalon a billentyűzet bármely gombja betanítható – gépelés közben a betűk és számok ilyenkor is betűk maradnak.</div>`,
   },

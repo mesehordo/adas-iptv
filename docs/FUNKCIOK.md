@@ -52,6 +52,9 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
+**Kontroller (játékvezérlő), feliratkeresés csak felirat nélküli fájlnál (1.31.0)**
+- **Kontroller (játékvezérlő)**: asztali gépen (HTPC, Batocera-gép, kézikonzol) kontrollerrel is kezelhető – bal kar / D-pad = nyilak, A = OK, B = vissza, X = adatok, Y = keresés, LB / RB = csatornaváltás, LT / RT = tekerés, Start = lejátszás / szünet, Select = kedvencek, L3 = kedvenc, R3 = hang és felirat; a gombok a gombkiosztásban át is taníthatók, a Beállításokban kikapcsolható; már a profil létrehozásakor (első indítás, új profil) bekapcsolható és betanítható, az első gombnyomásra felismeri és kiírja a nevét. (Androidon a rendszer kezeli a kontrollert.)
+- **Feliratkeresés**: ha a fájl maga tartalmaz megjeleníthető feliratot (beágyazott MKV / MP4 felirat, HLS / DASH feliratsáv), az Adás nem keres feliratot – se a videó mellett, se online –, hanem a beágyazottat használja; kézzel ilyenkor is lehet keresni, és a filmhez korábban választott felirat is visszatöltődik.
 **Reklámok kivágása, saját gombkiosztás, két kawaii stílus, új színváltozatok, Linux-javítás (1.30.0)**
 - **Két kawaii stílus**: *Yume* (világos, pasztell rózsaszín–levendula–menta, pöttyös háttér, buborékkártyák, szívecskék és csillámok) és *Yami* (keserédes gótikus lolita: fekete–levendula alap, élénk rózsaszín, csipkefodrok, masnik, sakktábla, masnis kis koponyák és denevérek, kézírásos címek) – mindkettő három színváltozattal (Barack, Szóda, Dinnye; Bordó csipke, Levendula, Menta macaron).
 - **Reklámok kivágása**: a felvétel vágójában akárhány reklám megjelölhető (eleje–vége, `[` / `]` billentyűvel is); mentéskor mind kimarad, a többi egybefűzve, újrakódolás nélkül. Az előnézet átugorja a kijelölt reklámokat; a megjelölések újravágáskor is megmaradnak.
