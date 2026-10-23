@@ -620,7 +620,7 @@ async function hasOwnSubs(url, video, live, ms = 6000) {
   // (az elemzés szerinti beágyazott felirat csak a lejátszási híddal jelenik meg – kikapcsolt hídnál a beépített
   // lejátszó az MKV feliratát nem mutatja, ilyenkor csak a ténylegesen megjelenő feliratsávok számítanak; HLS / DASH
   // listát a híd nem játszik)
-  if (api.mediaProbe && store.settings.mediaBridge !== false && !player.castHooks?.active && /^(file|https?):/i.test(url) && !/\.(m3u8|mpd)(\?|$)/i.test(url)) {
+  if (api.mediaProbe && store.settings.mediaBridge !== false && !player.castHooks?.active && /^(file|https?):/i.test(url) && !/\.(m3u8|mpd)([?#]|$)/i.test(url)) {
     try {
       const { probeMedia } = await import('./bridge.js');
       const info = await Promise.race([probeMedia(url), new Promise((r) => setTimeout(r, ms, null))]);
