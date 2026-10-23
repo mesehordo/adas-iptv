@@ -79,6 +79,12 @@ function poll() {
         }
         if (action && active) press(key, action, now);
         else held.set(key, { action: null, next: Infinity });
+      } else if (!active) {
+        // (fókuszvesztéskor a nyomva tartott gomb felengedődik, és a visszatéréskor sem indul újra)
+        if (held.get(key).action) {
+          release(key);
+          held.set(key, { action: null, next: Infinity });
+        }
       } else {
         const h = held.get(key);
         if (h.action && REPEATS.has(h.action) && now >= h.next) {
@@ -92,6 +98,9 @@ function poll() {
       if (!down.has(key.slice(key.indexOf(':') + 1))) release(key);
     }
   }
+  // (a közben leválasztott kontroller nyomva maradt gombjai)
+  const present = new Set(pads.map((gp) => gp.index + ':'));
+  for (const key of [...held.keys()]) if (!present.has(key.slice(0, key.indexOf(':') + 1))) release(key);
   raf = requestAnimationFrame(poll);
 }
 function releaseAll() {

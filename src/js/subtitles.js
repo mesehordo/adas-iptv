@@ -616,17 +616,17 @@ async function findSidecars(url) {
  * felirat nem számít: azt nem tudjuk megjeleníteni.)
  */
 async function hasOwnSubs(url, video, live, ms = 6000) {
+  const t0 = Date.now(); // (összesített időkorlát – az elemzéssel együtt)
   // (az elemzés szerinti beágyazott felirat csak a lejátszási híddal jelenik meg – kikapcsolt hídnál a beépített
   // lejátszó az MKV feliratát nem mutatja, ilyenkor csak a ténylegesen megjelenő feliratsávok számítanak; HLS / DASH
   // listát a híd nem játszik)
   if (api.mediaProbe && store.settings.mediaBridge !== false && !player.castHooks?.active && /^(file|https?):/i.test(url) && !/\.(m3u8|mpd)(\?|$)/i.test(url)) {
     try {
       const { probeMedia } = await import('./bridge.js');
-      const info = await probeMedia(url);
+      const info = await Promise.race([probeMedia(url), new Promise((r) => setTimeout(r, ms, null))]);
       if (info?.subs?.some((s) => s.text)) return true;
     } catch {}
   }
-  const t0 = Date.now();
   let readyAt = !video.paused && video.readyState >= 3 ? t0 : 0;
   const onPlaying = () => (readyAt ||= Date.now());
   video.addEventListener('playing', onPlaying);
