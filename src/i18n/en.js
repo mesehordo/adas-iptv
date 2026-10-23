@@ -2432,7 +2432,7 @@ export default {
  "Nincs betanított gomb – csak a beépítettek működnek.": "No learned buttons – only the built-in ones work.",
  "{n}. gomb": "Button {n}",
  "🎮 Gombkiosztás": "🎮 Button mapping",
- "Ha a távirányítód valamelyik gombja nem működik, vagy máshová tennéd: válaszd a műveletet, nyomd meg a <b>Betanítás</b> gombot, aztán a távirányító gombját. A beépített gombok továbbra is működnek; a kiosztás ehhez az eszközhöz tartozik.": "If a button on your remote doesn’t work, or you’d like it somewhere else: pick the action, press <b>Learn</b>, then the button on the remote. The built-in buttons keep working; the mapping belongs to this device.",
+ "Ha a távirányítód vagy a kontrollered valamelyik gombja nem működik, vagy máshová tennéd: válaszd a műveletet, nyomd meg a <b>Betanítás</b> gombot, aztán a távirányító vagy a kontroller gombját. A beépített gombok továbbra is működnek; a kiosztás ehhez az eszközhöz tartozik.": "If a button on your remote or controller doesn’t work, or you’d like it somewhere else: pick the action, press <b>Learn</b>, then the button on the remote or controller. The built-in buttons keep working; the mapping belongs to this device.",
  "Nyomd meg a gombot…": "Press the button…",
  "csak a beépített": "built-in only",
  "Betanítás": "Learn",
@@ -2443,7 +2443,7 @@ export default {
  "Ha a távirányítód valamelyik gombja nem működik, itt betaníthatod": "If a button on your remote doesn’t work, you can teach it here",
  "🎮 Gombkiosztás (távirányító)…": "🎮 Button mapping (remote)…",
  "Gombkiosztás": "Button mapping",
- "Ha a távirányítód (vagy billentyűzeted) valamelyik gombja nem működik, vagy máshová tennéd, itt betaníthatod: a gomb a választott műveletként működik. A beépített gombok mellett él, és ehhez az eszközhöz tartozik.": "If a button on your remote (or keyboard) doesn’t work, or you’d like it somewhere else, you can teach it here: the button then works as the chosen action. It works alongside the built-in buttons and belongs to this device.",
+ "Ha a távirányítód (billentyűzeted, kontrollered) valamelyik gombja nem működik, vagy máshová tennéd, itt betaníthatod: a gomb a választott műveletként működik. A beépített gombok mellett él, és ehhez az eszközhöz tartozik.": "If a button on your remote (keyboard, controller) doesn’t work, or you’d like it somewhere else, you can teach it here: the button then works as the chosen action. It works alongside the built-in buttons and belongs to this device.",
  "🎮 Gombok betanítása…": "🎮 Learn buttons…",
  "<b>Gombkiosztás</b>": "<b>Button mapping</b>",
  "A távirányító gombjainak betanítása (ehhez az eszközhöz, minden profilnak).": "Teach the remote’s buttons (for this device, for every profile).",
@@ -2455,5 +2455,9 @@ export default {
  "Szóda": "Soda",
  "Dinnye": "Melon",
  "Bordó csipke": "Burgundy lace",
- "Menta macaron": "Mint macaron"
+ "Menta macaron": "Mint macaron",
+ "Csatlakoztatva: {list}": "Connected: {list}",
+ "Nincs csatlakoztatott kontroller (vagy még nem nyomtál meg rajta gombot).": "No controller connected (or you haven’t pressed a button on it yet).",
+ "Kontroller (játékvezérlő)": "Controller (gamepad)",
+ "A csatlakoztatott kontrollerrel is kezelhető: bal kar / D-pad = nyilak, A = OK, B = vissza, X = adatok, Y = keresés, LB / RB = csatornaváltás, LT / RT = tekerés, Start = lejátszás / szünet, Select = kedvencek, L3 = kedvenc be/ki, R3 = hang és felirat. A gombok a fenti gombkiosztásban át is taníthatók.": "Works with a connected controller too: left stick / D-pad = arrows, A = OK, B = back, X = details, Y = search, LB / RB = change channel, LT / RT = seek, Start = play / pause, Select = favourites, L3 = favourite on/off, R3 = audio and subtitles. The buttons can be re-taught in the button mapping above."
 };

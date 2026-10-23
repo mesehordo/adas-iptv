@@ -149,6 +149,7 @@ const DEFAULT_SETTINGS = {
   ownNewOn: true, // az újonnan megjelenő lejátszólisták alapból bekapcsolva
   settingsView: 'tabs', // a Beállítások elrendezése: 'tabs' (fülek) vagy 'tiles' (csempés kezdőlap)
   recMeta: {}, // felvételek: fájl → { chId, title, at }
+  gamepad: true, // kontroller (játékvezérlő) kezelése (gamepad.js; Androidon a rendszer kezeli)
   huInfo: true, // magyar információk (Wikidata / Wikipédia / TMDB)
   tmdbKey: '', // opcionális TMDB API-kulcs vagy olvasási token
   omdbKey: '', // opcionális OMDb API-kulcs (borítókép-kereső)

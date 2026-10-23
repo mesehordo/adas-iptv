@@ -32,6 +32,12 @@ import { v1BackupDocKeys } from './backup.js';
 import { renderRecordings } from './recorder.js';
 import { renderRemoteSettings } from './remote.js';
 import { keyMapSummary } from './keymap.js';
+import { connectedPads } from './gamepad.js';
+const padStatus = () => {
+  const pads = connectedPads();
+  return pads.length ? esc(_t('Csatlakoztatva: {list}', { list: pads.join(', ') })) : esc(_t('Nincs csatlakoztatott kontroller (vagy még nem nyomtál meg rajta gombot).'));
+};
+bus.on('gamepads', () => document.querySelectorAll('.pad-status').forEach((el) => (el.innerHTML = padStatus())));
 import { renderBackups } from './backup.js';
 import { renderThemeTools } from './customthemes.js';
 import { renderUpdate } from './update.js';
@@ -916,9 +922,11 @@ export function renderSettings(view) {
       </table></section>`
         : ''}
     <section class="set-section" id="keymap" data-g="remote"><h2>${_t('Gombkiosztás')} <button class="help-link" data-help="keymap" title="${_t('Súgó')}">?</button></h2>
-      <p class="muted small">${_t('Ha a távirányítód (vagy billentyűzeted) valamelyik gombja nem működik, vagy máshová tennéd, itt betaníthatod: a gomb a választott műveletként működik. A beépített gombok mellett él, és ehhez az eszközhöz tartozik.')}</p>
+      <p class="muted small">${_t('Ha a távirányítód (billentyűzeted, kontrollered) valamelyik gombja nem működik, vagy máshová tennéd, itt betaníthatod: a gomb a választott műveletként működik. A beépített gombok mellett él, és ehhez az eszközhöz tartozik.')}</p>
       <p class="km-summary small">${keyMapSummary()}</p>
-      <button class="btn" data-keymap>${_t('🎮 Gombok betanítása…')}</button></section>
+      <button class="btn" data-keymap>${_t('🎮 Gombok betanítása…')}</button>
+      ${IS_ANDROID ? '' : toggle('gamepad', _t('Kontroller (játékvezérlő)'), _t('A csatlakoztatott kontrollerrel is kezelhető: bal kar / D-pad = nyilak, A = OK, B = vissza, X = adatok, Y = keresés, LB / RB = csatornaváltás, LT / RT = tekerés, Start = lejátszás / szünet, Select = kedvencek, L3 = kedvenc be/ki, R3 = hang és felirat. A gombok a fenti gombkiosztásban át is taníthatók.'))}
+      ${IS_ANDROID ? '' : `<p class="muted small pad-status">${padStatus()}</p>`}</section>
     <section class="set-section" id="keys" data-g="remote" ${IS_TV ? 'data-off' : ''}><h2>${_t('Billentyűparancsok')}</h2>
       <table class="keys">
         <tr><td>${_t('Nyilak')}</td><td>${_t('Mozgás a felületen (távirányítóval is)')}</td></tr>

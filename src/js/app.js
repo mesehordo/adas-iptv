@@ -35,6 +35,7 @@ import { loadCustomThemes } from './customthemes.js'; // saját témák (feltöl
 import { _t, lang, savedLang, setLanguage, translateDom } from './i18n.js';
 import { needsOnboarding, runOnboarding } from './onboarding.js';
 import { installKeyMap } from './keymap.js'; // saját gombkiosztás (a többi billentyűkezelő előtt fordít)
+import './gamepad.js'; // kontroller (játékvezérlő) – a gombjai a távirányító műveleteit küldik
 
 // a lap nyelve és a statikus (index.html) szövegek fordítása – a felület felépítése előtt
 document.documentElement.lang = lang;
