@@ -616,7 +616,10 @@ async function findSidecars(url) {
  * felirat nem számít: azt nem tudjuk megjeleníteni.)
  */
 async function hasOwnSubs(url, video, live, ms = 6000) {
-  if (api.mediaProbe && /^(file|https?):/i.test(url)) {
+  // (az elemzés szerinti beágyazott felirat csak a lejátszási híddal jelenik meg – kikapcsolt hídnál a beépített
+  // lejátszó az MKV feliratát nem mutatja, ilyenkor csak a ténylegesen megjelenő feliratsávok számítanak; HLS / DASH
+  // listát a híd nem játszik)
+  if (api.mediaProbe && store.settings.mediaBridge !== false && !player.castHooks?.active && /^(file|https?):/i.test(url) && !/\.(m3u8|mpd)(\?|$)/i.test(url)) {
     try {
       const { probeMedia } = await import('./bridge.js');
       const info = await probeMedia(url);
@@ -657,7 +660,8 @@ player.subsHooks = {
     state.sidecars = [];
     const saved = store.profile.vodSubs?.[ch.vod.key];
     try {
-      const url0 = ch.streams[0]?.url || '';
+      // (a ténylegesen lejátszott forrás – tartalék forrásnál ez nem az első)
+      const url0 = (player.channel === ch && player.stream?.url) || ch.streams[0]?.url || '';
       // Ha a fájl maga tartalmaz feliratot, nem keresünk sehol (se a fájl mellett, se online) – a beágyazott feliratot
       // az onTracks kapcsolja be a profil beállítása szerint. Csak a felhasználó korábbi, ehhez a filmhez választott
       // feliratát töltjük vissza; kézzel a menüből ilyenkor is lehet keresni.
