@@ -609,6 +609,37 @@ async function findSidecars(url) {
   return [];
 }
 
+/**
+ * Tartalmaz-e a fájl / adás saját, megjeleníthető feliratot? Asztalon az FFmpeg-elemzésből (a böngésző az MKV
+ * feliratait magától nem látja), máshol a lejátszó feliratsávjaiból (HLS / DASH, Android natív lejátszó, MP4) – ezek
+ * a lejátszás indulása után érkeznek, ezért legfeljebb néhány másodpercig várunk rájuk. (A képalapú – pl. PGS –
+ * felirat nem számít: azt nem tudjuk megjeleníteni.)
+ */
+async function hasOwnSubs(url, video, live, ms = 6000) {
+  if (api.mediaProbe && /^(file|https?):/i.test(url)) {
+    try {
+      const { probeMedia } = await import('./bridge.js');
+      const info = await probeMedia(url);
+      if (info?.subs?.some((s) => s.text)) return true;
+    } catch {}
+  }
+  const t0 = Date.now();
+  let readyAt = !video.paused && video.readyState >= 3 ? t0 : 0;
+  const onPlaying = () => (readyAt ||= Date.now());
+  video.addEventListener('playing', onPlaying);
+  try {
+    for (;;) {
+      if (!live()) return false;
+      if ((player.engine?.textTracks?.() || []).length) return true;
+      // (elindult a lejátszás, és utána 1,5 mp alatt sem jelent meg feliratsáv – vagy letelt az idő)
+      if ((readyAt && Date.now() - readyAt > 1500) || Date.now() - t0 > ms) return false;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  } finally {
+    video.removeEventListener('playing', onPlaying);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Kapcsolódás a lejátszóhoz
 // ---------------------------------------------------------------------------
@@ -626,9 +657,14 @@ player.subsHooks = {
     state.sidecars = [];
     const saved = store.profile.vodSubs?.[ch.vod.key];
     try {
+      const url0 = ch.streams[0]?.url || '';
+      // Ha a fájl maga tartalmaz feliratot, nem keresünk sehol (se a fájl mellett, se online) – a beágyazott feliratot
+      // az onTracks kapcsolja be a profil beállítása szerint. Csak a felhasználó korábbi, ehhez a filmhez választott
+      // feliratát töltjük vissza; kézzel a menüből ilyenkor is lehet keresni.
+      if (!saved && (await hasOwnSubs(url0, video, live))) return;
+      if (!live()) return;
       // A videó melletti feliratfájlok (a menüben is megjelennek).
       // (csak a saját médiatárnál, ill. helyi fájlnál – a nyilvános listák szervereit nem terheljük)
-      const url0 = ch.streams[0]?.url || '';
       if (ch.vod.item?.lib === 'own' || url0.startsWith('file:') || url0.startsWith('content:')) {
         // (helyi változóba: a közös állapotba csak az aktuális munkamenet eredménye kerülhet)
         const found = await findSidecars(url0);
@@ -893,7 +929,7 @@ export function renderHuSettings(box) {
     </div>
     <p class="muted small">${_t('Az adatok csak ezen az eszközön tárolódnak, és csak az opensubtitles.com felé kerülnek elküldésre.')}</p>
     <div class="inline"><button class="btn small" data-hb="test">${_t('Bejelentkezés kipróbálása')}</button><span class="muted small os-status"></span></div>
-    <label class="setting"><span>${_t('<b>Felirat automatikus keresése</b>')}<small>${_t('Film / rész indításakor a legjobb felirat automatikusan betöltődik (elsőként a Feliratok.eu-ról; az OpenSubtitles a letöltési keretet használja).')}</small></span>
+    <label class="setting"><span>${_t('<b>Felirat automatikus keresése</b>')}<small>${_t('Film / rész indításakor a legjobb felirat automatikusan betöltődik (elsőként a Feliratok.eu-ról; az OpenSubtitles a letöltési keretet használja) – csak ha a fájlban nincs saját felirat.')}</small></span>
       <input type="checkbox" class="switch" data-hs="subsAuto" ${s.subsAuto ? 'checked' : ''} /></label>
     <label class="setting"><span>${_t('<b>Felirat nyelve automatikus kereséskor</b>')}</span>
       <select data-hsel="subsLang">${SUB_LANGS.map((l) => `<option value="${l}" ${subsLangPref() === l ? 'selected' : ''}>${esc(languageName(l))}</option>`).join('')}</select></label>

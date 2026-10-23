@@ -1240,7 +1240,7 @@ export default {
  "Az adatok csak ezen az eszközön tárolódnak, és csak az opensubtitles.com felé kerülnek elküldésre.": "The data is stored only on this device and is only sent to opensubtitles.com.",
  "Bejelentkezés kipróbálása": "Test login",
  "<b>Felirat automatikus keresése</b>": "<b>Search subtitles automatically</b>",
- "Film / rész indításakor a legjobb felirat automatikusan betöltődik (elsőként a Feliratok.eu-ról; az OpenSubtitles a letöltési keretet használja).": "When a film / episode starts, the best subtitles load automatically (Feliratok.eu first; OpenSubtitles uses the download quota).",
+ "Film / rész indításakor a legjobb felirat automatikusan betöltődik (elsőként a Feliratok.eu-ról; az OpenSubtitles a letöltési keretet használja) – csak ha a fájlban nincs saját felirat.": "When a film / episode starts, the best subtitles load automatically (Feliratok.eu first; OpenSubtitles uses the download quota) – only if the file has no subtitles of its own.",
  "<b>Felirat nyelve automatikus kereséskor</b>": "<b>Subtitle language for automatic search</b>",
  "Hangsáv és felirat – a(z) {esc} profil kedvencei": "Audio track and subtitles – favourites of the {esc} profile",
  "Ha egy adásban, filmben vagy saját videóban több hangsáv vagy beágyazott felirat van, a lejátszó magától ezt választja. Lejátszás közben a <b>CC</b> gombbal vagy a <b>C</b> billentyűvel bármikor válthatsz.": "If a stream, film or own video has several audio tracks or embedded subtitles, the player picks this one automatically. During playback you can switch any time with the <b>CC</b> button or the <b>C</b> key.",

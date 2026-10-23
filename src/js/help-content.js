@@ -424,6 +424,7 @@ ${go('#/settings?section=ownlists', 'Saját médiatár beállítása')}`,
 <li><i>Kikapcsolva</i>: a felirat elrejtése.</li>
 </ul>
 <p>A kiválasztott felirat <b>az adott filmhez / részhez megmarad</b>, legközelebb magától betöltődik. A <i>Felirat automatikus keresése</i> beállítással minden film / rész indításakor a legjobb (magyar vagy angol) felirat automatikusan betöltődik.</p>
+<p><b>Ha a fájl maga tartalmaz feliratot</b> (beágyazott felirat az MKV / MP4 fájlban, a HLS / DASH adás feliratsávja), az Adás <b>sehol nem keres</b> – se a videó mellett, se online –, hanem a beágyazott feliratot használja a profilod beállítása szerint. (A képalapú, pl. PGS-felirat nem számít: azt nem tudja megjeleníteni, ilyenkor keres.) Kézzel a <i>Hang és felirat</i> menüből ilyenkor is kereshetsz, és a filmhez korábban választott feliratod is visszatöltődik.</p>
 <div class="note">Az OpenSubtitles adatai (kulcs, felhasználónév, jelszó) csak ezen az eszközön tárolódnak, és kizárólag az opensubtitles.com felé kerülnek elküldésre. A felirat találata a film címén és évén alapul; régi vagy ritka filmekhez lehet, hogy nincs magyar felirat.</div>
 ${go('#/settings?section=huinfo', 'Felirat-beállítások')}`,
   },

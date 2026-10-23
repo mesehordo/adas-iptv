@@ -52,6 +52,8 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
+**Feliratkeresés csak felirat nélküli fájlnál (következő kiadás)**
+- **Feliratkeresés**: ha a fájl maga tartalmaz megjeleníthető feliratot (beágyazott MKV / MP4 felirat, HLS / DASH feliratsáv), az Adás nem keres feliratot – se a videó mellett, se online –, hanem a beágyazottat használja; kézzel ilyenkor is lehet keresni, és a filmhez korábban választott felirat is visszatöltődik.
 **Reklámok kivágása, saját gombkiosztás, két kawaii stílus, új színváltozatok, Linux-javítás (1.30.0)**
 - **Két kawaii stílus**: *Yume* (világos, pasztell rózsaszín–levendula–menta, pöttyös háttér, buborékkártyák, szívecskék és csillámok) és *Yami* (keserédes gótikus lolita: fekete–levendula alap, élénk rózsaszín, csipkefodrok, masnik, sakktábla, masnis kis koponyák és denevérek, kézírásos címek) – mindkettő három színváltozattal (Barack, Szóda, Dinnye; Bordó csipke, Levendula, Menta macaron).
 - **Reklámok kivágása**: a felvétel vágójában akárhány reklám megjelölhető (eleje–vége, `[` / `]` billentyűvel is); mentéskor mind kimarad, a többi egybefűzve, újrakódolás nélkül. Az előnézet átugorja a kijelölt reklámokat; a megjelölések újravágáskor is megmaradnak.

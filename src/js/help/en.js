@@ -424,6 +424,7 @@ ${go('#/settings?section=ownlists', 'Set up own media library')}`,
 <li><i>Off</i>: hide the subtitles.</li>
 </ul>
 <p>The chosen subtitles <b>stay with that film / episode</b> and load by themselves next time. With the <i>Search subtitles automatically</i> setting, the best subtitles (in your language or English) load automatically whenever a film / episode starts.</p>
+<p><b>If the file itself contains subtitles</b> (embedded subtitles in the MKV / MP4 file, a subtitle track of the HLS / DASH stream), Adás <b>doesn’t search anywhere</b> – neither next to the video nor online – but uses the embedded subtitles according to your profile’s setting. (Image-based subtitles such as PGS don’t count: it can’t display those, so it searches then.) You can still search by hand from the <i>Audio and subtitles</i> menu, and subtitles you chose earlier for the film load again.</p>
 <div class="note">OpenSubtitles data (key, username, password) is stored only on this device and is only ever sent to opensubtitles.com. Matching is based on the film’s title and year; old or rare films may have no subtitles in your language.</div>
 ${go('#/settings?section=huinfo', 'Subtitle settings')}`,
   },
