@@ -32,11 +32,7 @@ import { v1BackupDocKeys } from './backup.js';
 import { renderRecordings } from './recorder.js';
 import { renderRemoteSettings } from './remote.js';
 import { keyMapSummary } from './keymap.js';
-import { connectedPads } from './gamepad.js';
-const padStatus = () => {
-  const pads = connectedPads();
-  return pads.length ? esc(_t('Csatlakoztatva: {list}', { list: pads.join(', ') })) : esc(_t('Nincs csatlakoztatott kontroller (vagy még nem nyomtál meg rajta gombot).'));
-};
+import { padStatus, padSetupHtml } from './gamepad.js';
 bus.on('gamepads', () => document.querySelectorAll('.pad-status').forEach((el) => (el.innerHTML = padStatus())));
 import { renderBackups } from './backup.js';
 import { renderThemeTools } from './customthemes.js';
@@ -1481,8 +1477,9 @@ function editProfile(prof, done) {
     <div class="tp-slot"></div>
     <label class="setting"><span>${_t('<b>Gyerekprofil</b>')}<small>${_t('Csak gyerek-, családi, animációs és oktatási csatornák.')}</small></span>
       <input type="checkbox" class="switch" name="kids" ${prof?.kids ? 'checked' : ''} /></label>
-    <div class="setting"><span>${_t('<b>Gombkiosztás</b>')}<small>${_t('A távirányító gombjainak betanítása (ehhez az eszközhöz, minden profilnak).')}</small></span>
+    <div class="setting"><span>${_t('<b>Gombkiosztás</b>')}<small>${_t('A távirányító és a kontroller gombjainak betanítása (ehhez az eszközhöz, minden profilnak).')}</small></span>
       <button type="button" class="btn small" data-keymap>${_t('🎮 Megnyitás…')}</button></div>
+    ${padSetupHtml()}
     <div class="setting"><span>${_t('<b>Profilzár (PIN-kód)</b>')}<small class="pin-state"></small></span>
       <span class="inline"><button type="button" class="btn small" data-pin="set"></button><button type="button" class="btn small" data-pin="clear">${_t('PIN törlése')}</button></span></div>
     <p class="muted small">${_t('Ha egy felnőtt profilnak van PIN-kódja, a gyerekprofilból csak azzal lehet másik profilra váltani, a beállításokat és a profilokat módosítani.')}</p>

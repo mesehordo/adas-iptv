@@ -1440,7 +1440,7 @@ ${go('#/settings?section=transfer', 'Sync between devices')}`,
 <li><b>✕</b> removes a learned button, <b>Clear all</b> removes all of them.</li>
 </ol>
 <h2>Controller (gamepad)</h2>
-<p>On a computer (Windows, macOS, Linux – e.g. an HTPC or a Batocera machine) Adás can also be used with a <b>controller</b>, without mouse and keyboard: connect it (USB or Bluetooth) and press any of its buttons.</p>
+<p>On a computer (Windows, macOS, Linux – e.g. an HTPC or a Batocera machine) Adás can also be used with a <b>controller</b>, without mouse and keyboard: connect it (USB or Bluetooth) and press any of its buttons – Adás then detects it and shows its name. (For privacy reasons a controller only becomes visible after its first button press; until then even a plugged-in controller isn’t “seen”.) It can be switched on and set up right when creating a profile.</p>
 <table class="help-table">
 <tr><td><b>Left stick / D-pad</b></td><td>move (arrows) – repeats while held</td></tr>
 <tr><td><b>A</b> / <b>B</b></td><td>OK (select, play) / back</td></tr>

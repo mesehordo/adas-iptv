@@ -6,7 +6,8 @@
 // A gombkiosztásban (keymap.js) a kontroller gombjai is betaníthatók: a betanított gomb a beépített hozzárendelést
 // felülírja.
 import { store } from './store.js';
-import { bus } from './util.js';
+import { bus, esc, toast } from './util.js';
+import { _t } from './i18n.js';
 import { IS_ANDROID } from './api.js';
 import { fireAction, padLearning, padOverride } from './keymap.js';
 
@@ -100,16 +101,42 @@ const start = () => {
   if (enabled() && !raf) raf = requestAnimationFrame(poll);
 };
 
+const padName = (g) => g.id.replace(/\s*\(.*?Vendor.*?\)\s*/i, '').trim() || _t('Kontroller');
 /** A csatlakoztatott kontrollerek neve (a Beállításokhoz). */
 export function connectedPads() {
   if (typeof navigator.getGamepads !== 'function') return [];
-  return [...navigator.getGamepads()].filter(Boolean).map((g) => g.id.replace(/\s*\(.*?Vendor.*?\)\s*/i, '').trim() || 'Kontroller');
+  return [...navigator.getGamepads()].filter(Boolean).map(padName);
+}
+/** Állapotsor (HTML): a csatlakoztatott kontrollerek, vagy hogyan ismerhető fel. */
+export function padStatus() {
+  const pads = connectedPads();
+  return pads.length ? esc(_t('Csatlakoztatva: {list}', { list: pads.join(', ') })) : esc(_t('Nem látok kontrollert – csatlakoztasd, és nyomd meg bármelyik gombját.'));
+}
+/**
+ * Kontroller-blokk az első indításhoz és a profilszerkesztőhöz: kapcsoló (azonnal érvényes, az eszköz összes
+ * profiljára) és élő állapot (a gombkiosztás gombja mellette van). Androidon üres (ott a rendszer kezeli a kontrollert).
+ */
+export function padSetupHtml() {
+  if (IS_ANDROID) return '';
+  return `<div class="setting pad-setup"><span><b>${esc(_t('Kontroller (játékvezérlő)'))}</b><small>${esc(_t('Kezelés kontrollerrel: bal kar / D-pad = mozgás, A = OK, B = vissza (ezen az eszközön, minden profilnak).'))}</small>
+      <small class="pad-status">${padStatus()}</small></span>
+    <input type="checkbox" class="switch" data-pad-toggle aria-label="${esc(_t('Kontroller (játékvezérlő)'))}" ${store.settings.gamepad !== false ? 'checked' : ''} /></div>`;
 }
 
 if (!IS_ANDROID) {
-  window.addEventListener('gamepadconnected', () => {
+  // (a böngészőmotor a kontrollert csak az első gombnyomás után mutatja meg – akkor jelezzük, egyszer)
+  const told = new Set();
+  window.addEventListener('gamepadconnected', (e) => {
     start();
     bus.emit('gamepads');
+    const name = padName(e.gamepad);
+    if (told.has(name)) return;
+    told.add(name);
+    if (enabled()) toast(_t('🎮 Kontroller felismerve: {name} – A = OK, B = vissza', { name }));
+    else toast(_t('🎮 Kontroller csatlakoztatva: {name}', { name }), { action: _t('Bekapcsolás'), onAction: () => store.set('gamepad', true), timeout: 8000 });
+  });
+  document.addEventListener('change', (e) => {
+    if (e.target.matches?.('[data-pad-toggle]')) store.set('gamepad', e.target.checked);
   });
   window.addEventListener('gamepaddisconnected', () => bus.emit('gamepads'));
   // (a már csatlakoztatott kontroller csak az első gombnyomásra jelentkezik – akkor indul a lekérdezés)

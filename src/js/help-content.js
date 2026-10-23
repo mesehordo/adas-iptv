@@ -1440,7 +1440,7 @@ ${go('#/settings?section=transfer', 'Szinkronizálás eszközök között')}`,
 <li>A <b>✕</b> törli a betanított gombot, a <b>Mind törlése</b> az összeset.</li>
 </ol>
 <h2>Kontroller (játékvezérlő)</h2>
-<p>Asztali gépen (Windows, macOS, Linux – pl. HTPC-n vagy Batocera-gépen) az Adás <b>kontrollerrel</b> is kezelhető, egér és billentyűzet nélkül: csatlakoztasd (USB-n vagy Bluetooth-on), és nyomd meg bármelyik gombját.</p>
+<p>Asztali gépen (Windows, macOS, Linux – pl. HTPC-n vagy Batocera-gépen) az Adás <b>kontrollerrel</b> is kezelhető, egér és billentyűzet nélkül: csatlakoztasd (USB-n vagy Bluetooth-on), és nyomd meg bármelyik gombját – az Adás ekkor felismeri, és jelzi a nevét. (Biztonsági okból a kontroller csak az első gombnyomás után látszik, addig a bedugott kontrollert sem „látja”.) Már a profil létrehozásakor bekapcsolható és betanítható.</p>
 <table class="help-table">
 <tr><td><b>Bal kar / D-pad</b></td><td>mozgás (nyilak) – nyomva tartva ismétlődik</td></tr>
 <tr><td><b>A</b> / <b>B</b></td><td>OK (kiválasztás, lejátszás) / vissza</td></tr>
