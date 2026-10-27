@@ -15,7 +15,7 @@ import {
 } from './components.js';
 import { player, stopPreview, PLAYER_BUTTONS } from './player.js';
 import { THEMES, currentTheme, currentVariant, applyTheme, profileRows, defaultRows, rowLabel } from './themes.js';
-import { LAYOUTS, currentLayout, layoutPickerHtml, pickLayoutIn } from './layoutdefs.js';
+import { LAYOUTS, currentLayout, layoutPickerHtml, pickLayoutIn, PLAYER_SKINS, layoutSkin } from './layoutdefs.js';
 import { renderLists } from './lists.js';
 import { renderVodLists, renderOwnLists, searchVod, vcardHtml, vod, vodFavItems, loadVod } from './vod.js';
 import { renderHuSettings } from './subtitles.js';
@@ -1270,6 +1270,8 @@ function renderAppearance(box) {
     <p class="muted lay-desc">${esc(LAYOUTS[currentLayout()].desc)}</p>
     <p class="lay-pair"></p>
     ${layoutPickerHtml(currentLayout())}
+    <label class="setting"><span>${_t('<b>A lejátszó kinézete</b>')}<small>${_t('A videó- és a rádiólejátszó kezelőfelülete (a kis rádiósáv is). Alapból az elrendezéshez illő.')}</small></span>
+      <select data-pskin-select></select></label>
     <h3>${_t('A TV oldal sorai')}</h3>
     <p class="muted">${_t('Húzással vagy a nyilakkal rendezheted, a kapcsolóval elrejtheted a sorokat.')}</p>
     <div class="tv-rows"></div>`;
@@ -1305,6 +1307,14 @@ function renderAppearance(box) {
     if (th) el.innerHTML = `${_t('Ehhez az elrendezéshez illő téma: <b>{name}</b>', { name: esc(th.label) })} <button class="btn small" data-lay-theme="${esc(l.theme)}">${_t('Bekapcsolás')}</button>`;
   };
   drawPair();
+  // a lejátszó kinézete: „az elrendezéshez illő” vagy egy választott
+  const drawSkins = () => {
+    const auto = layoutSkin();
+    box.querySelector('[data-pskin-select]').innerHTML = `<option value="">${esc(_t('Az elrendezéshez illő: {name}', { name: PLAYER_SKINS[auto].split(' – ')[0] }))}</option>${Object.entries(PLAYER_SKINS)
+      .map(([id, d]) => `<option value="${id}" ${store.profile.playerSkin === id ? 'selected' : ''}>${esc(d)}</option>`)
+      .join('')}`;
+  };
+  drawSkins();
   box.onclick = (e) => {
     const pt = e.target.closest('[data-lay-theme]');
     if (pt) {
@@ -1316,8 +1326,15 @@ function renderAppearance(box) {
     store.setProfileValue('layout', id);
     box.querySelector('.lay-desc').textContent = LAYOUTS[id].desc;
     drawPair();
+    drawSkins();
   };
   box.onchange = (e) => {
+    if (e.target.matches('[data-pskin-select]')) {
+      e.stopPropagation();
+      store.setProfileValue('playerSkin', e.target.value || undefined);
+      applyTheme();
+      return;
+    }
     if (e.target.matches('[data-theme-select]')) {
       e.stopPropagation();
       // (a legördülőből választva a téma megjegyzett változata él tovább)

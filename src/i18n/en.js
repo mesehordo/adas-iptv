@@ -2571,5 +2571,18 @@ export default {
  "Kiemelt és ajánlott": "Featured and recommended",
  "Böngészés csoport szerint": "Browse by group",
  "Gyűjtemények": "Collections",
- "Ehhez az elrendezéshez illő téma: <b>{name}</b>": "A theme that suits this layout: <b>{name}</b>"
+ "Ehhez az elrendezéshez illő téma: <b>{name}</b>": "A theme that suits this layout: <b>{name}</b>",
+ "Klasszikus – áttetsző sötétítés alul és felül": "Classic – translucent shading at the top and bottom",
+ "Mozi – vastag idősáv, nagy ikonok": "Cinema – thick progress bar, large icons",
+ "Üveg – lebegő, áttetsző kezelőpanel": "Glass – floating, translucent control panel",
+ "Kapszula – középre zárt, lekerekített üvegsáv": "Capsule – centred, rounded glass bar",
+ "Sáv – tömör kezelősáv alul, középen a gombok": "Bar – solid control bar at the bottom, buttons in the middle",
+ "Kerek – nagy, kerek gombok, vastag idősáv": "Round – large round buttons, thick progress bar",
+ "Alkalmazás – tömör címsáv és alsó sáv": "App – solid title bar and bottom bar",
+ "Ablak – lapos, szögletes asztali lejátszó": "Window – flat, square desktop player",
+ "Pirula – lekerekített, kiemelt színű gombok": "Pill – rounded buttons in the accent colour",
+ "Minimál – vékony, szinte láthatatlan sáv": "Minimal – thin, almost invisible bar",
+ "<b>A lejátszó kinézete</b>": "<b>Player look</b>",
+ "A videó- és a rádiólejátszó kezelőfelülete (a kis rádiósáv is). Alapból az elrendezéshez illő.": "The controls of the video and radio players (including the small radio bar). By default, the one that suits the layout.",
+ "Az elrendezéshez illő: {name}": "Matching the layout: {name}"
 };

@@ -76,6 +76,25 @@ export const LAYOUTS = {
 
 export const currentLayout = (p = store.profile) => (p && LAYOUTS[p.layout] ? p.layout : 'classic');
 
+/** A lejátszó kinézetei (body[data-pskin]); a profil választhat egyet, alapból az elrendezéshez illő. */
+export const PLAYER_SKINS = {
+  classic: _t('Klasszikus – áttetsző sötétítés alul és felül'),
+  cinema: _t('Mozi – vastag idősáv, nagy ikonok'),
+  glass: _t('Üveg – lebegő, áttetsző kezelőpanel'),
+  capsule: _t('Kapszula – középre zárt, lekerekített üvegsáv'),
+  bar: _t('Sáv – tömör kezelősáv alul, középen a gombok'),
+  round: _t('Kerek – nagy, kerek gombok, vastag idősáv'),
+  app: _t('Alkalmazás – tömör címsáv és alsó sáv'),
+  window: _t('Ablak – lapos, szögletes asztali lejátszó'),
+  pill: _t('Pirula – lekerekített, kiemelt színű gombok'),
+  minimal: _t('Minimál – vékony, szinte láthatatlan sáv'),
+};
+const LAYOUT_SKIN = { classic: 'classic', cinema: 'cinema', showcase: 'glass', shelf: 'capsule', library: 'bar', tiles: 'round', detail: 'app', unified: 'app', wall: 'pill', squares: 'round', ribbon: 'minimal', focus: 'glass', desk: 'window' };
+/** Az elrendezéshez illő lejátszó-kinézet. */
+export const layoutSkin = (id = currentLayout()) => LAYOUT_SKIN[id] || 'classic';
+/** A használt lejátszó-kinézet: a profil saját választása, vagy az elrendezéshez illő. */
+export const currentSkin = (p = store.profile) => (p && PLAYER_SKINS[p.playerSkin] ? p.playerSkin : layoutSkin(currentLayout(p)));
+
 /**
  * Elrendezés-választó kis vázlatrajzokkal (Beállítások → Megjelenés, profil szerkesztése). A kijelölés a
  * data-layout-pick gombokon; a hívó kezeli a kattintást (pickLayoutIn).
@@ -102,4 +121,5 @@ export function applyLayout() {
   const id = currentLayout();
   document.body.dataset.layout = id;
   document.body.classList.toggle('side-nav', !!LAYOUTS[id].side);
+  document.body.dataset.pskin = currentSkin();
 }
