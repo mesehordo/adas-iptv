@@ -21,7 +21,9 @@ const UA = 'Adas-Updater';
  * egy feltört GitHub-fiókkal feltett, hamis telepítő sem települ automatikusan (a fiók a kulcsot nem ismeri).
  * Üresen: nincs aláírás-ellenőrzés (csak az ellenőrző összeg – a régi viselkedés).
  */
-let UPDATE_PUBKEY = '';
+let UPDATE_PUBKEY = `-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEAqk/8i2mL3aqKE4QYcZt0YwwvVZX5Bb84EmUdqK8EwFM=
+-----END PUBLIC KEY-----`;
 
 /**
  * Verzió értelmezése (SemVer): „v” előtag nélkül MAJOR[.MINOR[.PATCH]][-előzetes][+build]. → { core, pre } vagy
