@@ -388,12 +388,12 @@ test('mentési pontok (X09): felülírás előtt a régi (v1) pont a mostani tar
 
 import { THEME_VARIANTS, variantColor } from '../../src/js/themevariants.js';
 
-test('színváltozat: témánként válogatott paletták – 3 változat egyedi azonosítóval és névvel, élénk célszínekkel', async () => {
+test('színváltozat: témánként válogatott paletták – legalább 3 változat egyedi azonosítóval és névvel, élénk célszínekkel', async () => {
   const { THEMES } = await import('../../src/js/themes.js');
   for (const id of Object.keys(THEMES).filter((k) => !THEMES[k].custom && k !== 'contrast')) {
     const vs = THEME_VARIANTS[id];
-    assert.ok(vs?.length === 3, `${id}: ${vs?.length}`);
-    assert.equal(new Set(vs.map((v) => v.id)).size, 3, id);
+    assert.ok(vs?.length >= 3, `${id}: ${vs?.length}`);
+    assert.equal(new Set(vs.map((v) => v.id)).size, vs.length, id);
     assert.ok(vs.every((v) => v.name() && (v.tint != null || v.map?.length)), id);
   }
   assert.deepEqual(THEME_VARIANTS.contrast, []);

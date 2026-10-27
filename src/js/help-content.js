@@ -797,7 +797,7 @@ ${go('#/profiles', 'Profilok kezelése')}`,
 <tr><td><b>Deco</b></td><td>A régi mozipaloták art deco világa: fekete és arany, geometrikus keretek, elegáns betűk.</td></tr>
 <tr><td><b>Shōwa</b></td><td>A 70-es évek: narancs, barna és mustár, lekerekített „tévéképernyő” kártyák, csíkos díszítés.</td></tr>
 <tr><td><b>Holo</b></td><td>Sci-fi irányítópult: sötét kékes rácsos alap, cián hologramfény, vékony keretek, levágott sarkú gombok.</td></tr>
-<tr><td><b>Csillagidő</b></td><td>Egy csillaghajó parancsnoki hídjának kezelőfelülete: fekete alap, lekerekített végű narancs, levendula és barack sávok, keskeny nagybetűk.</td></tr>
+<tr><td><b>Uchūreki</b> (csillagidő)</td><td>Egy csillaghajó parancsnoki hídjának kezelőfelülete: fekete alap, lekerekített végű narancs, levendula és barack sávok, keskeny nagybetűk.</td></tr>
 <tr><th colspan="2">Világos stílusok</th></tr>
 <tr><td><b>Zen</b></td><td>Rizspapír-fehér háttér, mohazöld kiemelés, sok levegő, csendes, lassú mozgások, ensō kör a logóban.</td></tr>
 <tr><td><b>Wabi-sabi</b></td><td>Meleg, földszínű papírtextúra, kissé szabálytalan kártyák, rozsda- és indigószín, rámutatásra arany kintsugi-repedés.</td></tr>

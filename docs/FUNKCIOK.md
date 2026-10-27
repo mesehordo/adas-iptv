@@ -43,7 +43,7 @@ A stílusok:
 | Holo | Sci-fi irányítópult: sötét kékes rácsos alap, cián hologramfény, vékony keretek, levágott sarkú gombok. |
 | Yume *(világos)* | (álom) Pasztell kawaii: rózsaszín, levendula és menta, pöttyös háttér, kerek buborékkártyák, szívecskék és csillámok. |
 | Yami | Keserédes gótikus lolita: fekete–levendula alap, élénk rózsaszín, krémszín csipkefodrok, masnik, kameés keretek, fekete-fehér sakktábla, masnis kis koponyák és denevérek, kézírásos címek. |
-| Csillagidő | Egy csillaghajó parancsnoki hídjának kezelőfelülete: fekete alap, lekerekített végű narancs, levendula és barack sávok, keskeny nagybetűk. |
+| Uchūreki (csillagidő) | Egy csillaghajó parancsnoki hídjának kezelőfelülete: fekete alap, lekerekített végű narancs, levendula és barack sávok, keskeny nagybetűk. |
 
 Ugyanitt profilonként **sorrendbe állíthatók és elrejthetők a főoldal sorai** (húzással vagy a nyilakkal,
 távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben, hazai csatornák, kategóriák, országok.

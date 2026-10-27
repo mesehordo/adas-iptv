@@ -155,116 +155,240 @@ export function variantsFor(accentHue, chosen = null) {
 const V = (id, name, map, o = {}) => ({ id, name, map, ...o });
 const T = (id, name, tint, tint2) => ({ id, name, tint, tint2 });
 export const THEME_VARIANTS = {
-  netflix: [V('kobai', () => _t('Szilvavirág'), [[28, 352]]), V('ruri', () => _t('Lazúr'), [[28, 258]]), V('kohaku', () => _t('Borostyán'), [[28, 68]])],
-  disney: [V('fairy', () => _t('Tündérlila'), [[257, 300]]), V('dawn', () => _t('Hajnalpír'), [[257, 350]]), V('emerald', () => _t('Smaragd'), [[257, 165]])],
+  // Kurenai (bíborvörös esti mozi): a vörös más mozivászon-színekre
+  netflix: [
+    V('kobai', () => _t('Szilvavirág'), [[28, 352]]),
+    V('ruri', () => _t('Lazúr'), [[28, 258]]),
+    V('kohaku', () => _t('Borostyán'), [[28, 68]]),
+    V('noir', () => _t('Film noir'), [[28, 28]], { chroma: 0.25 }),
+    V('neonsign', () => _t('Neonfelirat'), [[28, 330]], { chroma: 1.15 }),
+  ],
+  // Mahō (varázslat): mesés, csillagos égbolt-színek
+  disney: [
+    V('fairy', () => _t('Tündérlila'), [[257, 300]]),
+    V('dawn', () => _t('Hajnalpír'), [[257, 350]]),
+    V('emerald', () => _t('Smaragd'), [[257, 165]]),
+    V('gold', () => _t('Aranypor'), [[257, 80]], { chroma: 0.9 }),
+    V('ice', () => _t('Jégpalota'), [[257, 210]], { chroma: 0.8 }),
+  ],
   skyshowtime: [
     V('deepsea', () => _t('Mélytenger'), [[289, 245], [315, 205], [0, 190]]),
     V('sunset', () => _t('Naplemente'), [[289, 25], [315, 55], [0, 70]]),
     V('forest', () => _t('Erdei mágia'), [[289, 150], [315, 115], [0, 95]]),
+    V('galaxy', () => _t('Galaxis'), [[289, 270], [315, 320], [0, 230]], { chroma: 1.1 }),
   ],
-  rakuten: [V('cobalt', () => _t('Kobalt'), [[29, 255]]), V('emerald', () => _t('Smaragd'), [[29, 155]]), V('gold', () => _t('Arany'), [[29, 85]])],
-  prime: [V('coral', () => _t('Korallzátony'), [[250, 22]]), V('lagoon', () => _t('Lagúna'), [[250, 185]]), V('midnight', () => _t('Éjféli lila'), [[250, 295]])],
-  apple: [V('ice', () => _t('Jégkék'), [[21, 240]]), V('mint', () => _t('Menta'), [[21, 165]]), V('lavender', () => _t('Levendula'), [[21, 300]])],
-  zen: [V('sakura', () => _t('Sakura'), [[131, 355]], { chroma: 0.9 }), V('indigo', () => _t('Indigó'), [[131, 265]]), V('maple', () => _t('Juhar'), [[131, 40]])],
+  // Akane (mélyvörös mozivászon)
+  rakuten: [
+    V('cobalt', () => _t('Kobalt'), [[29, 255]]),
+    V('emerald', () => _t('Smaragd'), [[29, 155]]),
+    V('gold', () => _t('Arany'), [[29, 85]]),
+    V('velvet', () => _t('Bársony'), [[29, 345]], { chroma: 0.9 }),
+  ],
+  // Shinkai (mélytenger): a tenger különböző mélységei és élőlényei
+  prime: [
+    V('coral', () => _t('Korallzátony'), [[250, 22]]),
+    V('lagoon', () => _t('Lagúna'), [[250, 185]]),
+    V('midnight', () => _t('Éjféli lila'), [[250, 295]]),
+    V('biolum', () => _t('Világító mélység'), [[250, 160]], { chroma: 1.2 }),
+    V('kelp', () => _t('Hínárerdő'), [[250, 120]], { chroma: 0.8 }),
+  ],
+  // Garasu (üveg): színes üvegek
+  apple: [
+    V('ice', () => _t('Jégkék'), [[21, 240]]),
+    V('mint', () => _t('Menta'), [[21, 165]]),
+    V('lavender', () => _t('Levendula'), [[21, 300]]),
+    V('amber', () => _t('Borostyánüveg'), [[21, 65]]),
+    V('smoke', () => _t('Füstüveg'), [[21, 230]], { chroma: 0.3 }),
+  ],
+  // Zen (rizspapír, moha): a japán kert évszakai
+  zen: [
+    V('sakura', () => _t('Sakura'), [[131, 355]], { chroma: 0.9 }),
+    V('indigo', () => _t('Indigó'), [[131, 265]]),
+    V('maple', () => _t('Juhar'), [[131, 40]]),
+    V('matcha', () => _t('Matcha'), [[131, 115]], { chroma: 1.1 }),
+    V('wisteria', () => _t('Lilaakác'), [[131, 300]], { chroma: 0.8 }),
+  ],
   wabisabi: [
     V('indigo', () => _t('Indigófesték'), [[45, 262], [75, 75], [255, 225]]),
     V('moss', () => _t('Moha'), [[45, 128], [75, 80], [255, 255]]),
     V('plum', () => _t('Szilva'), [[45, 345], [75, 75], [255, 280]]),
+    V('tea', () => _t('Teaszertartás'), [[45, 95], [75, 60], [255, 150]], { chroma: 0.85 }),
+    V('raku', () => _t('Raku-máz'), [[45, 20], [75, 85], [255, 195]], { chroma: 0.9 }),
   ],
+  // Asobiba (játszótér)
   nintendo: [
     V('strawberry', () => _t('Eper'), [[235, 355], [30, 250]]),
     V('lime', () => _t('Lime'), [[235, 128], [30, 30]]),
     V('tangerine', () => _t('Mandarin'), [[235, 55], [30, 345]]),
+    V('candy', () => _t('Cukorka'), [[235, 320], [30, 195]], { chroma: 1.1 }),
   ],
+  // Futago (kontrollerpár): további kontroller-színpárok
   switch: [
     V('neon', () => _t('Neon pár'), [[212, 130], [30, 345]], { chroma: 1.08 }),
     V('coral', () => _t('Korall'), [[212, 25], [30, 250]]),
     V('violet', () => _t('Ibolya'), [[212, 295], [30, 60]]),
+    V('pastel', () => _t('Pasztell pár'), [[212, 330], [30, 165]], { chroma: 0.6 }),
+    V('gold', () => _t('Arany–fekete'), [[212, 80], [30, 80]], { chroma: 0.9 }),
   ],
-  wii: [V('lime', () => _t('Lime'), [[226, 145]]), V('tangerine', () => _t('Mandarin'), [[226, 55]]), V('rose', () => _t('Rózsa'), [[226, 350]])],
-  // Neon City: a neonsárga / cián / bíbor / vörös négyes más éjszakai neonpalettákra
+  // Hiroba (fehér konzolmenü, kék kiemelés)
+  wii: [
+    V('lime', () => _t('Lime'), [[226, 145]]),
+    V('tangerine', () => _t('Mandarin'), [[226, 55]]),
+    V('rose', () => _t('Rózsa'), [[226, 350]]),
+    V('sky', () => _t('Égkék'), [[226, 205]], { chroma: 0.8 }),
+  ],
+  // Neon City: a neonsárga / cián / bíbor / vörös négyes más kiberpunk világok neonjaira – esős éjszakai
+  // nagyváros, szmogos naplemente, a számítógépes rácsvilág, a hálózat zöld kódja, a kibertér kékje, arany implantátumok
   cyberpunk: [
-    V('synthwave', () => _t('Szintihullám'), [[105, 345], [210, 200], [15, 60], [285, 300]], { chroma: 1.1 }),
-    V('acid', () => _t('Savas zöld'), [[105, 135], [210, 320], [15, 15], [285, 265]], { chroma: 1.1 }),
-    V('redneon', () => _t('Vörös neon'), [[105, 25], [210, 190], [15, 350], [285, 300]], { chroma: 1.1 }),
+    V('synthwave', () => _t('Szintihullám'), [[105, 345], [210, 200], [15, 60], [285, 300]], { chroma: 1.15 }),
+    V('acid', () => _t('Savas zöld'), [[105, 135], [210, 320], [15, 15], [285, 265]], { chroma: 1.15 }),
+    V('redneon', () => _t('Vörös neon'), [[105, 25], [210, 190], [15, 350], [285, 300]], { chroma: 1.15 }),
+    V('smog', () => _t('Szmogos naplemente'), [[105, 55], [210, 190], [15, 25], [285, 330]], { chroma: 1.15 }),
+    V('grid', () => _t('Rácsvilág'), [[105, 205], [210, 195], [15, 45], [285, 215]], { chroma: 1.25 }),
+    V('code', () => _t('Héjkód'), [[105, 145], [210, 170], [15, 300], [285, 285]], { chroma: 1.15 }),
+    V('cyberspace', () => _t('Kibertér'), [[105, 250], [210, 215], [15, 285], [285, 305]], { chroma: 1.2 }),
+    V('augment', () => _t('Arany implantátum'), [[105, 80], [210, 75], [15, 55], [285, 40]], { chroma: 1.1 }),
   ],
+  // Neo-Tokyo (romváros, vörös motor, száguldó fénycsíkok)
   neotokyo: [
     V('headlight', () => _t('Motorfény'), [[27, 245]], { chroma: 1.05 }),
     V('psy', () => _t('Pszí lila'), [[27, 300]], { chroma: 1.05 }),
     V('toxic', () => _t('Mérgező zöld'), [[27, 140]]),
+    V('flare', () => _t('Robbanásfény'), [[27, 55]], { chroma: 1.1 }),
+    V('rain', () => _t('Éjszakai eső'), [[27, 200]], { chroma: 0.9 }),
   ],
-  manga: [T('red', () => _t('Vörös tus'), 27), T('blue', () => _t('Kék tus'), 255), T('shojo', () => _t('Shōjo rózsa'), 350, 300)],
+  manga: [T('red', () => _t('Vörös tus'), 27), T('blue', () => _t('Kék tus'), 255), T('shojo', () => _t('Shōjo rózsa'), 350, 300), T('sepia', () => _t('Szépia'), 55), T('ink', () => _t('Zöld tus'), 160)],
   comic: [
     V('night', () => _t('Éjféli hős'), [[26, 300], [256, 145], [90, 90]]),
     V('orange', () => _t('Narancs–türkiz'), [[26, 50], [256, 200], [90, 95]]),
     V('pop', () => _t('Rózsaszín pop'), [[26, 350], [256, 265], [90, 95]]),
+    V('villain', () => _t('Gonosztevő'), [[26, 135], [256, 295], [90, 85]], { chroma: 1.1 }),
+    V('golden', () => _t('Aranykor'), [[26, 15], [256, 230], [90, 80]], { chroma: 0.8 }),
   ],
   // (16-Bit: a színes A–B–X–Y pöttyök maradnak, csak a konzol lila gombjai változnak)
   snes: [
     V('burgundy', () => _t('Bordó'), [[289, 18], [30, 30], [90, 90], [150, 150]]),
     V('emerald', () => _t('Smaragd'), [[289, 158], [30, 30], [90, 90], [150, 150]]),
     V('cobalt', () => _t('Kobalt'), [[289, 245], [30, 30], [90, 90], [150, 150]]),
+    V('handheld', () => _t('Zsebkonzol-zöld'), [[289, 110], [30, 110], [90, 110], [150, 110]], { chroma: 0.7 }),
   ],
   // Kikagaku: a plakát alapszínei helyet cserélnek, ill. a másodlagos színek
   bauhaus: [
     V('blue', () => _t('Kék elöl'), [[30, 255], [255, 30], [90, 90]]),
     V('yellow', () => _t('Sárga elöl'), [[30, 90], [90, 30], [255, 255]]),
     V('secondary', () => _t('Másodlagos színek'), [[30, 55], [255, 145], [90, 310]]),
+    V('pastel', () => _t('Pasztell plakát'), [[30, 15], [255, 200], [90, 85]], { chroma: 0.55 }),
   ],
+  // Kyokkō (sarki fény): az égbolt fényei
   aurora: [
     V('dawn', () => _t('Hajnalpír'), [[286, 15], [177, 75], [210, 45]]),
     V('deepsea', () => _t('Mélytenger'), [[286, 255], [177, 195], [210, 225]]),
     V('forest', () => _t('Erdei fény'), [[286, 150], [177, 105], [210, 170]]),
+    V('nebula', () => _t('Köd'), [[286, 330], [177, 290], [210, 350]], { chroma: 1.1 }),
   ],
   // Rakugaki: csak a „toll” színe változik, a füzet kék vonalai és a sárga kiemelő marad
   sketch: [
     V('green', () => _t('Zöld toll'), [[28, 145], [255, 255], [90, 90], [105, 105]]),
     V('violet', () => _t('Lila toll'), [[28, 300], [255, 255], [90, 90], [105, 105]]),
     V('crayon', () => _t('Narancs kréta'), [[28, 55], [255, 255], [90, 90], [105, 105]]),
+    V('pencil', () => _t('Grafit'), [[28, 255], [255, 255], [90, 90], [105, 105]], { chroma: 0.15 }),
   ],
   // Phosphor: a régi monitorok foszforszínei
-  terminal: [V('amber', () => _t('Borostyán'), [[147, 72]]), V('cyan', () => _t('Cián'), [[147, 200]]), V('plasma', () => _t('Plazma'), [[147, 40]])],
+  terminal: [
+    V('amber', () => _t('Borostyán'), [[147, 72]]),
+    V('cyan', () => _t('Cián'), [[147, 200]]),
+    V('plasma', () => _t('Plazma'), [[147, 40]]),
+    V('white', () => _t('Fehér foszfor'), [[147, 220]], { chroma: 0.2 }),
+    V('mono', () => _t('Kék monokróm'), [[147, 250]], { chroma: 0.85 }),
+  ],
   contrast: [],
-  large: [V('green', () => _t('Zöld'), [[254, 150]]), V('burgundy', () => _t('Bordó'), [[254, 18]]), V('violet', () => _t('Lila'), [[254, 300]])],
-  shiro: [V('sage', () => _t('Zsálya'), [[263, 150]]), V('coral', () => _t('Korall'), [[263, 28]]), V('violet', () => _t('Ibolya'), [[263, 300]])],
+  large: [V('green', () => _t('Zöld'), [[254, 150]]), V('burgundy', () => _t('Bordó'), [[254, 18]]), V('violet', () => _t('Lila'), [[254, 300]]), V('orange', () => _t('Narancs'), [[254, 50]])],
+  shiro: [V('sage', () => _t('Zsálya'), [[263, 150]]), V('coral', () => _t('Korall'), [[263, 28]]), V('violet', () => _t('Ibolya'), [[263, 300]]), V('graphite', () => _t('Grafit'), [[263, 263]], { chroma: 0.15 })],
   // Yoru: sötét szobába – tompa, nem vakító színek
   yoru: [
     V('ember', () => _t('Parázs'), [[72, 28], [30, 10]], { chroma: 0.95 }),
     V('moon', () => _t('Holdfény'), [[72, 245], [30, 230]], { chroma: 0.8 }),
     V('ash', () => _t('Hamuzöld'), [[72, 150], [30, 130]], { chroma: 0.8 }),
+    V('candle', () => _t('Gyertyafény'), [[72, 60], [30, 45]], { chroma: 0.7 }),
   ],
-  mori: [V('autumn', () => _t('Ősz'), [[131, 52]]), V('lake', () => _t('Tópart'), [[131, 205]]), V('berry', () => _t('Áfonya'), [[131, 305]])],
+  // Mori (erdő): az erdő évszakai
+  mori: [
+    V('autumn', () => _t('Ősz'), [[131, 52]]),
+    V('lake', () => _t('Tópart'), [[131, 205]]),
+    V('berry', () => _t('Áfonya'), [[131, 305]]),
+    V('fern', () => _t('Páfrány'), [[131, 145]], { chroma: 1.15 }),
+    V('birch', () => _t('Nyírfa'), [[131, 85]], { chroma: 0.5 }),
+  ],
   // Natsu: a homokszín marad, a tenger és a korall más nyári színekre
   natsu: [
     V('sunset', () => _t('Naplemente'), [[200, 45], [30, 350], [90, 90]]),
     V('tropic', () => _t('Trópusi'), [[200, 150], [30, 60], [90, 90]]),
     V('lavender', () => _t('Levendulamező'), [[200, 290], [30, 340], [90, 90]]),
+    V('watermelon', () => _t('Görögdinnye'), [[200, 140], [30, 10], [90, 90]], { chroma: 1.1 }),
   ],
-  fuyu: [V('dawn', () => _t('Hajnalpír'), [[251, 350]]), V('aurora', () => _t('Sarki fény'), [[251, 165]]), V('dusk', () => _t('Alkony'), [[251, 295]])],
+  // Fuyu (tél)
+  fuyu: [
+    V('dawn', () => _t('Hajnalpír'), [[251, 350]]),
+    V('aurora', () => _t('Sarki fény'), [[251, 165]]),
+    V('dusk', () => _t('Alkony'), [[251, 295]]),
+    V('glacier', () => _t('Gleccser'), [[251, 200]], { chroma: 0.85 }),
+    V('holly', () => _t('Magyal'), [[251, 15]], { chroma: 0.9 }),
+  ],
   // Deco: a fekete-arany mozipalota más nemesfémekkel és drágakövekkel
-  deco: [V('rosegold', () => _t('Rózsaarany'), [[85, 40]], { chroma: 0.85 }), V('emerald', () => _t('Smaragd'), [[85, 160]]), V('silver', () => _t('Ezüst'), [[85, 85]], { chroma: 0.12 })],
+  deco: [
+    V('rosegold', () => _t('Rózsaarany'), [[85, 40]], { chroma: 0.85 }),
+    V('emerald', () => _t('Smaragd'), [[85, 160]]),
+    V('silver', () => _t('Ezüst'), [[85, 85]], { chroma: 0.12 }),
+    V('sapphire', () => _t('Zafír'), [[85, 255]]),
+    V('ruby', () => _t('Rubin'), [[85, 15]]),
+  ],
   // Shōwa: a 70-es évek további lakberendezési színei
-  showa: [V('avocado', () => _t('Avokádó'), [[51, 118]]), V('burgundy', () => _t('Bordó'), [[51, 15]]), V('petrol', () => _t('Petrol'), [[51, 205]], { chroma: 0.85 })],
-  mu: [T('indigo', () => _t('Indigó'), 265), T('rust', () => _t('Rozsda'), 40), T('moss', () => _t('Moha'), 130)],
+  showa: [
+    V('avocado', () => _t('Avokádó'), [[51, 118]]),
+    V('burgundy', () => _t('Bordó'), [[51, 15]]),
+    V('petrol', () => _t('Petrol'), [[51, 205]], { chroma: 0.85 }),
+    V('mustard', () => _t('Mustár'), [[51, 85]]),
+    V('disco', () => _t('Diszkó'), [[51, 320]], { chroma: 1.1 }),
+  ],
+  mu: [T('indigo', () => _t('Indigó'), 265), T('rust', () => _t('Rozsda'), 40), T('moss', () => _t('Moha'), 130), T('ink', () => _t('Tinta'), 230)],
   // Holo: a sci-fi kezelőfelület riasztási és üzemmódszínei
-  holo: [V('redalert', () => _t('Vörös riadó'), [[222, 25]]), V('amber', () => _t('Borostyán'), [[222, 70]]), V('matrix', () => _t('Mátrix'), [[222, 145]])],
+  holo: [
+    V('redalert', () => _t('Vörös riadó'), [[222, 25]]),
+    V('amber', () => _t('Borostyán'), [[222, 70]]),
+    V('matrix', () => _t('Mátrix'), [[222, 145]]),
+    V('stealth', () => _t('Lopakodó'), [[222, 285]], { chroma: 0.9 }),
+    V('ice', () => _t('Jéghideg'), [[222, 195]], { chroma: 0.7 }),
+  ],
   // Yume: a pasztell hármas (rózsaszín / levendula / menta) más édességszínekben
   yume: [
     V('peach', () => _t('Barack'), [[350, 40], [295, 20], [175, 95]]),
     V('soda', () => _t('Szóda'), [[350, 230], [295, 290], [175, 150]]),
     V('melon', () => _t('Dinnye'), [[350, 145], [295, 350], [175, 85]]),
+    V('lavender', () => _t('Levendulafagyi'), [[350, 300], [295, 260], [175, 330]]),
   ],
   // Yami (keserédes): a púderrózsaszín / borvörös / levendula hármas más keserédes színekben
   yami: [
     V('wine', () => _t('Bordó csipke'), [[355, 15], [305, 345], [5, 5]], { chroma: 1.05 }),
     V('lavender', () => _t('Levendula'), [[355, 300], [305, 265], [5, 330]]),
     V('mint', () => _t('Menta macaron'), [[355, 165], [305, 330], [5, 350]]),
+    V('moonlit', () => _t('Holdfényes kék'), [[355, 230], [305, 260], [5, 210]], { chroma: 0.9 }),
   ],
-  // Csillagidő: a parancsnoki híd sávjai riasztási és nyugalmi színekben
+  // Uchūreki: a parancsnoki híd kezelőfelületének (LCARS) színkombinációi különböző korszakokból és hajókról –
+  // a narancs / barack / rózsaszín / levendula / arany sávok átszínezve (a sávok világossága marad)
   stardate: [
+    // vészhelyzetek
     V('redalert', () => _t('Vörös riadó'), [[65, 25], [45, 15], [330, 350], [285, 330], [75, 35]]),
     V('bluealert', () => _t('Kék riadó'), [[65, 250], [45, 235], [330, 205], [285, 280], [75, 260]]),
-    V('emerald', () => _t('Smaragd'), [[65, 150], [45, 135], [330, 190], [285, 250], [75, 160]]),
+    // űrállomás: okker, rozsda, téglavörös és halvány tengerzöld
+    V('station', () => _t('Állomás'), [[65, 75], [45, 40], [330, 25], [285, 195], [75, 85]], { chroma: 0.8 }),
+    // messzi út: hidegebb kék–lila sávok, homokszín kísérővel
+    V('voyage', () => _t('Messzi út'), [[65, 255], [45, 60], [330, 300], [285, 225], [75, 240]], { chroma: 0.9 }),
+    // a későbbi korszak hajói: acélkék és türkiz, borostyán jelzőfény
+    V('titan', () => _t('Titán'), [[65, 232], [45, 70], [330, 195], [285, 250], [75, 205]], { chroma: 0.75 }),
+    // régi flotta: pasztell zöldeskék és krém, mint a korai, tompa kijelzők
+    V('oldfleet', () => _t('Régi flotta'), [[65, 175], [45, 85], [330, 205], [285, 150], [75, 95]], { chroma: 0.6 }),
+    // gyűjtőhajó: zöld kijelzőfény sötét alapon
+    V('collective', () => _t('Kollektíva'), [[65, 140], [45, 125], [330, 150], [285, 160], [75, 135]], { chroma: 1.05 }),
   ],
 };
 

@@ -797,7 +797,7 @@ ${go('#/profiles', 'Manage profiles')}`,
 <tr><td><b>Deco</b></td><td>The art deco world of old picture palaces: black and gold, geometric frames, elegant lettering.</td></tr>
 <tr><td><b>Shōwa</b></td><td>The 1970s: orange, brown and mustard, rounded “TV screen” cards, striped decoration.</td></tr>
 <tr><td><b>Holo</b></td><td>A sci-fi control panel: dark bluish grid, cyan hologram glow, thin frames, cut-corner buttons.</td></tr>
-<tr><td><b>Stardate</b></td><td>The control interface of a starship’s bridge: black background, round-ended orange, lavender and peach bars, narrow capitals.</td></tr>
+<tr><td><b>Uchūreki</b> (stardate)</td><td>The control interface of a starship’s bridge: black background, round-ended orange, lavender and peach bars, narrow capitals.</td></tr>
 <tr><th colspan="2">Light styles</th></tr>
 <tr><td><b>Zen</b></td><td>Rice-paper white background, moss-green highlights, lots of space, quiet, slow movements, an ensō circle in the logo.</td></tr>
 <tr><td><b>Wabi-sabi</b></td><td>Warm, earth-toned paper texture, slightly irregular cards, rust and indigo, a golden kintsugi crack on hover.</td></tr>

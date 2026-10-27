@@ -133,7 +133,7 @@ A saját CSS-ben ezek `var(--accent)` formában használhatók; saját változó
 | `showa` | Shōwa | a 70-es évek |
 | `mu` | Mu | szinte üres felület (világos) |
 | `holo` | Holo | sci-fi irányítópult |
-| `stardate` | Csillagidő | egy csillaghajó parancsnoki hídjának kezelőfelülete |
+| `stardate` | Uchūreki (csillagidő) | egy csillaghajó parancsnoki hídjának kezelőfelülete |
 
 A `base` megadásával a téma átveszi az adott stílus összes díszítését (keretek, árnyékok, minták,
 animációk), és a saját `colors` / `css` ezek **fölé** kerül. Így egy beépített stílus „átszínezése” is egy

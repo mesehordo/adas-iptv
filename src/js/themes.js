@@ -158,8 +158,8 @@ export const THEMES = {
     desc: _t('Yami: keserédes gótikus lolita – fekete–levendula alap, élénk rózsaszín, krémszín csipkefodrok, masnik, kameés keretek, fekete-fehér sakktábla, masnis kis koponyák és denevérek, kézírásos címek.'),
   },
   stardate: {
-    label: _t('Csillagidő'),
-    desc: _t('Csillagidő: egy csillaghajó parancsnoki hídjának kezelőfelülete – fekete alap, lekerekített végű narancs, levendula és barack színsávok, keskeny, nagybetűs feliratok.'),
+    label: 'Uchūreki',
+    desc: _t('Uchūreki (csillagidő): egy csillaghajó parancsnoki hídjának kezelőfelülete – fekete alap, lekerekített végű narancs, levendula és barack színsávok, keskeny, nagybetűs feliratok.'),
   },
 };
 
