@@ -149,10 +149,16 @@ final class HttpOpen {
   static HttpURLConnection guarded(URL u, String method, Map<String, String> hdrs, boolean output, int timeoutMs) throws IOException {
     String host = bare(u.getHost());
     if (privateName(host)) throw blockedError();
-    InetAddress[] addrs = net.resolve(host);
-    for (InetAddress a : addrs) if (net.blocked(a)) throw blockedError();
     boolean https = "https".equalsIgnoreCase(u.getProtocol());
     boolean direct = direct(u);
+    InetAddress[] addrs;
+    try {
+      addrs = net.resolve(host);
+    } catch (UnknownHostException e) {
+      if (direct) throw e;
+      addrs = new InetAddress[0]; // (proxyn át a nevet a proxy oldja fel – helyben nem kell ismerni)
+    }
+    for (InetAddress a : addrs) if (net.blocked(a)) throw blockedError();
     if (https || !direct) {
       HttpURLConnection c = configure((HttpURLConnection) u.openConnection(), method, hdrs, output, timeoutMs);
       if (https && direct && c instanceof HttpsURLConnection) {
