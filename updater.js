@@ -16,6 +16,16 @@ const { spawn } = require('child_process');
 const UA = 'Adas-Updater';
 
 /**
+ * A kiadások aláíró kulcsának nyilvános fele (Ed25519, SPKI PEM – tools/make-update-key.mjs készíti). Ha meg van adva,
+ * a GitHub-kiadás SHA256SUMS.txt-je csak a mellette lévő érvényes aláírással (SHA256SUMS.txt.sig) fogadható el – így
+ * egy feltört GitHub-fiókkal feltett, hamis telepítő sem települ automatikusan (a fiók a kulcsot nem ismeri).
+ * Üresen: nincs aláírás-ellenőrzés (csak az ellenőrző összeg – a régi viselkedés).
+ */
+let UPDATE_PUBKEY = `-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEAqk/8i2mL3aqKE4QYcZt0YwwvVZX5Bb84EmUdqK8EwFM=
+-----END PUBLIC KEY-----`;
+
+/**
  * Verzió értelmezése (SemVer): „v” előtag nélkül MAJOR[.MINOR[.PATCH]][-előzetes][+build]. → { core, pre } vagy
  * null, ha nem szabályos (B34).
  */
@@ -107,13 +117,28 @@ async function getJson(url) {
   return res.json();
 }
 
-/** A kiadás SHA256SUMS.txt-je → { fájlnév: sha256 } */
-async function getSums(url) {
+/** Az aláírás ellenőrzése (Ed25519, base64). */
+function sigOk(text, sigB64) {
+  try {
+    return crypto.verify(null, Buffer.from(text, 'utf8'), crypto.createPublicKey(UPDATE_PUBKEY), Buffer.from(String(sigB64 || '').trim(), 'base64'));
+  } catch {
+    return false;
+  }
+}
+
+/** A kiadás SHA256SUMS.txt-je → { fájlnév: sha256 }; aláíró kulcs esetén csak érvényes aláírással (különben üres). */
+async function getSums(url, sigUrl = '') {
   if (!isHttps(url)) return {};
   const res = await net.fetch(url, { headers: { 'User-Agent': UA } });
   if (!res.ok) return {};
+  const text = await res.text();
+  if (UPDATE_PUBKEY) {
+    if (!isHttps(sigUrl)) return {};
+    const sr = await net.fetch(sigUrl, { headers: { 'User-Agent': UA } });
+    if (!sr.ok || !sigOk(text, (await sr.text()).slice(0, 1000))) return {};
+  }
   const out = {};
-  for (const line of (await res.text()).slice(0, 200000).split(/\r?\n/)) {
+  for (const line of text.slice(0, 200000).split(/\r?\n/)) {
     const m = /^([0-9a-f]{64})\s+\*?(.+)$/i.exec(line.trim());
     if (m) out[m[2].trim()] = m[1].toLowerCase();
   }
@@ -145,7 +170,8 @@ async function check(source) {
     if (a) {
       // a kiadás ellenőrző összegei (SHA256SUMS.txt) – a letöltött fájl csak egyezés esetén telepíthető
       const sums = (rel.assets || []).find((x) => /^sha256sums(\.txt)?$/i.test(x.name));
-      const sha256 = sums ? (await getSums(sums.browser_download_url).catch(() => ({})))[a.name] || '' : '';
+      const sig = (rel.assets || []).find((x) => /^sha256sums(\.txt)?\.sig$/i.test(x.name));
+      const sha256 = sums ? (await getSums(sums.browser_download_url, sig?.browser_download_url || '').catch(() => ({})))[a.name] || '' : '';
       asset = { name: a.name, url: a.url, size: a.size, sha256 };
     }
   } else if (isHttps(source)) {
@@ -270,3 +296,5 @@ async function install(file) {
 }
 
 module.exports = { check, download, install, cmpVersion, isPrerelease };
+// (tesztekhez)
+module.exports._test = { sigOk, setPubKey: (k) => (UPDATE_PUBKEY = k) };

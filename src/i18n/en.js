@@ -2464,5 +2464,22 @@ export default {
  "🎮 Kontroller csatlakoztatva: {name}": "🎮 Controller connected: {name}",
  "Bekapcsolás": "Turn on",
  "Kontroller": "Controller",
- "A távirányító és a kontroller gombjainak betanítása (ehhez az eszközhöz, minden profilnak).": "Teach the buttons of your remote and controller (for this device, every profile)."
+ "A távirányító és a kontroller gombjainak betanítása (ehhez az eszközhöz, minden profilnak).": "Teach the buttons of your remote and controller (for this device, every profile).",
+ "Kevés a szabad hely a felvételek lemezén ({gb} GB) – szabadíts fel helyet.": "Not enough free space on the recordings drive ({gb} GB) – free up some space.",
+ "Betelt a lemez (már csak {gb} GB szabad) – a felvétel leállt, az eddigi rész megmaradt.": "The drive is full (only {gb} GB free) – the recording stopped; the part recorded so far was kept.",
+ "A hálózati ellenőrző szerver nem érhető el (nincs internet, vagy minden kimenő kapcsolat szűrve van).": "The network test server can’t be reached (no internet, or all outgoing connections are filtered).",
+ "A nem szabványos portok (pl. {ports}) el vannak zárva ezen a gépen vagy hálózaton – az ezeken sugárzó helyi tévék itt nem indulhatnak el. Ellenőrizd a tűzfalat, a vírusirtó webszűrőjét, a VPN-t vagy a router beállításait.": "Non-standard ports (e.g. {ports}) are blocked on this computer or network – local TV stations broadcasting on them can’t play here. Check the firewall, your antivirus web filter, the VPN or your router settings.",
+ "Néhány nem szabványos port el van zárva ({ports}) – az ezeken sugárzó adások itt nem indulhatnak el.": "Some non-standard ports are blocked ({ports}) – streams on them can’t play here.",
+ "Rendben: a nem szabványos portok is elérhetők.": "OK: non-standard ports are reachable too.",
+ "<b>Hálózat ellenőrzése</b>": "<b>Network check</b>",
+ "Sok helyi tévé nem szabványos porton (pl. 1935, 1344, 8080) sugároz. Ha ezek nálad sorra nem indulnak, itt kiderül, szűri-e őket a gép vagy a hálózat.": "Many local TV stations broadcast on non-standard ports (e.g. 1935, 1344, 8080). If these keep failing for you, this shows whether your computer or network filters them.",
+ "Ellenőrzés": "Check",
+ "Ez az adás a(z) {port} portot használja, ami ezen a gépen vagy hálózaton el van zárva – ezért nem indul el. Részletek: Beállítások → Lejátszás → Hálózat ellenőrzése.": "This stream uses port {port}, which is blocked on this computer or network – that’s why it won’t start. Details: Settings → Playback → Network check.",
+ "<b>Kézi felvétel leghosszabb ideje</b>": "<b>Maximum length of manual recordings</b>",
+ "A ● gombbal indított felvétel ennyi idő után magától leáll (egy elfelejtett felvétel ne töltse meg a lemezt). Ha a lemezen 300 MB alá fogy a hely, minden felvétel leáll.": "A recording started with the ● button stops by itself after this time (so a forgotten recording can’t fill the drive). If free space drops below 300 MB, all recordings stop.",
+ "Olvasd be a QR-kódot a telefon kamerájával (Beállítások → Távirányító és billentyűk → Távirányító telefonról).": "Scan the QR code with your phone’s camera (Settings → Remote control and keys → Remote control from phone).",
+ "A PIN-es belépés ki van kapcsolva (a QR-kódos a biztonságosabb). Bekapcsolható a tévén / gépen: Beállítások → Távirányító és billentyűk → Távirányító telefonról.": "PIN login is turned off (the QR code is more secure). It can be turned on on the TV / computer: Settings → Remote control and keys → Remote control from phone.",
+ "<b>Belépés PIN-kóddal is</b>": "<b>Also allow PIN login</b>",
+ "Kevésbé biztonságos: a helyi hálózatot lehallgató eszköz a PIN-t kitalálhatja. Csak a saját, otthoni hálózatodon kapcsold be, ha a QR-kód nem használható.": "Less secure: a device eavesdropping on the local network could work out the PIN. Only turn it on on your own home network, if the QR code can’t be used.",
+ "Új kulcs (a párosított telefonok kiesnek)": "New key (paired phones are disconnected)"
 };

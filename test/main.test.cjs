@@ -379,3 +379,39 @@ test('webOS-szolgáltatás (V08): bájtos letöltés – a ZIP változatlan, az 
   assert.deepEqual(await get('/gz.zip'), zip);
   await assert.rejects(get('/nincs'), /HTTP 404/);
 });
+
+// ------------------------------------------------------------------ frissítés: aláírt ellenőrző összegek
+test('updater.sigOk: csak a kiadási kulccsal aláírt SHA256SUMS fogadható el', () => {
+  const crypto = require('crypto');
+  const { _test } = require(path.join(ROOT, 'updater'));
+  const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
+  const other = crypto.generateKeyPairSync('ed25519');
+  const sums = 'a'.repeat(64) + '  Adas-Setup-9.9.9.exe\n';
+  const sig = crypto.sign(null, Buffer.from(sums), privateKey).toString('base64');
+  _test.setPubKey(publicKey.export({ type: 'spki', format: 'pem' }));
+  assert.equal(_test.sigOk(sums, sig), true);
+  assert.equal(_test.sigOk(sums.replace('9.9.9', '6.6.6'), sig), false); // módosított lista
+  assert.equal(_test.sigOk(sums, crypto.sign(null, Buffer.from(sums), other.privateKey).toString('base64')), false); // más kulcs
+  assert.equal(_test.sigOk(sums, 'nem-alairas'), false);
+  _test.setPubKey('');
+});
+
+// ------------------------------------------------------------------ lejátszási híd: a továbbító kulcsai korlátosak
+test('media.inputOf: a továbbító kulcstáblája legfeljebb 4000, a használt kulcs megmarad', () => {
+  const media = require(path.join(ROOT, 'media'));
+  const { inputOf, srcCount } = media._test;
+  const keep = inputOf('https://pelda.hu/lista.m3u8');
+  for (let i = 0; i < 5000; i++) {
+    inputOf(`https://pelda.hu/szegmens${i}.ts`);
+    if (i % 500 === 0) assert.equal(inputOf('https://pelda.hu/lista.m3u8'), keep); // (a lista újratöltése: friss marad)
+  }
+  assert.ok(srcCount() <= 4000, `túl sok kulcs: ${srcCount()}`);
+  assert.equal(inputOf('https://pelda.hu/lista.m3u8'), keep);
+  assert.notEqual(inputOf('https://pelda.hu/szegmens0.ts').split('/').pop(), ''); // (a kiesett régi szegmens új kulcsot kap)
+});
+
+test('media.freeBytes: a szabad hely szám (lekérdezhetetlen helyen végtelen)', () => {
+  const { freeBytes } = require(path.join(ROOT, 'media'))._test;
+  assert.ok(freeBytes(os.tmpdir()) > 0);
+  assert.equal(freeBytes(path.join(os.tmpdir(), 'nincs-ilyen-mappa-' + Date.now())), Infinity);
+});

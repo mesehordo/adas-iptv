@@ -236,7 +236,7 @@ async function expandGitHub(url, hours = 6) {
 const PLAYLIST_RX = /\.(m3u8?|txt)$/i;
 // Az „összes tétel” fájl neve műfaji bontású csomagokban (pl. all.m3u8 + akció.m3u8 + dráma.m3u8…)
 const ALL_FILE_RX = /^(all|összes|osszes|minden|mind|index|full|teljes)$/i;
-const baseName = (n) => decodeURIComponent(n.split('/').pop()).replace(PLAYLIST_RX, '');
+const baseName = (n) => safeDecode(n.split('/').pop()).replace(PLAYLIST_RX, '');
 const tagName = (n) => {
   const t = cleanName(baseName(n).replace(/[_]+/g, ' '));
   return t.charAt(0).toLocaleUpperCase(LOCALE) + t.slice(1);
@@ -356,7 +356,7 @@ async function loadList(pl, force, warnings = vod.errors) {
     const parsed = parseM3U(text);
     // Ha maga a cím egy videó (HLS adás), egyetlen filmként kezeljük.
     if (parsed.isStream) return [{ title: fileName || pl.name, name: fileName || pl.name, url, logo: '', group: '', duration: 0, fileHint: '' }];
-    const hint = fileName ? cleanName(decodeURIComponent(fileName).replace(/\.m3u8?$/i, '').replace(/[_]+/g, ' ')) : '';
+    const hint = fileName ? cleanName(safeDecode(fileName).replace(/\.m3u8?$/i, '').replace(/[_]+/g, ' ')) : '';
     return parsed.entries.map((e) => ({ ...e, fileHint: e.file ? cleanName(e.file.replace(/[_]+/g, ' ')) : hint }));
   };
   if (pl.entries) return pl.entries.map((e) => ({ ...e, fileHint: '' })); // csatornalistából átvett tételek
@@ -1989,13 +1989,15 @@ async function scanUrl(url, force) {
   const found = [];
   const seen = new Set();
   const root = url.endsWith('/') ? url : url.replace(/[^/]*$/, '');
-  const relOf = (abs) => decodeURIComponent(abs.slice(root.length)) || decodeURIComponent(abs.split('/').pop());
+  // (egy kódolatlan „%” a fájlnévben – pl. „100% vígjáték.m3u” – ne állítsa le a teljes bejárást)
+  const dec = safeDecode;
+  const relOf = (abs) => dec(abs.slice(root.length)) || dec(abs.split('/').pop());
   const walk = async (u, depth) => {
     if (seen.has(u) || found.length >= 400) return;
     seen.add(u);
     const { text } = await api.fetchText(u, { maxAgeHours: 0.03, force });
     if (/#EXTINF|#EXTM3U/.test(text.slice(0, 5000)) && !/<html/i.test(text.slice(0, 500))) {
-      const name = decodeURIComponent(u.split(/[?#]/)[0].split('/').pop() || 'lista');
+      const name = dec(u.split(/[?#]/)[0].split('/').pop() || 'lista');
       found.push({ name, rel: relOf(u) || name, url: u });
       return;
     }
@@ -2008,11 +2010,11 @@ async function scanUrl(url, force) {
         continue;
       }
       if (!abs.startsWith(dir) || abs === dir || abs.includes('?')) continue; // csak lefelé, rendezőlinkek nélkül
-      const seg = decodeURIComponent(abs.slice(dir.length)).split('/')[0];
+      const seg = dec(abs.slice(dir.length)).split('/')[0];
       if (/^[.@]|^#recycle$/i.test(seg)) continue; // rejtett és NAS-rendszermappák (pl. @eaDir)
       if (/\.m3u8?$/i.test(abs)) {
         if (!found.some((f) => f.url === abs)) {
-          found.push({ name: decodeURIComponent(abs.split('/').pop()), rel: relOf(abs), url: abs });
+          found.push({ name: dec(abs.split('/').pop()), rel: relOf(abs), url: abs });
         }
       } else if (abs.endsWith('/') && depth < 2) await walk(abs, depth + 1);
     }

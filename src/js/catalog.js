@@ -247,7 +247,11 @@ export function parseM3U(text) {
         url = line.slice(0, pipe);
         for (const kv of line.slice(pipe + 1).split('&')) {
           const [k, ...v] = kv.split('=');
-          const val = decodeURIComponent(v.join('=') || '');
+          // (egy hibás %-jelölés – pl. „…(100%)” a User-Agentben – ne buktassa el az egész listát)
+          let val = v.join('=') || '';
+          try {
+            val = decodeURIComponent(val);
+          } catch {}
           if (/^user-agent$/i.test(k)) cur.opts['http-user-agent'] = val;
           else if (/^refer+er$/i.test(k)) cur.opts['http-referrer'] = val;
         }

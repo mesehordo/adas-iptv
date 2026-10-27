@@ -33,6 +33,7 @@ import { renderRecordings } from './recorder.js';
 import { renderRemoteSettings } from './remote.js';
 import { keyMapSummary } from './keymap.js';
 import { padStatus, padSetupHtml } from './gamepad.js';
+import { netDiagHtml } from './netdiag.js';
 bus.on('gamepads', () => document.querySelectorAll('.pad-status').forEach((el) => (el.innerHTML = padStatus())));
 import { renderBackups } from './backup.js';
 import { renderThemeTools } from './customthemes.js';
@@ -783,6 +784,7 @@ export function renderSettings(view) {
         <select data-set="maxQuality">${[['', _t('Automatikus (az ablakmérethez)')], ['1080', _t('Legfeljebb 1080p (Full HD)')], ['720', _t('Legfeljebb 720p (HD)')], ['480', _t('Legfeljebb 480p (SD)')], ['360', _t('Legfeljebb 360p (adatkímélő)')]]
           .map(([v, l]) => `<option value="${v}" ${String(s.maxQuality || '') === v ? 'selected' : ''}>${l}</option>`)
           .join('')}</select></label>
+      ${netDiagHtml()}
     </section>
 
     <section class="set-section" id="engine" data-g="play"><h2>${_t('Lejátszómotor')} <button class="help-link" data-help="engines" title="${_t('Súgó')}">?</button></h2>
@@ -1058,7 +1060,10 @@ export function renderSettings(view) {
     } else if (act === 'export') {
       const data = await attachDocs(JSON.parse(JSON.stringify(store.serialize())));
       delete data.health;
-      const ok = await api.saveFile(`adas-mentes-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, null, 2));
+      // (a mai nap helyi idő szerint – a toISOString éjfél után még az előző napot adta)
+      const d = new Date();
+      const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const ok = await api.saveFile(`adas-mentes-${day}.json`, JSON.stringify(data, null, 2));
       if (ok) toast(_t('Mentés elkészült'));
     } else if (act === 'import') {
       const f = await api.openFile([{ name: _t('Adás mentés'), extensions: ['json'] }]);
@@ -1521,7 +1526,7 @@ function editProfile(prof, done) {
     picker.setColor(color);
   };
   el.elements.namedItem('name').addEventListener('input', (e) => picker.setName(e.target.value));
-  el.onsubmit = (e) => {
+  el.onsubmit = async (e) => {
     e.preventDefault();
     const name = el.elements.namedItem('name').value.trim() || _t('Profil');
     const kids = el.elements.namedItem('kids').checked;
@@ -1533,7 +1538,7 @@ function editProfile(prof, done) {
     target.theme = look.theme;
     target.themeVariants = { ...(target.themeVariants || {}), [look.theme]: look.variant };
     if (!look.variant) delete target.themeVariants[look.theme];
-    if (newPin !== undefined) setPin(target, newPin);
+    if (newPin !== undefined) await setPin(target, newPin);
     store.save();
     bus.emit('profile');
     close();

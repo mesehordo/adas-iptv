@@ -73,12 +73,8 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 app.on('second-instance', () => {
-  // újraindításkor (pl. a tálcán futó példány) az ablak előjön
-  if (win) {
-    if (win.isMinimized()) win.restore();
-    win.show();
-    win.focus();
-  }
+  // újraindításkor (pl. a tálcán futó példány) az ablak előjön – macOS-en a bezárt ablak helyett új nyílik
+  if (app.isReady()) showWindow();
 });
 
 // ---------------------------------------------------------------------------
@@ -659,12 +655,75 @@ ipcMain.handle('cancel-check', () => {
   checkRun++;
 });
 
-ipcMain.handle('store-load', async () => {
+// ---------------------------------------------------------------------------
+// Jelszavak a rendszer kulcstárában (Electron safeStorage: Windows DPAPI, macOS Kulcskarika, Linux Secret Service /
+// KWallet): a store.json-ba nem kerülnek, hanem titkosítva a secrets.json-ba. Ahol nincs valódi kulcstár (Linuxon a
+// „basic_text” mód), marad a régi viselkedés. A felület mindebből semmit sem lát: betöltéskor visszakapja őket.
+// ---------------------------------------------------------------------------
+const SECRET_SETTINGS = ['osPass'];
+const secretsFile = () => path.join(dataDir(), 'secrets.json');
+let secretCache = null; // { kulcs: titkosított (base64) } – a lemezen lévő állapot
+function canEncrypt() {
   try {
-    return JSON.parse(await fs.promises.readFile(storeFile(), 'utf8'));
+    const { safeStorage } = require('electron');
+    if (!safeStorage.isEncryptionAvailable()) return false;
+    return process.platform !== 'linux' || safeStorage.getSelectedStorageBackend?.() !== 'basic_text';
+  } catch {
+    return false;
+  }
+}
+async function readSecrets() {
+  if (secretCache) return secretCache;
+  try {
+    const j = JSON.parse(await fs.promises.readFile(secretsFile(), 'utf8'));
+    secretCache = j && typeof j === 'object' ? j : {};
+  } catch {
+    secretCache = {};
+  }
+  return secretCache;
+}
+/** A beállítások titkos mezőinek kivétele (és titkosított mentése, ha változtak). → a lemezre írható beállítások */
+async function stripSecrets(settings) {
+  const { safeStorage } = require('electron');
+  const cur = await readSecrets();
+  const out = { ...settings };
+  let changed = false;
+  for (const k of SECRET_SETTINGS) {
+    if (!(k in out)) continue; // (hiányzó mező: a tárolt marad – pl. titkok nélküli visszaállítás, átvétel)
+    const v = typeof out[k] === 'string' ? out[k] : '';
+    delete out[k];
+    const prev = cur[k] ? (() => { try { return safeStorage.decryptString(Buffer.from(cur[k], 'base64')); } catch { return null; } })() : '';
+    if (prev === v) continue;
+    if (v) cur[k] = safeStorage.encryptString(v).toString('base64');
+    else delete cur[k];
+    changed = true;
+  }
+  if (changed) await writeJsonFile(secretsFile(), cur);
+  return out;
+}
+/** Betöltéskor a titkos mezők visszakerülnek (a régi, még a store.json-ban álló érték elsőbbséget kap – a következő mentés átteszi). */
+async function restoreSecrets(settings) {
+  const { safeStorage } = require('electron');
+  const cur = await readSecrets();
+  for (const k of SECRET_SETTINGS) {
+    if (typeof settings[k] === 'string' && settings[k]) continue;
+    if (!cur[k]) continue;
+    try {
+      settings[k] = safeStorage.decryptString(Buffer.from(cur[k], 'base64'));
+    } catch {} // (pl. másik gépről átmásolt adatmappa: a kulcstár nem fejti meg – újra meg kell adni)
+  }
+  return settings;
+}
+
+ipcMain.handle('store-load', async () => {
+  let data;
+  try {
+    data = JSON.parse(await fs.promises.readFile(storeFile(), 'utf8'));
   } catch {
     return null;
   }
+  if (canEncrypt() && data?.settings && typeof data.settings === 'object') await restoreSecrets(data.settings).catch(() => {});
+  return data;
 });
 
 // Fájlba írás aszinkron, fájlonként sorban (a nagy JSON-ok szinkron írása az ablakot is megakasztotta).
@@ -697,7 +756,11 @@ function writeTextFile(file, text) {
   });
 }
 
-ipcMain.handle('store-save', (_e, data) => writeJsonFile(storeFile(), data));
+ipcMain.handle('store-save', async (_e, data) => {
+  // (a jelszó a rendszer kulcstárába – ha az írás nem sikerül, a mentés hibát ad, mint eddig)
+  if (canEncrypt() && data?.settings && typeof data.settings === 'object') data = { ...data, settings: await stripSecrets(data.settings) };
+  return writeJsonFile(storeFile(), data);
+});
 
 /** Egy kérés a Chromium hálózati útján, átirányítás követése nélkül → { status, body } vagy { status, location }. */
 function netOnce(url, { method = 'GET', headers = {}, body, signal } = {}) {
@@ -1139,6 +1202,26 @@ ipcMain.handle('set-playing', (_e, playing) => {
 
 ipcMain.handle('app-info', () => ({ version: app.getVersion(), dataDir: dataDir(), platform: process.platform }));
 
+// Hálózati ellenőrzés: kijutnak-e a kapcsolatok a szokásos (80, 443) és a sok helyi tévé által használt nem szabványos
+// portokon (1935 – Wowza / RTMP-szerverek HLS-e, 8080, 1344 stb.). A portquiz.net minden porton válaszol; ha ott a
+// 80 / 443 megy, a többi nem, akkor a gép, a router, a vírusirtó vagy a szolgáltató szűri a nem szabványos portokat.
+const DIAG_PORTS = [80, 443, 1935, 8080, 1344, 8000];
+ipcMain.handle('net-diag', async () => {
+  const tcp = (port) =>
+    new Promise((resolve) => {
+      const s = require('net').connect({ host: 'portquiz.net', port, timeout: 6000 });
+      const done = (ok) => {
+        s.destroy();
+        resolve(ok);
+      };
+      s.once('connect', () => done(true));
+      s.once('timeout', () => done(false));
+      s.once('error', () => done(false));
+    });
+  const res = await Promise.all(DIAG_PORTS.map(tcp));
+  return Object.fromEntries(DIAG_PORTS.map((p, i) => [p, res[i]]));
+});
+
 // ---------------------------------------------------------------------------
 // Helyi hálózat: kivetítés (Chromecast / DLNA), beállítások átadása
 // ---------------------------------------------------------------------------
@@ -1212,6 +1295,7 @@ ipcMain.handle('rec-schedule', (_e, list) => {
   return recTimers.size;
 });
 ipcMain.handle('rec-stop', (_e, id) => media.recStop(id));
+ipcMain.handle('rec-active', () => media.recActive());
 ipcMain.handle('rec-list', () => ({ dir: recDir(), files: media.recList(recDir()) }));
 ipcMain.handle('rec-open', (_e, p) => (inRecDir(p) ? shell.openPath(path.resolve(p)) : _t('Érvénytelen fájl')));
 ipcMain.handle('rec-folder', () => {
