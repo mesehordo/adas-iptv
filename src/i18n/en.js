@@ -2554,5 +2554,9 @@ export default {
  "{count} csatorna a gyűjteményedben": "{count} channels in your collection",
  "Teljes gyűjtemény": "Full collection",
  "Forrásaid": "Your sources",
- "Hírforrások beállítása": "Set up news sources"
+ "Hírforrások beállítása": "Set up news sources",
+ "{n} elem": "{n} items",
+ "Szűrés": "Filter",
+ "Adatok": "Details",
+ "Csoportok": "Groups"
 };

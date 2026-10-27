@@ -34,7 +34,6 @@ export const LAYOUTS = {
   detail: {
     label: _t('Részletes'),
     desc: _t('Részletes: balra a csatornák listája, jobbra a kiválasztott csatorna adatlapja a mai műsorral és a nézési idővel. Egérrel a leggyorsabb.'),
-    side: true,
   },
   unified: {
     label: _t('Gyűjtemény'),

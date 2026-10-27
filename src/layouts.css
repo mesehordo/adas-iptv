@@ -435,3 +435,204 @@
   .lt.lt-unit { grid-column: span 2; grid-row: span 4; }
 }
 .lay-units > .row-title { margin-left: 0; margin-right: 0; }
+
+/* ====================================================================== A menü elrendezésenként (széles képernyőn; telefonon a közös alsó menü) */
+@media (min-width: 701px) {
+  /* közös: a menüpontok egységes alapja, a témák díszítései (aláhúzás-animáció stb.) nélkül */
+  body:is([data-layout="cinema"], [data-layout="showcase"], [data-layout="shelf"], [data-layout="tiles"], [data-layout="detail"], [data-layout="wall"], [data-layout="squares"], [data-layout="ribbon"], [data-layout="focus"]) #nav .links a::before,
+  body:is([data-layout="cinema"], [data-layout="showcase"], [data-layout="shelf"], [data-layout="tiles"], [data-layout="detail"], [data-layout="wall"], [data-layout="squares"], [data-layout="ribbon"], [data-layout="focus"]) #nav .links a::after { content: none !important; }
+
+  /* Mozi: átlátszó sáv, a választott pont alatt vörös csík */
+  body[data-layout="cinema"] #nav .links { gap: 22px; }
+  body[data-layout="cinema"] #nav .links a { padding: 6px 0 !important; border: 0 !important; background: none !important; }
+  body[data-layout="cinema"] #nav .links a.active { box-shadow: inset 0 -3px 0 var(--accent); }
+
+  /* Kirakat: középre zárt kapszula ikonnal és felirattal */
+  body[data-layout="showcase"] #nav { justify-content: space-between; }
+  body[data-layout="showcase"] #nav .links { flex: none; margin: 0 auto; gap: 2px; padding: 4px; border-radius: 999px; background: rgba(127, 127, 127, 0.18); }
+  body[data-layout="showcase"] #nav .links a { display: flex !important; gap: 8px; padding: 7px 16px !important; margin: 0 !important; border-radius: 999px !important; border: 0 !important; }
+  body[data-layout="showcase"] #nav .links .nav-ico { display: block !important; width: 20px; height: 20px; fill: currentColor; }
+  body[data-layout="showcase"] #nav .links .lbl { display: inline !important; }
+  body[data-layout="showcase"] #nav .links a.active { background: var(--text-strong) !important; color: var(--bg) !important; }
+
+  /* Polc: lebegő, áttetsző kapszula középen, csak feliratok */
+  body[data-layout="shelf"] #nav, body[data-layout="shelf"] #nav.solid { background: transparent !important; box-shadow: none; }
+  body[data-layout="shelf"] #nav .brand { opacity: 0.8; font-size: 1.3rem; }
+  body[data-layout="shelf"] #nav .links { position: absolute; left: 50%; transform: translateX(-50%); flex: none; gap: 2px; padding: 5px; border-radius: 999px; background: rgba(40, 40, 46, 0.72); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+  body[data-layout="shelf"] #nav .links a { padding: 7px 18px !important; margin: 0 !important; border-radius: 999px !important; border: 0 !important; color: #ddd !important; }
+  body[data-layout="shelf"] #nav .links a.active { background: rgba(255, 255, 255, 0.92) !important; color: #111 !important; }
+  body[data-layout="shelf"] #nav .links .lbl { display: inline !important; }
+  body[data-layout="shelf"] #nav .links .nav-ico { display: none !important; }
+
+  /* Csempék: keskeny bal oldali ikonsáv; rámutatva kinyílik a feliratokkal */
+  body[data-layout="tiles"] #nav, body[data-layout="tiles"] #nav.solid { right: auto; bottom: 0; width: 76px; height: auto; flex-direction: column; align-items: stretch; gap: 14px; padding: 18px 10px;
+    background: linear-gradient(90deg, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.55)) !important; transition: width 0.2s, background 0.2s; overflow: hidden; }
+  body[data-layout="tiles"] #nav:hover, body[data-layout="tiles"] #nav:focus-within { width: 230px; background: rgba(0, 0, 0, 0.94) !important; }
+  body[data-layout="tiles"] #nav .brand { font-size: 1rem; text-align: center; }
+  body[data-layout="tiles"] #nav .links { flex: none; flex-direction: column; gap: 4px; margin: 20px 0 0; }
+  body[data-layout="tiles"] #nav .links a { display: flex !important; align-items: center; gap: 18px; padding: 12px 16px !important; margin: 0 !important; border: 0 !important; border-radius: 10px; white-space: nowrap; color: #ccc !important; }
+  body[data-layout="tiles"] #nav .links a.active, body[data-layout="tiles"] #nav .links a:hover { color: #fff !important; background: rgba(255, 255, 255, 0.1); }
+  body[data-layout="tiles"] #nav .links .nav-ico { display: block !important; flex: none; width: 24px; height: 24px; fill: currentColor; }
+  body[data-layout="tiles"] #nav .links .lbl { display: inline !important; opacity: 0; transition: opacity 0.2s; }
+  body[data-layout="tiles"] #nav:hover .links .lbl, body[data-layout="tiles"] #nav:focus-within .links .lbl { opacity: 1; }
+  body[data-layout="tiles"] #nav .links .rail-only { display: flex !important; }
+  body[data-layout="tiles"] #nav .nav-right { margin-top: auto; flex-direction: column; align-items: flex-start; padding-left: 6px; }
+  body[data-layout="tiles"] #nav .dropdown-panel { top: auto; bottom: 0; left: calc(100% + 8px); right: auto; }
+  body[data-layout="tiles"] #nav .search-box.open { position: fixed; left: 90px; bottom: 120px; z-index: 30; }
+  body[data-layout="tiles"] #view { margin-left: 76px; }
+  body[data-layout="tiles"] .page, body[data-layout="tiles"] .tv-rows, body[data-layout="tiles"] .radio-rows { padding-top: 32px; }
+  body[data-layout="tiles"] #radio-bar { left: 88px; }
+
+  /* Részletes: tömör, sötét fülsáv nagybetűs, széles pontokkal */
+  body[data-layout="detail"] #nav, body[data-layout="detail"] #nav.solid { height: 60px; background: var(--bg-2) !important; border-bottom: 1px solid var(--line); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3); }
+  body[data-layout="detail"] #nav .links { gap: 6px; }
+  body[data-layout="detail"] #nav .links a { padding: 18px 14px !important; margin: 0 !important; border: 0 !important; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; font-size: 0.9rem; color: var(--muted) !important; }
+  body[data-layout="detail"] #nav .links a.active { color: var(--accent) !important; box-shadow: inset 0 -3px 0 var(--accent); }
+  body[data-layout="detail"] #nav .links a:hover { color: var(--text-strong) !important; }
+  body[data-layout="detail"] .md { padding-top: 60px; }
+  body[data-layout="detail"] .md-list { top: 60px; height: calc(100vh - 60px); }
+
+  /* Csempefal: profil elöl, fülek lekerekített „csempékként” ikonnal */
+  body[data-layout="wall"] #nav .nav-right { order: -1; }
+  body[data-layout="wall"] #nav #profile-menu { order: -1; }
+  body[data-layout="wall"] #nav .brand { order: -2; }
+  body[data-layout="wall"] #nav .links { gap: 6px; }
+  body[data-layout="wall"] #nav .links a { display: flex !important; gap: 8px; padding: 8px 14px !important; margin: 0 !important; border-radius: 6px !important; border: 0 !important; background: rgba(127, 127, 127, 0.14); }
+  body[data-layout="wall"] #nav .links a.active { background: var(--accent) !important; color: #fff !important; }
+  body[data-layout="wall"] #nav .links .nav-ico { display: block !important; width: 18px; height: 18px; fill: currentColor; }
+  body[data-layout="wall"] #nav .links .lbl { display: inline !important; }
+
+  /* Négyzetek: kerek ikongombok (a Főoldalon a kerek gombok a menü) */
+  body[data-layout="squares"] #nav .links { gap: 10px; }
+  body[data-layout="squares"] #nav .links a { width: 44px; height: 44px; padding: 0 !important; margin: 0 !important; justify-content: center; border-radius: 50% !important; border: 2px solid transparent !important; background: rgba(127, 127, 127, 0.18); }
+  body[data-layout="squares"] #nav .links a.active { border-color: var(--accent) !important; }
+  body[data-layout="squares"] #nav .links .nav-ico { display: block !important; width: 22px; height: 22px; fill: currentColor; }
+  body[data-layout="squares"] #nav .links .lbl { display: none !important; }
+
+  /* Menüszalag: a Főoldalon maga a szalag a menü; máshol halvány ikonsor */
+  body[data-layout="ribbon"] #nav, body[data-layout="ribbon"] #nav.solid { background: transparent !important; box-shadow: none; }
+  body[data-layout="ribbon"][data-route="home"] #nav .links { visibility: hidden; }
+  body[data-layout="ribbon"] #nav .links { gap: 4px; }
+  body[data-layout="ribbon"] #nav .links a { padding: 8px 10px !important; margin: 0 !important; border: 0 !important; opacity: 0.6; }
+  body[data-layout="ribbon"] #nav .links a.active, body[data-layout="ribbon"] #nav .links a:hover { opacity: 1; }
+  body[data-layout="ribbon"] #nav .links .nav-ico { display: block !important; width: 24px; height: 24px; fill: currentColor; }
+  body[data-layout="ribbon"] #nav .links .lbl { display: none !important; }
+
+  /* Fókusz: négyzetes ikonok; a választotté felirattal */
+  body[data-layout="focus"] #nav .links { gap: 8px; }
+  body[data-layout="focus"] #nav .links a { display: flex !important; gap: 8px; height: 40px; padding: 0 12px !important; margin: 0 !important; border-radius: 4px !important; border: 0 !important; background: rgba(127, 127, 127, 0.16); }
+  body[data-layout="focus"] #nav .links .nav-ico { display: block !important; width: 22px; height: 22px; fill: currentColor; }
+  body[data-layout="focus"] #nav .links .lbl { display: none !important; }
+  body[data-layout="focus"] #nav .links a.active { background: rgba(255, 255, 255, 0.9) !important; color: #111 !important; }
+  body[data-layout="focus"] #nav .links a.active .lbl { display: inline !important; }
+}
+
+/* ====================================================================== A TV, VOD, Rádió (és a Sport) oldal az elrendezésekben – pageadapt.js */
+.adapt-store { display: none !important; }
+.rows.adapt > .adapt-hero { margin: 0 0 -6vw; }
+.rows.adapt > .tv-head + .adapt-hero { margin-top: 0; }
+.adapt-hero .hero-bg.is-poster { justify-content: flex-end; padding-right: 8vw; }
+.adapt-hero .hero-bg.is-poster img { width: auto; height: 82%; max-height: none; opacity: 0.55; filter: none; transform: none; border-radius: 8px; }
+.rows.adapt-cinema, .rows.adapt-showcase, .rows.adapt-tiles { padding-top: 68px; }
+.adapt-sections { position: relative; z-index: 3; }
+.adapt-sections .app-tile { border: 0; cursor: pointer; font: inherit; text-align: left; }
+.adapt-sections .app-tile small, .adapt-sections .coll-tile small { color: rgba(255, 255, 255, 0.75); }
+.adapt-sections .coll-tile { border: 2px solid rgba(255, 255, 255, 0.12); cursor: pointer; font: inherit; text-align: left; aspect-ratio: 16 / 7; }
+
+/* Polc: a kijelölt kártya a háttérben (rögzítve), felül az adatai */
+.adapt-shelf-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(ellipse at 70% 25%, hsl(var(--h, 220) 50% 24%), hsl(var(--h, 220) 40% 6%) 70%); transition: background 0.5s; }
+.adapt-shelf-bg .asb-img { position: absolute; inset: 0; display: flex; align-items: center; justify-content: flex-end; padding-right: 8vw; }
+.adapt-shelf-bg img { width: 26vw; max-height: 40%; object-fit: contain; opacity: 0.18; }
+.adapt-shelf-bg img.apost { width: auto; height: 80%; max-height: none; opacity: 0.35; border-radius: 10px; }
+.adapt-shelf-bg .asb-shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0, 0, 0, 0.7), transparent 60%), linear-gradient(0deg, rgba(0, 0, 0, 0.6), transparent 50%); }
+.rows.adapt-shelf { position: relative; z-index: 1; }
+.adapt-shelf-info { margin: 0 var(--gutter) 3vh; min-height: 22vh; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; color: #fff; }
+.adapt-shelf-info h1 { font-size: clamp(26px, 3.2vw, 48px); margin: 0; text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5); }
+.adapt-shelf-info .bar { max-width: 320px; margin-top: 6px; }
+.rows.adapt-shelf .row-track :is(.card, .vcard, .rcard) { transition: transform 0.2s; }
+[data-tone="light"] .adapt-shelf-bg { background: radial-gradient(ellipse at 70% 25%, hsl(var(--h, 220) 35% 82%), var(--bg) 72%); }
+[data-tone="light"] .adapt-shelf-bg .asb-shade { background: linear-gradient(90deg, var(--bg), transparent 60%); }
+[data-tone="light"] .adapt-shelf-info { color: var(--text-strong); }
+
+/* Könyvtár: a sorok rácsként, két sorban (a többi az „Összes” mögött) */
+.rows.adapt-library .row-track { flex-wrap: wrap; overflow: hidden; max-height: calc(2 * (var(--card-w) * 0.5625 + 70px)); row-gap: 14px; }
+.rows.adapt-library .row-arrow { display: none !important; }
+.rows.adapt-library .row-title { font-size: 1.3rem; }
+
+/* Részletes / Gyűjtemény: a TV oldalon kívül is (VOD, Rádió) */
+.rows.adapt-detail, .rows.adapt-unified { padding-top: 0; }
+.rows.adapt > .tv-head { position: relative; z-index: 4; }
+.adapt-md .md-item > .apost { flex: none; width: 34px; height: 50px; object-fit: cover; border-radius: 4px; }
+.adapt-md .md-bg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.6; }
+.adapt-md .md-bg.is-poster img { object-fit: contain; object-position: right center; opacity: 0.9; }
+.adapt-md > .md-detail > .hero-btns { margin: 0; }
+.adapt-grid.adapt-list { grid-template-columns: 1fr !important; gap: 6px !important; }
+.adapt-grid.adapt-list :is(.card, .vcard, .rcard) { display: grid; grid-template-columns: 110px 1fr; align-items: center; gap: 14px; }
+.adapt-grid.adapt-list :is(.card, .vcard, .rcard):hover { transform: none !important; }
+.adapt-grid.adapt-list .thumb { aspect-ratio: 16 / 9; }
+.adapt-grid.adapt-list .pop { display: none !important; }
+.adapt-grid > [hidden] { display: none !important; }
+
+/* Csempefal: az első sor csempefal (az első elem nagy), a többi sor csoport */
+.rows.adapt-wall > .row:first-of-type .row-track { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-rows: auto; gap: 10px; overflow: visible; }
+.rows.adapt-wall > .row:first-of-type .row-track > :first-child { grid-column: span 2; grid-row: span 2; }
+.rows.adapt-wall > .row:first-of-type .row-track > :nth-child(n + 12):not(.see-all) { display: none; }
+.rows.adapt-wall > .row:first-of-type :is(.card, .vcard, .rcard) { width: auto !important; }
+.rows.adapt-wall > .row:first-of-type .row-arrow { display: none !important; }
+.rows.adapt-wall :is(.thumb) { border-radius: 6px; }
+
+/* Négyzetek: egyszerre egy sor, nagy négyzetekben; alul kerek gombok */
+.rows.adapt-squares > .row { display: none; }
+.rows.adapt-squares > .row.adapt-on { display: block; }
+.rows.adapt-squares > .row-group > .row { display: none; }
+.rows.adapt-squares > .row-group > .row.adapt-on { display: block; }
+.rows.adapt-squares .row-track :is(.card, .rcard) { width: clamp(150px, 16vw, 230px); }
+.rows.adapt-squares .row-track :is(.card, .rcard) .thumb { aspect-ratio: 1; border-radius: 12px; }
+.adapt-sq-btns { margin: 26px var(--gutter) 0; }
+.adapt-sq-btns .sq-btn { border: 0; background: none; font: inherit; cursor: pointer; }
+.adapt-sq-btns .sq-btn > span b { font-size: 1.2rem; color: hsl(var(--h) 70% 62%); }
+.adapt-sq-btns .sq-btn.on > span { border-color: var(--accent); }
+
+/* Menüszalag / Fókusz: az oldalon is (a sorok a szalag, ill. a funkciógombok) */
+.adapt-xmb { min-height: calc(100vh - 140px); padding-top: 14vh; }
+.xmb-letter { width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(127, 127, 127, 0.2); font-size: 1.3rem; font-weight: 800; }
+.adapt-xmb .xmb-ico .apost { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
+.adapt-fx { min-height: 74vh; padding-top: 24px; }
+.adapt-fx .fx-fn-btn.on { background: rgba(255, 255, 255, 0.9); color: #111; }
+.adapt-fx .fx-bg img { position: absolute; right: 6vw; top: 8%; height: 84%; border-radius: 10px; opacity: 0.6; }
+.adapt-fx .fx-tile.is-poster { aspect-ratio: 2 / 3; }
+.adapt-fx .fx-tile .apost { width: 100%; height: 100%; object-fit: cover; border-radius: 3px; }
+.adapt-fx .fx-tile .initials { font-size: 1.2rem; }
+
+/* Asztal: a sorok élő csempékként (lapos, színes négyzetek), soronként legfeljebb két sor */
+.rows.adapt-desk .row-track { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; overflow: hidden; max-height: calc(2 * 150px + 8px + 60px); }
+.rows.adapt-desk .row-track :is(.card, .vcard, .rcard) { width: auto !important; }
+.rows.adapt-desk .row-track .thumb { border-radius: 2px; }
+.rows.adapt-desk .row-track :is(.card, .rcard) .thumb { aspect-ratio: 1; }
+.rows.adapt-desk .row-arrow { display: none !important; }
+.rows.adapt-desk .row-title { font-size: 1.1rem; font-weight: 400; letter-spacing: 0.02em; }
+
+/* Sport oldal: a kártyái az elrendezés stílusában */
+body[data-layout="desk"] .sport-page .dcard, body[data-layout="wall"] .sport-page .dcard { border-radius: 4px; }
+body[data-layout="desk"] .sport-page .spc-live { background: hsl(350 45% 26%); }
+body[data-layout="desk"] .sport-page .spc-next { background: hsl(220 40% 24%); }
+body[data-layout="desk"] .sport-page .spc-tv { background: hsl(265 35% 26%); }
+body[data-layout="desk"] .sport-page .spc-done { background: hsl(150 30% 20%); }
+[data-tone="dark"] body[data-layout="shelf"] .sport-page .dcard, body[data-layout="shelf"][data-tone="dark"] .sport-page .dcard,
+body[data-layout="focus"][data-tone="dark"] .sport-page .dcard, body[data-layout="ribbon"][data-tone="dark"] .sport-page .dcard { background: rgba(255, 255, 255, 0.06); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.08); }
+body[data-layout="squares"] .sport-page .dcard { border-radius: 18px; }
+body[data-layout="cinema"] .sport-page .dcard, body[data-layout="showcase"] .sport-page .dcard { border-radius: 4px; border-top: 3px solid var(--accent); }
+body[data-layout="tiles"] .sport-page .dcard { border-radius: 14px; border: 2px solid rgba(255, 255, 255, 0.1); }
+body[data-layout="detail"] .sport-page .dc-title { text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.95rem; }
+body[data-layout="detail"] .sport-page .dcard { border-radius: 2px; }
+body:is([data-layout="library"], [data-layout="unified"]) .sport-page .dcard { border-radius: 10px; background: var(--bg-3); }
+
+@media (max-width: 700px) {
+  .rows.adapt-cinema, .rows.adapt-showcase, .rows.adapt-tiles { padding-top: 60px; }
+  .rows.adapt > .adapt-hero { margin-bottom: 12px; }
+  .rows.adapt-wall > .row:first-of-type .row-track { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .rows.adapt-desk .row-track { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; }
+  .adapt-shelf-info { margin: 0 16px 16px; min-height: 16vh; }
+}
+.adapt-xmb .xmb-hint { position: static; margin: 18px 0 0 calc(var(--x) + 18px); }
+.adapt-shelf-bg { overflow: hidden; }

@@ -28,6 +28,7 @@ import {
 } from './views.js';
 import { renderDashboard } from './dashboard.js';
 import { layoutRoute } from './layouts.js'; // profilonként választható felület-elrendezések
+import { adaptPage } from './pageadapt.js';
 import { renderRecordingsPage } from './recorder.js'; // felvétel (asztali) és a felvételek oldala
 import './remote.js'; // távirányító telefonról
 import { applySubStyle } from './backup.js'; // automatikus mentés, feliratstílus
@@ -164,6 +165,8 @@ function route({ keepScroll = false } = {}) {
   const card = !keep && sameRoute && ae && view.contains(ae) ? ae.closest('.card, .see-all') : null;
   const cardKeep = card && cardSel(card) ? { sel: cardSel(card), n: [...view.querySelectorAll(cardSel(card))].indexOf(card) } : null;
   fn(view, params);
+  // (a TV, VOD, Rádió oldal kártyái az elrendezés módján rendeződnek át)
+  adaptPage(view, name);
   if (cardKeep && !view.contains(document.activeElement)) {
     const all = view.querySelectorAll(cardKeep.sel);
     (all[cardKeep.n] || all[0])?.focus({ preventScroll: true });

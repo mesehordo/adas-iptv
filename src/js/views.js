@@ -59,7 +59,10 @@ function popular(list) {
 
 
 
+// (az átrendező elrendezésekben – a sorokból lista, szalag, csoportgombok lesznek – rögtön minden sor kell)
+const ALL_ROWS = new Set(['detail', 'unified', 'squares', 'ribbon', 'focus']);
 function lazyRows(container, factories, initial = 4) {
+  if (ALL_ROWS.has(document.body.dataset.layout)) initial = factories.length;
   let i = 0;
   const sentinel = html('<div class="rows-sentinel"></div>');
   const more = (n) => {

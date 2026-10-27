@@ -766,7 +766,15 @@ ${go('#/profiles', 'Profilok kezelése')}`,
 <li><b>Részletes</b> – balra a csatornalista (szűrővel), jobbra a kiválasztott csatorna adatlapja a mai műsorral és a nézési idővel. Kattintás: kijelölés, második kattintás / OK: lejátszás.</li>
 <li><b>Gyűjtemény</b> – minden forrás egy helyen, szűrőkkel (forrás, ország, kategória, csak működők / kedvencek), rács- vagy listanézettel; a szűrők megmaradnak.</li>
 </ul>
-<p>Az oldalsó menü széles képernyőn látszik; keskeny ablakban és telefonon a szokásos felső / alsó menü marad. A Részletes és a Gyűjtemény elrendezés a TV oldalt is a saját nézetére cseréli.</p>
+<ul>
+<li><b>Csempefal</b> – nagy „Folytatás” csempe, a rögzített kedvencek rácsa, mellette útmutató a most futó műsorokkal.</li>
+<li><b>Négyzetek</b> – egy sor nagy, négyzetes csempe, alul kerek gombok a fő részekhez; gyerekeknek és tévére.</li>
+<li><b>Menüszalag</b> – vízszintesen a részek, függőlegesen a tartalmuk; távirányítóval: ← → rész, ↑ ↓ elem, OK megnyitás.</li>
+<li><b>Fókusz</b> – funkciósáv, egy sor csempe; a kijelölt nagyobb, alatta a műsora és a gombjai.</li>
+<li><b>Asztal</b> – élő csempék (óra, most, ma este, időjárás, hírek), a menü alul tálcaként.</li>
+</ul>
+<p>Minden elrendezésnek <b>saját menüje</b> van (felső sáv, középre zárt kapszula, bal oldali ikonsáv, nagybetűs fülsáv, kerek ikonok, tálca…), és a <b>Főoldal</b> is a stílusában mutatja a napot (időjárás, ma este, hírek, most a tévében). A <b>TV, VOD és Rádió</b> oldal sorai is az elrendezés módján rendeződnek: kiemelt borító, csoportcsempék, lista és adatlap, szűrős gyűjtemény, menüszalag, csempék; a Sport oldal kártyái az elrendezés stílusát kapják.</p>
+<p>Az oldalsó menü és a tálca széles képernyőn látszik; keskeny ablakban és telefonon a szokásos felső / alsó menü marad. A Részletes és a Gyűjtemény elrendezés a TV oldalt is a saját nézetére cseréli.</p>
 <h2>Színváltozatok</h2>
 <p>A legtöbb stílusnak az eredeti mellett <b>három színváltozata</b> is van – mindegyik a stílus hangulatához válogatott paletta, saját névvel (pl. Neon City: <i>Szintihullám</i>, <i>Savas zöld</i>, <i>Vörös neon</i>; Phosphor: a régi monitorok borostyán, cián és plazma színei; Deco: rózsaarany, smaragd, ezüst). A minták alatt, a <i>Színváltozat</i> sorban választható. A változat a stílus minden színes elemét – kiemelés, gombok, keretek, díszítések – a paletta színeire fordítja (a több színű stílusoknál, pl. Neon City, Pow!, Kikagaku, mindegyik színt külön); a háttér világossága és a szöveg olvashatósága nem változik, és a fekete, fehér, szürke árnyalatok, valamint az állapotjelzések (működik / hiba, felvétel, ÉLŐ) is maradnak. Fekete-fehér kiemelésű stílusnál (pl. Manga, Mu) a változat színes kiemelőt ad. A változat stílusonként és profilonként megmarad; a Kontraszt stílusnak – akadálymentességi okból – nincs változata.</p>
 <p>A stílus és a színváltozat már a profil létrehozásakor is választható (az első indításkor és a Profilok kezelése alatt), a profil szerkesztésekor is.</p>

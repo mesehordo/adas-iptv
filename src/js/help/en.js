@@ -766,7 +766,15 @@ ${go('#/profiles', 'Manage profiles')}`,
 <li><b>Detailed</b> – the channel list on the left (with a filter), the selected channel’s details on the right with today’s schedule and your watch time. Click: select, second click / OK: play.</li>
 <li><b>Collection</b> – every source in one place with filters (source, country, category, working / favourites only), grid or list view; the filters are remembered.</li>
 </ul>
-<p>The side menu appears on wide screens; in a narrow window and on phones the usual top / bottom menu stays. The Detailed and Collection layouts also replace the TV page with their own view.</p>
+<ul>
+<li><b>Tile wall</b> – a large “Continue” tile, a grid of pinned favourites and a guide to what’s on now.</li>
+<li><b>Squares</b> – one row of large square tiles with round buttons for the main sections; for kids and TVs.</li>
+<li><b>Ribbon</b> – sections run horizontally, their content vertically; with a remote: ← → section, ↑ ↓ item, OK open.</li>
+<li><b>Focus</b> – a function bar and a row of tiles; the selected one is larger, with its programme and buttons below.</li>
+<li><b>Desktop</b> – live tiles (clock, on now, tonight, weather, news) with the menu as a taskbar at the bottom.</li>
+</ul>
+<p>Every layout has <b>its own menu</b> (top bar, centred capsule, left icon rail, upper-case tab bar, round icons, taskbar…), and <b>Home</b> shows your day in its style (weather, tonight, news, on now). The rows of the <b>TV, VOD and Radio</b> pages are rearranged the layout’s way too: featured banner, group tiles, list and details, filterable collection, ribbon, tiles; the Sport page’s cards take on the layout’s style.</p>
+<p>The side menu and the taskbar appear on wide screens; in a narrow window and on phones the usual top / bottom menu stays. The Detailed and Collection layouts also replace the TV page with their own view.</p>
 <h2>Colour variants</h2>
 <p>Besides the original, most styles have <b>three colour variants</b> – each a palette picked to suit the style’s mood, with its own name (e.g. Neon City: <i>Synthwave</i>, <i>Acid green</i>, <i>Red neon</i>; Phosphor: the amber, cyan and plasma colours of old monitors; Deco: rose gold, emerald, silver). Choose one in the <i>Colour variant</i> row under the samples. A variant turns every coloured element of the style – highlights, buttons, borders, decorations – into the palette’s colours (in multi-coloured styles such as Neon City, Pow! and Kikagaku, each colour separately); the background brightness and the readability of text stay the same, and black, white and grey shades as well as status colours (working / error, recording, LIVE) are kept. For styles with a black-and-white highlight (e.g. Manga, Mu) the variant adds a coloured highlight. The variant is remembered per style and per profile; the High contrast style has no variants, for accessibility.</p>
 <p>The style and colour variant can already be chosen when creating a profile (at the first start and under Manage profiles), and when editing a profile.</p>
