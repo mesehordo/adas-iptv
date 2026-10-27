@@ -205,9 +205,8 @@ export function renderPodcast(view, params) {
   const tab = params.get('tab') || 'home';
   renderSeq++;
   // (csak a felsorolt fülek – a címből jövő név nem hívhat tetszőleges függvényt)
-  const TABFN = { home: tabHome, inbox: tabInbox, queue: tabQueue, subs: tabSubs, downloads: tabDownloads, hist: tabHist, favs: tabFavs, discover: tabDiscover, stats: tabStats, settings: tabSettings };
-  const fn = Object.prototype.hasOwnProperty.call(TABFN, tab) ? TABFN[tab] : tabHome;
-  fn(view, params);
+  const TABFN = new Map([['home', tabHome], ['inbox', tabInbox], ['queue', tabQueue], ['subs', tabSubs], ['downloads', tabDownloads], ['hist', tabHist], ['favs', tabFavs], ['discover', tabDiscover], ['stats', tabStats], ['settings', tabSettings]]);
+  (TABFN.get(tab) || tabHome)(view, params);
 }
 
 function tabHome(view) {

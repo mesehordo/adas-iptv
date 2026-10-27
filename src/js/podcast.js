@@ -15,7 +15,7 @@ export function pod(p = store.profile) {
   d.inbox ||= []; // új epizódok (pillanatképek)
   d.hist ||= []; // meghallgatott / elkezdett epizódok (legújabb elöl)
   d.favs ||= []; // kedvenc epizódok (pillanatképek)
-  d.seen ||= {}; // folyam címe → a legutóbb látott legújabb epizód ideje (az új epizódok felismeréséhez)
+  d.seen ||= {}; // (régi tárolás: folyam címe → idő; most a feliratkozás „seen” mezője)
   d.stats ||= {}; // folyam címe → hallgatott másodperc
   d.cfg ||= {};
   return d;
@@ -136,10 +136,9 @@ export const isSubscribed = (url) => !!subOf(url);
 export function subscribe(feed) {
   const d = pod();
   if (isSubscribed(feed.url)) return;
-  d.subs.push({ url: feed.url, title: feed.title || feed.url, author: feed.author || '', image: feed.image || '', added: Date.now(), set: {} });
-  // (a feliratkozáskor meglévő epizódok nem „újak” – csak a később megjelenők)
-  const latest = feeds.get(feed.url)?.eps[0]?.pub;
-  if (latest && safeKey(feed.url)) d.seen[feed.url] = latest;
+  // (a feliratkozáskor meglévő epizódok nem „újak” – csak a később megjelenők: „seen” = a legutóbb látott legújabb epizód ideje)
+  const latest = feeds.get(feed.url)?.eps[0]?.pub || 0;
+  d.subs.push({ url: feed.url, title: feed.title || feed.url, author: feed.author || '', image: feed.image || '', added: Date.now(), set: {}, seen: latest });
   savePod();
   bus.emit('pod-subs');
   if (!feeds.has(feed.url)) refreshFeed(feed.url).catch(() => {});
@@ -148,7 +147,6 @@ export function unsubscribe(url) {
   const d = pod();
   d.subs = d.subs.filter((s) => s.url !== url);
   d.inbox = d.inbox.filter((x) => x.feed !== url);
-  delete d.seen[url];
   savePod();
   bus.emit('pod-subs');
 }
@@ -252,9 +250,9 @@ export async function refreshFeed(url, { force = false } = {}) {
     // (a feliratkozás adatai frissülnek, ha a műsor nevet / képet váltott)
     if (f.title && sub.title !== f.title) sub.title = f.title;
     if (f.image && sub.image !== f.image) sub.image = f.image;
-    const seen = d.seen[url] || 0;
+    const seen = sub.seen || (Object.prototype.hasOwnProperty.call(d.seen, url) ? d.seen[url] : 0) || 0;
     const fresh = seen ? f.eps.filter((e) => e.pub > seen && !isPlayed(e.key)) : [];
-    if (f.eps[0]?.pub && safeKey(url)) d.seen[url] = Math.max(seen, f.eps[0].pub);
+    if (f.eps[0]?.pub) sub.seen = Math.max(seen, f.eps[0].pub);
     if (fresh.length) {
       d.inbox = [...fresh.map(snap), ...d.inbox.filter((x) => !fresh.some((e) => e.key === x.key))].slice(0, 300);
       bus.emit('pod-new', { feed: f, eps: fresh });
