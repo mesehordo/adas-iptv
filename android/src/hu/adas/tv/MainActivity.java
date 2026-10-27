@@ -155,8 +155,9 @@ public class MainActivity extends Activity {
     web.setFocusable(true);
     web.setFocusableInTouchMode(true);
     launchChannel = getIntent().getStringExtra("channel");
-    if (state != null) web.restoreState(state);
-    else web.loadUrl("https://" + HOST + "/index.html");
+    // (a leállított lap utáni újraindításnál – recreate() – az állapotban nincs WebView-állapot: a restoreState
+    // ilyenkor null-t ad, és üres, fekete képernyő maradt; akkor a felület elölről töltődik be)
+    if (state == null || web.restoreState(state) == null) web.loadUrl("https://" + HOST + "/index.html");
     web.requestFocus();
   }
 

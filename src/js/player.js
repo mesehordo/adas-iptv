@@ -470,6 +470,10 @@ export const player = {
     this.numBuffer = '';
     this.engine.stop();
     this.sleepRestore(); // (V04: a kivetítés lezárása előtt – utána a vevő már nem érhető el)
+    // a lejátszó bezárásával az elalvási időzítő is lejár (különben később egy újonnan indított adást zárna be,
+    // és „leállította a lejátszást” üzenetet adna, amikor már semmi sem szólt)
+    clearInterval(this.sleepTimer);
+    this.sleepAt = 0;
     this.castHooks?.onClose?.();
     this.active = false;
     root.classList.remove('vod');
@@ -1369,6 +1373,8 @@ root.addEventListener('input', (e) => {
     video.volume = v;
     video.muted = v === 0;
     store.set('volume', v);
+    // (a csúszkával állított hangerő is megmarad csatornánként – eddig csak a billentyűs / távirányítós)
+    player.rememberVolume(v);
   }
 });
 root.addEventListener('change', (e) => {

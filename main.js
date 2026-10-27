@@ -73,12 +73,8 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 app.on('second-instance', () => {
-  // újraindításkor (pl. a tálcán futó példány) az ablak előjön
-  if (win) {
-    if (win.isMinimized()) win.restore();
-    win.show();
-    win.focus();
-  }
+  // újraindításkor (pl. a tálcán futó példány) az ablak előjön – macOS-en a bezárt ablak helyett új nyílik
+  if (app.isReady()) showWindow();
 });
 
 // ---------------------------------------------------------------------------
@@ -1212,6 +1208,7 @@ ipcMain.handle('rec-schedule', (_e, list) => {
   return recTimers.size;
 });
 ipcMain.handle('rec-stop', (_e, id) => media.recStop(id));
+ipcMain.handle('rec-active', () => media.recActive());
 ipcMain.handle('rec-list', () => ({ dir: recDir(), files: media.recList(recDir()) }));
 ipcMain.handle('rec-open', (_e, p) => (inRecDir(p) ? shell.openPath(path.resolve(p)) : _t('Érvénytelen fájl')));
 ipcMain.handle('rec-folder', () => {

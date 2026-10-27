@@ -21,6 +21,10 @@ export const canRecord = !!api.recStart;
 const active = new Map(); // felvétel-azonosító → { chId, chName, title, file, sched }
 const schedule = () => (store.settings.recSchedule ||= []);
 const fmtSize = (b) => (b > 1e9 ? `${fmtNum(b / 1e9, 2)} GB` : `${fmtNum(Math.max(0.1, b / 1e6), 1)} MB`);
+/** A felvétel fájlnevének időbélyege helyi idő szerint: „2026-10-27 01.30” (a toISOString dátuma világidő volt –
+ * éjfél után a helyi óra mellé az előző nap került). */
+const stamp = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}.${String(d.getMinutes()).padStart(2, '0')}`;
 /** Ráhagyás percben a műsor előtt / után (Beállítások → Felvételek) */
 export const recPre = () => Math.max(0, Number(store.settings.recPre ?? 3));
 export const recPost = () => Math.max(0, Number(store.settings.recPost ?? 10));
@@ -53,9 +57,8 @@ async function startRecNow(ch, { title, until = 0, sched = null, progStart = 0, 
   const stream = player.channel?.id === ch.id && player.stream ? player.stream : orderedStreams(ch)[0];
   if (!stream) throw new Error(_t('A csatornának nincs forrása.'));
   await api.setStreamHeaders?.(stream.url, { ua: stream.ua, referrer: stream.referrer });
-  const d = new Date();
-  const name = `${ch.name} – ${title || _t('felvétel')} – ${d.toISOString().slice(0, 10)} ${String(d.getHours()).padStart(2, '0')}.${String(d.getMinutes()).padStart(2, '0')}`;
-  const r = await api.recStart({ url: stream.url, name, until });
+  const name = `${ch.name} – ${title || _t('felvétel')} – ${stamp()}`;
+  const r = await api.recStart({ url: stream.url, name, until, meta: { chId: ch.id, title: title || ch.name, sched } });
   active.set(r.id, { chId: ch.id, title: title || ch.name, file: r.file, sched });
   // A felvételek oldalához és a vágóhoz: csatorna, műsor, a felvétel kezdete és a műsor tervezett ideje
   if (r.file) {
@@ -81,9 +84,8 @@ async function startRadioRecNow(st, { title, until = 0, sched = null, progStart 
   const url = playing ? radioPlayer.url : await resolveStream(raw, hdr);
   if (!url) throw new Error(_t('A csatornának nincs forrása.'));
   if (hdr && (hdr.ua || hdr.referrer)) await Promise.resolve(api.setStreamHeaders?.(url, { ua: hdr.ua, referrer: hdr.referrer })).catch(() => {});
-  const d = new Date();
-  const name = `${st.name} – ${title || _t('felvétel')} – ${d.toISOString().slice(0, 10)} ${String(d.getHours()).padStart(2, '0')}.${String(d.getMinutes()).padStart(2, '0')}`;
-  const r = await api.recStart({ url, name, until, audio: audioOut(st) });
+  const name = `${st.name} – ${title || _t('felvétel')} – ${stamp()}`;
+  const r = await api.recStart({ url, name, until, audio: audioOut(st), meta: { chId: st.id, chName: st.name, title: title || st.name, sched } });
   active.set(r.id, { chId: st.id, chName: st.name, title: title || st.name, file: r.file, sched });
   if (r.file) {
     const meta = (store.settings.recMeta ||= {});
@@ -230,16 +232,42 @@ export function scheduleRec(ch, p) {
 }
 const isScheduled = (chId, start) => schedule().some((s) => s.chId === chId && s.start === start);
 
+/**
+ * A felület újratöltése (nyelvváltás, visszaállítás, átvétel) után a főfolyamatban tovább futó felvételek
+ * visszakerülnek: látszanak és leállíthatók, az ütemezett tételük pedig nem indul el másodszor (eddig a „Most
+ * rögzít” listából eltűntek, a kézi felvétel a kilépésig futott, az ütemezett pedig párhuzamosan újraindult).
+ */
+const adopted = canRecord
+  ? Promise.resolve(api.recActive?.())
+      .then((list) => {
+        let n = 0;
+        for (const r of Array.isArray(list) ? list : []) {
+          const m = r?.meta;
+          if (!m?.chId || active.has(r.id)) continue;
+          active.set(r.id, { chId: m.chId, chName: m.chName || '', title: m.title || m.chId, file: r.file, sched: m.sched || null });
+          const s = m.sched && schedule().find((x) => x.id === m.sched);
+          if (s) (s.startedId = r.id), (s.startedSession = SESSION);
+          n++;
+        }
+        if (n) bus.emit('rec');
+      })
+      .catch(() => {})
+  : Promise.resolve();
+
 if (canRecord) {
   setInterval(tick, 20000);
   setTimeout(() => {
-    tick();
-    syncSchedule();
+    adopted.then(() => {
+      tick();
+      syncSchedule();
+    });
   }, 3000);
-  api.onRecDue?.((id) => {
-    const s = schedule().find((x) => x.id === id);
-    if (s) startScheduled(s);
-  });
+  api.onRecDue?.((id) =>
+    adopted.then(() => {
+      const s = schedule().find((x) => x.id === id);
+      if (s) startScheduled(s);
+    })
+  );
   bus.on('settings', syncSchedule);
   api.onRecEnded?.((x) => {
     const r = active.get(x.id);

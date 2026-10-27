@@ -73,6 +73,27 @@ const srcHeaders = new Map(); // (U08) kulcs -> a munkamenet indulásakor érvé
  * munkamenet fejlécei – (U08) a kulcshoz rögzítve, így ugyanazon szerver két, eltérő fejlécet kérő adása (pl. egy
  * felvétel és egy közben indított másik csatorna) végig a saját fejlécével megy; alapból a pillanatnyi beállítás.
  */
+// Élő HLS felvételénél minden új szegmens új kulcsot kap (a lista átírásakor): a kulcsok a legutóbbi használat
+// sorrendjében állnak, és ennyi felett a legrégebben használtak törlődnek (egy napos felvételnél különben több
+// tízezer bejegyzés gyűlt össze). A még használt kulcs (a lista maga, a futó film) minden kérésnél előre kerül.
+const MAX_SRC_KEYS = 4000;
+const sigOf = new Map(); // kulcs -> a srcKeys-beli bejegyzése (a törléshez)
+function touchSrc(k) {
+  const u = srcUrls.get(k);
+  if (u === undefined) return;
+  srcUrls.delete(k);
+  srcUrls.set(k, u); // (a Map a beszúrás sorrendjét tartja: a végére kerül)
+}
+function pruneSrc() {
+  for (const k of srcUrls.keys()) {
+    if (srcUrls.size <= MAX_SRC_KEYS) break;
+    srcUrls.delete(k);
+    srcRoots.delete(k);
+    srcHeaders.delete(k);
+    srcKeys.delete(sigOf.get(k));
+    sigOf.delete(k);
+  }
+}
 function inputOf(url, root = '', hdr = undefined) {
   if (/^https?:/i.test(url)) {
     if (hdr === undefined) hdr = opts.headersFor(url) || null;
@@ -81,10 +102,12 @@ function inputOf(url, root = '', hdr = undefined) {
     if (!k) {
       k = crypto.randomBytes(8).toString('hex');
       srcKeys.set(sig, k);
+      sigOf.set(k, sig);
       srcUrls.set(k, url);
       srcRoots.set(k, root || url);
       srcHeaders.set(k, hdr);
-    }
+      pruneSrc();
+    } else touchSrc(k);
     return `http://127.0.0.1:${port}/${token}/src/${k}`;
   }
   if (!/^file:/i.test(url)) return url;
@@ -110,6 +133,7 @@ async function relay(key, req, res) {
     res.statusCode = 404;
     return res.end();
   }
+  touchSrc(key);
   const hdr = srcHeaders.has(key) ? srcHeaders.get(key) : opts.headersFor(target) || null;
   const h = hdr || {};
   const headers = { 'User-Agent': h.ua || UA, 'Accept-Encoding': 'identity', Accept: '*/*' };
@@ -478,7 +502,7 @@ const AUDIO_OUT = {
   aac: { ext: '.aac', args: ['-vn', '-c:a', 'copy', '-f', 'adts'] },
   enc: { ext: '.aac', args: ['-vn', '-c:a', 'aac', '-b:a', '192k', '-f', 'adts'] },
 };
-async function recStart({ url, dir, name, until, audio }) {
+async function recStart({ url, dir, name, until, audio, meta }) {
   if (!FF) throw new Error(_t('Az FFmpeg nem érhető el.'));
   await ensureServer();
   fs.mkdirSync(dir, { recursive: true });
@@ -507,7 +531,14 @@ async function recStart({ url, dir, name, until, audio }) {
   const argsFor = (offset) => ['-hide_banner', '-nostdin', '-loglevel', 'error', ...headerArgs(url), ...hlsOpts, ...(offset > 0 && hlsOpts.length ? ['-live_start_index', '-1'] : []), '-i', inputOf(url, '', hdr), ...(aOut ? aOut.args : ['-c', 'copy', ...(offset > 0 ? ['-output_ts_offset', offset.toFixed(1)] : []), '-f', 'mpegts']), 'pipe:1'];
   const id = String(++recSeq);
   const out = fs.createWriteStream(file, { fd, flags: 'a' });
-  const rec = { proc: null, file, out, started: Date.now(), until: until || 0, restarts: 0, err: '' };
+  // meta: a felület adatai a felvételről (csatorna, cím, ütemezés) – a felület újratöltése után ebből veszi vissza a
+  // futó felvételeket (recActive); kis, JSON-ként tárolható objektum
+  let m = null;
+  try {
+    const s = meta && typeof meta === 'object' ? JSON.stringify(meta) : '';
+    if (s && s.length <= 4000) m = JSON.parse(s);
+  } catch {}
+  const rec = { proc: null, file, out, started: Date.now(), until: until || 0, restarts: 0, err: '', meta: m };
   recordings.set(id, rec);
   const MAX_RESTARTS = 60;
   let ended = false; // a lezárás elindult (rendes vég, végleges hiba vagy írási hiba)
@@ -909,5 +940,7 @@ function recDetectStop(p) {
 module.exports = {
   init, available: () => !!FF, status, probe, start, stop, stopAll, cover, parseInfo,
   recStart, recStop, recList, recTrim, recRestore, recDetect, recDetectStop, keepRanges, recSource, originalOf, isRecording, recStopAll: () => [...recordings.keys()].forEach(recStop),
+  // a futó felvételek (a felület újratöltése után ebből veszi vissza őket): [{ id, file, started, until, meta }]
+  recActive: () => [...recordings.entries()].map(([id, r]) => ({ id, file: r.file, started: r.started, until: r.until, meta: r.meta })),
   _test: { inputOf, ensureServer },
 };

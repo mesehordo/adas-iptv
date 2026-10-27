@@ -53,6 +53,7 @@ contextBridge.exposeInMainWorld('api', {
   mediaStop: (id) => ipcRenderer.invoke('media-stop', id),
   recStart: (o) => ipcRenderer.invoke('rec-start', o),
   recStop: (id) => ipcRenderer.invoke('rec-stop', id),
+  recActive: () => ipcRenderer.invoke('rec-active'),
   recList: () => ipcRenderer.invoke('rec-list'),
   recOpen: (p) => ipcRenderer.invoke('rec-open', p),
   recFolder: () => ipcRenderer.invoke('rec-folder'),
