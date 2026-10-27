@@ -195,6 +195,7 @@ const tabsHtml = (cur) => {
   return `<div class="tv-head"><div class="tabs pod-tabs">${TABS().map(([id, l]) => `<a class="tab ${cur === id ? 'active' : ''}" href="#/podcast?tab=${id}">${esc(l)}${n[id] ? ` <small>${n[id]}</small>` : ''}</a>`).join('')}</div></div>`;
 };
 const searchCache = new Map(); // keresési / toplista-találatok (feliratkozáskor a cím, kép)
+let renderSeq = 0; // (a késve érkező, már elavult műsoroldal-rajzolás nem írja felül az újabbat)
 
 export function renderPodcast(view, params) {
   viewEl = view;
@@ -202,7 +203,10 @@ export function renderPodcast(view, params) {
   const feed = params.get('feed');
   if (feed) return renderFeed(view, feed);
   const tab = params.get('tab') || 'home';
-  const fn = { home: tabHome, inbox: tabInbox, queue: tabQueue, subs: tabSubs, downloads: tabDownloads, hist: tabHist, favs: tabFavs, discover: tabDiscover, stats: tabStats, settings: tabSettings }[tab] || tabHome;
+  renderSeq++;
+  // (csak a felsorolt fülek – a címből jövő név nem hívhat tetszőleges függvényt)
+  const TABFN = { home: tabHome, inbox: tabInbox, queue: tabQueue, subs: tabSubs, downloads: tabDownloads, hist: tabHist, favs: tabFavs, discover: tabDiscover, stats: tabStats, settings: tabSettings };
+  const fn = Object.prototype.hasOwnProperty.call(TABFN, tab) ? TABFN[tab] : tabHome;
   fn(view, params);
 }
 
@@ -344,18 +348,20 @@ function tabSettings(view) {
 // ---------------------------------------------------------------------------
 const feedUi = { filter: 'all', sort: 'new', q: '', limit: 60 };
 async function renderFeed(view, url) {
+  const seq = ++renderSeq;
   let f = feeds.get(url) || (await cachedFeed(url));
+  if (seq !== renderSeq) return;
   if (!f) {
     view.innerHTML = `<div class="page pod-page">${tabsHtml('')}<div class="spinner"></div></div>`;
     try {
       f = await refreshFeed(url);
     } catch (err) {
-      if (!here()) return;
+      if (!here() || seq !== renderSeq) return;
       view.innerHTML = `<div class="page pod-page">${tabsHtml('')}${emptyState(_t('A műsor nem tölthető be'), esc(err.message || String(err)), `<a class="btn" href="#/podcast">${_t('Vissza')}</a>`)}</div>`;
       return;
     }
   } else if (Date.now() - (f.at || 0) > podCfg().refreshHours * 3600e3) refreshFeed(url).catch(() => {});
-  if (!here()) return;
+  if (!here() || seq !== renderSeq) return;
   const sub = subOf(url);
   const set = sub?.set || {};
   const notes = notesOf(f.desc);
@@ -421,7 +427,8 @@ async function renderFeed(view, url) {
     const k = e.target.dataset.ps;
     if (k) {
       const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value === '' ? '' : Number(e.target.value);
-      setSubOpt(url, k, k === 'notify' ? (v ? undefined : false) : v || '');
+      // (értesítés: alapból be – csak a kikapcsolás tárolódik; csend átugrása: a kikapcsolás is felülírja az általánosat)
+      setSubOpt(url, k, k === 'notify' ? (v ? undefined : false) : k === 'skipSilence' ? !!v : v || '');
       if (podPlayer.ep?.feed === url) {
         if (k === 'speed') podPlayer.setRate(Number(v) || podCfg().speed);
         if (k === 'boost') podPlayer.setBoost(Number(v) || 1);

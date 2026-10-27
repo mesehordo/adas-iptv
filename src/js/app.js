@@ -468,10 +468,20 @@ bus.on('save-state', (err) => {
 window.__adasStopPlayback = () => {
   if (player.active) player.close();
   if (radioPlayer.active) radioPlayer.stop();
+  if (podPlayer.active) podPlayer.stop();
 };
 // (B37) az értesítés / a rendszer médiavezérlői (fülhallgató, Bluetooth, zárolt képernyő, tévé): play, pause,
 // next, prev – a rádióra, ha az szól, egyébként a videólejátszóra
 window.__adasMedia = (cmd) => {
+  // (a podcast, ha az szól – vagy szüneteltetve az az utolsó)
+  if (podPlayer.active && !player.active && !radioPlayer.playing) {
+    if (cmd === 'play') podPlayer.resume();
+    else if (cmd === 'pause') podPlayer.pause();
+    else if (cmd === 'toggle') podPlayer.toggle();
+    else if (cmd === 'next') podPlayer.skip(30);
+    else if (cmd === 'prev') podPlayer.skip(-10);
+    return;
+  }
   if (radioPlayer.active && !player.active) {
     if (cmd === 'play') radioPlayer.resume();
     else if (cmd === 'pause') radioPlayer.pause();
@@ -918,6 +928,7 @@ async function boot() {
   updateProfileButton();
   applySportMenu();
   applyRadioMenu();
+  applyPodMenu();
   startSplashStatus();
   const loading = loadWithRetry();
   // (a csatornalista közben már töltődik; a profilválasztó az indítóanimáció után jelenik meg)

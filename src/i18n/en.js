@@ -2774,5 +2774,6 @@ export default {
  "Messzi út": "Long voyage",
  "Titán": "Titan",
  "Régi flotta": "Old fleet",
- "Kollektíva": "Collective"
+ "Kollektíva": "Collective",
+ "Az összes egy oldalon": "All on one page"
 };

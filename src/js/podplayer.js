@@ -60,6 +60,7 @@ class PodPlayer {
     this.dur = st?.dur || full.dur || 0;
     this.chapters = [];
     this.state = 'loading';
+    this.lastStat = 0;
     this.emit('start');
     bus.emit('pod-start');
     pushHistory(full);
@@ -70,7 +71,7 @@ class PodPlayer {
     } else this.playWeb(url, start);
     this.mediaSession();
   }
-  playWeb(url, start, cors = audioFxAvailable && (this.boost > 1 || this.skipSilence)) {
+  playWeb(url, start, cors = audioFxAvailable && (this.boost > 1 || this.skipSilence), paused = false) {
     this.teardownWeb();
     const a = new Audio();
     this.el = a;
@@ -90,12 +91,14 @@ class PodPlayer {
     a.addEventListener('ended', () => a === this.el && this.ended());
     a.addEventListener('error', () => {
       if (a !== this.el) return;
-      // (CORS-módban nem indult: hangfeldolgozás nélkül még egyszer)
-      if (cors) return this.playWeb(url, this.pos || start, false);
+      // (CORS-módban nem indult: hangfeldolgozás nélkül még egyszer; a letöltött fájl hiányzik: az eredeti címről)
+      if (cors) return this.playWeb(url, this.pos || start, false, paused);
+      if (url.startsWith('file:') && this.ep?.url && this.ep.url !== url) return this.playWeb(this.ep.url, this.pos || start, undefined, paused);
       this.setState('error');
     });
     if (cors) this.attachFx(a);
-    a.play().catch(() => {});
+    if (paused) this.setState('paused');
+    else a.play().catch(() => {});
   }
   teardownWeb() {
     if (!this.el) return;
@@ -140,6 +143,8 @@ class PodPlayer {
   setState(s) {
     if (this.state === s) return;
     this.state = s;
+    // (a hallgatási idő csak a folyamatos lejátszás szakaszaiból számít)
+    this.lastStat = 0;
     if (s === 'paused') this.saveNow();
     if ('mediaSession' in navigator && !NATIVE) navigator.mediaSession.playbackState = s === 'playing' ? 'playing' : 'paused';
     this.emit('state');
@@ -223,12 +228,12 @@ class PodPlayer {
   setBoost(b) {
     this.boost = b;
     if (this.fx) this.fx.gain.gain.value = b;
-    else if (this.ep && b > 1 && !NATIVE && audioFxAvailable) this.playWeb(playUrl(this.ep), this.pos);
+    else if (this.ep && b > 1 && !NATIVE && audioFxAvailable) this.playWeb(playUrl(this.ep), this.pos, true, !this.playing);
     this.emit('rate');
   }
   setSkipSilence(on) {
     this.skipSilence = on;
-    if (on && !this.fx && this.ep && !NATIVE && audioFxAvailable) this.playWeb(playUrl(this.ep), this.pos);
+    if (on && !this.fx && this.ep && !NATIVE && audioFxAvailable) this.playWeb(playUrl(this.ep), this.pos, true, !this.playing);
     this.emit('rate');
   }
   /** Alvásidőzítő: perc, -1 = az epizód végén, 0 = ki. */
@@ -304,8 +309,9 @@ window.__adasPod = (o) => {
   if (o.st === 'ended') podPlayer.ended();
 };
 // egyszerre egy hang: a videó / a rádió indulásakor a podcast megáll
-bus.on('video-open', () => podPlayer.playing && podPlayer.pause());
-bus.on('radio-start', () => podPlayer.playing && podPlayer.pause());
+const busy = () => podPlayer.playing || podPlayer.state === 'loading';
+bus.on('video-open', () => busy() && podPlayer.pause());
+bus.on('radio-start', () => busy() && podPlayer.pause());
 // bezáráskor / profilváltáskor a pozíció megmarad
 window.addEventListener('beforeunload', () => podPlayer.saveNow());
 bus.on('profile', () => podPlayer.active && podPlayer.stop());

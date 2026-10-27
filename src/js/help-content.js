@@ -755,7 +755,7 @@ ${go('#/profiles', 'Profilok kezelése')}`,
 <p>A felület kinézete profilonként választható: <b>Beállítások → Megjelenés → Felület stílusa</b> (legördülő menü, vagy kattints a mintákra). A váltás azonnal érvényes.</p>
 <p>A stílus csak a <b>kinézetet</b> adja: színek, betűtípus, keretek, árnyékok, háttérminták, animációk. A felület <b>szerkezetét</b> – hol a menü, mi van a Főoldalon – az <b>elrendezés</b> adja, ez a stílustól függetlenül választható (lásd lent).</p>
 <h2>Elrendezések</h2>
-<p><b>Beállítások → Megjelenés → Felület elrendezése</b> (és a profil szerkesztésekor): profilonként, a vázlatra kattintva, azonnal.</p>
+<p><b>Beállítások → Megjelenés → Felület elrendezése</b> : profilonként, a vázlatra kattintva – ott azonnal érvényes. A profil szerkesztésekor is választható; ott a <b>Mentés</b> után lép életbe (bezárásra elvetve).</p>
 <ul>
 <li><b>Klasszikus</b> – felső menü, a Főoldalon testreszabható kártyák (időjárás, hírek, műsor).</li>
 <li><b>Mozi</b> – a Főoldal tetején nagy kiemelt borító (a kedvenc vagy utoljára nézett csatorna, élő előnézettel), alatta csatornasorok.</li>

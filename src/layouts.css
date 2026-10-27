@@ -856,3 +856,10 @@ body[data-pskin="minimal"] .rf-ctrls .round { border-color: transparent; backgro
 .xc-cover, .col-cover { grid-template-rows: 1fr 1fr; overflow: hidden; }
 .xc-cover > *, .col-cover > * { min-height: 0; }
 @media (min-width: 701px) { body[data-layout="desk"][data-pskin] #radio-bar { bottom: 66px; } }
+.md-tabs { margin-bottom: 6px; }
+.md-tabs .tabs { flex-wrap: wrap; }
+.uni-tabs { margin-bottom: 12px; }
+.uni-all { margin-left: auto; padding: 0 6px; color: var(--muted); }
+.xmb-all { margin: 10px 0 0 calc(var(--x) + 18px); }
+.xmb-all[hidden] { display: none; }
+.fx-all { color: #fff; font-weight: 700; text-decoration: none; }

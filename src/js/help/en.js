@@ -755,7 +755,7 @@ ${go('#/profiles', 'Manage profiles')}`,
 <p>The look of the interface can be chosen per profile: <b>Settings → Appearance → Interface style</b> (drop-down menu, or click the samples). The change takes effect immediately.</p>
 <p>The style only gives the <b>look</b>; the <b>structure</b> – where the menu is, what’s on Home – comes from the <b>layout</b>, which you can choose independently (see below).</p>
 <h2>Layouts</h2>
-<p><b>Settings → Appearance → Interface layout</b> (and when editing a profile): per profile, click a sketch – it applies immediately.</p>
+<p><b>Settings → Appearance → Interface layout</b> : per profile, click a sketch – there it applies immediately. It can also be chosen when editing a profile; there it takes effect after <b>Save</b> (closing discards it).</p>
 <ul>
 <li><b>Classic</b> – top menu, customizable cards on Home (weather, news, TV listings).</li>
 <li><b>Cinema</b> – a large featured banner at the top of Home (your favourite or last watched channel, with live preview), channel rows below.</li>

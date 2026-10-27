@@ -1316,45 +1316,76 @@ const inPodDir = (p) => {
   return !!rel && !rel.startsWith('..') && !path.isAbsolute(rel);
 };
 const POD_MAX = 2 * 1024 ** 3; // egy epizód legfeljebb 2 GB
-ipcMain.handle('pod-download', async (_e, { url, name, key } = {}) => {
+const POD_RESERVE = 500e6; // ennyi szabad hely mindig marad (a felvételeknek, a rendszernek)
+let podReserved = 0; // a folyamatban lévő letöltések várható mérete (a párhuzamosak se fogyasszák el a tartalékot)
+const podFree = () => {
+  try {
+    const s = fs.statfsSync(podDir());
+    return s.bavail * s.bsize;
+  } catch {
+    return Infinity;
+  }
+};
+ipcMain.handle('pod-download', async (_e, { url, feed, name, key, profile } = {}) => {
   if (!/^https?:\/\//i.test(String(url || ''))) throw new Error('Érvénytelen cím');
+  // (a hálózati szabály gyökere a műsor folyama: amit a felhasználó választott – az epizód címe abból jön)
+  const root = /^https?:\/\//i.test(String(feed || '')) ? String(feed) : url;
   await fs.promises.mkdir(podDir(), { recursive: true });
-  const free = (() => {
-    try {
-      const s = fs.statfsSync(podDir());
-      return s.bavail * s.bsize;
-    } catch {
-      return Infinity;
-    }
-  })();
-  if (free < 500e6) throw new Error('Kevés a szabad hely a lemezen');
+  if (podFree() - podReserved < POD_RESERVE) throw new Error('Kevés a szabad hely a lemezen');
   const ext = (/\.(mp3|m4a|aac|ogg|opus|mp4|m4v|webm|wav|flac)(?:[?#]|$)/i.exec(url)?.[1] || 'mp3').toLowerCase();
   const safe = String(name || 'epizod').replace(/[\\/:*?"<>|\x00-\x1f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) || 'epizod';
-  const file = path.join(podDir(), `${safe} [${String(key || Date.now()).replace(/[^\w.-]/g, '')}].${ext}`);
+  // (profilonként külön fájl: egy profil törlése nem viszi el a másik letöltését)
+  const tag = [profile, key].map((x) => String(x || '').replace(/[^\w.-]/g, '')).filter(Boolean).join('.') || String(Date.now());
+  const file = path.join(podDir(), `${safe} [${tag}].${ext}`);
   const ctrl = new AbortController();
-  const { res } = await lan.fetchPolicy(url, { signal: ctrl.signal, headers: { 'User-Agent': CHROME_UA } }, url);
-  if (!res.ok) throw new Error('A letöltés nem sikerült (' + res.status + ')');
+  const { res } = await lan.fetchPolicy(url, { signal: ctrl.signal, headers: { 'User-Agent': CHROME_UA } }, root);
+  if (!res.ok) {
+    ctrl.abort();
+    throw new Error('A letöltés nem sikerült (' + res.status + ')');
+  }
+  const len = Number(res.headers.get('content-length')) || 0;
+  if (len > POD_MAX || (len && podFree() - podReserved - len < POD_RESERVE)) {
+    ctrl.abort();
+    throw new Error(len > POD_MAX ? 'Túl nagy fájl' : 'Kevés a szabad hely a lemezen');
+  }
+  const reserve = len || 200e6;
+  podReserved += reserve;
   const tmp = file + '.part';
   const out = fs.createWriteStream(tmp);
+  let streamErr = null;
+  out.on('error', (err) => (streamErr = err));
   let size = 0;
+  let checked = 0;
   try {
     const reader = res.body.getReader();
     for (;;) {
+      if (streamErr) throw streamErr;
       const { done, value } = await reader.read();
       if (done) break;
       size += value.length;
-      if (size > POD_MAX) {
-        ctrl.abort();
-        throw new Error('Túl nagy fájl');
+      if (size > POD_MAX) throw new Error('Túl nagy fájl');
+      // (ismeretlen méretnél 50 MB-onként a szabad hely újra – a lemez ne teljen be)
+      if (size - checked > 50e6) {
+        checked = size;
+        if (podFree() < POD_RESERVE) throw new Error('Kevés a szabad hely a lemezen');
       }
-      if (!out.write(Buffer.from(value))) await new Promise((r) => out.once('drain', r));
+      if (!out.write(Buffer.from(value)))
+        await new Promise((r, j) => {
+          const onErr = (err) => j(err);
+          out.once('error', onErr);
+          out.once('drain', () => (out.off('error', onErr), r()));
+        });
     }
+    if (streamErr) throw streamErr;
     await new Promise((r, j) => out.end((err) => (err ? j(err) : r())));
     await fs.promises.rename(tmp, file);
   } catch (err) {
+    ctrl.abort();
     out.destroy();
     fs.promises.unlink(tmp).catch(() => {});
     throw err;
+  } finally {
+    podReserved -= reserve;
   }
   return { path: file, url: require('url').pathToFileURL(file).href, size };
 });

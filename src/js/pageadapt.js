@@ -19,7 +19,8 @@ function sections(box) {
       const t = el.querySelector('.row-title');
       // (a cím a hivatkozás saját szövege – a darabszám és a nyíl külön elemben van)
       const title = (t?.querySelector('.rt-text')?.textContent || '').trim() || [...((t?.querySelector('a') || t)?.childNodes || [])].filter((n) => n.nodeType === 3).map((n) => n.textContent).join(' ').replace(/\s+/g, ' ').trim();
-      const cards = [...el.querySelectorAll(`.row-track > :is(${CARD})`)];
+      // (:is() nélkül – a régebbi tévés böngészőmotorok nem ismerik)
+      const cards = [...el.querySelectorAll(CARD.split(',').map((c) => `.row-track > ${c.trim()}`).join(', '))];
       cards.forEach((c) => (c.dataset.adaptRow = i));
       return { el, i, title, href: t?.querySelector('a')?.getAttribute('href') || '', cards };
     })
@@ -121,7 +122,8 @@ function heroOf(cards) {
     }, 10000);
   return el;
 }
-const firstCards = (secs, n) => secs.map((s) => s.cards[0]).filter(Boolean).slice(0, n);
+// (kiemelni csak lejátszható elemet – a műfaj- / ország-csempe nem az)
+const firstCards = (secs, n) => secs.map((s) => s.cards.find((c) => !c.classList.contains('tile'))).filter(Boolean).slice(0, n);
 /** A kiemelt / átrendezett rész a fejléc (a sorok előtti fülsor, gombok) alá kerül. */
 function putTop(box, el) {
   const first = box.querySelector(':scope > .row, :scope > .row-group, :scope > .adapt-store');
@@ -247,7 +249,7 @@ function detail(view, box, secs) {
 function unified(view, box, secs) {
   const ui = html(`<div class="uni adapt-uni">
     <aside class="uni-side"><details class="uni-filters" ${matchMedia('(max-width: 700px)').matches ? '' : 'open'}><summary>${_t('Szűrők')}</summary>
-      <h4>${_t('Csoportok')}</h4>${secs.map((s) => `<label class="uni-check"><input type="checkbox" data-u-sec="${s.i}" checked /> <span>${esc(s.title)} <small class="muted">${s.cards.length}</small></span></label>`).join('')}
+      <h4>${_t('Csoportok')}</h4>${secs.map((s) => `<label class="uni-check"><input type="checkbox" data-u-sec="${s.i}" checked /> <span>${esc(s.title)} <small class="muted">${s.cards.length}</small></span>${s.href ? ` <a class="uni-all" href="${esc(s.href)}" title="${_t('Az összes egy oldalon')}">›</a>` : ''}</label>`).join('')}
     </details></aside>
     <section class="uni-main"><div class="uni-bar"><input class="input uni-q" type="search" placeholder="${_t('Keresés…')}" aria-label="${_t('Keresés')}" />
       <div class="seg" role="group" aria-label="${_t('Nézet')}"><button class="btn small on" data-u-view="grid">${_t('Rács')}</button><button class="btn small" data-u-view="list">${_t('Lista')}</button></div>
@@ -317,7 +319,7 @@ function squares(view, box, secs) {
 function ribbon(view, box, secs) {
   const el = html(`<section class="xmb adapt-xmb"><div class="xmb-bar" role="tablist">${secs
     .map((s, i) => `<button class="xmb-cat" role="tab" data-ci="${i}" aria-selected="false"><span class="xmb-letter">${esc(s.title.slice(0, 1))}</span><span>${esc(s.title)}</span></button>`)
-    .join('')}</div><div class="xmb-items" role="list"></div><p class="xmb-hint muted small">${_t('← → részek · ↑ ↓ elemek · OK: megnyitás')}</p></section>`);
+    .join('')}</div><div class="xmb-items" role="list"></div><a class="btn small xmb-all" href="#" hidden>${_t('Az összes egy oldalon')} ›</a><p class="xmb-hint muted small">${_t('← → részek · ↑ ↓ elemek · OK: megnyitás')}</p></section>`);
   putTop(box, el);
   stash(box, secs);
   const bar = el.querySelector('.xmb-bar');
@@ -343,6 +345,10 @@ function ribbon(view, box, secs) {
         return `<button class="xmb-item" role="listitem" data-ii="${i}"><span class="xmb-ico">${thumbHtml(x)}</span><span class="xmb-text"><b>${esc(x.name)}</b>${x.now || x.sub ? `<small>${esc(x.now || x.sub)}</small>` : ''}</span></button>`;
       })
       .join('');
+    // (a sor többi eleme az „összes” oldalon – a szalag az első betöltötteket mutatja)
+    const all = el.querySelector('.xmb-all');
+    all.hidden = !secs[ci].href;
+    if (secs[ci].href) all.href = secs[ci].href;
     mark(Math.min(idx[ci] || 0, items().length - 1), focus);
   };
   bar.addEventListener('click', (e) => {
@@ -416,7 +422,7 @@ function focus(view, box, secs) {
         const x = info(c);
         return `<button class="fx-tile ${x.poster ? 'is-poster' : ''}" data-ti="${i}" style="--h:${esc(x.hue)}" title="${esc(x.name)}">${thumbHtml(x)}</button>`;
       })
-      .join('');
+      .join('') + (secs[si].href ? `<a class="fx-tile fx-all" href="${esc(secs[si].href)}">${_t('Összes')} ›</a>` : '');
     cur = null;
     sel(secs[si].cards[0]);
   };

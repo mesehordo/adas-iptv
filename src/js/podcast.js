@@ -36,7 +36,11 @@ export const epKey = (feedUrl, guid, url) => hash(feedUrl) + '.' + hash(guid || 
 /** Pillanatkép: ennyi kell a sorhoz / előzményekhez akkor is, ha a folyam még nem töltődött be. */
 export const snap = (ep) => ({ key: ep.key, feed: ep.feed, feedTitle: ep.feedTitle || '', title: ep.title, url: ep.url, type: ep.type || '', image: ep.image || '', dur: ep.dur || 0, pub: ep.pub || 0 });
 export const epState = (key) => pod().eps[key] || null;
+// (a kulcsok külső adatból – folyamcím, epizód-azonosító – jönnek: az objektum beépített tulajdonságai nem írhatók felül)
+const BAD_KEY = new Set(['__proto__', 'constructor', 'prototype']);
+export const safeKey = (k) => typeof k === 'string' && k && !BAD_KEY.has(k);
 function setState(key, patch) {
+  if (!safeKey(key)) return;
   const d = pod();
   const s = { ...(d.eps[key] || {}), ...patch };
   for (const k of Object.keys(s)) if (s[k] === undefined || s[k] === null || s[k] === false || s[k] === 0) delete s[k];
@@ -84,6 +88,7 @@ export function pushHistory(ep) {
   savePod();
 }
 export function addListen(feedUrl, sec) {
+  if (!safeKey(feedUrl)) return;
   const d = pod();
   d.stats[feedUrl] = (d.stats[feedUrl] || 0) + sec;
 }
@@ -134,7 +139,7 @@ export function subscribe(feed) {
   d.subs.push({ url: feed.url, title: feed.title || feed.url, author: feed.author || '', image: feed.image || '', added: Date.now(), set: {} });
   // (a feliratkozáskor meglévő epizódok nem „újak” – csak a később megjelenők)
   const latest = feeds.get(feed.url)?.eps[0]?.pub;
-  if (latest) d.seen[feed.url] = latest;
+  if (latest && safeKey(feed.url)) d.seen[feed.url] = latest;
   savePod();
   bus.emit('pod-subs');
   if (!feeds.has(feed.url)) refreshFeed(feed.url).catch(() => {});
@@ -147,9 +152,10 @@ export function unsubscribe(url) {
   savePod();
   bus.emit('pod-subs');
 }
+const SUB_OPTS = new Set(['speed', 'skipIntro', 'skipOutro', 'boost', 'skipSilence', 'notify', 'autoDl']);
 export function setSubOpt(url, key, value) {
   const s = subOf(url);
-  if (!s) return;
+  if (!s || !SUB_OPTS.has(key)) return;
   s.set = { ...(s.set || {}), [key]: value };
   if (value === '' || value === undefined || value === null) delete s.set[key];
   savePod();
@@ -248,7 +254,7 @@ export async function refreshFeed(url, { force = false } = {}) {
     if (f.image && sub.image !== f.image) sub.image = f.image;
     const seen = d.seen[url] || 0;
     const fresh = seen ? f.eps.filter((e) => e.pub > seen && !isPlayed(e.key)) : [];
-    if (f.eps[0]?.pub) d.seen[url] = Math.max(seen, f.eps[0].pub);
+    if (f.eps[0]?.pub && safeKey(url)) d.seen[url] = Math.max(seen, f.eps[0].pub);
     if (fresh.length) {
       d.inbox = [...fresh.map(snap), ...d.inbox.filter((x) => !fresh.some((e) => e.key === x.key))].slice(0, 300);
       bus.emit('pod-new', { feed: f, eps: fresh });
@@ -298,7 +304,7 @@ export function findEp(key) {
     if (e) return e;
   }
   const d = pod();
-  return d.queue.find((x) => x.key === key) || d.inbox.find((x) => x.key === key) || d.hist.find((x) => x.key === key) || d.favs.find((x) => x.key === key) || null;
+  return d.queue.find((x) => x.key === key) || d.inbox.find((x) => x.key === key) || d.hist.find((x) => x.key === key) || d.favs.find((x) => x.key === key) || (safeKey(key) && Object.prototype.hasOwnProperty.call(d.eps, key) ? d.eps[key].dl?.ep : null) || null;
 }
 
 // ---------------------------------------------------------------------------
@@ -359,9 +365,10 @@ export function toOpml(subs = pod().subs) {
 }
 /** OPML-ből feliratkozás (a már meglévők kimaradnak); a feliratkozott műsorok száma. */
 export function importOpml(xml) {
-  const list = parseOpml(xml).filter((o) => !isSubscribed(o.url));
-  for (const o of list) subscribe({ url: o.url, title: o.title });
-  return list.length;
+  // (a ténylegesen felvett műsorok száma: a meglévők és a fájlon belüli ismétlések kimaradnak)
+  const before = pod().subs.length;
+  for (const o of parseOpml(xml)) subscribe({ url: o.url, title: o.title });
+  return pod().subs.length - before;
 }
 
 // ---------------------------------------------------------------------------
@@ -374,9 +381,10 @@ export function downloadEp(ep) {
   if (!canDownload() || downloading.has(ep.key) || epState(ep.key)?.dl) return downloading.get(ep.key) || Promise.resolve();
   const name = `${(ep.feedTitle || 'podcast').slice(0, 40)} - ${(ep.title || ep.key).slice(0, 80)}`;
   const p = api
-    .podDownload({ url: ep.url, name, key: ep.key })
+    .podDownload({ url: ep.url, feed: ep.feed, name, key: ep.key, profile: store.profile?.id || '' })
     .then((r) => {
-      setState(ep.key, { dl: { path: r.path, url: r.url, size: r.size } });
+      // (a pillanatkép: a Letöltések akkor is mutatja, ha a folyamból / a sorból már kikerült)
+      setState(ep.key, { dl: { path: r.path, url: r.url, size: r.size, ep: snap(ep) } });
       return r;
     })
     .finally(() => {

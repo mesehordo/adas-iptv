@@ -60,7 +60,7 @@ function popular(list) {
 
 
 // (az átrendező elrendezésekben – a sorokból lista, szalag, csoportgombok lesznek – rögtön minden sor kell)
-const ALL_ROWS = new Set(['detail', 'unified', 'squares', 'ribbon', 'focus']);
+const ALL_ROWS = new Set(['detail', 'unified', 'squares', 'ribbon', 'focus', 'showcase', 'tiles']);
 function lazyRows(container, factories, initial = 4) {
   if (ALL_ROWS.has(document.body.dataset.layout)) initial = factories.length;
   let i = 0;
