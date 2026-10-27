@@ -929,6 +929,31 @@ export function homeRank(ch) {
   return lang && ch.languages?.includes(lang) ? 1 : 0;
 }
 
+/**
+ * Ajánlott sorrend (pl. „Most a tévében”): elöl a kedvencek a kedvencek sorrendjében, utánuk ajánlásként a
+ * kedvencekhez és a legutóbb nézettekhez hasonló (közös kategóriájú), azonos nyelvű csatornák, végül a többi.
+ * Azonos nyelv: a kedvencek / legutóbb nézettek valamelyik nyelve, vagy a beállított ország (nyelve).
+ */
+export function recommendOrder(list, p = store.profile) {
+  const favIdx = new Map((p?.favorites || []).map((id, i) => [id, i]));
+  const seed = getChannels([...(p?.favorites || []), ...(p?.recent || [])]);
+  const home = store.settings.homeCountry;
+  const langs = new Set(seed.flatMap((c) => c.languages || []));
+  if (COUNTRY_LANG[home]) langs.add(COUNTRY_LANG[home]);
+  // (a kategóriák súlya: hányszor fordul elő a kedvencek / legutóbb nézettek között; az „általános” keveset számít)
+  const catW = new Map();
+  for (const c of seed) for (const k of new Set(c.categories)) catW.set(k, (catW.get(k) || 0) + (k === 'general' ? 0.2 : 1));
+  const sameLang = (c) => c.country === home || (c.languages || []).some((l) => langs.has(l));
+  const sim = (c) => c.categories.reduce((s, k) => s + (catW.get(k) || 0), 0);
+  return list
+    .map((c) => ({ c, fav: favIdx.has(c.id) ? favIdx.get(c.id) : -1, lang: sameLang(c) ? 1 : 0, sim: sim(c), home: homeRank(c), rank: rankScore(c) }))
+    .sort((a, b) => {
+      if (a.fav >= 0 || b.fav >= 0) return a.fav < 0 ? 1 : b.fav < 0 ? -1 : a.fav - b.fav;
+      return b.lang - a.lang || b.sim - a.sim || b.home - a.home || b.rank - a.rank;
+    })
+    .map((x) => x.c);
+}
+
 /** Stabil rendezés: a hazai és a hazai nyelvű tételek előre, egyébként a sorrend marad. */
 export function homeFirst(list, rank = homeRank) {
   return list

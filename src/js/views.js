@@ -7,7 +7,7 @@ import { epg } from './epg.js';
 import { health } from './health.js';
 import {
   catalog, visible, getChannels, search, countryName, countryFlag, categoryName, rankScore, loadCatalog,
-  KIDS_CATEGORIES, channelStatus, bestQuality, MINE, activeLists, homeRank, homeFirst, COUNTRY_LANG, geoState, byAvailability,
+  KIDS_CATEGORIES, channelStatus, bestQuality, MINE, activeLists, homeRank, homeFirst, COUNTRY_LANG, geoState, byAvailability, recommendOrder,
 } from './catalog.js';
 import {
   ICON, rowEl, gridEl, cardHtml, registerContext, openProgram, openModal, confirmDialog, promptDialog,
@@ -98,9 +98,8 @@ export function renderTv(view) {
   view.innerHTML = '';
   const rows = html(`<div class="rows tv-rows"><div class="tv-head">${tvTabs('tv')}</div></div>`);
   view.append(rows);
-  const onAir = vis.filter((c) => epg.now(c.id)?.cur);
-  const favSet = new Set(p.favorites);
-  onAir.sort((a, b) => (favSet.has(b.id) - favSet.has(a.id)) || (homeRank(b) - homeRank(a)) || rankScore(b) - rankScore(a));
+  // elöl a kedvencek, utánuk ajánlásként a hozzájuk hasonló, azonos nyelvű csatornák
+  const onAir = recommendOrder(vis.filter((c) => epg.now(c.id)?.cur));
 
   const builders = {
     recent: () => recent.length && rowEl(_t('Legutóbb nézett'), recent, { href: '#/favorites' }),

@@ -4,7 +4,7 @@ import { esc, html, hashHue, fmtTime, bus, debounce, seededShuffle, norm } from 
 import { api } from './api.js';
 import { store } from './store.js';
 import { epg } from './epg.js';
-import { catalog, visible, getChannels, countryName, countryFlag, categoryName, channelStatus, homeRank, rankScore, byAvailability, activeLists, MINE, KIDS_CATEGORIES } from './catalog.js';
+import { catalog, visible, getChannels, countryName, countryFlag, categoryName, channelStatus, homeRank, rankScore, byAvailability, activeLists, MINE, KIDS_CATEGORIES, recommendOrder } from './catalog.js';
 import { ICON, logoHtml, openInfo, openProgram, gridEl, rowEl, emptyState, avatarHtml } from './components.js';
 import { player, startPreview, stopPreview } from './player.js';
 import { renderDashboard, unitCardHtml, activateUnits, homeNews, openNews, tonightPrograms } from './dashboard.js';
@@ -37,18 +37,22 @@ export function layoutRoute(name) {
 const visSet = () => new Set(visible());
 const ok = (ch) => channelStatus(ch) !== 'bad';
 
-/** Ajánlott csatornák a kiemelt helyekre: utoljára nézett, műsoron lévő kedvencek, aztán a népszerű hazaiak. */
+/** Az utoljára nézett (látható) csatorna – a nagy, kiemelt helyen mindig ez áll. */
+function lastWatched() {
+  const vis = visSet();
+  return getChannels(store.profile?.recent || []).find((c) => vis.has(c)) || null;
+}
+
+/** Ajánlott csatornák a kiemelt helyekre: az utoljára nézett, a műsoron lévő kedvencek, utánuk a hozzájuk hasonló, azonos nyelvűek. */
 function picks(n) {
   const vis = visSet();
-  const p = store.profile;
-  const favSet = new Set(p.favorites);
-  const onAir = [...vis].filter((c) => epg.now(c.id)?.cur);
-  onAir.sort((a, b) => favSet.has(b.id) - favSet.has(a.id) || homeRank(b) - homeRank(a) || rankScore(b) - rankScore(a));
-  const pool = [...getChannels(p.recent).slice(0, 2), ...getChannels(p.favorites).filter((c) => epg.now(c.id)?.cur), ...onAir.slice(0, 30)].filter((c) => vis.has(c) && ok(c));
+  const onAir = recommendOrder([...vis].filter((c) => epg.now(c.id)?.cur));
+  const last = lastWatched();
+  const pool = [...onAir.slice(0, 30)].filter((c) => c !== last && ok(c));
   const uniq = [...new Set(pool)];
   if (uniq.length < n) for (const c of byAvailability([...vis].sort((a, b) => homeRank(b) - homeRank(a) || rankScore(b) - rankScore(a)))) if (!uniq.includes(c)) uniq.push(c);
-  // (az első mindig a legrelevánsabb, a többi napi változatossággal)
-  const [first, ...rest] = uniq.slice(0, Math.max(n * 3, 12));
+  // (az első mindig az utoljára nézett – ha nincs, a legrelevánsabb –, a többi napi változatossággal)
+  const [first, ...rest] = last ? [last, ...uniq.slice(0, Math.max(n * 3, 12))] : uniq.slice(0, Math.max(n * 3, 12));
   return first ? [first, ...seededShuffle(rest, Math.floor(Date.now() / 86400e3)).slice(0, n - 1)] : [];
 }
 
@@ -95,9 +99,7 @@ function homeRow(key) {
     return l.length ? rowEl(_t('Kedvenceid'), l, { href: '#/favorites' }) : null;
   }
   if (key === 'onair') {
-    const favSet = new Set(p.favorites);
-    const l = [...vis].filter((c) => epg.now(c.id)?.cur);
-    l.sort((a, b) => favSet.has(b.id) - favSet.has(a.id) || homeRank(b) - homeRank(a) || rankScore(b) - rankScore(a));
+    const l = recommendOrder([...vis].filter((c) => epg.now(c.id)?.cur));
     return l.length ? rowEl(_t('Most a tévében'), l.slice(0, 40), { href: '#/guide' }) : null;
   }
   return null;
@@ -258,7 +260,8 @@ function shelfInfo(ch) {
 function renderShelf(view) {
   const vis = visSet();
   const p = store.profile;
-  let list = getChannels(p.favorites).filter((c) => vis.has(c));
+  // (elöl, kijelölve az utoljára nézett, utána a kedvencek)
+  let list = [...new Set([lastWatched(), ...getChannels(p.favorites).filter((c) => vis.has(c))])].filter(Boolean);
   if (list.length < 6) list = [...new Set([...list, ...getChannels(p.recent).filter((c) => vis.has(c)), ...picks(14)])];
   list = list.slice(0, 24);
   if (!list.length) {
@@ -706,7 +709,8 @@ function previewLater(box, ch, isCurrent) {
 function homeChannels(n) {
   const vis = visSet();
   const p = store.profile;
-  return [...new Set([...getChannels(p.favorites), ...getChannels(p.recent), ...picks(n)].filter((c) => vis.has(c)))].slice(0, n);
+  // (elöl, kijelölve az utoljára nézett, utána a kedvencek)
+  return [...new Set([lastWatched(), ...getChannels(p.favorites), ...getChannels(p.recent), ...picks(n)].filter((c) => c && vis.has(c)))].slice(0, n);
 }
 /** Időzítő, ami magától leáll, ha az elem eltűnt az oldalról. */
 function every(el, ms, fn) {
@@ -720,12 +724,10 @@ const clockText = () => new Date().toLocaleTimeString(LOCALE, { hour: '2-digit',
 function renderWall(view) {
   const vis = visSet();
   const p = store.profile;
-  const cont = getChannels(p.recent).find((c) => vis.has(c) && ok(c)) || picks(1)[0];
+  const cont = lastWatched() || picks(1)[0];
   if (!cont) return noChannels(view);
   const pins = homeChannels(14).filter((c) => c !== cont).slice(0, 11);
-  const favSet = new Set(p.favorites);
-  const guide = [...vis].filter((c) => epg.now(c.id)?.cur);
-  guide.sort((a, b) => favSet.has(b.id) - favSet.has(a.id) || homeRank(b) - homeRank(a) || rankScore(b) - rankScore(a));
+  const guide = recommendOrder([...vis].filter((c) => epg.now(c.id)?.cur));
   const now = epg.now(cont.id);
   view.innerHTML = '';
   const el = html(`<section class="wall">
@@ -785,11 +787,9 @@ function ribbonCats() {
   const p = store.profile;
   const chItem = (c) => ({ kind: 'ch', id: c.id, title: c.name, sub: epg.now(c.id)?.cur?.title || categoryName(c.categories[0]) || '', ch: c });
   const link = (href, title, sub = '', ico = '') => ({ kind: 'link', href, title, sub, ico });
-  const favSet = new Set(p.favorites);
   const favs = getChannels(p.favorites).filter((c) => vis.has(c));
   const recent = getChannels(p.recent).filter((c) => vis.has(c));
-  const onAir = [...vis].filter((c) => epg.now(c.id)?.cur);
-  onAir.sort((a, b) => favSet.has(b.id) - favSet.has(a.id) || homeRank(b) - homeRank(a) || rankScore(b) - rankScore(a));
+  const onAir = recommendOrder([...vis].filter((c) => epg.now(c.id)?.cur));
   const rf = radioMenuOn() ? radioFavs() : [];
   const cats = [
     { id: 'favs', label: _t('Kedvencek'), ico: navIcon('favorites'), items: favs.length ? favs.map(chItem) : [link('#/tv', _t('Csatornák böngészése'), _t('A csatornák kártyáján a + gombbal jelölhetsz kedvencet.'), navIcon('tv'))] },
@@ -963,11 +963,9 @@ function tonightPick(list) {
 function renderDesk(view) {
   const vis = visSet();
   const p = store.profile;
-  const main = getChannels(p.recent).find((c) => vis.has(c) && ok(c)) || picks(1)[0];
+  const main = lastWatched() || picks(1)[0];
   if (!main) return noChannels(view);
-  const favSet = new Set(p.favorites);
-  const onAir = [...vis].filter((c) => epg.now(c.id)?.cur && c !== main);
-  onAir.sort((a, b) => favSet.has(b.id) - favSet.has(a.id) || homeRank(b) - homeRank(a) || rankScore(b) - rankScore(a));
+  const onAir = recommendOrder([...vis].filter((c) => epg.now(c.id)?.cur && c !== main));
   const flips = onAir.slice(0, 8);
   const tonight = tonightPick([...getChannels(p.favorites).filter((c) => vis.has(c)), ...onAir.slice(0, 20)]);
   const favTiles = getChannels(p.favorites).filter((c) => vis.has(c) && c !== main).slice(0, 4);

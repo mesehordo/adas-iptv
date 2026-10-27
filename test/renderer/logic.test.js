@@ -2,7 +2,7 @@
 import { test, assert, sleep } from './harness.js';
 import { cmpVersion, isPrerelease } from '../../src/js/semver.js';
 import { qrMatrix } from '../../src/js/qr.js';
-import { parseM3U, nameKey } from '../../src/js/catalog.js';
+import { parseM3U, nameKey, recommendOrder } from '../../src/js/catalog.js';
 import { parseSubs } from '../../src/js/subtitles.js';
 import { bytesToText } from '../../src/js/unzip.js';
 import { validateImport, sanitizeSettings, cleanProfile } from '../../src/js/store.js';
@@ -513,4 +513,15 @@ test('elrendezések: alapérték, ismeretlen név, választó', () => {
   assert.equal(box.querySelector('.sel').dataset.layoutPick, 'unified');
   assert.equal(box.querySelector('[aria-checked="true"]').dataset.layoutPick, 'unified');
   assert.equal(pickLayoutIn(box, box), null);
+});
+
+test('ajánlott sorrend: kedvencek elöl, utánuk az azonos nyelvű, hasonló csatornák', () => {
+  const ch = (id, country, languages, categories) => ({ id, name: id, country, languages, categories, streams: [{ url: 'http://x/' + id }], logo: '' });
+  const list = [ch('idegen-hirek', 'XX', ['xxx'], ['news']), ch('hazai-sport', 'HU', ['hun'], ['sports']), ch('hazai-hirek', 'HU', ['hun'], ['news']), ch('kedv2', 'XX', ['xxx'], ['music']), ch('kedv1', 'HU', ['hun'], ['news'])];
+  const p = { favorites: ['kedv1', 'kedv2'], recent: [] };
+  const ids = recommendOrder(list, p).map((c) => c.id);
+  assert.deepEqual(ids.slice(0, 2), ['kedv1', 'kedv2']);
+  // (a kedvencek a katalógusban nincsenek, így a hasonlóság nem számít: az azonos nyelvűek előre, az idegen a végére)
+  assert.equal(ids[ids.length - 1], 'idegen-hirek');
+  assert.ok(ids.indexOf('hazai-hirek') < ids.indexOf('idegen-hirek') && ids.indexOf('hazai-sport') < ids.indexOf('idegen-hirek'));
 });
