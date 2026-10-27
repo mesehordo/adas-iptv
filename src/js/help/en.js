@@ -1298,6 +1298,29 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 <div class="note">A TV’s built-in player (webOS) decides itself how much to keep; there, rewinding may be shorter or missing, depending on the broadcaster.</div>`,
   },
   {
+    id: 'podcast',
+    cat: 'watch',
+    title: 'Podcasts',
+    keywords: 'podcast episode subscribe rss opml antennapod queue download speed silence chapter sleep chart',
+    body: `
+<p>The <b>Podcast</b> menu item (the Radio page’s <i>Podcasts</i> tab leads here too) brings podcasts – with subscriptions, like a podcast app.</p>
+<h2>Finding shows, subscribing</h2>
+<ul><li><b>Discover</b>: search by name (with the public Apple Podcasts search, fyyd as a fallback), the top chart of your country, or paste an <b>RSS address</b>.</li>
+<li><b>OPML</b>: bring your subscriptions from another app (AntennaPod, Pocket Casts…) or take them there (Discover or Settings).</li>
+<li>Subscriptions are <b>per profile</b>; they also carry over to another device with settings backups and sync.</li></ul>
+<h2>Tabs</h2>
+<ul><li><b>Overview</b> – continue, new episodes, queue, subscriptions, latest episodes, top chart (in the layout’s style).</li>
+<li><b>New episodes</b> – new episodes of your subscriptions (with a notification); mark all as played or queue them.</li>
+<li><b>Queue</b> – reorder with ▲ ▼; with continuous playback, the next one starts when an episode ends.</li>
+<li><b>Downloads</b> (on desktop) – downloaded episodes play without internet; the file can be deleted after playing (setting).</li>
+<li><b>History</b>, <b>Favourites</b> (★), <b>Statistics</b> (listening time per show), <b>Settings</b>.</li></ul>
+<h2>The show page</h2>
+<p>Filters (unplayed, in progress, played, favourite, downloaded), search, sorting. <b>Show settings</b>: own speed, skipping the intro and outro (in seconds), volume boost, skip silence, notifications, automatic download of new episodes.</p>
+<h2>Playback</h2>
+<p>On the small player bar and in the full view: seeking, skipping back and forward (intervals in the settings), <b>speed</b> (0.75–3×), <b>sleep timer</b> (minutes or “at end of episode”), <b>chapters</b> (if the show provides them), show notes, next in queue. Adás remembers where you are and continues from there. On Android the native player plays, even with the screen off. The look follows the <b>player look</b> (Settings → Appearance).</p>
+<div class="note">Shows available only on Spotify have no public RSS feed – they can’t be played in Adás.</div>`,
+  },
+  {
     id: 'radio',
     cat: 'watch',
     title: 'Radio',

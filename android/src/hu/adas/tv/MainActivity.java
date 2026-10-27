@@ -101,6 +101,7 @@ public class MainActivity extends Activity {
   boolean rendererGone = false;
   NativePlayer nativePlayer;
   RadioNative radioNative; // a rádió natív lejátszója
+  PodNative podNative; // a podcastok natív lejátszója
   boolean tv;
   /** Előtérben van-e (az emlékeztető ilyenkor az alkalmazáson belül szól, nem a rendszer). */
   static volatile boolean foreground;
@@ -144,6 +145,7 @@ public class MainActivity extends Activity {
     setContentView(root);
     nativePlayer = new NativePlayer(this, root);
     radioNative = new RadioNative(this);
+    podNative = new PodNative(this);
     WebSettings s = web.getSettings();
     s.setJavaScriptEnabled(true);
     s.setDomStorageEnabled(true);
@@ -422,6 +424,7 @@ public class MainActivity extends Activity {
     if (instance == this) instance = null;
     if (nativePlayer != null) nativePlayer.release();
     if (radioNative != null) radioNative.release();
+    if (podNative != null) podNative.release();
     if (lanServer != null) {
       lanServer.shareStop();
       lanServer.rcStop();
@@ -627,6 +630,43 @@ public class MainActivity extends Activity {
     @JavascriptInterface
     public void radioStop() {
       runOnUiThread(() -> radioNative.stop());
+    }
+
+    // --- podcast: natív lejátszás (PodNative) – tekerés, sebesség, háttérben is
+    @JavascriptInterface
+    public void podPlay(final String json) {
+      runOnUiThread(() -> {
+        try {
+          podNative.play(new JSONObject(json));
+        } catch (Exception e) {
+          podNative.send("error", -1, -1);
+        }
+      });
+    }
+
+    @JavascriptInterface
+    public void podPause() {
+      runOnUiThread(() -> podNative.pause());
+    }
+
+    @JavascriptInterface
+    public void podResume() {
+      runOnUiThread(() -> podNative.resume());
+    }
+
+    @JavascriptInterface
+    public void podSeek(final double sec) {
+      runOnUiThread(() -> podNative.seek(sec));
+    }
+
+    @JavascriptInterface
+    public void podRate(final double r) {
+      runOnUiThread(() -> podNative.rate(r));
+    }
+
+    @JavascriptInterface
+    public void podStop() {
+      runOnUiThread(() -> podNative.stop());
     }
 
     @JavascriptInterface
@@ -1147,6 +1187,7 @@ public class MainActivity extends Activity {
       rendererGone = true;
       if (nativePlayer != null) nativePlayer.pause();
       if (radioNative != null) radioNative.release();
+      if (podNative != null) podNative.release();
       PlaybackService.stop(MainActivity.this);
       // (az elhalt WebView nem használható újra: kikerül a nézetből és megszűnik; a késői hívások üres művelet)
       if (view.getParent() instanceof android.view.ViewGroup) ((android.view.ViewGroup) view.getParent()).removeView(view);

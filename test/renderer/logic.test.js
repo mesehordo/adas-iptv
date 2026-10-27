@@ -13,6 +13,7 @@ import { api } from '../../src/js/api.js';
 import { resolveStream, radioPlayer } from '../../src/js/radioplayer.js';
 import { HELP_CATEGORIES, ARTICLES } from '../../src/js/help-content.js';
 import { LAYOUTS, currentLayout, layoutPickerHtml, pickLayoutIn } from '../../src/js/layoutdefs.js';
+import { _podTest } from '../../src/js/podcast.js';
 
 // ------------------------------------------------------------------ alapfüggvények
 test('semver: sorrend, előzetes kiadás', () => {
@@ -524,4 +525,33 @@ test('ajánlott sorrend: kedvencek elöl, utánuk az azonos nyelvű, hasonló cs
   // (a kedvencek a katalógusban nincsenek, így a hasonlóság nem számít: az azonos nyelvűek előre, az idegen a végére)
   assert.equal(ids[ids.length - 1], 'idegen-hirek');
   assert.ok(ids.indexOf('hazai-hirek') < ids.indexOf('idegen-hirek') && ids.indexOf('hazai-sport') < ids.indexOf('idegen-hirek'));
+});
+
+test('podcast: RSS (iTunes, fejezetek), időtartam, OPML oda-vissza', () => {
+  const xml = `<?xml version="1.0"?><rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:podcast="https://podcastindex.org/namespace/1.0" xmlns:psc="http://podlove.org/simple-chapters">
+  <channel><title>Próba műsor</title><itunes:author>Szerző</itunes:author><itunes:image href="https://p.hu/c.jpg"/><description>Leírás</description><podcast:funding url="https://p.hu/tamogatas">Támogass</podcast:funding>
+  <item><title>Régi rész</title><guid>a1</guid><pubDate>Mon, 01 Jan 2024 10:00:00 GMT</pubDate><enclosure url="https://p.hu/1.mp3" type="audio/mpeg" length="1000"/><itunes:duration>1:02:03</itunes:duration></item>
+  <item><title>Új rész</title><guid>a2</guid><pubDate>Tue, 02 Jan 2024 10:00:00 GMT</pubDate><enclosure url="https://p.hu/2.mp3" type="audio/mpeg"/><itunes:duration>754</itunes:duration>
+    <podcast:chapters url="https://p.hu/2.json" type="application/json+chapters"/></item>
+  <item><title>Fejezetes</title><guid>a3</guid><pubDate>Wed, 03 Jan 2024 10:00:00 GMT</pubDate><enclosure url="https://p.hu/3.mp3" type="audio/mpeg"/><psc:chapters><psc:chapter start="00:00:00" title="Eleje"/><psc:chapter start="00:05:30" title="Közepe"/></psc:chapters></item>
+  <item><title>Hang nélkül</title><guid>a4</guid></item></channel></rss>`;
+  const f = _podTest.parseFeed(xml, 'https://p.hu/feed');
+  assert.equal(f.title, 'Próba műsor');
+  assert.equal(f.author, 'Szerző');
+  assert.equal(f.image, 'https://p.hu/c.jpg');
+  assert.equal(f.funding, 'https://p.hu/tamogatas');
+  assert.equal(f.eps.length, 3); // (a hangfájl nélküli rész kimarad)
+  assert.deepEqual(f.eps.map((e) => e.title), ['Fejezetes', 'Új rész', 'Régi rész']); // legújabb elöl
+  assert.equal(f.eps[2].dur, 3723);
+  assert.equal(f.eps[1].dur, 754);
+  assert.equal(f.eps[1].chapters, 'https://p.hu/2.json');
+  assert.deepEqual(f.eps[0].chapters.map((c) => [c.start, c.title]), [[0, 'Eleje'], [330, 'Közepe']]);
+  assert.equal(f.eps[0].key, _podTest.epKey('https://p.hu/feed', 'a3', 'https://p.hu/3.mp3'));
+  assert.ok(f.eps[0].key !== f.eps[1].key);
+  assert.throws(() => _podTest.parseFeed('<html><body>nem</body></html>', 'x'));
+  const opml = _podTest.toOpml([{ url: 'https://a.hu/rss?x=1&y=2', title: 'A & B' }, { url: 'https://b.hu/feed', title: 'B' }]);
+  assert.deepEqual(_podTest.parseOpml(opml), [{ url: 'https://a.hu/rss?x=1&y=2', title: 'A & B' }, { url: 'https://b.hu/feed', title: 'B' }]);
+  assert.equal(_podTest.parseDur('45'), 45);
+  assert.equal(_podTest.parseDur('10:05'), 605);
+  assert.equal(_podTest.parseDur(''), 0);
 });

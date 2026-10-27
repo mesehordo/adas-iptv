@@ -29,6 +29,8 @@ import {
 import { renderDashboard } from './dashboard.js';
 import { layoutRoute } from './layouts.js'; // profilonként választható felület-elrendezések
 import { adaptPage } from './pageadapt.js';
+import { renderPodcast, podMenuOn } from './podcastpage.js'; // podcastok (feliratkozás, sor, letöltés, lejátszó)
+import { podPlayer } from './podplayer.js';
 import { renderRecordingsPage } from './recorder.js'; // felvétel (asztali) és a felvételek oldala
 import './remote.js'; // távirányító telefonról
 import { applySubStyle } from './backup.js'; // automatikus mentés, feliratstílus
@@ -79,6 +81,7 @@ function routeFn(name) {
     case 'stats': return renderStats;
     case 'sport': return renderSport;
     case 'radio': return renderRadio;
+    case 'podcast': return renderPodcast;
     default: return renderDashboard;
   }
 }
@@ -224,6 +227,13 @@ const applyRadioMenu = () => {
 };
 bus.on('settings', (k) => k === 'radioMenu' && applyRadioMenu());
 bus.on('profile', applyRadioMenu);
+// Podcast menüpont (a Podcast oldal beállításaiban kapcsolható; gyerekprofilban nem látszik)
+const applyPodMenu = () => {
+  const a = $('.links a[data-route="podcast"]', nav);
+  if (a) a.hidden = !podMenuOn();
+};
+bus.on('settings', (k) => k === 'podcastMenu' && applyPodMenu());
+bus.on('profile', applyPodMenu);
 // betöltött adók: a rádió főoldala újrarajzolódik (a böngészés és a keresés mezői nem)
 bus.on('radio', debounce(() => {
   const { name, params } = parseHash();
@@ -495,14 +505,14 @@ bus.on('player-opened', () => api.setVideoActive?.(true));
 // van-e betöltött adás (videó vagy rádió – szünetelve is): Androidon addig látszik a lejátszás értesítése
 let mediaActiveWas = false;
 const reportMediaActive = () => {
-  const on = !!(player.active || radioPlayer.active);
+  const on = !!(player.active || radioPlayer.active || podPlayer.active);
   if (on === mediaActiveWas) return;
   mediaActiveWas = on;
   api.setMediaActive?.(on);
 };
 // (azonnal, késleltetés nélkül: mindkét lejátszó az esemény előtt frissíti az állapotát – így egy közben zajló
 // képernyőzárás már az új értéket látja)
-['player-opened', 'player-closed', 'radio-player'].forEach((ev) => bus.on(ev, reportMediaActive));
+['player-opened', 'player-closed', 'radio-player', 'pod-player'].forEach((ev) => bus.on(ev, reportMediaActive));
 bus.on('player-closed', () => api.setVideoActive?.(false));
 // Háttér-beállítások átadása a keretnek: kilépéskor kis ablak (videó) / háttérlejátszás (csak hang) – külön
 const sendBgPrefs = () => api.setBackgroundPrefs?.(store.settings.autoPip === true, !!store.settings.bgAudio);

@@ -9,7 +9,7 @@ import { currentLayout } from './layoutdefs.js';
 import { _t } from './i18n.js';
 
 const CARD = '.card, .vcard, .rcard, .tile';
-const PAGES = new Set(['tv', 'vod', 'own', 'radio']);
+const PAGES = new Set(['tv', 'vod', 'own', 'radio', 'podcast']);
 let heroTimer = null;
 
 /** Egy sor adatai: cím, „összes” hivatkozás, kártyák. */
@@ -44,9 +44,9 @@ function info(card) {
   };
 }
 /** A kártya lejátszása / adatlapja – a kártya saját gombjával (a megszokott kezelők futnak). */
-const playCard = (card) => (card.querySelector('[data-act="play"], [data-vact="play"], [data-ract="play"]') || card).click();
+const playCard = (card) => (card.querySelector('[data-act="play"], [data-vact="play"], [data-ract="play"], [data-pact="play"], [data-pact="open"]') || card).click();
 const infoCard = (card) => {
-  const b = card.querySelector('[data-act="info"], [data-vact="info"], [data-ract="info"]');
+  const b = card.querySelector('[data-act="info"], [data-vact="info"], [data-ract="info"], [data-pact="info"], [data-pact="open"]');
   if (b) b.click();
   else card.click();
 };

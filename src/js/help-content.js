@@ -1298,6 +1298,29 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
 <div class="note">A tévék beépített lejátszója (webOS) maga dönt arról, mennyit tárol; ott a visszatekerés az adótól függően rövidebb lehet vagy hiányozhat.</div>`,
   },
   {
+    id: 'podcast',
+    cat: 'watch',
+    title: 'Podcastok',
+    keywords: 'podcast epizód feliratkozás rss opml antennapod sor lejátszási sor letöltés sebesség csend fejezet alvás toplista',
+    body: `
+<p>A menüsor <b>Podcast</b> pontja (a Rádió oldal <i>Podcastok</i> füle is ide visz) a podcastokat hozza – feliratkozással, mint egy podcast-alkalmazás.</p>
+<h2>Műsorok keresése, feliratkozás</h2>
+<ul><li><b>Felfedezés</b>: keresés név szerint (az Apple Podcasts nyilvános keresőjével, tartalékként az fyyd-vel), a beállított ország toplistája, vagy egy <b>RSS-cím</b> beírása.</li>
+<li><b>OPML</b>: más alkalmazásból (AntennaPod, Pocket Casts…) áthozhatod a feliratkozásaidat, és oda is viheted (Felfedezés vagy Beállítások).</li>
+<li>A feliratkozások <b>profilonként</b> vannak; a beállítások mentésével és a szinkronnal másik eszközre is átkerülnek.</li></ul>
+<h2>Fülek</h2>
+<ul><li><b>Áttekintés</b> – folytatás, új epizódok, sor, feliratkozások, legújabb részek, toplista (az elrendezés stílusában).</li>
+<li><b>Új epizódok</b> – a feliratkozások új részei (értesítéssel); mind meghallgatottnak jelölhető vagy a sorba tehető.</li>
+<li><b>Lejátszási sor</b> – a sorrend ▲ ▼ gombokkal; folyamatos lejátszásnál egy epizód végén a következő indul.</li>
+<li><b>Letöltések</b> (asztali gépen) – a letöltött epizód internet nélkül is szól; meghallgatás után a fájl törölhető (beállítás).</li>
+<li><b>Előzmények</b>, <b>Kedvencek</b> (★), <b>Statisztika</b> (műsoronként a hallgatási idő), <b>Beállítások</b>.</li></ul>
+<h2>A műsor oldala</h2>
+<p>Szűrők (meghallgatatlan, félbehagyott, meghallgatott, kedvenc, letöltött), keresés, rendezés. <b>A műsor beállításai</b>: saját sebesség, a bevezető és a zárórész átugrása (másodpercben), hangerő-erősítés, csend átugrása, értesítés, új epizódok automatikus letöltése.</p>
+<h2>Lejátszás</h2>
+<p>A kis lejátszósávon és a teljes nézetben: tekerés, vissza- és előreugrás (az időközök a beállításokban), <b>sebesség</b> (0,75–3×), <b>alvásidőzítő</b> (perc vagy „az epizód végén”), <b>fejezetek</b> (ha a műsor megadja), műsorjegyzet, következő a sorban. Az Adás megjegyzi, hol tartasz, és onnan folytatja. Androidon a natív lejátszó szól, kikapcsolt képernyőnél is. A kinézet a <b>lejátszó kinézetét</b> követi (Beállítások → Megjelenés).</p>
+<div class="note">A csak a Spotify-on elérhető műsoroknak nincs nyilvános RSS-folyama – ezek nem hallgathatók az Adásban.</div>`,
+  },
+  {
     id: 'radio',
     cat: 'watch',
     title: 'Rádió',

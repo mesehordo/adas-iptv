@@ -1307,6 +1307,67 @@ const inRecDir = (p) => {
   const full = path.resolve(String(p || ''));
   return full.startsWith(path.resolve(recDir()) + path.sep) && /\.(ts|mkv|mp4|mp3|aac)$/i.test(full);
 };
+// ---------------------------------------------------------------------------
+// Podcast-epizódok letöltése (a programmappa „podcasts” mappájába) – a hálózati szabály (lan.fetchPolicy) szerint
+// ---------------------------------------------------------------------------
+const podDir = () => path.join(dataDir(), 'podcasts');
+const inPodDir = (p) => {
+  const rel = path.relative(podDir(), path.resolve(String(p || '')));
+  return !!rel && !rel.startsWith('..') && !path.isAbsolute(rel);
+};
+const POD_MAX = 2 * 1024 ** 3; // egy epizód legfeljebb 2 GB
+ipcMain.handle('pod-download', async (_e, { url, name, key } = {}) => {
+  if (!/^https?:\/\//i.test(String(url || ''))) throw new Error('Érvénytelen cím');
+  await fs.promises.mkdir(podDir(), { recursive: true });
+  const free = (() => {
+    try {
+      const s = fs.statfsSync(podDir());
+      return s.bavail * s.bsize;
+    } catch {
+      return Infinity;
+    }
+  })();
+  if (free < 500e6) throw new Error('Kevés a szabad hely a lemezen');
+  const ext = (/\.(mp3|m4a|aac|ogg|opus|mp4|m4v|webm|wav|flac)(?:[?#]|$)/i.exec(url)?.[1] || 'mp3').toLowerCase();
+  const safe = String(name || 'epizod').replace(/[\\/:*?"<>|\x00-\x1f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) || 'epizod';
+  const file = path.join(podDir(), `${safe} [${String(key || Date.now()).replace(/[^\w.-]/g, '')}].${ext}`);
+  const ctrl = new AbortController();
+  const { res } = await lan.fetchPolicy(url, { signal: ctrl.signal, headers: { 'User-Agent': CHROME_UA } }, url);
+  if (!res.ok) throw new Error('A letöltés nem sikerült (' + res.status + ')');
+  const tmp = file + '.part';
+  const out = fs.createWriteStream(tmp);
+  let size = 0;
+  try {
+    const reader = res.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.length;
+      if (size > POD_MAX) {
+        ctrl.abort();
+        throw new Error('Túl nagy fájl');
+      }
+      if (!out.write(Buffer.from(value))) await new Promise((r) => out.once('drain', r));
+    }
+    await new Promise((r, j) => out.end((err) => (err ? j(err) : r())));
+    await fs.promises.rename(tmp, file);
+  } catch (err) {
+    out.destroy();
+    fs.promises.unlink(tmp).catch(() => {});
+    throw err;
+  }
+  return { path: file, url: require('url').pathToFileURL(file).href, size };
+});
+ipcMain.handle('pod-delete', async (_e, p) => {
+  if (!inPodDir(p)) return false;
+  await fs.promises.unlink(path.resolve(p)).catch(() => {});
+  return true;
+});
+ipcMain.handle('pod-folder', () => {
+  fs.mkdirSync(podDir(), { recursive: true });
+  return shell.openPath(podDir());
+});
+
 ipcMain.handle('rec-trash', async (_e, p) => {
   if (!inRecDir(p) || media.isRecording(p)) return false; // futó felvétel nem mehet a Lomtárba
   p = path.resolve(p);
