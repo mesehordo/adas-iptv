@@ -910,7 +910,7 @@ public class MainActivity extends Activity {
   // -------------------------------------------------------------------------------------------
   /** Kapcsolat átirányítások követésével, a hitelesítő fejlécek védelmével (HttpOpen). */
   HttpURLConnection open(String url, String method, Map<String, String> headers, byte[] body, int timeoutMs) throws IOException {
-    return HttpOpen.open(url, method, headers, body, timeoutMs);
+    return HttpOpen.open(url, method, headers, body, timeoutMs, !lanAllowed);
   }
 
   Map<String, String> streamHeaders(String url, Map<String, String> fromPage) {

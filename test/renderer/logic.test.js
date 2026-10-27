@@ -480,14 +480,19 @@ test('PIN: erős (PBKDF2) alak, profilonként más; a régi ujjlenyomat változa
   assert.equal(await _pinTest.strongHash('1234', 'p1'), a);
   assert.ok((await _pinTest.strongHash('1234', 'p2')) !== a);
   assert.ok((await _pinTest.strongHash('1235', 'p1')) !== a);
-  assert.match(hashPin('1234', 'p1'), /^[0-9a-f]{8}$/);
+  assert.equal(hashPin('1234', 'p1'), '71a96fe1'); // (a meglévő PIN-ek ezzel ellenőrződnek: nem változhat)
 });
 
 test('lanpolicy: helyi címek és a saját helyi forrás felismerése', () => {
   for (const h of ['192.168.1.5', '10.0.0.2', '172.20.1.1', '127.0.0.1', 'nas.local', 'localhost', '[fd00::1]', '100.70.1.1']) assert.ok(isLocalHost(h), h);
-  for (const h of ['8.8.8.8', 'iptv-org.github.io', '172.32.0.1', '[2001:db8::1]']) assert.ok(!isLocalHost(h), h);
-  assert.equal(hasLocalSource({ customPlaylists: [{ url: 'https://pelda.hu/a.m3u' }] }), false);
-  assert.equal(hasLocalSource({ customPlaylists: [{ url: 'http://192.168.1.20/tv.m3u' }] }), true);
+  for (const h of ['8.8.8.8', 'iptv-org.github.io', '172.32.0.1', '[2001:db8::1]', '::ffff:8.8.8.8']) assert.ok(!isLocalHost(h), h);
+  for (const h of ['::ffff:192.168.1.5', '::ffff:c0a8:105', '[::ffff:c0a8:105]']) assert.ok(isLocalHost(h), h);
+  assert.equal(hasLocalSource({ customPlaylists: [{ url: 'http://[::ffff:192.168.1.5]/tv.m3u', enabled: true }] }), true);
+  assert.equal(hasLocalSource({ customPlaylists: [{ url: 'http://192.168.1.20/tv.m3u', enabled: false }] }), false);
+  assert.equal(hasLocalSource({ radioLists: [{ url: 'http://192.168.1.20/r.m3u', enabled: false }] }), false);
+  assert.equal(hasLocalSource({ vodCustom: [{ url: 'https://exa%mple.com/a.m3u', enabled: true }], customChannels: [{ url: 'nem cím' }] }), false);
+  assert.equal(hasLocalSource({ customPlaylists: [{ url: 'https://pelda.hu/a.m3u', enabled: true }] }), false);
+  assert.equal(hasLocalSource({ customPlaylists: [{ url: 'http://192.168.1.20/tv.m3u', enabled: true }] }), true);
   assert.equal(hasLocalSource({ ownSources: [{ kind: 'folder', path: 'D:/Filmek', enabled: true }] }), true);
   assert.equal(hasLocalSource({ ownSources: [{ kind: 'folder', path: 'D:/Filmek', enabled: false }] }), false);
 });

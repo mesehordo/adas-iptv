@@ -1526,7 +1526,7 @@ function editProfile(prof, done) {
     picker.setColor(color);
   };
   el.elements.namedItem('name').addEventListener('input', (e) => picker.setName(e.target.value));
-  el.onsubmit = (e) => {
+  el.onsubmit = async (e) => {
     e.preventDefault();
     const name = el.elements.namedItem('name').value.trim() || _t('Profil');
     const kids = el.elements.namedItem('kids').checked;
@@ -1538,7 +1538,7 @@ function editProfile(prof, done) {
     target.theme = look.theme;
     target.themeVariants = { ...(target.themeVariants || {}), [look.theme]: look.variant };
     if (!look.variant) delete target.themeVariants[look.theme];
-    if (newPin !== undefined) setPin(target, newPin);
+    if (newPin !== undefined) await setPin(target, newPin);
     store.save();
     bus.emit('profile');
     close();

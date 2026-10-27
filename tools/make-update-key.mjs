@@ -5,8 +5,9 @@
 // fájlt biztonságos helyen őrizd (vagy töröld). A nyilvános kulcsot a kimenet kiírja: az kerül az updater.js
 // UPDATE_PUBKEY állandójába. A titkos kulcs SOHA ne kerüljön a tárolóba.
 import { generateKeyPairSync } from 'node:crypto';
-import { writeFileSync, existsSync } from 'node:fs';
-import { resolve, join, relative } from 'node:path';
+import { writeFileSync } from 'node:fs';
+import { resolve, join, relative, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const dir = process.argv[2];
 if (!dir) {
@@ -14,18 +15,22 @@ if (!dir) {
   process.exit(1);
 }
 const out = resolve(dir);
-const rel = relative(process.cwd(), out);
+// (a tároló gyökere a szkript helyéből – bárhonnan futtatva)
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const rel = relative(repoRoot, out);
 if (!rel.startsWith('..') && !/^[a-zA-Z]:/.test(rel)) {
   console.error('A titkos kulcs nem kerülhet a tároló mappájába – adj meg egy azon kívüli mappát.');
   process.exit(1);
 }
 const file = join(out, 'update-sign-key.pem');
-if (existsSync(file)) {
-  console.error(`Már van ilyen fájl: ${file} – nem írom felül.`);
+const { publicKey, privateKey } = generateKeyPairSync('ed25519');
+try {
+  // (wx: a meglévő fájlt nem írja felül)
+  writeFileSync(file, privateKey.export({ type: 'pkcs8', format: 'pem' }), { mode: 0o600, flag: 'wx' });
+} catch (e) {
+  console.error(e.code === 'EEXIST' ? `Már van ilyen fájl: ${file} – nem írom felül.` : `Nem írható: ${file} (${e.message})`);
   process.exit(1);
 }
-const { publicKey, privateKey } = generateKeyPairSync('ed25519');
-writeFileSync(file, privateKey.export({ type: 'pkcs8', format: 'pem' }), { mode: 0o600, flag: 'wx' });
 console.log(`Titkos kulcs: ${file}\n(a tartalmát tedd a GitHub-tároló ADAS_UPDATE_SIGN_KEY titkába)\n`);
 console.log('Nyilvános kulcs (az updater.js UPDATE_PUBKEY állandójába):\n');
 console.log(publicKey.export({ type: 'spki', format: 'pem' }));

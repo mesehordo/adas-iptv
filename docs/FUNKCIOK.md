@@ -52,7 +52,7 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
-**Hálózati ellenőrzés, biztonságosabb jelszavak és távirányító, felvételi korlátok, hibajavítások (következő kiadás)**
+**Hálózati ellenőrzés, biztonságosabb jelszavak és távirányító, felvételi korlátok, hibajavítások (1.32.0)**
 - **Hálózat ellenőrzése** (Beállítások → Lejátszás, asztali gépen): kiderül, szűri-e a gép vagy a hálózat a nem szabványos portokat (pl. 1935, 1344, 8080) – sok helyi tévé ezeken sugároz. Ha egy ilyen adás nem indul, a lejátszó hibaüzenete is jelzi, ha a port el van zárva.
 - **Felvételek**: kevés szabad helynél (1 GB alatt) nem indul felvétel, 300 MB alatt a futó leáll (az addigi rész megmarad); a kézi (●) felvételnek legnagyobb hossza van (alapból 4 óra, Beállítások → Felvételek). A felület újratöltése után a futó felvételek látszanak és leállíthatók, az ütemezett nem indul el duplán.
 - **Biztonság**: a szülői PIN erős (PBKDF2) alakban tárolódik (a régi a következő belépéskor frissül); az OpenSubtitles-jelszó asztali gépen a rendszer kulcstárában van, nem a beállításfájlban; a telefonos távirányító alapból csak QR-kóddal párosítható (a PIN-es belépés bekapcsolható); Androidon internetes lista nem érheti el a helyi hálózat eszközeit (csak ha van saját helyi forrás); a kiadások ellenőrző összegei aláírhatók (asztali frissítő).

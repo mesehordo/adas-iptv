@@ -429,8 +429,7 @@ export const player = {
       netDiag()
         .then((r) => {
           if (!r?.ok || !box.isConnected || box.hidden || this.stream !== st) return;
-          const shut = r.blocked.includes(port) || r.blocked.length >= 3; // (a mért portok többsége zárva: ez is valószínűleg)
-          if (!shut) return;
+          if (!r.blocked.includes(port)) return;
           box.querySelector('.dialog-btns')?.insertAdjacentHTML('beforebegin', `<p class="warn small">⚠ ${esc(_t('Ez az adás a(z) {port} portot használja, ami ezen a gépen vagy hálózaton el van zárva – ezért nem indul el. Részletek: Beállítások → Lejátszás → Hálózat ellenőrzése.', { port }))}</p>`);
         })
         .catch(() => {});
