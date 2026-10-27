@@ -34,7 +34,36 @@ final class HttpOpen {
     return u.getProtocol().toLowerCase(Locale.ROOT) + "://" + u.getHost().toLowerCase(Locale.ROOT) + ":" + port;
   }
 
+  /**
+   * Helyi, belső vagy fenntartott cím-e (localhost-nevek, magán-, link-local, CGNAT, multicast, ULA) – a név
+   * feloldott címei közül bármelyik. Feloldási hibánál nem (a kapcsolódás úgyis elbukik).
+   */
+  static boolean privateHost(String host) {
+    if (host == null) return true;
+    String h = host.toLowerCase(Locale.ROOT).replaceAll("^\\[|\\]$", "");
+    if (h.isEmpty() || h.equals("localhost") || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal")) return true;
+    try {
+      for (java.net.InetAddress a : java.net.InetAddress.getAllByName(h)) {
+        if (a.isLoopbackAddress() || a.isSiteLocalAddress() || a.isLinkLocalAddress() || a.isAnyLocalAddress() || a.isMulticastAddress()) return true;
+        byte[] b = a.getAddress();
+        if (b.length == 4 && (b[0] & 0xff) == 100 && (b[1] & 0xc0) == 64) return true; // CGNAT 100.64.0.0/10
+        if (b.length == 4 && (b[0] & 0xff) == 0) return true;
+        if (b.length == 16 && (b[0] & 0xfe) == 0xfc) return true; // ULA fc00::/7
+      }
+    } catch (Exception ignored) {
+    }
+    return false;
+  }
+
   static HttpURLConnection open(String url, String method, Map<String, String> headers, byte[] body, int timeoutMs) throws IOException {
+    return open(url, method, headers, body, timeoutMs, false);
+  }
+
+  /**
+   * blockPrivate: a lap (WebView) internetes forrásból jövő kéréseinél helyi hálózati cím nem érhető el – minden
+   * lépésnél, az átirányítás célján is (mint az asztali változat hálózati szabálya).
+   */
+  static HttpURLConnection open(String url, String method, Map<String, String> headers, byte[] body, int timeoutMs, boolean blockPrivate) throws IOException {
     final URL first = new URL(url);
     final String origin = originOf(first);
     boolean hasSecret = false;
@@ -42,6 +71,7 @@ final class HttpOpen {
     Map<String, String> hdrs = new HashMap<>(headers);
     for (int hop = 0; hop < MAX_HOPS; hop++) {
       URL u = new URL(url);
+      if (blockPrivate && privateHost(u.getHost())) throw new IOException("Nem engedélyezett cím (helyi hálózat)");
       HttpURLConnection c = (HttpURLConnection) u.openConnection();
       c.setInstanceFollowRedirects(false);
       c.setConnectTimeout(15000);

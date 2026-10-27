@@ -36,6 +36,7 @@ import { _t, lang, savedLang, setLanguage, translateDom } from './i18n.js';
 import { needsOnboarding, runOnboarding } from './onboarding.js';
 import { installKeyMap } from './keymap.js'; // saját gombkiosztás (a többi billentyűkezelő előtt fordít)
 import './gamepad.js'; // kontroller (játékvezérlő) – a gombjai a távirányító műveleteit küldik
+import './lanpolicy.js'; // Android: a helyi hálózat csak saját helyi forrásnál érhető el
 
 // a lap nyelve és a statikus (index.html) szövegek fordítása – a felület felépítése előtt
 document.documentElement.lang = lang;
@@ -865,6 +866,7 @@ async function loadWithRetry() {
 
 async function boot() {
   await store.load();
+  bus.emit('store-loaded'); // (pl. lanpolicy.js: a betöltött források szerint)
   if (IS_TV) document.body.classList.add('tv');
   // A nyelv a beállításokban is megvan (pl. szinkron / visszaállítás után): ha a helyi mentés hiányzik
   // vagy eltér, ezt vesszük át (újratöltéssel)

@@ -107,6 +107,12 @@ public class MainActivity extends Activity {
   /** Értesítésről indítva: ezt a csatornát kell megnyitni. */
   volatile String launchChannel;
   final Map<String, String[]> hostHeaders = new ConcurrentHashMap<>();
+  /**
+   * A lap kérései elérhetik-e a helyi hálózatot (NAS, helyi szerver): csak ha a felhasználó maga adott meg helyi
+   * forrást (lista, médiatár, csatorna) – különben egy internetes lista sem irányíthatja a kéréseket a helyi
+   * eszközökre (router, nyomtató, okoseszközök). A felület állítja (lanpolicy.js).
+   */
+  volatile boolean lanAllowed = false;
   final ExecutorService pool = Executors.newFixedThreadPool(8);
   Covers covers; // tartós képtár (borítók, logók) – files/covers
   ValueCallback<Uri[]> fileCallback;
@@ -117,7 +123,7 @@ public class MainActivity extends Activity {
   protected void onCreate(Bundle state) {
     super.onCreate(state);
     instance = this;
-    covers = new Covers(new java.io.File(getFilesDir(), "covers"), (url, h) -> open(url, "GET", streamHeaders(url, h), null, 30000));
+    covers = new Covers(new java.io.File(getFilesDir(), "covers"), (url, h) -> HttpOpen.open(url, "GET", streamHeaders(url, h), null, 30000, !lanAllowed));
     UiModeManager ui = (UiModeManager) getSystemService(Context.UI_MODE_SERVICE);
     // (F07) a buildcél dönt (mobile / tv); univerzális csomagnál a rendszer jelzése
     String target = buildTarget();
@@ -468,6 +474,12 @@ public class MainActivity extends Activity {
         keyMap.putAll(m);
       } catch (Exception ignored) {
       }
+    }
+
+    /** (lanpolicy.js) van-e a felhasználónak helyi hálózati forrása – akkor a lap elérheti a helyi hálózatot. */
+    @JavascriptInterface
+    public void setLanAllowed(boolean on) {
+      lanAllowed = on;
     }
 
     /** Betanítás: a következő gomb lenyomása a felülethez megy (window.__adasKeyLearned), nem a szokásos helyére. */
@@ -1176,7 +1188,7 @@ public class MainActivity extends Activity {
 
     WebResourceResponse proxy(String url, String method, Map<String, String> pageHeaders) {
       try {
-        HttpURLConnection c = open(url, method, streamHeaders(url, pageHeaders), null, 30000);
+        HttpURLConnection c = HttpOpen.open(url, method, streamHeaders(url, pageHeaders), null, 30000, !lanAllowed);
         int code = c.getResponseCode();
         InputStream in = code >= 400 ? c.getErrorStream() : c.getInputStream();
         if (in == null) in = new ByteArrayInputStream(new byte[0]);

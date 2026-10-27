@@ -1462,8 +1462,8 @@ ${go('#/settings?section=transfer', 'Sync between devices')}`,
     body: `
 <p>The desktop app and the Android (TV) version can also be controlled from your phone – or any device’s browser – on the same (home) network:</p>
 <ol>
-<li>The quickest: the <b>Remote</b> button at the top of the <b>Home</b> page (next to Customise) – it switches the remote on and shows the QR code in a small window. Or: Settings → Remote control and keys → <b>Remote from phone</b> → switch it on. A <b>QR code</b>, an address (e.g. <code>http://192.168.1.20:47800/adas/remote</code>) and a 4-digit PIN appear.</li>
-<li>Scan the QR code with your phone’s camera: the controller opens and also receives a secret key – this is the most secure way, because the key never travels over the network; the phone signs every command with it. (Or open the address in the browser and type the PIN – the phone remembers it.) Tip: add the page to your home screen so it starts like an app.</li>
+<li>The quickest: the <b>Remote</b> button at the top of the <b>Home</b> page (next to Customise) – it switches the remote on and shows the QR code in a small window. Or: Settings → Remote control and keys → <b>Remote from phone</b> → switch it on. A <b>QR code</b>, and an address (e.g. <code>http://192.168.1.20:47800/adas/remote</code>) appear.</li>
+<li>Scan the QR code with your phone’s camera: the controller opens and also receives a secret key – this is the most secure way, because the key never travels over the network; the phone signs every command with it. (Logging in with the 4-digit PIN is off by default, because on the unencrypted local network the PIN can be worked out from a single intercepted request; if the QR code can’t be used, turn it on with <b>Also allow PIN login</b> – on your home network only.) Tip: add the page to your home screen so it starts like an app.</li>
 </ol>
 <p>At the top you always see what’s on (with the logo, the programme’s progress and the next programme). The controller has three tabs:</p>
 <table class="help-table">

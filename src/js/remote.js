@@ -34,7 +34,7 @@ const newPin = () => String(1000 + randInt(9000));
 const newKey = () => [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
 
 /** A telefonon megnyíló vezérlőlap (önálló HTML, külső fájlok nélkül; régi telefonos böngészőkhöz is). */
-function pageHtml() {
+function pageHtml(pinOn = false) {
   return `<!doctype html><html lang="${uiLang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#111"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><title>${_t('Adás – távirányító')}</title><style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}[hidden]{display:none!important}
@@ -65,8 +65,9 @@ input.q{width:100%;font:inherit;font-size:17px;padding:12px 14px;border-radius:1
 .err{color:#ff6b6b;min-height:1.2em}.muted{color:var(--m);font-size:13px}.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#333;color:#fff;padding:8px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}.toast.show{opacity:1}
 .off{color:#ff8a80}
 </style></head><body>
-<div id="pin" class="pin" hidden><h1 style="color:var(--a);margin:0">${_t('ADÁS')}</h1><p>${_t('Írd be a tévén / gépen látható 4 jegyű PIN-t<br>')}<small class="muted">${_t('(vagy olvasd be a QR-kódot: Beállítások → Távirányító és billentyűk → Távirányító telefonról)')}</small></p>
-<input id="pinIn" inputmode="numeric" maxlength="4" autocomplete="off"><button class="ok" id="pinOk">${_t('Csatlakozás')}</button><div class="err" id="pinErr"></div></div>
+<div id="pin" class="pin" hidden><h1 style="color:var(--a);margin:0">${_t('ADÁS')}</h1><p>${pinOn ? `${_t('Írd be a tévén / gépen látható 4 jegyű PIN-t<br>')}<small class="muted">${_t('(vagy olvasd be a QR-kódot: Beállítások → Távirányító és billentyűk → Távirányító telefonról)')}</small>` : _t('Olvasd be a QR-kódot a telefon kamerájával (Beállítások → Távirányító és billentyűk → Távirányító telefonról).')}</p>
+${pinOn ? '' : `<p class="muted">${_t('A PIN-es belépés ki van kapcsolva (a QR-kódos a biztonságosabb). Bekapcsolható a tévén / gépen: Beállítások → Távirányító és billentyűk → Távirányító telefonról.')}</p>`}
+<input id="pinIn" inputmode="numeric" maxlength="4" autocomplete="off"${pinOn ? '' : ' hidden'}><button class="ok" id="pinOk"${pinOn ? '' : ' hidden'}>${_t('Csatlakozás')}</button><div class="err" id="pinErr"></div></div>
 <div id="ui" hidden>
 <div class="now" id="now"><div class="tx"><small>${_t('Csatlakozás…')}</small></div></div>
 <div class="pane sel" id="p-ctl">
@@ -623,7 +624,10 @@ export async function startRemote() {
     s.remoteKey = newKey();
     store.save();
   }
-  info = await api.rcStart(pageHtml(), s.remotePin, s.remoteKey);
+  // (a PIN-es mód alapból ki van kapcsolva: a titkosítatlan helyi hálózaton egyetlen lehallgatott kérésből a 4 jegyű
+  // PIN-nel aláírt kérés kulcsa – a PIN – percek alatt kitalálható; a QR-kódos 128 bites kulcs nem utazik a hálózaton)
+  const pinOn = s.remotePinOn === true;
+  info = await api.rcStart(pageHtml(pinOn), pinOn ? s.remotePin : '', s.remoteKey);
   pushState();
   return info;
 }
@@ -699,10 +703,12 @@ export function renderRemoteSettings(box) {
                 <div class="rc-text">
                   <div>${_t('<b>Olvasd be a QR-kódot a telefon kamerájával</b> – a lap megnyílik, és egy titkos kulcsot is megkap (ez a legbiztonságosabb, semmit nem kell begépelni).')}</div>
                   ${urls.length ? `<div class="muted small">${_t('Vagy nyisd meg a telefon böngészőjében:')}</div>${urls.map((u, i) => (urls.length > 1 ? `<button class="rc-url ${i === Math.min(qrPick, urls.length - 1) ? 'on' : ''}" data-rcip="${i}" title="${_t('Ez legyen a QR-kódban')}">${esc(u)}</button>` : `<code class="rc-url">${esc(u)}</code>`)).join('')}${urls.length > 1 ? `<div class="muted small">${_t('Ha a telefon nem éri el, válaszd a másik címet – a QR-kód ahhoz készül.')}</div>` : ''}` : `<div class="warn small">${_t('⚠ Nem található hálózati cím – csatlakozz egy (otthoni) hálózathoz, majd kapcsold ki és be a távirányítót.')}</div>`}
-                  <div>${_t('PIN:')} <span class="share-code rc-pin">${esc(s.remotePin)}</span></div>
+                  <label class="setting"><span>${_t('<b>Belépés PIN-kóddal is</b>')}<small>${_t('Kevésbé biztonságos: a helyi hálózatot lehallgató eszköz a PIN-t kitalálhatja. Csak a saját, otthoni hálózatodon kapcsold be, ha a QR-kód nem használható.')}</small></span>
+                    <input type="checkbox" class="switch" data-rc="pinon" ${s.remotePinOn === true ? 'checked' : ''} /></label>
+                  ${s.remotePinOn === true ? `<div>${_t('PIN:')} <span class="share-code rc-pin">${esc(s.remotePin)}</span></div>` : ''}
                   <div class="muted small">${_t('Tipp: a telefonon tedd ki a lapot a kezdőképernyőre, így alkalmazásként indul. Első alkalommal a Windows tűzfal engedélyt kérhet. Ha több cím látszik, azt válaszd, amelyik a telefonéval egy hálózaton van (a QR-kód az elsőt tartalmazza).')}</div>
                   ${api.platform === 'desktop' && !/Windows/i.test(navigator.userAgent) ? `<div class="muted small">${_t('Ha a telefon böngészője szerint „a kapcsolódás sikertelen”: a gép tűzfala tilthatja – engedélyezd a {port}-as TCP-portot (pl. Linuxon: sudo ufw allow {port}/tcp).', { port: info.port })} <button class="btn small" data-help="remote">${_t('Súgó: kapcsolódás, tűzfal')}</button></div>` : ''}
-                  <div class="inline"><button class="btn small" data-rc="pin">${_t('Új PIN')}</button></div>
+                  <div class="inline"><button class="btn small" data-rc="pin">${s.remotePinOn === true ? _t('Új PIN') : _t('Új kulcs (a párosított telefonok kiesnek)')}</button></div>
                 </div></div>`
             : `<p class="muted small">${_t('Indítás…')}</p>`
           : ''}`;
@@ -715,6 +721,13 @@ export function renderRemoteSettings(box) {
     box.querySelector(`[data-rcip="${qrPick}"]`)?.focus();
   });
   box.onchange = async (e) => {
+    if (e.target.dataset.rc === 'pinon') {
+      e.stopPropagation();
+      s.remotePinOn = e.target.checked;
+      store.save();
+      await startRemote().catch(() => {});
+      return draw();
+    }
     if (e.target.dataset.rc !== 'on') return;
     e.stopPropagation();
     s.remoteOn = e.target.checked;

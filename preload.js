@@ -80,6 +80,7 @@ contextBridge.exposeInMainWorld('api', {
   setMini: (on) => ipcRenderer.invoke('set-mini', on),
   setPlaying: (on) => ipcRenderer.invoke('set-playing', on),
   appInfo: () => ipcRenderer.invoke('app-info'),
+  netDiag: () => ipcRenderer.invoke('net-diag'),
   notify: (n) => ipcRenderer.invoke('notify', n),
   notifyPermission: () => {},
   onOpenChannel: (cb) => ipcRenderer.on('open-channel', (_e, id) => cb(id)),

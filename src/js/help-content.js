@@ -1462,8 +1462,8 @@ ${go('#/settings?section=transfer', 'Szinkronizálás eszközök között')}`,
     body: `
 <p>Az asztali alkalmazás és az Android (TV) változat a telefonodról – vagy bármelyik eszköz böngészőjéből – is vezérelhető ugyanazon a (otthoni) hálózaton:</p>
 <ol>
-<li>A leggyorsabb: a <b>Főoldal</b> tetején a <b>Távirányító</b> gomb (a Testreszabás mellett) – bekapcsolja, és egy kis ablakban megmutatja a QR-kódot. Vagy: Beállítások → Távirányító és billentyűk → <b>Távirányító telefonról</b> → kapcsold be. Megjelenik egy <b>QR-kód</b>, egy cím (pl. <code>http://192.168.1.20:47800/adas/remote</code>) és egy 4 jegyű PIN.</li>
-<li>Olvasd be a QR-kódot a telefon kamerájával: a vezérlő megnyílik, és egy titkos kulcsot is megkap – ez a legbiztonságosabb, mert a kulcs a hálózaton nem utazik, a telefon minden parancsot ezzel ír alá. (Vagy nyisd meg a címet a böngészőben, és írd be a PIN-t – a telefon megjegyzi.) Tipp: tedd ki a lapot a kezdőképernyőre, így alkalmazásként indul.</li>
+<li>A leggyorsabb: a <b>Főoldal</b> tetején a <b>Távirányító</b> gomb (a Testreszabás mellett) – bekapcsolja, és egy kis ablakban megmutatja a QR-kódot. Vagy: Beállítások → Távirányító és billentyűk → <b>Távirányító telefonról</b> → kapcsold be. Megjelenik egy <b>QR-kód</b> és egy cím (pl. <code>http://192.168.1.20:47800/adas/remote</code>).</li>
+<li>Olvasd be a QR-kódot a telefon kamerájával: a vezérlő megnyílik, és egy titkos kulcsot is megkap – ez a legbiztonságosabb, mert a kulcs a hálózaton nem utazik, a telefon minden parancsot ezzel ír alá. (A 4 jegyű PIN-es belépés alapból ki van kapcsolva, mert a titkosítatlan helyi hálózaton egy lehallgatott kérésből a PIN kitalálható; ha a QR-kód nem használható, a <b>Belépés PIN-kóddal is</b> kapcsolóval bekapcsolható – csak otthoni hálózaton.) Tipp: tedd ki a lapot a kezdőképernyőre, így alkalmazásként indul.</li>
 </ol>
 <p>Felül mindig látszik, mi megy éppen (logóval, a műsor haladásával és a következő műsorral). A vezérlő három fülből áll:</p>
 <table class="help-table">

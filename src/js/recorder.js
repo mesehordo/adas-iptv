@@ -28,6 +28,9 @@ const stamp = (d = new Date()) =>
 /** Ráhagyás percben a műsor előtt / után (Beállítások → Felvételek) */
 export const recPre = () => Math.max(0, Number(store.settings.recPre ?? 3));
 export const recPost = () => Math.max(0, Number(store.settings.recPost ?? 10));
+/** A kézi (● gombbal indított) felvétel leghosszabb ideje órában (0: korlátlan) – egy elfelejtett felvétel ne töltse meg a lemezt. */
+export const recMaxHours = () => Math.max(0, Number(store.settings.recMaxHours ?? 4));
+const manualUntil = () => (recMaxHours() ? Date.now() + recMaxHours() * 3600e3 : 0);
 
 export const recordingOf = (chId) => [...active.entries()].find(([, r]) => r.chId === chId)?.[0];
 
@@ -109,7 +112,7 @@ export async function toggleRadioRecording(st) {
   }
   try {
     const cur = epg.now(st.id, Date.now())?.cur;
-    await startRadioRec(st, { title: cur?.title || _t('élő adás'), progStart: cur?.start, progStop: cur?.stop });
+    await startRadioRec(st, { title: cur?.title || _t('élő adás'), until: manualUntil(), progStart: cur?.start, progStop: cur?.stop });
     toast(_t('Felvétel: {name} – a Rádió → Felvételek alatt találod', { name: st.name }));
   } catch (err) {
     toast(`${_t('A felvétel nem indult el:')} ` + (err.message || err));
@@ -153,7 +156,7 @@ export async function toggleRecording() {
   } else {
     try {
       const cur = epg.now(ch.id, Date.now())?.cur;
-      await startRec(ch, { title: cur?.title || _t('élő adás'), progStart: cur?.start, progStop: cur?.stop });
+      await startRec(ch, { title: cur?.title || _t('élő adás'), until: manualUntil(), progStart: cur?.start, progStop: cur?.stop });
       toast(`${_t('Felvétel: {name} – a TV → Felvételek alatt találod', { name: ch.name })}`);
     } catch (err) {
       toast(`${_t('A felvétel nem indult el:')} ` + (err.message || err));
@@ -237,20 +240,24 @@ const isScheduled = (chId, start) => schedule().some((s) => s.chId === chId && s
  * visszakerülnek: látszanak és leállíthatók, az ütemezett tételük pedig nem indul el másodszor (eddig a „Most
  * rögzít” listából eltűntek, a kézi felvétel a kilépésig futott, az ütemezett pedig párhuzamosan újraindult).
  */
+/** A főfolyamat futó felvételeinek átvétele: [{ id, file, meta: { chId, chName, title, sched } }] → az átvettek száma. */
+export function adoptRecordings(list) {
+  let n = 0;
+  for (const r of Array.isArray(list) ? list : []) {
+    const m = r?.meta;
+    if (!m?.chId || active.has(r.id)) continue;
+    active.set(r.id, { chId: m.chId, chName: m.chName || '', title: m.title || m.chId, file: r.file, sched: m.sched || null });
+    const s = m.sched && schedule().find((x) => x.id === m.sched);
+    if (s) (s.startedId = r.id), (s.startedSession = SESSION);
+    n++;
+  }
+  return n;
+}
+// (tesztekhez)
+export const _recTest = { stamp, active, schedule };
 const adopted = canRecord
   ? Promise.resolve(api.recActive?.())
-      .then((list) => {
-        let n = 0;
-        for (const r of Array.isArray(list) ? list : []) {
-          const m = r?.meta;
-          if (!m?.chId || active.has(r.id)) continue;
-          active.set(r.id, { chId: m.chId, chName: m.chName || '', title: m.title || m.chId, file: r.file, sched: m.sched || null });
-          const s = m.sched && schedule().find((x) => x.id === m.sched);
-          if (s) (s.startedId = r.id), (s.startedSession = SESSION);
-          n++;
-        }
-        if (n) bus.emit('rec');
-      })
+      .then((list) => adoptRecordings(list) && bus.emit('rec'))
       .catch(() => {})
   : Promise.resolve();
 
@@ -865,6 +872,8 @@ export async function renderRecordings(box) {
         <select data-set-num="recPre">${[0, 1, 2, 3, 5, 10, 15].map((m) => `<option value="${m}" ${recPre() === m ? 'selected' : ''}>${m ? m + ` ${_t('perc')}` : _t('nincs')}</option>`).join('')}</select></label>
       <label class="setting"><span>${_t('<b>Ráhagyás a műsor után</b>')}<small>${_t('Ennyivel később áll le (ha a műsor elhúzódik).')}</small></span>
         <select data-set-num="recPost">${[0, 2, 5, 10, 15, 20, 30].map((m) => `<option value="${m}" ${recPost() === m ? 'selected' : ''}>${m ? m + ` ${_t('perc')}` : _t('nincs')}</option>`).join('')}</select></label>
+      <label class="setting"><span>${_t('<b>Kézi felvétel leghosszabb ideje</b>')}<small>${_t('A ● gombbal indított felvétel ennyi idő után magától leáll (egy elfelejtett felvétel ne töltse meg a lemezt). Ha a lemezen 300 MB alá fogy a hely, minden felvétel leáll.')}</small></span>
+        <select data-set-num="recMaxHours">${[1, 2, 3, 4, 6, 8, 12, 0].map((h) => `<option value="${h}" ${recMaxHours() === h ? 'selected' : ''}>${h ? _t('{h} óra', { h }) : _t('korlátlan')}</option>`).join('')}</select></label>
       ${active.size
           ? `<h3>${_t('Most rögzít')}</h3><ul class="src-list">${[...active.entries()]
               .map(([id, r]) => `<li><span class="rec-dot"></span><span><b>${esc(r.title)}</b><small>${esc(catalog.byId.get(r.chId)?.name || r.chName || '')}</small></span><button class="btn small danger" data-r-stop="${esc(id)}">${_t('Leállítás')}</button></li>`)

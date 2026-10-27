@@ -5,7 +5,10 @@ import { store } from './store.js';
 import { openModal } from './components.js';
 
 import { _t } from './i18n.js';
-/** Egyszerű, sózott ujjlenyomat (nem titkosítás – a PIN csak helyben, ezen az eszközön véd). */
+/**
+ * A régi (1.31-ig használt), sózott 32 bites ujjlenyomat – csak a meglévő PIN-ek ellenőrzéséhez; sikeres belépéskor
+ * a PIN az erős alakra (strongHash) frissül.
+ */
 export function hashPin(pin, salt) {
   let h = 0x811c9dc5;
   const s = `adas:${salt}:${pin}`;
@@ -19,11 +22,36 @@ export function hashPin(pin, salt) {
   return h.toString(16).padStart(8, '0');
 }
 
-export const hasPin = (p) => !!p?.pinHash;
-const checkPin = (p, pin) => hashPin(pin, p.id) === p.pinHash;
+// Erős alak: PBKDF2-SHA256, profilonkénti sóval, sok körrel – a beállításfájlból a 4 jegyű PIN így nem fejthető vissza
+// pillanatok alatt (a régi 32 bites ujjlenyomatból igen). Alakja: „p2$<64 hexa jegy>”.
+const PIN_ITER = 60000;
+const te = new TextEncoder();
+async function strongHash(pin, salt) {
+  const sub = globalThis.crypto?.subtle;
+  if (!sub) return null;
+  const k = await sub.importKey('raw', te.encode(String(pin)), 'PBKDF2', false, ['deriveBits']);
+  const bits = new Uint8Array(await sub.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: te.encode(`adas-pin:${salt}`), iterations: PIN_ITER }, k, 256));
+  return 'p2$' + [...bits].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+// (tesztekhez)
+export const _pinTest = { strongHash };
 
-export function setPin(p, pin) {
-  p.pinHash = pin ? hashPin(pin, p.id) : null;
+export const hasPin = (p) => !!p?.pinHash;
+/** Egyezik-e a PIN (régi alaknál sikeres egyezéskor az erősre frissít). */
+async function checkPin(p, pin) {
+  const h = String(p.pinHash || '');
+  if (h.startsWith('p2$')) return (await strongHash(pin, p.id)) === h;
+  if (hashPin(pin, p.id) !== h) return false;
+  const up = await strongHash(pin, p.id).catch(() => null);
+  if (up) {
+    p.pinHash = up;
+    store.save();
+  }
+  return true;
+}
+
+export async function setPin(p, pin) {
+  p.pinHash = pin ? (await strongHash(pin, p.id).catch(() => null)) || hashPin(pin, p.id) : null;
   store.save();
 }
 
@@ -77,7 +105,9 @@ export function askPin({ title, text, accept }) {
     const dots = el.querySelectorAll('.pin-dots i');
     const msg = el.querySelector('.pin-msg');
     const draw = () => dots.forEach((d, i) => d.classList.toggle('on', i < pin.length));
-    const press = (k) => {
+    let checking = false;
+    const press = async (k) => {
+      if (checking) return; // (az ellenőrzés alatt a további gombnyomás nem számít)
       if (Date.now() < lockedUntil) {
         msg.textContent = `${_t('Túl sok hibás próbálkozás – várj {ceil} másodpercet.', { ceil: Math.ceil((lockedUntil - Date.now()) / 1000) })}`;
         return;
@@ -87,7 +117,14 @@ export function askPin({ title, text, accept }) {
       else if (/^\d$/.test(k) && pin.length < 4) pin += k;
       draw();
       if (pin.length === 4) {
-        if (accept.some((p) => checkPin(p, pin))) {
+        checking = true;
+        let ok = false;
+        try {
+          for (const p of accept) if ((ok = await checkPin(p, pin))) break;
+        } finally {
+          checking = false;
+        }
+        if (ok) {
           failCount = 0;
           return finish(true);
         }

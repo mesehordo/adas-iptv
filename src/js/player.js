@@ -14,6 +14,7 @@ import { probeMedia, bridgeReason } from './bridge.js';
 import { exoAvailable } from './exo.js';
 import { toggleStreamInfo, stopStreamInfo, streamInfoOpen } from './streaminfo.js';
 import { ICON, logoHtml, openInfo, modalOpen } from './components.js';
+import { netDiag, altPort, canNetDiag } from './netdiag.js';
 
 import { _t } from './i18n.js';
 /** A vezérlősáv kiegészítő gombjai (Beállítások → Lejátszás → A lejátszó gombjai): ki-be kapcsolhatók. */
@@ -421,6 +422,19 @@ export const player = {
       <button class="btn" data-e="back">${_t('Vissza')}</button></div>`;
     box.hidden = false;
     box.querySelector('[data-e="retry"]').focus();
+    // nem szabványos porton sugárzó adás: ha a gép / hálózat szűri ezt a portot, az a hiba oka (nem az adó)
+    const port = !ch.vod && !geo && this.stream ? altPort(this.stream.url) : '';
+    if (port && canNetDiag) {
+      const st = this.stream;
+      netDiag()
+        .then((r) => {
+          if (!r?.ok || !box.isConnected || box.hidden || this.stream !== st) return;
+          const shut = r.blocked.includes(port) || r.blocked.length >= 3; // (a mért portok többsége zárva: ez is valószínűleg)
+          if (!shut) return;
+          box.querySelector('.dialog-btns')?.insertAdjacentHTML('beforebegin', `<p class="warn small">⚠ ${esc(_t('Ez az adás a(z) {port} portot használja, ami ezen a gépen vagy hálózaton el van zárva – ezért nem indul el. Részletek: Beállítások → Lejátszás → Hálózat ellenőrzése.', { port }))}</p>`);
+        })
+        .catch(() => {});
+    }
     box.onclick = (e) => {
       const a = e.target.closest('[data-e]')?.dataset.e;
       if (a === 'retry') {

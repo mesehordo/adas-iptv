@@ -63,6 +63,8 @@ export function backupNow(reason = 'auto') {
     if (!api.docSet) return false;
     const data = await attachDocs(JSON.parse(JSON.stringify(store.serialize())));
     delete data.health;
+    // (a fiókjelszó nem kerül a mentési pontba – visszaállításkor a mostani marad; asztalin a rendszer kulcstárában van)
+    delete data.settings.osPass;
     data.app = 'adas';
     const old = await list(); // (hibánál nem írunk: a régi mentési pontok érintetlenek maradnak)
     // a dokumentumok tartalma külön, tartalom szerinti kulccsal (ami már megvan, nem íródik újra)
@@ -250,7 +252,9 @@ export async function renderBackups(box) {
         await backupNow('before-restore');
         staged = await stageDocs(data); // (új kulcsokra: hiba esetén a mostani listák érintetlenek – B31)
         const before = JSON.parse(JSON.stringify(store.settings));
-        await store.replaceAll({ ...data, health: store.health });
+        // (a mentési pontban nincs fiókjelszó: a mostani marad meg)
+        const settings = { ...data.settings, ...(store.settings.osPass && !data.settings.osPass ? { osPass: store.settings.osPass } : {}) };
+        await store.replaceAll({ ...data, settings, health: store.health });
         // (a régiek a „visszaállítás előtti” pontban megvannak; a régi – v1 – pontok dokumentumai maradnak – H39;
         // olvashatatlan mentéstárnál nincs takarítás, és a takarítás hibája már nem vonja vissza a visszaállítást)
         await v1BackupDocKeys()

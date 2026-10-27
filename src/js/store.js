@@ -406,7 +406,9 @@ export const store = {
     // ha javítani kellett: az eredeti példány megmarad a dokumentumtárban (kézzel visszanézhető / helyreállítható)
     if (fixed.length) {
       console.warn('Hibás beállítások javítva:', fixed.join(', '));
-      Promise.resolve(api.docSet?.('store-before-repair', { at: Date.now(), fixed, data })).catch(() => {});
+      // (a fiókjelszó nélkül – a javítás előtti példány se tárolja szövegként)
+      const copy = { ...data, settings: data.settings && typeof data.settings === 'object' ? { ...data.settings, osPass: undefined } : data.settings };
+      Promise.resolve(api.docSet?.('store-before-repair', { at: Date.now(), fixed, data: copy })).catch(() => {});
       this.repaired = fixed;
     }
     this.settings = { ...defaults(), ...clean };

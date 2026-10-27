@@ -33,6 +33,7 @@ import { renderRecordings } from './recorder.js';
 import { renderRemoteSettings } from './remote.js';
 import { keyMapSummary } from './keymap.js';
 import { padStatus, padSetupHtml } from './gamepad.js';
+import { netDiagHtml } from './netdiag.js';
 bus.on('gamepads', () => document.querySelectorAll('.pad-status').forEach((el) => (el.innerHTML = padStatus())));
 import { renderBackups } from './backup.js';
 import { renderThemeTools } from './customthemes.js';
@@ -783,6 +784,7 @@ export function renderSettings(view) {
         <select data-set="maxQuality">${[['', _t('Automatikus (az ablakmérethez)')], ['1080', _t('Legfeljebb 1080p (Full HD)')], ['720', _t('Legfeljebb 720p (HD)')], ['480', _t('Legfeljebb 480p (SD)')], ['360', _t('Legfeljebb 360p (adatkímélő)')]]
           .map(([v, l]) => `<option value="${v}" ${String(s.maxQuality || '') === v ? 'selected' : ''}>${l}</option>`)
           .join('')}</select></label>
+      ${netDiagHtml()}
     </section>
 
     <section class="set-section" id="engine" data-g="play"><h2>${_t('Lejátszómotor')} <button class="help-link" data-help="engines" title="${_t('Súgó')}">?</button></h2>

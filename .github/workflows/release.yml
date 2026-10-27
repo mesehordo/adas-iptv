@@ -192,6 +192,16 @@ jobs:
         run: |
           sha256sum -- * > SHA256SUMS.txt
           cat SHA256SUMS.txt
+      # Az ellenőrző összegek aláírása (Ed25519) – az asztali frissítő ezzel ismeri fel a hiteles kiadást (updater.js).
+      # A titkos kulcs csak a tároló titkai között van (ADAS_UPDATE_SIGN_KEY); ha nincs megadva, ez a lépés kimarad.
+      - name: SHA256SUMS.txt aláírása
+        working-directory: out
+        env:
+          ADAS_SIGN_KEY: ${{ secrets.ADAS_UPDATE_SIGN_KEY }}
+        run: |
+          if [ -z "$ADAS_SIGN_KEY" ]; then echo "Nincs aláíró kulcs (ADAS_UPDATE_SIGN_KEY) – az aláírás kimarad."; exit 0; fi
+          node -e "const c=require('crypto'),fs=require('fs');const k=c.createPrivateKey(process.env.ADAS_SIGN_KEY);const t=fs.readFileSync('SHA256SUMS.txt');const s=c.sign(null,t,k);if(!c.verify(null,t,c.createPublicKey(k),s))process.exit(1);fs.writeFileSync('SHA256SUMS.txt.sig',s.toString('base64')+'\n')"
+          echo "aláírva: SHA256SUMS.txt.sig"
       - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ needs.verify.outputs.tag }}

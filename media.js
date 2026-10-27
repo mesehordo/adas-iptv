@@ -502,10 +502,26 @@ const AUDIO_OUT = {
   aac: { ext: '.aac', args: ['-vn', '-c:a', 'copy', '-f', 'adts'] },
   enc: { ext: '.aac', args: ['-vn', '-c:a', 'aac', '-b:a', '192k', '-f', 'adts'] },
 };
+// Szabad hely: ennyi alatt nem indul felvétel, és a futó is leáll (mielőtt a lemez teljesen betelne – a rendszer és
+// a többi program is használja). A szabad helyet a felvétel alatt félpercenként nézzük.
+const MIN_FREE_START = 1e9;
+const MIN_FREE_RUN = 300e6;
+const freeBytes = (d) => {
+  try {
+    const s = fs.statfsSync(d);
+    return s.bavail * s.bsize;
+  } catch {
+    return Infinity; // (ahol nem kérdezhető le, nem korlátozunk)
+  }
+};
+const fmtGb = (b) => (b / 1e9).toFixed(1).replace('.', ',');
+
 async function recStart({ url, dir, name, until, audio, meta }) {
   if (!FF) throw new Error(_t('Az FFmpeg nem érhető el.'));
   await ensureServer();
   fs.mkdirSync(dir, { recursive: true });
+  const free0 = freeBytes(dir);
+  if (free0 < MIN_FREE_START) throw new Error(_t('Kevés a szabad hely a felvételek lemezén ({gb} GB) – szabadíts fel helyet.', { gb: fmtGb(free0) }));
   const safe = String(name || 'felvetel').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) || 'felvetel';
   const aOut = AUDIO_OUT[audio] || null;
   const ext = aOut ? aOut.ext : '.ts';
@@ -562,6 +578,7 @@ async function recStart({ url, dir, name, until, audio, meta }) {
     ended = true;
     clearTimeout(rec.timer);
     clearTimeout(rec.retry);
+    clearInterval(rec.diskTimer);
     recordings.delete(id);
     if (out.destroyed || out.closed) notify();
     else out.end();
@@ -603,6 +620,13 @@ async function recStart({ url, dir, name, until, audio, meta }) {
     });
   };
   if (until) rec.timer = setTimeout(() => recStop(id), Math.max(1000, until - Date.now()));
+  // betelő lemez: a felvétel rendben lezárul (az addigi rész megmarad), hibaüzenettel
+  rec.diskTimer = setInterval(() => {
+    const free = freeBytes(dir);
+    if (free >= MIN_FREE_RUN || ended) return;
+    endError = _t('Betelt a lemez (már csak {gb} GB szabad) – a felvétel leállt, az eddigi rész megmaradt.', { gb: fmtGb(free) });
+    recStop(id);
+  }, 30e3);
   run();
   return { id, file };
 }
@@ -942,5 +966,5 @@ module.exports = {
   recStart, recStop, recList, recTrim, recRestore, recDetect, recDetectStop, keepRanges, recSource, originalOf, isRecording, recStopAll: () => [...recordings.keys()].forEach(recStop),
   // a futó felvételek (a felület újratöltése után ebből veszi vissza őket): [{ id, file, started, until, meta }]
   recActive: () => [...recordings.entries()].map(([id, r]) => ({ id, file: r.file, started: r.started, until: r.until, meta: r.meta })),
-  _test: { inputOf, ensureServer },
+  _test: { inputOf, ensureServer, srcCount: () => srcUrls.size, freeBytes },
 };
