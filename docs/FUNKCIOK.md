@@ -54,6 +54,7 @@ A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
 **Felület-elrendezések, javítások telefonon (következő kiadás)**
 - **Felület-elrendezések** profilonként, a témától függetlenül (Beállítások → Megjelenés → Felület elrendezése, és a profil szerkesztésekor): *Klasszikus* (a mostani), *Mozi* (nagy kiemelt borító élő előnézettel), *Kirakat* (lapozó kiemelt sáv + nagy gombok a fő részekhez), *Polc* (a kijelölt csatorna tölti ki a hátteret, alul nagy kártyák – tévére), *Könyvtár* (oldalsó menü gyűjteményekkel és kedvencekkel, rögzített rádiósáv), *Csempék* (kiemelt borító + témakör-csempék), *Részletes* (csatornalista + adatlap a mai műsorral és a nézési idővel), *Gyűjtemény* (minden forrás egy helyen, szűrőkkel, rács- vagy listanézettel). Az oldalsó menü széles képernyőn látszik, telefonon a szokásos alsó menü marad.
+- **Csatornalisták**: a beépített *Magyar TV adók* és *iptv-org – Animáció* lista kikerült – minden csatornájuk benne van az iptv-org listában, így csak duplikáltak (a régebbi Adás-változatok kedvéért a `lists/hu.m3u` fájl megmarad).
 - **Javítások telefonon**: a hír felugró ablaka belső margót kapott (nem lóg ki); a rádió teljes képernyős lejátszójának menüi keskeny képernyőn és görgetés után is a képernyőn belül, a gombjuk mellett nyílnak; a fókuszban lévő szövegmező eltűnésekor (pl. profil létrehozása után) az alsó menüsáv nem marad rejtve.
 
 **Hálózati ellenőrzés, biztonságosabb jelszavak és távirányító, felvételi korlátok, hibajavítások (1.32.0)**

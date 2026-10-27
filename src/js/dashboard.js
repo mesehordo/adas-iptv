@@ -1257,6 +1257,93 @@ let editing = false;
 let lastPart = '';
 let ro = null;
 
+/** Kattintás egy egység tartalmán (lejátszás, műsor, emlékeztető, film, hír, rádió) – a Főoldalon és más elrendezésekben. */
+function dashClick(e) {
+  if (radioClick(e)) return;
+  const pl = e.target.closest('[data-play]');
+  const pr = e.target.closest('[data-prog]');
+  const rm = e.target.closest('[data-rem]');
+  const vd = e.target.closest('[data-vod]');
+  const nw = e.target.closest('[data-news]');
+  if (rm) {
+    const [id, start] = rm.dataset.rem.split('|');
+    const prog = epg.list(id).find((x) => x.start === Number(start)) || store.profile.reminders.find((r) => r.channelId === id && r.start === Number(start));
+    if (!prog) return;
+    const on = store.toggleReminder(id, prog);
+    rm.classList.toggle('on', !!on);
+    toast(on ? `${_t('Emlékeztető: {title} ({fmtTime})', { title: prog.title, fmtTime: fmtTime(prog.start) })}` : _t('Emlékeztető törölve'));
+  } else if (pl) {
+    const ch = catalog.byId.get(pl.dataset.play);
+    if (ch) player.play(ch);
+  } else if (pr) {
+    const [id, start] = pr.dataset.prog.split('|');
+    const ch = catalog.byId.get(id);
+    const prog = epg.list(id).find((x) => x.start === Number(start));
+    if (ch && prog) openProgram(ch, prog);
+    else if (ch) player.play(ch);
+  } else if (vd) {
+    const x = vod.byId.get(vd.dataset.vod) || own.byId.get(vd.dataset.vod);
+    if (x) playVod(x);
+  } else if (nw && newsCache) {
+    const n = newsCache[Number(nw.dataset.news)];
+    if (n) openNews(n);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Az egységek más elrendezések Főoldalán (layouts.js): ugyanazok a kártyák, az elrendezés saját helyén és stílusában
+// ---------------------------------------------------------------------------
+/** Egy egység kártyája (nem szerkeszthető); cls: az elrendezés saját osztálya; üres, ha a profilban nem elérhető. */
+export function unitCardHtml(id, cls = '') {
+  const U = UNITS[id];
+  if (!U || !allowed(id)) return '';
+  return `<section class="dcard dc-${id} ${esc(cls)}" data-unit="${id}" style="--mob:${U.mobile}px">
+    <h2 class="dc-title"><span>${esc(U.title)}</span> ${U.link ? `<a href="${U.link[0]}" class="dc-link">${U.link[1]}</a>` : ''}</h2>
+    <div class="dc-body"></div></section>`;
+}
+let unitRo = null;
+/** A gyökérben lévő egységkártyák kirajzolása, adatai (időjárás, hírek, VOD), méretkövetése és kattintásai. */
+export function activateUnits(root) {
+  const ids = [...root.querySelectorAll('.dcard[data-unit]')].map((c) => c.dataset.unit);
+  if (!ids.length) return;
+  renderAll(root);
+  unitRo?.disconnect();
+  if (window.ResizeObserver) {
+    unitRo = new ResizeObserver((ents) =>
+      requestAnimationFrame(() =>
+        ents.forEach((e) => {
+          const b = e.target;
+          if (b.isConnected && b.dataset.size !== `${b.clientWidth}x${b.clientHeight}`) renderUnit(b.closest('.dcard'));
+        })
+      )
+    );
+    root.querySelectorAll('.dcard[data-unit] .dc-body').forEach((b) => unitRo.observe(b));
+  }
+  if (ids.includes('weather'))
+    loadWeather()
+      .then((w) => {
+        weatherCache = w;
+        weatherErr = null;
+      })
+      .catch((err) => (weatherErr = err.message || String(err)))
+      .finally(() => root.isConnected && renderAll(root, ['weather']));
+  if (ids.includes('rss'))
+    loadNews().then((n) => {
+      newsCache = n;
+      if (root.isConnected) renderAll(root, ['rss']);
+    });
+  if (!vod.ready && vodLists().length && ids.includes('vod')) loadVod().then(() => root.isConnected && renderAll(root, ['vod']));
+  root.addEventListener('click', (e) => e.target.closest('.dcard[data-unit] .dc-body') && dashClick(e));
+}
+/** Hírek (a Főoldal forrásaiból, gyorsítótárral) és a hír megnyitása – a Menüszalag elrendezésnek. */
+export async function homeNews() {
+  if (!feeds().length) return [];
+  // (a letöltés 15 percig gyorsítótárból jön)
+  newsCache = await loadNews();
+  return newsCache;
+}
+export { openNews, tonight as tonightPrograms };
+
 export function renderDashboard(view) {
   const p = store.profile;
   const d = new Date();
@@ -1382,35 +1469,7 @@ export function renderDashboard(view) {
       if (e.target.closest('.dc-body, .dc-link')) e.preventDefault();
       return;
     }
-    if (radioClick(e)) return;
-    const pl = e.target.closest('[data-play]');
-    const pr = e.target.closest('[data-prog]');
-    const rm = e.target.closest('[data-rem]');
-    const vd = e.target.closest('[data-vod]');
-    const nw = e.target.closest('[data-news]');
-    if (rm) {
-      const [id, start] = rm.dataset.rem.split('|');
-      const prog = epg.list(id).find((x) => x.start === Number(start)) || store.profile.reminders.find((r) => r.channelId === id && r.start === Number(start));
-      if (!prog) return;
-      const on = store.toggleReminder(id, prog);
-      rm.classList.toggle('on', !!on);
-      toast(on ? `${_t('Emlékeztető: {title} ({fmtTime})', { title: prog.title, fmtTime: fmtTime(prog.start) })}` : _t('Emlékeztető törölve'));
-    } else if (pl) {
-      const ch = catalog.byId.get(pl.dataset.play);
-      if (ch) player.play(ch);
-    } else if (pr) {
-      const [id, start] = pr.dataset.prog.split('|');
-      const ch = catalog.byId.get(id);
-      const prog = epg.list(id).find((x) => x.start === Number(start));
-      if (ch && prog) openProgram(ch, prog);
-      else if (ch) player.play(ch);
-    } else if (vd) {
-      const x = vod.byId.get(vd.dataset.vod) || own.byId.get(vd.dataset.vod);
-      if (x) playVod(x);
-    } else if (nw && newsCache) {
-      const n = newsCache[Number(nw.dataset.news)];
-      if (n) openNews(n);
-    }
+    dashClick(e);
   });
 
   // Áthúzás (egér): a húzott egység a cél elé kerül

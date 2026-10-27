@@ -46,22 +46,10 @@ export const BUILTIN_PLAYLISTS = [
     desc: _t('A világ legnagyobb nyilvános, közösségi csatornagyűjteménye (kb. 10 000 csatorna), részletes csatornaadatokkal.'),
   },
   {
-    id: 'iptvanim',
-    name: _t('iptv-org – Animáció'),
-    url: 'https://iptv-org.github.io/iptv/categories/animation.m3u',
-    desc: _t('Az iptv-org animációs csatornái külön listaként (bekapcsolt iptv-org mellett ezek összevonódnak vele, új csatornát csak akkor adnak, ha az iptv-org ki van kapcsolva).'),
-  },
-  {
     id: 'freetv',
     name: 'Free-TV',
     url: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8',
     desc: _t('Kézzel válogatott, ingyenesen fogható csatornák országonként (kb. 2000 adás).'),
-  },
-  {
-    id: 'hutv',
-    name: _t('Magyar TV adók'),
-    url: 'https://raw.githubusercontent.com/mesehordo/adas-iptv/main/lists/hu.m3u',
-    desc: _t('Válogatott, szabadon fogható magyar adások: közszolgálati, országos, városi és helyi tévék, Országgyűlés (kb. 80 adás).'),
   },
   {
     id: 'plutotv',

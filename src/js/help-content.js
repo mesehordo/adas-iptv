@@ -956,7 +956,6 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
 <p>Beállítások → Csatornalisták → <b>Beépített listák</b>: mindegyik külön kapcsolóval ki-be kapcsolható. Mellettük látszik, hány csatornát adnak.</p>
 <table class="help-table">
 <tr><td><b>iptv-org</b></td><td>A legnagyobb közösségi gyűjtemény (kb. 10 000 csatorna), részletes adatokkal (ország, nyelv, tulajdonos, weboldal…). A címe a <i>Cím</i> gombbal módosítható (pl. csak egy ország listája).</td></tr>
-<tr><td><b>iptv-org – Animáció</b></td><td>Az iptv-org animációs csatornái külön listaként; bekapcsolt iptv-org mellett összevonódnak vele, önállóan akkor hasznos, ha az iptv-org ki van kapcsolva.</td></tr>
 <tr><td><b>Free-TV</b></td><td>Kézzel válogatott, ingyenes csatornák országonként.</td></tr>
 <tr><td><b>Pluto TV</b>, <b>Samsung TV Plus</b>, <b>Plex</b></td><td>Az ingyenes, reklámmal támogatott streamingcsatornák több országból, saját műsorújsággal.</td></tr>
 <tr><td><b>FreeCast Hub</b></td><td>Kis válogatás (hírek, zene, sport).</td></tr>

@@ -41,6 +41,26 @@ export const LAYOUTS = {
     desc: _t('Gyűjtemény: minden forrás (beépített és saját listák) egy helyen, szűrőkkel (forrás, kategória, ország), rács- vagy listanézettel.'),
     side: true,
   },
+  wall: {
+    label: _t('Csempefal'),
+    desc: _t('Csempefal: nagy „Folytatás” csempe és a rögzített kedvencek rácsa, mellette útmutató a most futó műsorokkal.'),
+  },
+  squares: {
+    label: _t('Négyzetek'),
+    desc: _t('Négyzetek: egyetlen sor nagy, négyzetes csatornacsempe, felette a kijelölt műsora, alul kerek gombok a fő részekhez. Gyerekeknek és tévére a legegyszerűbb.'),
+  },
+  ribbon: {
+    label: _t('Menüszalag'),
+    desc: _t('Menüszalag: vízszintesen a részek (kedvencek, most, rádió, videotár…), függőlegesen a tartalmuk – távirányítóval négy nyíllal minden elérhető.'),
+  },
+  focus: {
+    label: _t('Fókusz'),
+    desc: _t('Fókusz: felül funkciósáv, alatta egy sor csempe – a kijelölt nagyobb, alatta a műsora és a gombjai, a háttérben a csatorna.'),
+  },
+  desk: {
+    label: _t('Asztal'),
+    desc: _t('Asztal: változó élő csempék (műsor, ma este, óra, részek), a menü alul tálcaként. Asztali gépen otthonos.'),
+  },
 };
 
 export const currentLayout = (p = store.profile) => (p && LAYOUTS[p.layout] ? p.layout : 'classic');

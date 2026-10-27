@@ -956,7 +956,6 @@ ${go('#/settings', 'Open Settings')}`,
 <p>Settings → Channel lists → <b>Built-in lists</b>: each can be switched on and off with its own switch. Next to them you can see how many channels they give.</p>
 <table class="help-table">
 <tr><td><b>iptv-org</b></td><td>The largest community collection (about 10,000 channels), with detailed data (country, language, owner, website…). Its address can be changed with the <i>Address</i> button (e.g. a single country’s list).</td></tr>
-<tr><td><b>iptv-org – Animation</b></td><td>iptv-org’s animation channels as a separate list; with iptv-org switched on they merge with it, on their own they’re useful if iptv-org is switched off.</td></tr>
 <tr><td><b>Free-TV</b></td><td>Hand-picked free channels by country.</td></tr>
 <tr><td><b>Pluto TV</b>, <b>Samsung TV Plus</b>, <b>Plex</b></td><td>Free, ad-supported streaming channels from several countries, with their own TV guide.</td></tr>
 <tr><td><b>FreeCast Hub</b></td><td>A small selection (news, music, sport).</td></tr>
