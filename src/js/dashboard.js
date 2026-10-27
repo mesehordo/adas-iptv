@@ -319,7 +319,7 @@ const ago = (t) => {
 };
 
 function openNews(n) {
-  const el = html(`<div class="news-detail">
+  const el = html(`<div class="dialog news-detail">
     ${n.img ? `<img class="nd-img" src="${esc(n.img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()" />` : ''}
     <div class="muted small">${esc(n.source)} · ${n.date ? new Date(n.date).toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' }) : ''}</div>
     <h2>${esc(n.title)}</h2>

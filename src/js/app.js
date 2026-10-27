@@ -515,7 +515,11 @@ window.addEventListener('focus', () => {
     a.setSelectionRange(s, e);
   } catch {}
 });
-document.addEventListener('focusout', () => setTimeout(() => document.body.classList.toggle('typing', isTypingField(document.activeElement)), 0));
+const syncTyping = () => document.body.classList.toggle('typing', isTypingField(document.activeElement));
+document.addEventListener('focusout', () => setTimeout(syncTyping, 0));
+// (a fókuszban lévő mező eltávolításakor – pl. a profil létrehozása után – nincs focusout: a menüsáv ne maradjon rejtve)
+window.addEventListener('hashchange', syncTyping);
+document.addEventListener('pointerdown', () => setTimeout(syncTyping, 0), true);
 
 let lastContentFocus = null;
 document.addEventListener('focusin', (e) => {
