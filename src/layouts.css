@@ -636,3 +636,68 @@ body:is([data-layout="library"], [data-layout="unified"]) .sport-page .dcard { b
 }
 .adapt-xmb .xmb-hint { position: static; margin: 18px 0 0 calc(var(--x) + 18px); }
 .adapt-shelf-bg { overflow: hidden; }
+
+/* ====================================================================== A lejátszók az elrendezésekben (videó: #player, rádió: #radio-full) */
+/* Mozi: vastag, vörös idősáv, nagy ikonok, alul erős sötétítés */
+body[data-layout="cinema"] #player .p-bottom { padding: 120px 32px 20px; background: linear-gradient(0deg, rgba(0, 0, 0, 0.95), transparent); }
+body[data-layout="cinema"] #player .p-controls .icon-btn { font-size: 32px; width: 54px; height: 54px; }
+body[data-layout="cinema"] #player .p-seek .seek, body[data-layout="cinema"] #player .p-ts .ts-seek { height: 8px; border-radius: 0; }
+
+/* Kirakat, Fókusz, Polc: lebegő, áttetsző (üveg) kezelőpanel lekerekítve */
+body:is([data-layout="showcase"], [data-layout="focus"], [data-layout="shelf"]) #player .p-bottom { left: 24px; right: 24px; bottom: 20px; padding: 14px 20px 12px; border-radius: 18px;
+  background: rgba(28, 28, 34, 0.72); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border: 1px solid rgba(255, 255, 255, 0.08); }
+body:is([data-layout="showcase"], [data-layout="focus"], [data-layout="shelf"]) #player .p-top { background: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent); }
+body[data-layout="shelf"] #player .p-bottom { left: 50%; right: auto; transform: translateX(-50%); width: min(1240px, calc(100% - 48px)); border-radius: 26px; }
+body[data-layout="shelf"] #player .p-seek .seek, body[data-layout="shelf"] #player .p-ts .ts-seek { background: linear-gradient(90deg, #fff var(--pct, 0%), rgba(255, 255, 255, 0.25) var(--pct, 0%)); }
+body[data-layout="focus"] #player .p-controls .icon-btn { border-radius: 6px; background: rgba(255, 255, 255, 0.08); margin-right: 2px; }
+body[data-layout="showcase"] #player .p-controls .icon-btn { border-radius: 50%; }
+
+/* Könyvtár: tömör kezelősáv alul (balra a cím, középen a gombok) */
+body[data-layout="library"] #player .p-bottom { padding: 12px 24px 14px; background: rgba(18, 18, 18, 0.96); border-top: 1px solid rgba(255, 255, 255, 0.08); }
+body[data-layout="library"] #player .p-controls { justify-content: center; }
+body[data-layout="library"] #player .p-seek .seek, body[data-layout="library"] #player .p-ts .ts-seek { height: 4px; background: linear-gradient(90deg, #fff var(--pct, 0%), rgba(255, 255, 255, 0.25) var(--pct, 0%)); }
+body[data-layout="library"] #player .p-seek .seek:hover, body[data-layout="library"] #player .p-ts .ts-seek:hover { background: linear-gradient(90deg, var(--accent) var(--pct, 0%), rgba(255, 255, 255, 0.25) var(--pct, 0%)); }
+
+/* Csempék: középre igazított kezelés, kerek gombok */
+body[data-layout="tiles"] #player .p-controls { justify-content: center; gap: 10px; }
+body[data-layout="tiles"] #player .p-controls .icon-btn { border-radius: 50%; background: rgba(255, 255, 255, 0.1); }
+
+/* Részletes, Gyűjtemény: tömör felső címsáv és alsó sáv, mint egy asztali alkalmazásban */
+body:is([data-layout="detail"], [data-layout="unified"]) #player .p-top { padding: 10px 18px; background: rgba(23, 26, 33, 0.95); border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+body:is([data-layout="detail"], [data-layout="unified"]) #player .p-bottom { padding: 10px 18px 12px; background: rgba(23, 26, 33, 0.95); border-top: 1px solid rgba(255, 255, 255, 0.08); }
+body[data-layout="detail"] #player .p-title { text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* Csempefal: zöldes kiemelésű, „pirulás” gombok */
+body[data-layout="wall"] #player .p-controls .icon-btn { border-radius: 999px; background: rgba(255, 255, 255, 0.1); width: 52px; }
+body[data-layout="wall"] #player .p-controls .icon-btn:focus-visible, body[data-layout="wall"] #player .p-controls .icon-btn:hover { background: var(--accent); }
+
+/* Négyzetek: nagy, kerek gombok, vastag idősáv */
+body[data-layout="squares"] #player .p-controls { justify-content: center; gap: 12px; }
+body[data-layout="squares"] #player .p-controls .icon-btn { width: 60px; height: 60px; border-radius: 50%; background: rgba(255, 255, 255, 0.14); border: 3px solid transparent; }
+body[data-layout="squares"] #player .p-controls .icon-btn:focus-visible, body[data-layout="squares"] #player .p-controls .icon-btn:hover { border-color: var(--accent); }
+body[data-layout="squares"] #player .p-seek .seek, body[data-layout="squares"] #player .p-ts .ts-seek { height: 10px; border-radius: 5px; }
+
+/* Menüszalag: vékony, szinte láthatatlan sáv, halvány hullám */
+body[data-layout="ribbon"] #player .p-bottom { padding: 60px 40px 18px; background: linear-gradient(0deg, rgba(10, 10, 30, 0.8), transparent); }
+body[data-layout="ribbon"] #player .p-seek .seek, body[data-layout="ribbon"] #player .p-ts .ts-seek { height: 3px; }
+body[data-layout="ribbon"] #player .p-controls .icon-btn { opacity: 0.8; }
+
+/* Asztal: ablakszerű címsor felül, lapos sáv szögletes gombokkal alul */
+body[data-layout="desk"] #player .p-top { padding: 8px 14px; background: rgba(32, 32, 32, 0.96); border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+body[data-layout="desk"] #player .p-bottom { padding: 8px 14px 10px; background: rgba(32, 32, 32, 0.96); border-top: 1px solid rgba(255, 255, 255, 0.06); }
+body[data-layout="desk"] #player .p-controls .icon-btn { border-radius: 4px; }
+body[data-layout="desk"] #player .p-controls .icon-btn:hover { background: rgba(255, 255, 255, 0.1); }
+body[data-layout="desk"] #player .p-seek .seek, body[data-layout="desk"] #player .p-ts .ts-seek { height: 4px; border-radius: 2px; }
+
+/* A rádió „Most szól” nézete */
+body:is([data-layout="squares"], [data-layout="tiles"], [data-layout="showcase"]) .rf-ctrls .round { border-radius: 50%; }
+body:is([data-layout="desk"], [data-layout="detail"], [data-layout="unified"]) .rf-ctrls .round { border-radius: 6px; }
+body:is([data-layout="desk"], [data-layout="detail"], [data-layout="unified"]) .rf-art { border-radius: 4px; }
+body:is([data-layout="shelf"], [data-layout="focus"], [data-layout="showcase"]) .rf-bar { padding: 12px 16px; border-radius: 18px; background: rgba(28, 28, 34, 0.55); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+body[data-layout="squares"] .rf-ctrls .round { width: 64px; height: 64px; }
+body[data-layout="squares"] .rf-ctrls .round.big { width: 84px; height: 84px; }
+body[data-layout="library"] .rf-art { border-radius: 6px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); }
+body[data-layout="cinema"] .rf-title { font-size: clamp(1.8rem, 3.4vw, 3rem); }
+@media (max-width: 700px) {
+  body:is([data-layout="showcase"], [data-layout="focus"], [data-layout="shelf"]) #player .p-bottom { left: 8px; right: 8px; bottom: 8px; width: auto; transform: none; padding: 10px 12px; border-radius: 14px; }
+}
