@@ -4,7 +4,7 @@
 import { store } from './store.js';
 import { _t } from './i18n.js';
 
-/** side: széles képernyőn oldalsó menüsáv (keskenyen a szokásos felső / alsó menü). */
+/** side: széles képernyőn oldalsó menüsáv (keskenyen a szokásos felső / alsó menü); theme: a hozzá illő téma (ajánlás). */
 export const LAYOUTS = {
   classic: {
     label: _t('Klasszikus'),
@@ -12,52 +12,64 @@ export const LAYOUTS = {
   },
   cinema: {
     label: _t('Mozi'),
+    theme: 'netflix', // ajánlott téma-pár
     desc: _t('Mozi: a Főoldal tetején nagy kiemelt borító a kedvenc vagy utoljára nézett csatornával (élő előnézettel), alatta csatornasorok.'),
   },
   showcase: {
     label: _t('Kirakat'),
+    theme: 'rakuten', // ajánlott téma-pár
     desc: _t('Kirakat: lapozó kiemelt sáv, alatta nagy gombok a fő részekhez (TV, Rádió, VOD, Sport…), utána csatornasorok. Távirányítóval a legkényelmesebb.'),
   },
   shelf: {
     label: _t('Polc'),
+    theme: 'apple', // ajánlott téma-pár
     desc: _t('Polc: a kijelölt csatorna tölti ki a hátteret (műsor, élő előnézet), alul egy sor nagy kártya. Letisztult, főleg tévére.'),
   },
   library: {
     label: _t('Könyvtár'),
+    theme: 'yoru', // ajánlott téma-pár
     desc: _t('Könyvtár: oldalsó menü a gyűjteményeiddel és kedvenceiddel, alul állandó lejátszósáv a rádiónak. Asztali gépre és tabletre.'),
     side: true,
   },
   tiles: {
     label: _t('Csempék'),
+    theme: 'disney', // ajánlott téma-pár
     desc: _t('Csempék: kiemelt borító, alatta nagy témakör-csempék (hírek, gyerek, sport, film…). Képekből választani – gyerekeknek is egyszerű.'),
   },
   detail: {
     label: _t('Részletes'),
+    theme: 'prime', // ajánlott téma-pár
     desc: _t('Részletes: balra a csatornák listája, jobbra a kiválasztott csatorna adatlapja a mai műsorral és a nézési idővel. Egérrel a leggyorsabb.'),
   },
   unified: {
     label: _t('Gyűjtemény'),
+    theme: 'skyshowtime', // ajánlott téma-pár
     desc: _t('Gyűjtemény: minden forrás (beépített és saját listák) egy helyen, szűrőkkel (forrás, kategória, ország), rács- vagy listanézettel.'),
     side: true,
   },
   wall: {
     label: _t('Csempefal'),
+    theme: 'mori', // ajánlott téma-pár
     desc: _t('Csempefal: nagy „Folytatás” csempe és a rögzített kedvencek rácsa, mellette útmutató a most futó műsorokkal.'),
   },
   squares: {
     label: _t('Négyzetek'),
+    theme: 'switch', // ajánlott téma-pár
     desc: _t('Négyzetek: egyetlen sor nagy, négyzetes csatornacsempe, felette a kijelölt műsora, alul kerek gombok a fő részekhez. Gyerekeknek és tévére a legegyszerűbb.'),
   },
   ribbon: {
     label: _t('Menüszalag'),
+    theme: 'aurora', // ajánlott téma-pár
     desc: _t('Menüszalag: vízszintesen a részek (kedvencek, most, rádió, videotár…), függőlegesen a tartalmuk – távirányítóval négy nyíllal minden elérhető.'),
   },
   focus: {
     label: _t('Fókusz'),
+    theme: 'holo', // ajánlott téma-pár
     desc: _t('Fókusz: felül funkciósáv, alatta egy sor csempe – a kijelölt nagyobb, alatta a műsora és a gombjai, a háttérben a csatorna.'),
   },
   desk: {
     label: _t('Asztal'),
+    theme: 'shiro', // ajánlott téma-pár
     desc: _t('Asztal: változó élő csempék (műsor, ma este, óra, részek), a menü alul tálcaként. Asztali gépen otthonos.'),
   },
 };

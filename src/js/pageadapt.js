@@ -69,7 +69,10 @@ export function adaptPage(view, name) {
   if (!box) return;
   const secs = sections(box);
   if (!secs.length) return;
-  box.classList.add('adapt', 'adapt-' + id);
+  // (a VOD és a Rádió böngészése néhány elrendezésben „áruházként”: a minta saját áruházának szerkezetével)
+  const store = name !== 'tv' && { detail: storeFeatured, focus: storeSide, wall: storeCollections, desk: storeDesk }[id];
+  box.classList.add('adapt', store ? 'adapt-store-' + id : 'adapt-' + id);
+  if (store) return void store(view, box, secs);
   const fn = { cinema, showcase, shelf, library: null, tiles, detail, unified, wall: null, squares, ribbon, focus, desk: null }[id];
   fn?.(view, box, secs);
 }
@@ -435,4 +438,98 @@ function focus(view, box, secs) {
     if (t) pick(Number(t.dataset.ti));
   });
   drawRow();
+}
+
+// ===========================================================================
+// Áruház-nézetek (VOD, Rádió)
+// ===========================================================================
+/** A sorok kártyáinak képei (kollázshoz, bélyegképekhez). */
+const imgsOf = (cards, n) => cards.map((c) => info(c).img).filter(Boolean).slice(0, n);
+/** A csoportok (sorok) címkéi: kattintásra a sorhoz görget. */
+function tagsEl(secs, title) {
+  const el = html(`<section class="st-tags"><h2 class="row-title">${esc(title)}</h2><div class="st-tag-list">${secs
+    .map((s) => `<button class="st-tag" data-go="${s.i}">${esc(s.title)} <small>${s.cards.length}</small></button>`)
+    .join('')}</div></section>`);
+  el.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-go]');
+    if (b) secs.find((s) => s.i === Number(b.dataset.go))?.el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  return el;
+}
+
+/** Részletes – kiemelt sáv: nagy kép balra, bélyegképek, jobbra az adatok; alatta címkék, a sorok rácsban. */
+function storeFeatured(view, box, secs) {
+  const feat = [...new Set(secs.flatMap((s) => s.cards.slice(0, 3)))].slice(0, 8);
+  const el = html(`<section class="st-feat"><h2 class="row-title">${_t('Kiemelt és ajánlott')}</h2>
+    <div class="st-box"><div class="st-main"></div><div class="st-side"></div></div>
+    <div class="st-dots">${feat.map((_, i) => `<button class="st-dot ${i ? '' : 'on'}" data-sf="${i}" aria-label="${_t('{n}. kiemelt', { n: i + 1 })}"></button>`).join('')}</div></section>`);
+  putTop(box, el);
+  el.after(tagsEl(secs, _t('Böngészés csoport szerint')));
+  let cur = 0;
+  const show = (i) => {
+    cur = (i + feat.length) % feat.length;
+    const x = info(feat[cur]);
+    el.querySelector('.st-main').innerHTML = `<div class="st-img ${x.poster ? 'is-poster' : ''}" style="--h:${esc(x.hue)}">${x.img ? `<img src="${esc(x.img)}" alt="" referrerpolicy="no-referrer" />` : `<span class="initials">${esc(x.name.slice(0, 2))}</span>`}</div>`;
+    el.querySelector('.st-side').innerHTML = `<h3>${esc(x.name)}</h3>${x.sub ? `<div class="muted">${esc(x.sub)}</div>` : ''}${x.now && x.now !== x.sub ? `<p><b>${esc(x.now)}</b></p>` : ''}${x.line && x.line !== x.sub ? `<p class="muted small">${esc(x.line)}</p>` : ''}
+      <div class="st-thumbs">${imgsOf(feat.slice(0, 4), 4).map((src) => `<img src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" />`).join('')}</div>${btnsHtml()}`;
+    el.querySelectorAll('.st-dot').forEach((d, n) => d.classList.toggle('on', n === cur));
+  };
+  el.addEventListener('click', (e) => {
+    const a = e.target.closest('[data-ad]')?.dataset.ad;
+    const d = e.target.closest('[data-sf]');
+    if (a === 'play') playCard(feat[cur]);
+    else if (a === 'info') infoCard(feat[cur]);
+    else if (d) show(Number(d.dataset.sf));
+    else if (e.target.closest('.st-main')) playCard(feat[cur]);
+  });
+  clearInterval(heroTimer);
+  heroTimer = setInterval(() => {
+    if (!el.isConnected) return clearInterval(heroTimer);
+    if (!el.matches(':hover') && !el.contains(document.activeElement)) show(cur + 1);
+  }, 7000);
+  show(0);
+}
+
+/** Fókusz – bal oldalt a csoportok listája, jobbra a választott csoport nagy rácsban. */
+function storeSide(view, box, secs) {
+  const nav = html(`<nav class="pst-nav" aria-label="${_t('Csoportok')}">${secs.map((s, n) => `<button class="pst-cat ${n ? '' : 'on'}" data-pc="${n}">${esc(s.title)}<small>${s.cards.length}</small></button>`).join('')}</nav>`);
+  const main = html('<div class="pst-main"></div>');
+  const wrap = html('<div class="pst"></div>');
+  wrap.append(nav, main);
+  putTop(box, wrap);
+  for (const s of secs) main.append(s.el);
+  const sel = (n) => {
+    secs.forEach((s, i) => s.el.classList.toggle('adapt-on', i === n));
+    nav.querySelectorAll('.pst-cat').forEach((b, i) => b.classList.toggle('on', i === n));
+  };
+  nav.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-pc]');
+    if (b) sel(Number(b.dataset.pc));
+  });
+  nav.addEventListener('focusin', (e) => e.target.dataset?.pc && sel(Number(e.target.dataset.pc)));
+  sel(0);
+}
+
+/** Csempefal – gyűjtemény-csempék (kollázzsal); kattintásra a gyűjtemény kinyílik rácsként. */
+function storeCollections(view, box, secs) {
+  const el = html(`<section class="xc-colls"><h2 class="row-title">${_t('Gyűjtemények')}</h2><div class="xc-grid">${secs
+    .map((s) => {
+      const imgs = imgsOf(s.cards, 4);
+      return `<button class="xc-tile" data-xc="${s.i}" style="--h:${hashHue(s.title + 'xc')}"><span class="xc-cover">${[...imgs, '', '', '', ''].slice(0, 4).map((src) => (src ? `<img src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : '<i></i>')).join('')}</span><b>${esc(s.title)}</b><small>${_t('{n} elem', { n: s.cards.length })}</small></button>`;
+    })
+    .join('')}</div></section>`);
+  putTop(box, el);
+  el.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-xc]');
+    if (!b) return;
+    const s = secs.find((x) => x.i === Number(b.dataset.xc));
+    secs.forEach((x) => x.el.classList.toggle('adapt-open', x === s));
+    s?.el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
+/** Asztal – lapozó kiemelt sáv, alatta a csoportok csemperácsként. */
+function storeDesk(view, box, secs) {
+  putTop(box, heroOf(firstCards(secs, 5)));
+  box.classList.add('adapt-desk');
 }

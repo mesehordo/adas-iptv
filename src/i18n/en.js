@@ -2558,5 +2558,18 @@ export default {
  "{n} elem": "{n} items",
  "Szűrés": "Filter",
  "Adatok": "Details",
- "Csoportok": "Groups"
+ "Csoportok": "Groups",
+ "Hasonló csatornák": "Similar channels",
+ "Ennyi forrásban szerepel": "Number of sources it appears in",
+ "{n} forrás": "{n} sources",
+ "Mi újság": "What’s new",
+ "{n} csatorna műsoron": "{n} channels on air",
+ "{n} kedvenc adó": "{n} favourite stations",
+ "{n} kedvenc": "{n} favourites",
+ "Top 10 ma": "Top 10 today",
+ "Csatornacsaládok": "Channel families",
+ "Kiemelt és ajánlott": "Featured and recommended",
+ "Böngészés csoport szerint": "Browse by group",
+ "Gyűjtemények": "Collections",
+ "Ehhez az elrendezéshez illő téma: <b>{name}</b>": "A theme that suits this layout: <b>{name}</b>"
 };

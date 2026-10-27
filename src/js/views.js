@@ -1268,6 +1268,7 @@ function renderAppearance(box) {
     <div class="ct-box"></div>
     <h3>${_t('Felület elrendezése')}</h3>
     <p class="muted lay-desc">${esc(LAYOUTS[currentLayout()].desc)}</p>
+    <p class="lay-pair"></p>
     ${layoutPickerHtml(currentLayout())}
     <h3>${_t('A TV oldal sorai')}</h3>
     <p class="muted">${_t('Húzással vagy a nyilakkal rendezheted, a kapcsolóval elrejtheted a sorokat.')}</p>
@@ -1295,11 +1296,26 @@ function renderAppearance(box) {
   box.querySelector('.tp-slot').replaceWith(tp.el);
   // (értékadással: az újrarajzolás után sem halmozódik a figyelő)
   // elrendezés: azonnal érvényes (a téma mellett, attól függetlenül)
+  // az elrendezéshez illő téma ajánlása (ha nem az van bekapcsolva)
+  const drawPair = () => {
+    const l = LAYOUTS[currentLayout()];
+    const el = box.querySelector('.lay-pair');
+    const th = l.theme && THEMES[l.theme];
+    el.hidden = !th || currentTheme() === l.theme;
+    if (th) el.innerHTML = `${_t('Ehhez az elrendezéshez illő téma: <b>{name}</b>', { name: esc(th.label) })} <button class="btn small" data-lay-theme="${esc(l.theme)}">${_t('Bekapcsolás')}</button>`;
+  };
+  drawPair();
   box.onclick = (e) => {
+    const pt = e.target.closest('[data-lay-theme]');
+    if (pt) {
+      save(pt.dataset.layTheme, store.profile.themeVariants?.[pt.dataset.layTheme] || '');
+      return renderAppearance(box);
+    }
     const id = pickLayoutIn(box, e.target);
     if (!id) return;
     store.setProfileValue('layout', id);
     box.querySelector('.lay-desc').textContent = LAYOUTS[id].desc;
+    drawPair();
   };
   box.onchange = (e) => {
     if (e.target.matches('[data-theme-select]')) {

@@ -209,7 +209,14 @@ function heroEl(heroes) {
 // 1. Mozi: egy nagy kiemelt borító + sorok
 // ---------------------------------------------------------------------------
 function renderCinema(view) {
-  homeRowsInto(view);
+  const box = homeRowsInto(view);
+  const t10 = top10El();
+  // (a „Top 10” a nap egységei után, a személyes sorok előtt)
+  if (t10) {
+    const u = box.querySelector('.lay-units');
+    if (u) u.after(t10);
+    else box.prepend(t10);
+  }
   const h = picks(1);
   if (h.length) view.prepend(heroEl(h));
 }
@@ -240,7 +247,10 @@ function appRowEl() {
 function renderShowcase(view) {
   homeRowsInto(view, { units: ['weather', 'epg', 'rss'] });
   const rows = view.querySelector('.tv-rows');
-  rows?.prepend(appRowEl());
+  const appRow = appRowEl();
+  rows?.prepend(appRow);
+  const apps = appsEl();
+  if (apps) appRow.after(apps);
   const h = picks(6);
   if (h.length) view.prepend(heroEl(h));
 }
@@ -303,7 +313,11 @@ function renderShelf(view) {
   // a polc alatt a nap (időjárás, ma este, hírek) és a most futó műsorok (a kedvencek már a polcon vannak)
   const rest = html('<div class="shelf-rest"></div>');
   view.append(rest);
-  homeRowsInto(rest, { unitCls: 'strip glass', rows: ['onair'] }).classList.add('shelf-rows');
+  const sr = homeRowsInto(rest, { unitCls: 'strip glass', rows: ['onair'] });
+  sr.classList.add('shelf-rows');
+  const un = upNextEl();
+  if (un) sr.prepend(un);
+  tilt(el, '.shelf-card');
 }
 
 // ---------------------------------------------------------------------------
@@ -325,6 +339,9 @@ function renderLibraryHome(view) {
   const quick = [...new Set([...getChannels(p.recent), ...getChannels(p.favorites)])].filter((c) => vis.has(c)).slice(0, 8);
   const head = html(`<section class="lib-head"><h1>${esc(greeting())}</h1>${quick.length ? `<div class="qgrid">${quick.map(quickItem).join('')}</div>` : ''}</section>`);
   view.querySelector('.tv-rows')?.prepend(head);
+  const colls = collageGridEl();
+  if (colls) head.after(colls);
+  updateLibNow();
 }
 
 /** A Könyvtár elrendezés oldalsó gyűjteményei (a menü alatt). */
@@ -381,6 +398,8 @@ function renderTiles(view) {
   homeRowsInto(view, { rows: ['favs', 'onair'] });
   const t = collTilesEl();
   if (t) view.querySelector('.tv-rows')?.prepend(t);
+  const br = brandsEl();
+  if (br) view.querySelector('.tv-rows')?.prepend(br);
   const h = picks(1);
   if (h.length) view.prepend(heroEl(h));
 }
@@ -393,6 +412,13 @@ const fmtDur = (sec) => {
   const m = Math.round(sec / 60);
   return m < 60 ? _t('{m} perc', { m }) : _t('{h} óra {m} perc', { h: Math.floor(m / 60), m: m % 60 });
 };
+/** Részletes: hasonló (közös kategóriájú, azonos nyelvű) csatornák az adatlapon. */
+function mdSimilarHtml(ch) {
+  const cats = new Set(ch.categories.filter((k) => k !== 'general'));
+  if (!cats.size) return '';
+  const list = recommendOrder(visible().filter((c) => c !== ch && c.categories.some((k) => cats.has(k)) && homeRank(c) >= homeRank(ch)), { favorites: [], recent: [ch.id] }).slice(0, 8);
+  return list.length ? `<h3>${_t('Hasonló csatornák')}</h3><div class="md-sim">${list.map((c) => `<button class="md-sim-item" data-mid="${esc(c.id)}" data-id="${esc(c.id)}" title="${esc(c.name)}">${logoHtml(c)}<span>${esc(c.name)}</span></button>`).join('')}</div>` : '';
+}
 function mdItem(ch) {
   const now = epg.now(ch.id);
   return `<button class="md-item ${ch.id === detailSel ? 'sel' : ''}" data-id="${esc(ch.id)}" data-mid="${esc(ch.id)}">${logoHtml(ch)}<span><b>${esc(ch.name)}</b><small>${now?.cur ? esc(now.cur.title) : esc(categoryName(ch.categories[0]) || countryName(ch.country) || '')}</small></span></button>`;
@@ -417,6 +443,7 @@ function mdDetailHtml(ch) {
       ${now?.next ? `<div><small>${_t('Utána')}</small><b>${esc(now.next.title)}</b><span class="muted">${fmtTime(now.next.start)}</span></div>` : ''}
       <div><small>${_t('Nézési idő')}</small><b>${watched >= 60 ? fmtDur(watched) : _t('még nem nézted')}</b></div>
     </div>
+    ${mdSimilarHtml(ch)}
     ${today.length ? `<h3>${_t('Mai műsor')}</h3><ol class="md-sched">${today
       .map((pr) => `<li class="${pr.stop < Date.now() ? 'past' : pr === now?.cur ? 'live' : ''}"><time>${fmtTime(pr.start)}</time><span>${esc(pr.title)}</span></li>`)
       .join('')}</ol>` : `<p class="muted">${_t('Ehhez a csatornához nincs műsoradat.')}</p>`}`;
@@ -505,7 +532,7 @@ function renderDetail(view, params, home = false) {
     } else if (e.target.closest('[data-md-fav]')) {
       store.toggleFavorite(detailSel);
       show(detailSel);
-    }
+    } else if (e.target.closest('.md-sim-item')) show(e.target.closest('.md-sim-item').dataset.mid);
   });
 }
 
@@ -517,6 +544,7 @@ const saveUni = (u) => store.setProfileValue('uni', { ...u, q: '' });
 function uniRow(ch) {
   const now = epg.now(ch.id);
   return `<button class="uni-row" data-id="${esc(ch.id)}" data-lplay="${esc(ch.id)}">${logoHtml(ch)}<span class="uni-name"><b>${esc(ch.name)}</b><small>${metaLine(ch)}</small></span>
+    ${(ch.lists || []).length > 1 ? `<span class="uni-srcs" title="${_t('Ennyi forrásban szerepel')}">${_t('{n} forrás', { n: ch.lists.length })}</span>` : '<span></span>'}
     <span class="uni-now">${now?.cur ? `${esc(now.cur.title)}<div class="bar"><i style="width:${(now.progress * 100).toFixed(1)}%"></i></div>` : '<span class="muted">–</span>'}</span>
     <span class="round small" data-linfo="${esc(ch.id)}" title="${_t('Részletek (I)')}" role="button" tabindex="-1">${ICON.info}</span></button>`;
 }
@@ -760,7 +788,7 @@ function renderSquares(view) {
   const p = store.profile;
   view.innerHTML = '';
   const el = html(`<section class="sq">
-    <div class="sq-top">${avatarHtml(p, 'sq-av')}<b>${esc(p.name)}</b><span class="sq-clock">${clockText()}</span></div>
+    <div class="sq-top">${avatarHtml(p, 'sq-av')}<b>${esc(p.name)}</b><span class="sq-news"></span><span class="sq-clock">${clockText()}</span></div>
     <div class="sq-info" aria-live="polite"></div>
     <div class="sq-row">${list.map((c) => `<button class="sq-tile" data-id="${esc(c.id)}" data-sid="${esc(c.id)}" data-lplay="${esc(c.id)}" style="--h:${hashHue(c.name)}" title="${esc(c.name)}">${logoHtml(c)}</button>`).join('')}</div>
     <nav class="sq-btns" aria-label="${_t('Fő részek')}">${sections().map(([r, href, label, ico]) => `<a class="sq-btn" href="${href}" title="${esc(label)}" style="--h:${hashHue(r + 'app')}"><span>${ico}</span><small>${esc(label)}</small></a>`).join('')}</nav>
@@ -776,6 +804,7 @@ function renderSquares(view) {
   selectable(el, '.sq-tile', select);
   select(list[0]);
   every(el, 20e3, () => (el.querySelector('.sq-clock').textContent = clockText()));
+  newsBubble(el);
 }
 
 // ---------------------------------------------------------------------------
@@ -809,12 +838,13 @@ function ribbonCats() {
 function renderRibbon(view) {
   const { cats, rf } = ribbonCats();
   let ci = Math.max(0, cats.findIndex((c) => c.id === ribbonState.cat));
-  view.innerHTML = `<section class="xmb">
+  view.innerHTML = `<section class="xmb"><div class="xmb-wave" aria-hidden="true"><i></i><i></i></div><span class="xmb-clock">${clockText()}</span>
     <div class="xmb-bar" role="tablist" aria-label="${_t('Részek')}">${cats.map((c, i) => `<button class="xmb-cat" role="tab" data-ci="${i}" aria-selected="false">${c.ico}<span>${esc(c.label)}</span></button>`).join('')}</div>
     <div class="xmb-items" role="list"></div>
     <p class="xmb-hint muted small">${_t('← → részek · ↑ ↓ elemek · OK: megnyitás')}</p>
   </section>`;
   const el = view.querySelector('.xmb');
+  every(el, 20e3, () => (el.querySelector('.xmb-clock').textContent = clockText()));
   const bar = el.querySelector('.xmb-bar');
   const box = el.querySelector('.xmb-items');
   const itemHtml = (it, i) => {
@@ -943,7 +973,7 @@ function renderFocus(view) {
   select(list[0]);
   const rest = html('<div class="layout-rest"></div>');
   view.append(rest);
-  homeRowsInto(rest, { unitCls: 'strip glass', rows: [] });
+  homeRowsInto(rest, { units: ['weather', 'tonight', 'rss', 'epg'], unitCls: 'strip glass', title: _t('Mi újság'), rows: [] });
 }
 
 // ---------------------------------------------------------------------------
@@ -959,6 +989,18 @@ function tonightPick(list) {
     .filter((x) => x.pr)
     .sort((a, b) => a.pr.start - b.pr.start)
     .slice(0, 3);
+}
+/** Asztal: élő információ a részek csempéin. */
+function deskInfo(r) {
+  const vis = visSet();
+  if (r === 'tv') return _t('{n} csatorna műsoron', { n: [...vis].filter((c) => epg.now(c.id)?.cur).length });
+  if (r === 'radio') return radioPlayer.playing ? radioPlayer.station?.name || '' : radioFavs().length ? _t('{n} kedvenc adó', { n: radioFavs().length }) : '';
+  if (r === 'favorites') return store.profile.favorites.length ? _t('{n} kedvenc', { n: store.profile.favorites.length }) : '';
+  if (r === 'guide') {
+    const pr = tonightPick(getChannels(store.profile.favorites))[0];
+    return pr ? `${fmtTime(pr.pr.start)} ${pr.pr.title}` : '';
+  }
+  return '';
 }
 function renderDesk(view) {
   const vis = visSet();
@@ -979,7 +1021,7 @@ function renderDesk(view) {
       <div class="lt lt-2x1 lt-clock" style="--h:220"><b class="lt-time">${clockText()}</b><span>${esc(d.toLocaleDateString(LOCALE, { weekday: 'long', month: 'long', day: 'numeric' }))}</span></div>
       ${flips.length ? `<button class="lt lt-2x1 lt-flip" data-lplay="${esc(flips[0].id)}" style="--h:${hashHue(flips[0].name)}"></button>` : ''}
       ${tonight.length ? `<a class="lt lt-2x1 lt-tonight" href="#/guide" style="--h:265"><small>${_t('Ma este')}</small>${tonight.map((x) => `<span><b>${fmtTime(x.pr.start)}</b> ${esc(x.c.name)} · ${esc(x.pr.title)}</span>`).join('')}</a>` : ''}
-      ${sections().filter(([r]) => r !== 'settings').map(([r, href, label, ico]) => `<a class="lt lt-1x1" href="${href}" style="--h:${hashHue(r + 'app')}">${ico}<b>${esc(label)}</b></a>`).join('')}
+      ${sections().filter(([r]) => r !== 'settings').map(([r, href, label, ico]) => `<a class="lt lt-1x1" href="${href}" style="--h:${hashHue(r + 'app')}">${ico}<b>${esc(label)}</b>${deskInfo(r) ? `<small class="lt-info">${esc(deskInfo(r))}</small>` : ''}</a>`).join('')}
       ${unitCardHtml('weather', 'lt lt-2x2 lt-unit')}${unitCardHtml('rss', 'lt lt-2x2 lt-unit')}
       ${favTiles.map((c) => `<button class="lt lt-1x1 lt-ch" data-id="${esc(c.id)}" data-lplay="${esc(c.id)}" style="--h:${hashHue(c.name)}" title="${esc(c.name)}">${logoHtml(c)}<b>${esc(c.name)}</b></button>`).join('')}
     </div>
@@ -1004,6 +1046,134 @@ function renderDesk(view) {
   }
   every(el, 20e3, () => (el.querySelector('.lt-time').textContent = clockText()));
   activateUnits(el);
+}
+
+// ---------------------------------------------------------------------------
+// Kiegészítések az elrendezések jellegéhez
+// ---------------------------------------------------------------------------
+/** Mozi: „Top 10 ma” – a most műsoron lévő legnépszerűbb hazai csatornák, nagy sorszámokkal. */
+function top10El() {
+  const vis = visSet();
+  const list = byAvailability([...vis].filter((c) => epg.now(c.id)?.cur && ok(c)).sort((a, b) => homeRank(b) - homeRank(a) || rankScore(b) - rankScore(a))).slice(0, 10);
+  if (list.length < 5) return null;
+  return html(`<section class="row top10"><h2 class="row-title">${_t('Top 10 ma')}</h2><div class="t10">${list
+    .map((c, i) => `<button class="t10-item" data-id="${esc(c.id)}" data-lplay="${esc(c.id)}" title="${esc(c.name)}"><span class="t10-n">${i + 1}</span><span class="t10-card" style="--h:${hashHue(c.name)}">${logoHtml(c)}</span></button>`)
+    .join('')}</div></section>`);
+}
+/** Kirakat: a források „alkalmazásként” (beépített és saját listák) – a lista csatornáira visz. */
+function appsEl() {
+  const vis = visible();
+  const per = new Map();
+  for (const c of vis) for (const id of c.lists || []) per.set(id, (per.get(id) || 0) + 1);
+  const lists = [...(per.get(MINE) ? [{ id: MINE, name: _t('Saját csatornák') }] : []), ...activeLists()].filter((l) => per.get(l.id));
+  if (lists.length < 2) return null;
+  return html(`<section class="row apps-row"><h2 class="row-title">${_t('Forrásaid')}</h2><div class="apps">${lists
+    .map((l) => `<a class="app-icon" href="#/browse?pl=${encodeURIComponent(l.id)}" style="--h:${hashHue(l.id + 'src')}"><b>${esc(l.name.slice(0, 2).toUpperCase())}</b><span>${esc(l.name)}</span></a>`)
+    .join('')}</div></section>`);
+}
+/** Polc: „Következik” – a kedvenc csatornák következő műsorai. */
+function upNextEl() {
+  const vis = visSet();
+  const chans = [...new Set([...getChannels(store.profile.favorites), ...picks(10)])].filter((c) => vis.has(c));
+  const items = chans
+    .map((c) => ({ c, pr: epg.now(c.id)?.next }))
+    .filter((x) => x.pr && x.pr.start > Date.now())
+    .sort((a, b) => a.pr.start - b.pr.start)
+    .slice(0, 12);
+  if (!items.length) return null;
+  const el = html(`<section class="row upnext"><h2 class="row-title">${_t('Következik')}</h2><div class="un-track">${items
+    .map((x, i) => `<button class="un-item" data-un="${i}" style="--h:${hashHue(x.c.name)}"><span class="un-time">${fmtTime(x.pr.start)}</span><b>${esc(x.pr.title)}</b><small>${esc(x.c.name)}</small></button>`)
+    .join('')}</div></section>`);
+  el.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-un]');
+    if (b) openProgram(items[Number(b.dataset.un)].c, items[Number(b.dataset.un)].pr);
+  });
+  return el;
+}
+/** Polc: a kártyák enyhe dőlése az egér felé (parallaxis). */
+function tilt(root, sel) {
+  if (matchMedia('(hover: none), (prefers-reduced-motion: reduce)').matches) return;
+  root.addEventListener('mousemove', (e) => {
+    const c = e.target.closest(sel);
+    if (!c) return;
+    const r = c.getBoundingClientRect();
+    c.style.setProperty('--rx', `${(((e.clientY - r.top) / r.height - 0.5) * -10).toFixed(1)}deg`);
+    c.style.setProperty('--ry', `${(((e.clientX - r.left) / r.width - 0.5) * 12).toFixed(1)}deg`);
+  });
+  root.addEventListener('mouseout', (e) => {
+    const c = e.target.closest(sel);
+    if (c && !c.contains(e.relatedTarget)) {
+      c.style.removeProperty('--rx');
+      c.style.removeProperty('--ry');
+    }
+  });
+}
+/** Könyvtár: a gyűjtemények kollázs-borítóval (4 logó). */
+function collageGridEl() {
+  const vis = visSet();
+  const p = store.profile;
+  const onAir = recommendOrder([...vis].filter((c) => epg.now(c.id)?.cur));
+  const sets = [
+    ['#/favorites', _t('Kedvenc csatornák'), getChannels(p.favorites).filter((c) => vis.has(c))],
+    ['#/favorites', _t('Legutóbb nézett'), getChannels(p.recent).filter((c) => vis.has(c))],
+    ['#/guide', _t('Most a tévében'), onAir],
+  ].filter((x) => x[2].length);
+  const rf = radioMenuOn() ? radioFavs() : [];
+  if (!sets.length && !rf.length) return null;
+  const cover = (imgs) => `<span class="col-cover">${[...imgs.filter(Boolean), '', '', '', ''].slice(0, 4).map((src) => (src ? `<img src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : '<i></i>')).join('')}</span>`;
+  return html(`<section class="lib-colls"><h2 class="row-title">${_t('Gyűjteményeid')}</h2><div class="col-grid">${[
+    ...sets.map(([href, name, l]) => `<a class="col-tile" href="${href}">${cover(l.map((c) => c.logo))}<b>${esc(name)}</b><small>${_t('{count} csatorna', { count: l.length })}</small></a>`),
+    rf.length ? `<a class="col-tile" href="#/radio?tab=favs">${cover(rf.map((s) => s.logo))}<b>${_t('Kedvenc rádiók')}</b><small>${_t('{n} adó', { n: rf.length })}</small></a>` : '',
+  ].join('')}</div></section>`);
+}
+/** Könyvtár: „Most szól” panel jobbra (széles képernyőn) – a szóló rádió vagy az utoljára nézett csatorna. */
+const updateLibNow = debounce(() => {
+  let box = document.getElementById('lib-now');
+  if (currentLayout() !== 'library' || !store.profile || document.body.dataset.route !== 'home') return void box?.remove();
+  if (!box) {
+    box = html('<aside id="lib-now"></aside>');
+    document.body.append(box);
+  }
+  const st = radioPlayer.playing ? radioPlayer.station : null;
+  const last = lastWatched();
+  const now = last && epg.now(last.id);
+  box.setAttribute('aria-label', _t('Most szól'));
+  box.innerHTML = st
+    ? `<h3>${_t('Most szól')}</h3><div class="ln-art">${st.logo ? `<img src="${esc(st.logo)}" alt="" referrerpolicy="no-referrer" />` : navIcon('radio')}</div><b>${esc(st.name)}</b><small>${esc(radioPlayer.now?.text || '')}</small>`
+    : last
+      ? `<h3>${_t('Folytatás')}</h3><button class="ln-art" data-lplay="${esc(last.id)}" data-id="${esc(last.id)}" style="--h:${hashHue(last.name)}">${logoHtml(last)}</button><b>${esc(last.name)}</b><small>${now?.cur ? esc(now.cur.title) : ''}</small><button class="btn white small" data-lplay="${esc(last.id)}">${ICON.play} ${_t('Lejátszás')}</button>`
+      : '';
+  box.hidden = !box.innerHTML;
+}, 300);
+for (const ev of ['profile', 'profile-layout', 'radio-player', 'player-closed']) bus.on(ev, updateLibNow);
+window.addEventListener('hashchange', updateLibNow);
+/** Csempék: „márka”-sor – a név első szava szerint csoportosított csatornacsaládok (pl. RTL, Spektrum). */
+function brandsEl() {
+  const vis = visible().filter((c) => homeRank(c) > 0);
+  const groups = new Map();
+  for (const c of vis) {
+    const k = (c.name.split(/[\s+-]/)[0] || '').replace(/[^\p{L}\p{N}]/gu, '');
+    if (k.length < 2 || /^\d+$/.test(k)) continue;
+    (groups.get(k) || groups.set(k, []).get(k)).push(c);
+  }
+  const brands = [...groups].filter(([, l]) => l.length >= 3 && l.some((c) => c.logo)).sort((a, b) => b[1].length - a[1].length).slice(0, 10);
+  if (brands.length < 3) return null;
+  return html(`<section class="brands" aria-label="${_t('Csatornacsaládok')}"><div class="brand-track">${brands
+    .map(([k, l]) => `<a class="brand-tile" href="#/search?q=${encodeURIComponent(k)}" title="${esc(k)}" style="--h:${hashHue(k + 'br')}"><img src="${esc(l.find((x) => x.logo).logo)}" alt="${esc(k)}" loading="lazy" referrerpolicy="no-referrer" /><small>${_t('{count} csatorna', { count: l.length })}</small></a>`)
+    .join('')}</div></section>`);
+}
+/** Négyzetek: hírbuborék a felső sorban (a legfrissebb hír). */
+function newsBubble(el) {
+  const slot = el.querySelector('.sq-news');
+  if (!slot) return;
+  homeNews()
+    .catch(() => [])
+    .then((list) => {
+      if (!list.length || !slot.isConnected) return;
+      const n = list[0];
+      slot.innerHTML = `<button class="sq-bubble" title="${esc(n.title)}"><span class="sq-dot"></span>${esc(n.title)}</button>`;
+      slot.firstElementChild.onclick = () => openNews(n);
+    });
 }
 
 export const _layoutTest = { picks, layoutRoute, LAYOUTS, ribbonCats };
