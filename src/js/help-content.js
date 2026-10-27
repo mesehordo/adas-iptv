@@ -753,7 +753,20 @@ ${go('#/profiles', 'Profilok kezelése')}`,
     keywords: 'téma stílus kinézet netflix disney skyshowtime rakuten prime apple zen wabi szabi nintendo wii switch világos sötét',
     body: `
 <p>A felület kinézete profilonként választható: <b>Beállítások → Megjelenés → Felület stílusa</b> (legördülő menü, vagy kattints a mintákra). A váltás azonnal érvényes.</p>
-<p>Az <b>elrendezés minden stílusban ugyanaz</b> (felső menüsáv, azonos kártyaméretek, sorok és kártyák a főoldalon) – a stílus csak a kinézetet adja: színek, betűtípus, keretek, árnyékok, háttérminták, animációk.</p>
+<p>A stílus csak a <b>kinézetet</b> adja: színek, betűtípus, keretek, árnyékok, háttérminták, animációk. A felület <b>szerkezetét</b> – hol a menü, mi van a Főoldalon – az <b>elrendezés</b> adja, ez a stílustól függetlenül választható (lásd lent).</p>
+<h2>Elrendezések</h2>
+<p><b>Beállítások → Megjelenés → Felület elrendezése</b> (és a profil szerkesztésekor): profilonként, a vázlatra kattintva, azonnal.</p>
+<ul>
+<li><b>Klasszikus</b> – felső menü, a Főoldalon testreszabható kártyák (időjárás, hírek, műsor).</li>
+<li><b>Mozi</b> – a Főoldal tetején nagy kiemelt borító (a kedvenc vagy utoljára nézett csatorna, élő előnézettel), alatta csatornasorok.</li>
+<li><b>Kirakat</b> – lapozó kiemelt sáv, nagy gombok a fő részekhez (TV, Műsorújság, Rádió, VOD, Sport, Kedvencek, Felvételek), alatta sorok.</li>
+<li><b>Polc</b> – a kijelölt csatorna tölti ki a hátteret (műsor, élő előnézet), alul egy sor nagy kártya; tévére.</li>
+<li><b>Könyvtár</b> – oldalsó menü a gyűjteményeiddel és kedvenceiddel, alul rögzített rádiósáv.</li>
+<li><b>Csempék</b> – kiemelt borító és nagy témakör-csempék (hírek, gyerek, sport, film…).</li>
+<li><b>Részletes</b> – balra a csatornalista (szűrővel), jobbra a kiválasztott csatorna adatlapja a mai műsorral és a nézési idővel. Kattintás: kijelölés, második kattintás / OK: lejátszás.</li>
+<li><b>Gyűjtemény</b> – minden forrás egy helyen, szűrőkkel (forrás, ország, kategória, csak működők / kedvencek), rács- vagy listanézettel; a szűrők megmaradnak.</li>
+</ul>
+<p>Az oldalsó menü széles képernyőn látszik; keskeny ablakban és telefonon a szokásos felső / alsó menü marad. A Részletes és a Gyűjtemény elrendezés a TV oldalt is a saját nézetére cseréli.</p>
 <h2>Színváltozatok</h2>
 <p>A legtöbb stílusnak az eredeti mellett <b>három színváltozata</b> is van – mindegyik a stílus hangulatához válogatott paletta, saját névvel (pl. Neon City: <i>Szintihullám</i>, <i>Savas zöld</i>, <i>Vörös neon</i>; Phosphor: a régi monitorok borostyán, cián és plazma színei; Deco: rózsaarany, smaragd, ezüst). A minták alatt, a <i>Színváltozat</i> sorban választható. A változat a stílus minden színes elemét – kiemelés, gombok, keretek, díszítések – a paletta színeire fordítja (a több színű stílusoknál, pl. Neon City, Pow!, Kikagaku, mindegyik színt külön); a háttér világossága és a szöveg olvashatósága nem változik, és a fekete, fehér, szürke árnyalatok, valamint az állapotjelzések (működik / hiba, felvétel, ÉLŐ) is maradnak. Fekete-fehér kiemelésű stílusnál (pl. Manga, Mu) a változat színes kiemelőt ad. A változat stílusonként és profilonként megmarad; a Kontraszt stílusnak – akadálymentességi okból – nincs változata.</p>
 <p>A stílus és a színváltozat már a profil létrehozásakor is választható (az első indításkor és a Profilok kezelése alatt), a profil szerkesztésekor is.</p>

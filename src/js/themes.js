@@ -4,6 +4,7 @@ import { variantsFor, hueOf, applyVariantCss, THEME_VARIANTS } from './themevari
 import { categoryName, countryName } from './catalog.js';
 
 import { _t } from './i18n.js';
+import { applyLayout } from './layoutdefs.js';
 /**
  * Minden stílus ugyanazzal az elrendezéssel (felső menüsáv, azonos kártyaméretek);
  * a stílus csak a kinézetet adja (színek, betűk, keretek, árnyékok, minták) – themes.css, body[data-theme].
@@ -210,7 +211,7 @@ export function applyTheme(forced = null) {
   document.body.dataset.theme = def ? (def.base && THEMES[def.base] && !THEMES[def.base].custom ? def.base : 'custom') : id;
   if (def) document.body.dataset.custom = def.id;
   else delete document.body.dataset.custom;
-  document.body.dataset.layout = 'top'; // minden stílus ugyanazzal az elrendezéssel (felső menüsáv)
+  applyLayout(); // (az elrendezés a témától független, profilonként – layoutdefs.js)
   document.body.dataset.tone = (def ? def.tone === 'light' : t.light) ? 'light' : 'dark';
   let style = document.getElementById('custom-theme-css');
   if (!style) {

@@ -27,6 +27,7 @@ import {
   renderTv, leaveHome, renderBrowse, renderCountries, renderFavorites, renderSearch, renderGuide, renderSettings, renderProfiles,
 } from './views.js';
 import { renderDashboard } from './dashboard.js';
+import { layoutRoute } from './layouts.js'; // profilonként választható felület-elrendezések
 import { renderRecordingsPage } from './recorder.js'; // felvétel (asztali) és a felvételek oldala
 import './remote.js'; // távirányító telefonról
 import { applySubStyle } from './backup.js'; // automatikus mentés, feliratstílus
@@ -136,7 +137,8 @@ function route({ keepScroll = false } = {}) {
   // kikapcsolt (vagy gyerekprofilban rejtett) Sport menüpontnál a főoldal
   if (name === 'sport' && !sportMenuOn()) return void location.replace('#/home');
   if (name === 'radio' && !radioMenuOn()) return void location.replace('#/home');
-  const fn = routeFn(name);
+  // (a Főoldal – és egyes elrendezésekben a TV oldal – az elrendezéstől függ)
+  const fn = layoutRoute(name) || routeFn(name);
   if (name !== 'tv') leaveHome();
   const full = location.hash;
   const sameRoute = full === currentRoute;
@@ -200,6 +202,11 @@ bus.on('profile', () => {
   rerender();
 });
 bus.on('favorites', () => parseHash().name === 'favorites' && rerender());
+// elrendezésváltás (Beállítások → Megjelenés, profil szerkesztése): a body jelölése és a Főoldal / TV oldal azonnal
+bus.on('profile-layout', () => {
+  applyTheme();
+  rerender();
+});
 // Sport menüpont: Beállítások → Sport (gyerekprofilban nem látszik)
 const applySportMenu = () => {
   const a = $('.links a[data-route="sport"]', nav);

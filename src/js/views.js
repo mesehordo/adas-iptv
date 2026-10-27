@@ -15,6 +15,7 @@ import {
 } from './components.js';
 import { player, stopPreview, PLAYER_BUTTONS } from './player.js';
 import { THEMES, currentTheme, currentVariant, applyTheme, profileRows, defaultRows, rowLabel } from './themes.js';
+import { LAYOUTS, currentLayout, layoutPickerHtml, pickLayoutIn } from './layoutdefs.js';
 import { renderLists } from './lists.js';
 import { renderVodLists, renderOwnLists, searchVod, vcardHtml, vod, vodFavItems, loadVod } from './vod.js';
 import { renderHuSettings } from './subtitles.js';
@@ -1263,6 +1264,9 @@ function renderAppearance(box) {
         .join('')}</select></label>
     <div class="tp-slot"></div>
     <div class="ct-box"></div>
+    <h3>${_t('Felület elrendezése')}</h3>
+    <p class="muted lay-desc">${esc(LAYOUTS[currentLayout()].desc)}</p>
+    ${layoutPickerHtml(currentLayout())}
     <h3>${_t('A TV oldal sorai')}</h3>
     <p class="muted">${_t('Húzással vagy a nyilakkal rendezheted, a kapcsolóval elrejtheted a sorokat.')}</p>
     <div class="tv-rows"></div>`;
@@ -1288,6 +1292,13 @@ function renderAppearance(box) {
   const tp = themePicker({ theme, variant: currentVariant(theme)?.id || '', compact: false, savedVariant: (id) => store.profile.themeVariants?.[id] || '', onChange: save });
   box.querySelector('.tp-slot').replaceWith(tp.el);
   // (értékadással: az újrarajzolás után sem halmozódik a figyelő)
+  // elrendezés: azonnal érvényes (a téma mellett, attól függetlenül)
+  box.onclick = (e) => {
+    const id = pickLayoutIn(box, e.target);
+    if (!id) return;
+    store.setProfileValue('layout', id);
+    box.querySelector('.lay-desc').textContent = LAYOUTS[id].desc;
+  };
   box.onchange = (e) => {
     if (e.target.matches('[data-theme-select]')) {
       e.stopPropagation();
@@ -1480,6 +1491,8 @@ function editProfile(prof, done) {
     <div class="swatches">${PROFILE_COLORS.map((c) => `<button type="button" class="swatch ${c === color ? 'sel' : ''}" data-c="${c}" style="background:${c}" aria-label="${_t('Szín')}"></button>`).join('')}</div>
     <div>${_t('<b>Kinézet</b>')} <small class="muted">${_t('(téma és színváltozat ehhez a profilhoz)')}</small></div>
     <div class="tp-slot"></div>
+    <div>${_t('<b>Elrendezés</b>')} <small class="muted">${_t('(hol a menü, mi van a Főoldalon – a témától független)')}</small></div>
+    ${layoutPickerHtml(currentLayout(prof || {}))}
     <label class="setting"><span>${_t('<b>Gyerekprofil</b>')}<small>${_t('Csak gyerek-, családi, animációs és oktatási csatornák.')}</small></span>
       <input type="checkbox" class="switch" name="kids" ${prof?.kids ? 'checked' : ''} /></label>
     <div class="setting"><span>${_t('<b>Gombkiosztás</b>')}<small>${_t('A távirányító és a kontroller gombjainak betanítása (ehhez az eszközhöz, minden profilnak).')}</small></span>
@@ -1498,6 +1511,9 @@ function editProfile(prof, done) {
   const close = openModal(el, { cls: 'medium' });
   // PIN: mentéskor érvényesül. undefined = nem változik, null = törlés, '1234' = új
   let newPin;
+  // elrendezés: mentéskor érvényesül
+  let layout = currentLayout(prof || {});
+  el.addEventListener('click', (e) => (layout = pickLayoutIn(el, e.target) || layout));
   const pinState = () => {
     const on = newPin === undefined ? hasPin(prof) : !!newPin;
     el.querySelector('.pin-state').textContent = on
@@ -1538,6 +1554,7 @@ function editProfile(prof, done) {
     target.theme = look.theme;
     target.themeVariants = { ...(target.themeVariants || {}), [look.theme]: look.variant };
     if (!look.variant) delete target.themeVariants[look.theme];
+    target.layout = layout;
     if (newPin !== undefined) await setPin(target, newPin);
     store.save();
     bus.emit('profile');

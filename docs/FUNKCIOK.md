@@ -52,6 +52,10 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
+**Felület-elrendezések, javítások telefonon (következő kiadás)**
+- **Felület-elrendezések** profilonként, a témától függetlenül (Beállítások → Megjelenés → Felület elrendezése, és a profil szerkesztésekor): *Klasszikus* (a mostani), *Mozi* (nagy kiemelt borító élő előnézettel), *Kirakat* (lapozó kiemelt sáv + nagy gombok a fő részekhez), *Polc* (a kijelölt csatorna tölti ki a hátteret, alul nagy kártyák – tévére), *Könyvtár* (oldalsó menü gyűjteményekkel és kedvencekkel, rögzített rádiósáv), *Csempék* (kiemelt borító + témakör-csempék), *Részletes* (csatornalista + adatlap a mai műsorral és a nézési idővel), *Gyűjtemény* (minden forrás egy helyen, szűrőkkel, rács- vagy listanézettel). Az oldalsó menü széles képernyőn látszik, telefonon a szokásos alsó menü marad.
+- **Javítások telefonon**: a hír felugró ablaka belső margót kapott (nem lóg ki); a rádió teljes képernyős lejátszójának menüi keskeny képernyőn és görgetés után is a képernyőn belül, a gombjuk mellett nyílnak; a fókuszban lévő szövegmező eltűnésekor (pl. profil létrehozása után) az alsó menüsáv nem marad rejtve.
+
 **Hálózati ellenőrzés, biztonságosabb jelszavak és távirányító, felvételi korlátok, hibajavítások (1.32.0)**
 - **Hálózat ellenőrzése** (Beállítások → Lejátszás, asztali gépen): kiderül, szűri-e a gép vagy a hálózat a nem szabványos portokat (pl. 1935, 1344, 8080) – sok helyi tévé ezeken sugároz. Ha egy ilyen adás nem indul, a lejátszó hibaüzenete is jelzi, ha a port el van zárva.
 - **Felvételek**: kevés szabad helynél (1 GB alatt) nem indul felvétel, 300 MB alatt a futó leáll (az addigi rész megmarad); a kézi (●) felvételnek legnagyobb hossza van (alapból 4 óra, Beállítások → Felvételek). A felület újratöltése után a futó felvételek látszanak és leállíthatók, az ütemezett nem indul el duplán.

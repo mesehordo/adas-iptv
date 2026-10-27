@@ -12,6 +12,7 @@ import { esc } from '../../src/js/util.js';
 import { api } from '../../src/js/api.js';
 import { resolveStream, radioPlayer } from '../../src/js/radioplayer.js';
 import { HELP_CATEGORIES, ARTICLES } from '../../src/js/help-content.js';
+import { LAYOUTS, currentLayout, layoutPickerHtml, pickLayoutIn } from '../../src/js/layoutdefs.js';
 
 // ------------------------------------------------------------------ alapfüggvények
 test('semver: sorrend, előzetes kiadás', () => {
@@ -495,4 +496,21 @@ test('lanpolicy: helyi címek és a saját helyi forrás felismerése', () => {
   assert.equal(hasLocalSource({ customPlaylists: [{ url: 'http://192.168.1.20/tv.m3u', enabled: true }] }), true);
   assert.equal(hasLocalSource({ ownSources: [{ kind: 'folder', path: 'D:/Filmek', enabled: true }] }), true);
   assert.equal(hasLocalSource({ ownSources: [{ kind: 'folder', path: 'D:/Filmek', enabled: false }] }), false);
+});
+
+test('elrendezések: alapérték, ismeretlen név, választó', () => {
+  assert.equal(currentLayout({}), 'classic');
+  assert.equal(currentLayout({ layout: 'nincs-ilyen' }), 'classic');
+  assert.equal(currentLayout({ layout: 'detail' }), 'detail');
+  const ids = Object.keys(LAYOUTS);
+  assert.equal(ids.length, 8);
+  for (const id of ids) assert.ok(LAYOUTS[id].label && LAYOUTS[id].desc, id);
+  const box = document.createElement('div');
+  box.innerHTML = layoutPickerHtml('shelf');
+  assert.equal(box.querySelectorAll('[data-layout-pick]').length, 8);
+  assert.equal(box.querySelector('.sel').dataset.layoutPick, 'shelf');
+  assert.equal(pickLayoutIn(box, box.querySelector('[data-layout-pick="unified"] b')), 'unified');
+  assert.equal(box.querySelector('.sel').dataset.layoutPick, 'unified');
+  assert.equal(box.querySelector('[aria-checked="true"]').dataset.layoutPick, 'unified');
+  assert.equal(pickLayoutIn(box, box), null);
 });

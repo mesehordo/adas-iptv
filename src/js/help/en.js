@@ -753,7 +753,20 @@ ${go('#/profiles', 'Manage profiles')}`,
     keywords: 'theme style look zen wabi sabi light dark neon manga comic console',
     body: `
 <p>The look of the interface can be chosen per profile: <b>Settings → Appearance → Interface style</b> (drop-down menu, or click the samples). The change takes effect immediately.</p>
-<p>The <b>layout is the same in every style</b> (top menu bar, the same card sizes, rows and cards on the home page) – the style only gives the look: colours, font, borders, shadows, background patterns, animations.</p>
+<p>The style only gives the <b>look</b>; the <b>structure</b> – where the menu is, what’s on Home – comes from the <b>layout</b>, which you can choose independently (see below).</p>
+<h2>Layouts</h2>
+<p><b>Settings → Appearance → Interface layout</b> (and when editing a profile): per profile, click a sketch – it applies immediately.</p>
+<ul>
+<li><b>Classic</b> – top menu, customizable cards on Home (weather, news, TV listings).</li>
+<li><b>Cinema</b> – a large featured banner at the top of Home (your favourite or last watched channel, with live preview), channel rows below.</li>
+<li><b>Showcase</b> – a rotating featured strip, big buttons for the main sections (TV, Guide, Radio, VOD, Sport, Favourites, Recordings), rows below.</li>
+<li><b>Shelf</b> – the selected channel fills the background (programme, live preview), one row of large cards at the bottom; for TVs.</li>
+<li><b>Library</b> – a side menu with your collections and favourites, and a fixed radio bar at the bottom.</li>
+<li><b>Tiles</b> – a featured banner and large topic tiles (news, kids, sport, movies…).</li>
+<li><b>Detailed</b> – the channel list on the left (with a filter), the selected channel’s details on the right with today’s schedule and your watch time. Click: select, second click / OK: play.</li>
+<li><b>Collection</b> – every source in one place with filters (source, country, category, working / favourites only), grid or list view; the filters are remembered.</li>
+</ul>
+<p>The side menu appears on wide screens; in a narrow window and on phones the usual top / bottom menu stays. The Detailed and Collection layouts also replace the TV page with their own view.</p>
 <h2>Colour variants</h2>
 <p>Besides the original, most styles have <b>three colour variants</b> – each a palette picked to suit the style’s mood, with its own name (e.g. Neon City: <i>Synthwave</i>, <i>Acid green</i>, <i>Red neon</i>; Phosphor: the amber, cyan and plasma colours of old monitors; Deco: rose gold, emerald, silver). Choose one in the <i>Colour variant</i> row under the samples. A variant turns every coloured element of the style – highlights, buttons, borders, decorations – into the palette’s colours (in multi-coloured styles such as Neon City, Pow! and Kikagaku, each colour separately); the background brightness and the readability of text stay the same, and black, white and grey shades as well as status colours (working / error, recording, LIVE) are kept. For styles with a black-and-white highlight (e.g. Manga, Mu) the variant adds a coloured highlight. The variant is remembered per style and per profile; the High contrast style has no variants, for accessibility.</p>
 <p>The style and colour variant can already be chosen when creating a profile (at the first start and under Manage profiles), and when editing a profile.</p>
