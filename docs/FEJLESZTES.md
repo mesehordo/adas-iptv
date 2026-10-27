@@ -117,6 +117,9 @@ csomagot tölti le. A buildcél a natív rétegtől jut el a felülethez (`AdasA
   zipalign, apksigner). Kell hozzá JDK 17 és Android SDK (`platforms;android-34`,
   `build-tools;34.0.0`); a szkript a `.android-tools/` mappában (vagy a `JAVA_HOME` /
   `ANDROID_HOME` változókban) keresi őket.
+- **Tesztek**: az Android-függőség nélküli osztályok (pl. `HttpOpen`) tesztjei az `android/test`
+  mappában vannak, sima JDK-val futnak (`npm test` része, vagy külön: `node tools/test-java.mjs`;
+  a JDK helye `ADAS_JDK` / `JAVA_HOME`, JDK nélkül helyben kimaradnak, a CI-ban hiba).
 - **Aláírás**: az első build létrehozza az `android/keystore/adas.jks` kulcsot és a jelszavát
   (`password.txt`). **Őrizd meg**: frissítést csak ugyanazzal a kulccsal aláírt APK-val lehet a
   régi fölé telepíteni.

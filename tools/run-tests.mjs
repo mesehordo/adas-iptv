@@ -1,7 +1,8 @@
 // Az Adás tesztjei egy menetben: fordításkulcsok (tools/i18n-check.mjs), főfolyamat (test/*.test.cjs, node:test) és
-// a felület (test/renderer – a valódi alkalmazásablakban, ideiglenes adatmappával; ADAS_SELFTEST, lásd main.js).
+// a felület (test/renderer – a valódi alkalmazásablakban, ideiglenes adatmappával; ADAS_SELFTEST, lásd main.js), valamint
+// az Android-kód JDK-val tesztelhető része (android/test, tools/test-java.mjs; JDK nélkül kimarad).
 // Futtatás: npm test   (rendszer-Node nélkül is: ELECTRON_RUN_AS_NODE=1 electron tools/run-tests.mjs)
-// Kapcsoló: --only=i18n|main|renderer
+// Kapcsoló: --only=i18n|main|renderer|java
 import { spawn, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
@@ -12,8 +13,8 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const only = (process.argv.find((a) => a.startsWith('--only=')) || '').slice(7);
 // (elgépelt csoportnévnél ne fusson le „üresen”, hamis zöld eredménnyel)
-if (only && !['i18n', 'main', 'renderer'].includes(only)) {
-  console.error(`Ismeretlen --only érték: ${only} (lehet: i18n, main, renderer)`);
+if (only && !['i18n', 'main', 'renderer', 'java'].includes(only)) {
+  console.error(`Ismeretlen --only érték: ${only} (lehet: i18n, main, renderer, java)`);
   process.exit(1);
 }
 const want = (k) => !only || only === k;
@@ -34,6 +35,12 @@ if (want('main')) {
   const files = readdirSync(path.join(ROOT, 'test')).filter((f) => f.endsWith('.test.cjs')).map((f) => path.join(ROOT, 'test', f));
   // (az Electron saját Node-ja: ugyanaz a futtatókörnyezet, mint az alkalmazás főfolyamatáé)
   const r = spawnSync(electronBin, ['--test', '--test-force-exit', '--test-reporter=spec', ...files], { cwd: ROOT, env: nodeEnv, stdio: 'inherit' });
+  if (r.status !== 0) failed++;
+}
+
+if (want('java')) {
+  step('Android (JDK)');
+  const r = spawnSync(process.execPath, [path.join(ROOT, 'tools', 'test-java.mjs')], { cwd: ROOT, env: nodeEnv, stdio: 'inherit' });
   if (r.status !== 0) failed++;
 }
 
