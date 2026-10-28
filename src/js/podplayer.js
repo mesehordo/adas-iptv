@@ -72,6 +72,7 @@ class PodPlayer {
     this.loadChapters(full);
     const url = playUrl(full);
     if (NATIVE) {
+      this.nativeUrl = url;
       window.AdasAndroid.podPlay(JSON.stringify({ url, start, rate: this.rate, title: full.title, artist: full.feedTitle || '', art: full.image || '' }));
     } else this.playWeb(url, start);
     this.mediaSession();
@@ -105,6 +106,15 @@ class PodPlayer {
     if (cors) this.attachFx(a);
     if (paused) this.setState('paused');
     else a.play().catch(() => {});
+  }
+  /** Androidon: a letöltött fájl hiányzik / nem játszható – még egyszer az eredeti címről (true: újrapróbálja). */
+  nativeRetry() {
+    const ep = this.ep;
+    if (!NATIVE || !ep?.url || !this.nativeUrl?.startsWith('file:') || this.nativeUrl === ep.url) return false;
+    this.nativeUrl = ep.url;
+    window.AdasAndroid.podPlay(JSON.stringify({ url: ep.url, start: this.pos, rate: this.rate, title: ep.title, artist: ep.feedTitle || '', art: ep.image || '' }));
+    if (this.wantPause) window.AdasAndroid.podPause();
+    return true;
   }
   teardownWeb() {
     if (!this.el) return;
@@ -322,6 +332,7 @@ export const podPlayer = new PodPlayer();
 window.__adasPod = (o) => {
   if (!podPlayer.ep || !o) return;
   if (typeof o.pos === 'number') podPlayer.tick(o.pos, o.dur || podPlayer.dur);
+  if (o.st === 'error' && podPlayer.nativeRetry()) return;
   if (o.st === 'playing' || o.st === 'paused' || o.st === 'loading' || o.st === 'error') podPlayer.setState(o.st);
   if (o.st === 'ended') podPlayer.ended();
 };

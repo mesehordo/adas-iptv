@@ -39,10 +39,12 @@ class PodNative implements Player.Listener {
 
   void play(JSONObject o) {
     release();
-    // csak internetes (http / https) epizód – a híd más sémájú címet (file:, content: …) nem nyit meg
+    // internetes (http / https) epizód, vagy a letöltött fájl – de csak a podcast-mappából (PodFiles); más
+    // sémájú (content: …) vagy máshová mutató helyi címet a híd nem nyit meg
     Uri uri = Uri.parse(o.optString("url"));
     String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(java.util.Locale.ROOT);
-    if (!scheme.equals("http") && !scheme.equals("https")) {
+    boolean local = scheme.equals("file") && uri.getPath() != null && PodFiles.inDir(act, new java.io.File(uri.getPath()));
+    if (!local && !scheme.equals("http") && !scheme.equals("https")) {
       send("error", -1, -1);
       return;
     }

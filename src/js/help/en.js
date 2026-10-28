@@ -1312,7 +1312,7 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 <ul><li><b>Overview</b> – continue, new episodes, queue, subscriptions, latest episodes, top chart (in the layout’s style).</li>
 <li><b>New episodes</b> – new episodes of your subscriptions (with a notification); mark all as played or queue them.</li>
 <li><b>Queue</b> – reorder with ▲ ▼; with continuous playback, the next one starts when an episode ends.</li>
-<li><b>Downloads</b> (on desktop) – downloaded episodes play without internet; the file can be deleted after playing (setting).</li>
+<li><b>Downloads</b> (on desktop and Android) – downloaded episodes play without internet. For a downloaded episode the bin button replaces ⇩ and deletes the file (the episode stays in your lists); the Downloads tab shows the space used and can delete the played ones or all at once. The file can also be deleted automatically after playing (setting). On Android the files go to the app’s own storage (removed when the app is uninstalled).</li>
 <li><b>History</b>, <b>Favourites</b> (★), <b>Statistics</b> (listening time per show), <b>Settings</b>.</li></ul>
 <h2>The show page</h2>
 <p>Filters (unplayed, in progress, played, favourite, downloaded), search, sorting. <b>Show settings</b>: own speed, skipping the intro and outro (in seconds), volume boost, skip silence, notifications, automatic download of new episodes.</p>

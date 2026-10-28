@@ -2,7 +2,7 @@
 // meghallgatva, kedvenc, letöltve), a lejátszási sor, az új epizódok, az előzmények; keresés, toplista, OPML.
 // A lejátszás a podplayer.js-ben, a felület a podcastpage.js-ben.
 import { store } from './store.js';
-import { api, IS_ANDROID } from './api.js';
+import { api } from './api.js';
 import { bus, debounce } from './util.js';
 import { _t } from './i18n.js';
 
@@ -378,9 +378,9 @@ export function importOpml(xml) {
 }
 
 // ---------------------------------------------------------------------------
-// Letöltés (asztali gépen: a programmappa „podcasts” mappájába)
+// Letöltés (asztali gépen: a programmappa „podcasts” mappájába; Androidon az alkalmazás saját tárhelyére)
 // ---------------------------------------------------------------------------
-export const canDownload = () => !!api.podDownload && !IS_ANDROID;
+export const canDownload = () => !!api.podDownload;
 const downloading = new Map(); // profil + epizódkulcs → ígéret (profilonként külön letöltés)
 const dlKey = (prof, key) => (prof?.id || '') + '|' + key;
 /** Az aktív profil letölti-e most ezt az epizódot. */
@@ -425,6 +425,8 @@ export const downloadedList = () => {
     .map(([k]) => findEp(k))
     .filter(Boolean);
 };
+/** A letöltött fájlok összmérete (bájt) – az aktív profilé, vagy a megadott epizódoké. */
+export const downloadedSize = (list = downloadedList()) => list.reduce((s, ep) => s + (epState(ep.key)?.dl?.size || 0), 0);
 // új epizód: automatikus letöltés, ha a műsornál be van kapcsolva
 bus.on('pod-new', ({ feed, eps, profile }) => {
   const prof = profile || store.profile;

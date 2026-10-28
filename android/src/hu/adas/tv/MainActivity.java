@@ -855,6 +855,9 @@ public class MainActivity extends Activity {
           else if ("sidecarSubs".equals(method)) out = Folders.sidecars(MainActivity.this, a.getString("uri"), false).toString();
           else if ("sidecarImage".equals(method)) out = JSONObject.quote((String) Folders.sidecars(MainActivity.this, a.getString("uri"), true));
           else if ("updateDownload".equals(method)) out = Updater.download(MainActivity.this, a).toString();
+          // podcast-epizód letöltése / törlése (az alkalmazás saját tárhelyén)
+          else if ("podDownload".equals(method)) out = PodFiles.download(MainActivity.this, a, !lanAllowed).toString();
+          else if ("podDelete".equals(method)) out = String.valueOf(PodFiles.delete(MainActivity.this, a.optString("path")));
           else if ("updateInstall".equals(method)) out = JSONObject.quote(Updater.install(MainActivity.this, a.getString("file")));
           else if ("lanGet".equals(method)) out = lanGet(a.getJSONArray("urls"), a.optInt("timeout", 2500)).toString();
           else if ("lanIps".equals(method)) out = new JSONArray(LanServer.localIps()).toString();

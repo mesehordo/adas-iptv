@@ -1312,7 +1312,7 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
 <ul><li><b>Áttekintés</b> – folytatás, új epizódok, sor, feliratkozások, legújabb részek, toplista (az elrendezés stílusában).</li>
 <li><b>Új epizódok</b> – a feliratkozások új részei (értesítéssel); mind meghallgatottnak jelölhető vagy a sorba tehető.</li>
 <li><b>Lejátszási sor</b> – a sorrend ▲ ▼ gombokkal; folyamatos lejátszásnál egy epizód végén a következő indul.</li>
-<li><b>Letöltések</b> (asztali gépen) – a letöltött epizód internet nélkül is szól; meghallgatás után a fájl törölhető (beállítás).</li>
+<li><b>Letöltések</b> (asztali gépen és Androidon) – a letöltött epizód internet nélkül is szól. A letöltött epizódnál a ⇩ helyett a kuka gomb törli a fájlt (az epizód a listákban marad); a Letöltések fülön látszik a foglalt hely, és egyszerre törölhetők a meghallgatottak vagy az összes. Meghallgatás után a fájl magától is törölhető (beállítás). Androidon a fájlok az alkalmazás saját tárhelyére kerülnek (az alkalmazás eltávolításakor törlődnek).</li>
 <li><b>Előzmények</b>, <b>Kedvencek</b> (★), <b>Statisztika</b> (műsoronként a hallgatási idő), <b>Beállítások</b>.</li></ul>
 <h2>A műsor oldala</h2>
 <p>Szűrők (meghallgatatlan, félbehagyott, meghallgatott, kedvenc, letöltött), keresés, rendezés. <b>A műsor beállításai</b>: saját sebesség, a bevezető és a zárórész átugrása (másodpercben), hangerő-erősítés, csend átugrása, értesítés, új epizódok automatikus letöltése.</p>

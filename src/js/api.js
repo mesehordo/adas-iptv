@@ -592,6 +592,9 @@ const androidApi = {
     androidProgress = cb;
   },
   saveFile: (name, text) => native('saveFile', { name, text }),
+  // Podcast-letöltés: az alkalmazás saját tárhelyére (a natív letöltő a helyi hálózati szabállyal); törlés
+  podDownload: (o) => native('podDownload', o),
+  podDelete: (p) => native('podDelete', { path: p }),
   // Háttérlejátszás (az első paraméter a megszűnt kép a képben módé – mindig false)
   setBackgroundPrefs(pip, audio) {
     try {

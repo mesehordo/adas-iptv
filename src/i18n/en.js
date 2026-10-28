@@ -2774,5 +2774,14 @@ export default {
  "Mélykék": "Deep blue",
  "Fedélzeti narancs": "Deck orange",
  "Jégkék kijelző": "Ice-blue display",
- "Acél és korall": "Steel and coral"
+ "Acél és korall": "Steel and coral",
+ "A letöltött fájl törölve: {title}": "Downloaded file deleted: {title}",
+ "{size} a tárhelyen": "{size} on storage",
+ "Meghallgatottak törlése ({n})": "Delete played ({n})",
+ "Összes törlése": "Delete all",
+ "Letöltött epizódok": "Downloaded episodes",
+ "{n} epizód, {size}": "{n} episodes, {size}",
+ "Törlöd mind a(z) {n} letöltött epizódot ({size})? Az epizódok a listákban maradnak, csak a fájl törlődik.": "Delete all {n} downloaded episodes ({size})? The episodes stay in your lists – only the files are deleted.",
+ "Törlöd a(z) {n} meghallgatott epizód letöltött fájlját?": "Delete the downloaded files of {n} played episodes?",
+ "{n} letöltött fájl törölve": "{n} downloaded files deleted"
 };

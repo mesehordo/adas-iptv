@@ -52,6 +52,10 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
+**Podcast-letöltés Androidon, letöltések törlése (1.33.1)**
+- **Letöltés Androidon is**: az epizódok az alkalmazás saját tárhelyére töltődnek (a helyi hálózati szabállyal, legfeljebb 2 GB / epizód, mindig marad 500 MB szabad hely), és internet nélkül, a natív lejátszóval szólnak; ha a fájl hiányzik, az eredeti címről.
+- **Külön törlés minden rendszeren**: a letöltött epizódnál a ⇩ helyett kuka gomb (az epizód a listákban marad); a Letöltések fülön a foglalt hely, *Meghallgatottak törlése* és *Összes törlése*; a Podcast-beállításokban is.
+
 **Felület-elrendezések, javítások telefonon, podcastok, olvashatóság (1.33.0)**
 - **Podcastok** (új menüpont, a Rádió oldalon is): keresés (Apple Podcasts, fyyd), toplista, RSS-cím, OPML-import és -export; feliratkozás profilonként; új epizódok értesítéssel; lejátszási sor; előzmények, kedvencek, statisztika; műsoronként szűrők és beállítások (sebesség, bevezető / zárórész átugrása, hangerő-erősítés, csend átugrása, értesítés, automatikus letöltés); lejátszó tekeréssel, ugrásokkal, sebességgel (0,75–3×), alvásidőzítővel, fejezetekkel, folytatással; letöltés asztali gépen; Androidon natív lejátszás (háttérben is).
 - **Felület-elrendezések** profilonként, a témától függetlenül (Beállítások → Megjelenés → Felület elrendezése, és a profil szerkesztésekor): *Klasszikus* (a mostani), *Mozi* (nagy kiemelt borító élő előnézettel), *Kirakat* (lapozó kiemelt sáv + nagy gombok a fő részekhez), *Polc* (a kijelölt csatorna tölti ki a hátteret, alul nagy kártyák – tévére), *Könyvtár* (oldalsó menü gyűjteményekkel és kedvencekkel, rögzített rádiósáv), *Csempék* (kiemelt borító + témakör-csempék), *Részletes* (csatornalista + adatlap a mai műsorral és a nézési idővel), *Gyűjtemény* (minden forrás egy helyen, szűrőkkel, rács- vagy listanézettel). Az oldalsó menü széles képernyőn látszik, telefonon a szokásos alsó menü marad.
