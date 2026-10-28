@@ -381,23 +381,31 @@ export function importOpml(xml) {
 // Letöltés (asztali gépen: a programmappa „podcasts” mappájába)
 // ---------------------------------------------------------------------------
 export const canDownload = () => !!api.podDownload && !IS_ANDROID;
-const downloading = new Map(); // kulcs → ígéret
-export const isDownloading = (key) => downloading.has(key);
+const downloading = new Map(); // profil + epizódkulcs → ígéret (profilonként külön letöltés)
+const dlKey = (prof, key) => (prof?.id || '') + '|' + key;
+/** Az aktív profil letölti-e most ezt az epizódot. */
+export const isDownloading = (key) => downloading.has(dlKey(store.profile, key));
 export function downloadEp(ep, prof = store.profile) {
-  if (!canDownload() || !prof || downloading.has(ep.key) || pod(prof).eps[ep.key]?.dl) return downloading.get(ep.key) || Promise.resolve();
+  const k = dlKey(prof, ep.key);
+  if (!canDownload() || !prof || downloading.has(k) || pod(prof).eps[ep.key]?.dl) return downloading.get(k) || Promise.resolve();
   const name = `${(ep.feedTitle || 'podcast').slice(0, 40)} - ${(ep.title || ep.key).slice(0, 80)}`;
   const p = api
     .podDownload({ url: ep.url, feed: ep.feed, name, key: ep.key, profile: prof.id || '' })
     .then((r) => {
+      // (a profilt közben törölték: a fájl sem marad meg)
+      if (!store.profiles.some((x) => x.id === prof.id)) {
+        api.podDelete?.(r.path).catch(() => {});
+        return r;
+      }
       // (a pillanatkép: a Letöltések akkor is mutatja, ha a folyamból / a sorból már kikerült)
       setState(ep.key, { dl: { path: r.path, url: r.url, size: r.size, ep: snap(ep) } }, prof);
       return r;
     })
     .finally(() => {
-      downloading.delete(ep.key);
+      downloading.delete(k);
       bus.emit('pod-dl', ep.key);
     });
-  downloading.set(ep.key, p);
+  downloading.set(k, p);
   bus.emit('pod-dl', ep.key);
   return p;
 }
