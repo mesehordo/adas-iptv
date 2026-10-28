@@ -249,7 +249,7 @@ select { cursor: pointer; }
 .thumb { position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius); overflow: hidden; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 30% 20%, hsl(var(--h) 45% 32%), hsl(var(--h) 40% 13%)); }
 .thumb .logo { max-width: 62%; max-height: 62%; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45)); }
 .initials { font-weight: 900; font-size: calc(var(--card-w) * 0.16); color: var(--thumb-ink, rgba(255, 255, 255, 0.9)); letter-spacing: 0.02em; }
-.thumb .q { position: absolute; top: 6px; right: 6px; font-size: 10px; font-weight: 800; background: rgba(0, 0, 0, 0.6); padding: 1px 5px; border-radius: 3px; border: 1px solid rgba(255, 255, 255, 0.35); }
+.thumb .q { position: absolute; top: 6px; right: 6px; font-size: 10px; font-weight: 800; background: rgba(0, 0, 0, 0.6); padding: 1px 5px; border-radius: 3px; border: 1px solid rgba(255, 255, 255, 0.35); color: #fff; }
 .thumb .st { position: absolute; top: 8px; left: 8px; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5); }
 .thumb .st-unknown { opacity: 0; }
 .thumb .fav-mark { position: absolute; bottom: 6px; right: 8px; color: #ffd54a; font-size: 14px; text-shadow: 0 1px 3px #000; }
@@ -558,7 +558,7 @@ select { cursor: pointer; }
 .g-prog b { font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .g-prog small { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
 .g-prog:hover, .g-prog:focus-visible { background: #3a3a3a; z-index: 2; }
-.g-prog.past { opacity: 0.5; }
+.g-prog.past { opacity: 0.7; }
 .g-prog.live { background: #3b1518; box-shadow: inset 3px 0 0 var(--accent); }
 .g-prog.live:hover { background: #4d1a1e; }
 .g-prog.rem::after { content: '🔔'; position: absolute; top: 4px; right: 6px; font-size: 10px; }
@@ -738,8 +738,10 @@ mark { background: rgba(255, 213, 74, 0.45); color: inherit; border-radius: 2px;
 .geo-mark { position: absolute; left: 6px; bottom: 6px; z-index: 2; font-size: 13px; line-height: 1; padding: 3px 4px; border-radius: 4px; background: rgba(0, 0, 0, 0.6); }
 .card.is-off .thumb .logo, .card.is-off .thumb .initials { filter: grayscale(1) brightness(0.75); opacity: 0.75; }
 .card.is-off .thumb { background: radial-gradient(circle at 30% 20%, hsl(var(--h) 6% 32%), hsl(var(--h) 6% 16%)); }
+.card.is-off .thumb .initials { color: rgba(255, 255, 255, 0.9); }
 .card.is-off .thumb .bar { display: none; }
 .off-text { color: var(--bad); font-weight: 600; }
+[data-tone="light"] .off-text { color: #b3261e; }
 .side-text .off-text { color: #ff6b6b; }
 
 /* ------------------------------------------------------------------ Profilképek */
@@ -989,6 +991,7 @@ mark { background: rgba(255, 213, 74, 0.45); color: inherit; border-radius: 2px;
 .wd-day { font-weight: 700; }
 .wd-ico { font-size: 22px; line-height: 1.2; }
 .wd-p { color: #54b9c5; font-size: 0.72rem; min-height: 1em; }
+[data-tone="light"] .wd-p { color: #1d7480; }
 .news-detail h2 { margin: 6px 0 10px; }
 .news-detail .nd-img { width: 100%; max-height: 260px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; }
 .spinner.small { width: 26px; height: 26px; margin: 20px auto; }
@@ -1041,7 +1044,7 @@ mark { background: rgba(255, 213, 74, 0.45); color: inherit; border-radius: 2px;
 .poster img + .ptitle { display: none; }
 .vdone { position: absolute; top: 8px; left: 8px; width: 22px; height: 22px; border-radius: 50%; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; color: #46d369; font-size: 14px; }
 .vcard .meta { padding: 6px 2px 0; }
-.vcard .name { font-size: 0.88rem; font-weight: 600; color: #e5e5e5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vcard .name { font-size: 0.88rem; font-weight: 600; color: var(--text-strong, #e5e5e5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vcard .sub { font-size: 0.76rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
 /* felugró panel a borító alján (a kártya saját szélességéből: 150cqw = a 2:3-as borító magassága) */
 .vcard .pop { position: absolute; left: 0; right: 0; top: calc(150cqw - 4px); background: var(--bg-2); border-radius: 0 0 var(--radius) var(--radius); padding: 10px 10px 12px; opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.7); font-size: 0.72rem; display: flex; flex-direction: column; gap: 6px; }

@@ -394,9 +394,17 @@ test('színváltozat: témánként válogatott paletták – legalább 3 változ
     const vs = THEME_VARIANTS[id];
     assert.ok(vs?.length >= 3, `${id}: ${vs?.length}`);
     assert.equal(new Set(vs.map((v) => v.id)).size, vs.length, id);
-    assert.ok(vs.every((v) => v.name() && (v.tint != null || v.map?.length)), id);
+    assert.ok(vs.every((v) => v.name() && (v.tint != null || v.map?.length || v.vars)), id);
   }
   assert.deepEqual(THEME_VARIANTS.contrast, []);
+  // (Uchūreki: pontos paletták – fekete alapon a sávszín, a sávon fekete felirat: mindegyik legalább 4,5:1)
+  const lum = (h) => {
+    const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  for (const v of THEME_VARIANTS.stardate) {
+    for (const k of ['accent', 'accent-2', 'lav', 'peach', 'sky', 'text', 'text-strong', 'muted']) assert.ok((lum(v.vars[k]) + 0.05) / 0.05 >= 4.5, `${v.id} ${k}`);
+  }
   // (Neon City szintihulláma: a neonsárgából élénk rózsaszín lesz, nem fakó pasztell; a szürke marad)
   const pink = variantColor('#fcee0a', THEME_VARIANTS.cyberpunk[0]);
   assert.ok(hueOf(pink) > 320 || hueOf(pink) < 10, pink);

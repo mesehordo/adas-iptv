@@ -154,6 +154,12 @@ export function variantsFor(accentHue, chosen = null) {
 // változat (a Kontraszt akadálymentességi okból).
 const V = (id, name, map, o = {}) => ({ id, name, map, ...o });
 const T = (id, name, tint, tint2) => ({ id, name, tint, tint2 });
+// pontos paletta (a téma színváltozói): [kiemelő, kiemelő 2, levendula sáv, barack sáv, égszín sáv, szöveg, kiemelt szöveg, halvány szöveg]
+const L = (id, name, [accent, accent2, lav, peach, sky, text, strong, muted], o = {}) => ({
+  id,
+  name,
+  vars: { accent, 'accent-2': accent2, lav, peach, sky, text, 'text-strong': strong, muted, focus: sky, ...(o.bg3 ? { 'bg-3': o.bg3, 'bg-4': o.bg4 } : {}) },
+});
 export const THEME_VARIANTS = {
   // Kurenai (bíborvörös esti mozi): a vörös más mozivászon-színekre
   netflix: [
@@ -174,7 +180,6 @@ export const THEME_VARIANTS = {
   skyshowtime: [
     V('deepsea', () => _t('Mélytenger'), [[289, 245], [315, 205], [0, 190]]),
     V('sunset', () => _t('Naplemente'), [[289, 25], [315, 55], [0, 70]]),
-    V('forest', () => _t('Erdei mágia'), [[289, 150], [315, 115], [0, 95]]),
     V('galaxy', () => _t('Galaxis'), [[289, 270], [315, 320], [0, 230]], { chroma: 1.1 }),
   ],
   // Akane (mélyvörös mozivászon)
@@ -277,12 +282,10 @@ export const THEME_VARIANTS = {
     V('blue', () => _t('Kék elöl'), [[30, 255], [255, 30], [90, 90]]),
     V('yellow', () => _t('Sárga elöl'), [[30, 90], [90, 30], [255, 255]]),
     V('secondary', () => _t('Másodlagos színek'), [[30, 55], [255, 145], [90, 310]]),
-    V('pastel', () => _t('Pasztell plakát'), [[30, 15], [255, 200], [90, 85]], { chroma: 0.55 }),
   ],
   // Kyokkō (sarki fény): az égbolt fényei
   aurora: [
     V('dawn', () => _t('Hajnalpír'), [[286, 15], [177, 75], [210, 45]]),
-    V('deepsea', () => _t('Mélytenger'), [[286, 255], [177, 195], [210, 225]]),
     V('forest', () => _t('Erdei fény'), [[286, 150], [177, 105], [210, 170]]),
     V('nebula', () => _t('Köd'), [[286, 330], [177, 290], [210, 350]], { chroma: 1.1 }),
   ],
@@ -355,7 +358,7 @@ export const THEME_VARIANTS = {
   holo: [
     V('redalert', () => _t('Vörös riadó'), [[222, 25]]),
     V('amber', () => _t('Borostyán'), [[222, 70]]),
-    V('matrix', () => _t('Mátrix'), [[222, 145]]),
+    V('matrix', () => _t('Zöld adatfolyam'), [[222, 145]]),
     V('stealth', () => _t('Lopakodó'), [[222, 285]], { chroma: 0.9 }),
     V('ice', () => _t('Jéghideg'), [[222, 195]], { chroma: 0.7 }),
   ],
@@ -373,22 +376,26 @@ export const THEME_VARIANTS = {
     V('mint', () => _t('Menta macaron'), [[355, 165], [305, 330], [5, 350]]),
     V('moonlit', () => _t('Holdfényes kék'), [[355, 230], [305, 260], [5, 210]], { chroma: 0.9 }),
   ],
-  // Uchūreki: a parancsnoki híd kezelőfelületének (LCARS) színkombinációi különböző korszakokból és hajókról –
-  // a narancs / barack / rózsaszín / levendula / arany sávok átszínezve (a sávok világossága marad)
+  // Uchūreki: a parancsnoki híd kezelőfelületének (LCARS) színkombinációi – a különböző korszakok kijelzőinek pontos
+  // palettái (nem átszínezés): a téma színváltozói cserélődnek. A sávokon fekete a felirat, a fekete alapon a sávszín:
+  // minden szín legalább 4,5:1 kontrasztú a feketével.
   stardate: [
-    // vészhelyzetek
-    V('redalert', () => _t('Vörös riadó'), [[65, 25], [45, 15], [330, 350], [285, 330], [75, 35]]),
-    V('bluealert', () => _t('Kék riadó'), [[65, 250], [45, 235], [330, 205], [285, 280], [75, 260]]),
-    // űrállomás: okker, rozsda, téglavörös és halvány tengerzöld
-    V('station', () => _t('Állomás'), [[65, 75], [45, 40], [330, 25], [285, 195], [75, 85]], { chroma: 0.8 }),
-    // messzi út: hidegebb kék–lila sávok, homokszín kísérővel
-    V('voyage', () => _t('Messzi út'), [[65, 255], [45, 60], [330, 300], [285, 225], [75, 240]], { chroma: 0.9 }),
-    // a későbbi korszak hajói: acélkék és türkiz, borostyán jelzőfény
-    V('titan', () => _t('Titán'), [[65, 232], [45, 70], [330, 195], [285, 250], [75, 205]], { chroma: 0.75 }),
-    // régi flotta: pasztell zöldeskék és krém, mint a korai, tompa kijelzők
-    V('oldfleet', () => _t('Régi flotta'), [[65, 175], [45, 85], [330, 205], [285, 150], [75, 95]], { chroma: 0.6 }),
-    // gyűjtőhajó: zöld kijelzőfény sötét alapon
-    V('collective', () => _t('Kollektíva'), [[65, 140], [45, 125], [330, 150], [285, 160], [75, 135]], { chroma: 1.05 }),
+    // a klasszikus paletta tompább, mályvás változata
+    L('mauve', () => _t('Mályva'), ['#eb943a', '#ea9c72', '#c082a9', '#fcc19f', '#8899ff', '#fcc19f', '#edb378', '#baa4e5']),
+    // mélykék: kék sávok, homok- és mézszín kísérővel
+    L('deepblue', () => _t('Mélykék'), ['#6699ff', '#88bbff', '#88bbff', '#d29270', '#ffcc99', '#ebf0ff', '#88bbff', '#b88b5c'], { bg3: '#10162a', bg4: '#18203a' }),
+    // fedélzeti narancs: egyszínű narancs–méz sávok
+    L('amberdeck', () => _t('Fedélzeti narancs'), ['#ff7700', '#ff9911', '#ffaa44', '#ffcc99', '#ffeecc', '#ffcc99', '#ffaa44', '#ff9911']),
+    // kézi kijelző: jégkék sávok éjkék alapon
+    L('padd', () => _t('Jégkék kijelző'), ['#66ccff', '#99ccff', '#5588ee', '#7799dd', '#88eeff', '#99ccff', '#f3f3fc', '#7799dd'], { bg3: '#141c30', bg4: '#1d2740' }),
+    // késői korszak: acélszürke és kék sávok, korall kiemelés
+    L('steel', () => _t('Acél és korall'), ['#ff977b', '#ff6753', '#41c4f7', '#9ea5ba', '#37a6d1', '#d2d5df', '#f3f4f7', '#9ea5ba'], { bg3: '#1a2030', bg4: '#2f3749' }),
+    // messzi út: parancsnoki arany, égkék és földszín
+    L('voyage', () => _t('Messzi út'), ['#ffbb33', '#fb9004', '#70b5ff', '#cc9966', '#99ccff', '#ffe1ca', '#ffbb33', '#bec2cf']),
+    // állomás: rozsda, téglavörös, okker és szürkéslila
+    L('station', () => _t('Állomás'), ['#cc9966', '#ddaa77', '#cc6666', '#9999cc', '#c47d69', '#ffcc99', '#ffcc66', '#c082a9']),
+    // vészhelyzet: vörös sávok
+    L('redalert', () => _t('Vörös riadó'), ['#ff3300', '#ff6644', '#cc6666', '#e98181', '#ff9988', '#ffccbb', '#ff6644', '#e98181']),
   ],
 };
 
@@ -445,6 +452,7 @@ function swatchCss(theme, v) {
     const acc = fmt([...oklchToRgb(0.62, 0.17, v.tint), 1]);
     return `${vSel} i:first-child { background: ${acc} }`;
   }
+  if (v.vars) return `${vSel} i { background: ${v.vars.lav} } ${vSel} i:first-child { background: ${v.vars.accent} } ${vSel} i:nth-child(3) { background: ${v.vars.sky} } ${vSel} span { color: ${v.vars.accent} }`;
   const out = [];
   for (const sheet of document.styleSheets) {
     if (sheet.ownerNode?.id === 'theme-variant-preview') continue;
@@ -469,11 +477,14 @@ function swatchCss(theme, v) {
 // szabályait is (pl. a kitöltött „elsődleges” gombot egy halvány általános gombháttér).
 const saved = []; // [{ style, prop, value, prio }]
 let applied = '';
+let varsSet = []; // (a pontos palettás változat által beállított színváltozók)
 function restore() {
   for (const s of saved) s.style.setProperty(s.prop, s.value, s.prio);
   saved.length = 0;
   document.body.style.removeProperty('--accent');
   document.body.style.removeProperty('--accent-2');
+  for (const k of varsSet) document.body.style.removeProperty(k);
+  varsSet = [];
 }
 function recolorInPlace(style, v, only) {
   for (let i = 0; i < style.length; i++) {
@@ -502,6 +513,14 @@ export function applyVariantCss(theme, variant) {
     const light = document.body.dataset.tone === 'light';
     document.body.style.setProperty('--accent', fmt([...oklchToRgb(light ? 0.55 : 0.66, 0.17, variant.tint), 1]));
     document.body.style.setProperty('--accent-2', fmt([...oklchToRgb(light ? 0.62 : 0.74, 0.15, variant.tint2 ?? variant.tint), 1]));
+    return;
+  }
+  if (variant.vars) {
+    // pontos paletta: a téma színváltozói (a téma szabályai ezekből dolgoznak)
+    for (const [k, val] of Object.entries(variant.vars)) {
+      document.body.style.setProperty('--' + k, val);
+      varsSet.push('--' + k);
+    }
     return;
   }
   const tSel = `[data-theme="${theme}"]`;

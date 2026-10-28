@@ -226,6 +226,28 @@ export function applyTheme(forced = null) {
   else delete document.body.dataset.variant;
   applyVariantCss(id, variant);
   fitThumbInk();
+  fitOnAccent();
+}
+
+const relLum = (r, g, b) => {
+  const lin = (v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+};
+/**
+ * A kiemelőszínű felületeken (pl. a kiválasztott menüpont háttere) a felirat színe: világos kiemelőn sötét, sötéten
+ * fehér – a változat és a saját téma kiemelőszínéhez is (--on-accent).
+ */
+function fitOnAccent() {
+  const body = document.body;
+  body.style.removeProperty('--on-accent');
+  const probe = document.createElement('i');
+  probe.style.cssText = 'position:absolute;left:-9999px;color:var(--accent)';
+  body.append(probe);
+  const [r, g, b] = (getComputedStyle(probe).color.match(/[\d.]+/g) || []).map(Number);
+  probe.remove();
+  if (r == null) return;
+  // (a fekete és a fehér betű kontrasztja kb. 0,18-as világosságnál egyezik)
+  body.style.setProperty('--on-accent', relLum(r, g, b) > 0.18 ? '#111' : '#fff');
 }
 
 /**
@@ -241,12 +263,12 @@ function fitThumbInk() {
   probe.innerHTML = '<div class="thumb" style="--h:210"><span class="initials">AB</span></div>';
   document.body.append(probe);
   const th = getComputedStyle(probe.firstChild);
-  const col = (/rgba?\([^)]+\)/.exec(th.backgroundImage) || [])[0] || th.backgroundColor;
+  // (színátmenetnél a színek átlaga – a betű a kártya közepén van, nem a legvilágosabb sarkán)
+  const cols = th.backgroundImage.match(/rgba?\([^)]+\)/g) || [th.backgroundColor];
   probe.remove();
-  const [r, g, b, a = 1] = (col.match(/[\d.]+/g) || []).map(Number);
-  if (!(a > 0.4)) return; // (átlátszó háttér: a lap hátteréhez nem igazítunk)
-  const lin = (v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
-  const lum = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  const vals = cols.map((c) => (c.match(/[\d.]+/g) || []).map(Number)).filter((v) => v.length >= 3);
+  if (!vals.length || !vals.every(([, , , a = 1]) => a > 0.4)) return; // (átlátszó háttér: a lap hátteréhez nem igazítunk)
+  const lum = vals.reduce((s, [r, g, b]) => s + relLum(r, g, b), 0) / vals.length;
   // (a fehér és a sötét betű kontrasztja kb. 0,22-es világosságnál egyezik: fölötte a sötét olvashatóbb)
   if (lum > 0.22) root.style.setProperty('--thumb-ink', 'rgba(20, 20, 20, 0.72)');
 }
