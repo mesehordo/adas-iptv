@@ -487,7 +487,7 @@ export function renderSearch(view, params) {
   const chans = search(q);
   const vis = new Set(visible().map((c) => c.id));
   const progs = homeFirst(
-    epg.searchPrograms(tokens).filter((x) => vis.has(x.channelId)),
+    epg.searchPrograms(tokens, 60, (id) => vis.has(id)),
     (x) => homeRank(catalog.byId.get(x.channelId))
   );
   // (a filmek / sorozatok listája csak később töltődik be – kereséskor azonnal; a végén újrarajzol: app.js)

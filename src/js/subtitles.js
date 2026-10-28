@@ -530,6 +530,17 @@ async function useResult(video, ch, res) {
 }
 
 /** Felirat betöltése szövegből (helyi fájl, behúzott fájl). */
+// (J12) a kézzel választott felirat megmarad a filmhez (profilonként): a választás a profilban, a szöveg a
+// dokumentumtárban (nem a beállítások közt – egy felirat akár több száz kB)
+const manualKey = (key) => `subman:${store.profile?.id || ''}:${key}`;
+function rememberManual(ch, text, name) {
+  if (!ch?.vod?.key || !text) return;
+  const p = store.profile;
+  p.vodSubs ||= {};
+  p.vodSubs[ch.vod.key] = { manual: String(name || _t('Saját felirat')).slice(0, 120) };
+  store.save();
+  api.docSet?.(manualKey(ch.vod.key), { text: String(text).slice(0, 2e6), at: Date.now() }).catch?.(() => {});
+}
 export function applyText(video, text, label) {
   pickSeq++; // (ez is új választás: egy függő letöltés nem írhatja felül)
   const cues = parseSubs(text);
@@ -555,6 +566,9 @@ export function applyText(video, text, label) {
     if (!/\.(srt|vtt|txt)$/i.test(f.name)) return toast(_t('Csak .srt vagy .vtt feliratfájl húzható ide.'));
     const gen = ++dropGen;
     const ch = player.channel;
+    // (ez is feliratválasztás: a közben választott Kikapcsolva / másik felirat, vagy egy új munkamenet érvényteleníti)
+    const pick = ++pickSeq;
+    const my = session;
     let text;
     try {
       // (bájtként: a régi, Windows-1250 kódolású magyar felirat ékezetei is helyesek – a f.text() mindig UTF-8)
@@ -563,8 +577,9 @@ export function applyText(video, text, label) {
       return gen === dropGen && toast(_t('A feliratfájl nem olvasható.'));
     }
     // (az olvasás közben a felhasználó másik filmre válthatott, bezárhatta a lejátszót, vagy újabb fájlt húzott be)
-    if (gen !== dropGen || player.channel !== ch || !player.active) return;
+    if (gen !== dropGen || pick !== pickSeq || my !== session || player.channel !== ch || !player.active) return;
     applyText(document.getElementById('video'), text, f.name);
+    rememberManual(ch, text, f.name);
   });
 }
 
@@ -676,7 +691,12 @@ player.subsHooks = {
         state.sidecars = found;
       }
       if (!live()) return;
-      if (saved?.sidecar) {
+      if (saved?.manual) {
+        // (J12) a kézzel betöltött / behúzott felirat: a szövege a dokumentumtárban, a filmhez és a profilhoz kötve
+        const t = await api.docGet?.(manualKey(ch.vod.key)).catch(() => null);
+        if (!live()) return;
+        if (t?.text) return void applyText(video, t.text, saved.manual);
+      } else if (saved?.sidecar) {
         const sc = state.sidecars.find((x) => x.name === saved.sidecar);
         if (sc) return void applyText(video, sc.text, sc.name);
       } else if (saved) {
@@ -886,6 +906,7 @@ player.subsHooks = {
           if (!cues.length) return toast(_t('A fájl nem tartalmaz feliratot.'));
           eng.setTextTrack('');
           apply(video, cues, f.name);
+          if (isVod) rememberManual(ch, f.text, f.name);
           menu.hidden = true;
         } else if (a === 'off-' || a === 'off+') {
           state.offset += a === 'off+' ? 0.5 : -0.5;

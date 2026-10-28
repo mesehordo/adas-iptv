@@ -762,7 +762,20 @@ function keepRanges(start, end, cuts = []) {
  * (A kezdet a legközelebbi előző kulcskockára esik – a kép így hibátlan marad. A kivágott részek után a kép csak
  * kulcskockától indulhat: ott a folytatás a vége utáni első kulcskockára kerül, így a reklámból nem marad benne.)
  */
-async function recTrim(p, start, end, cuts = []) {
+// (J04) fájlonkénti sorba állítás: a vágás, a visszaállítás és a törlés ugyanazon a felvételen nem futhat egyszerre –
+// különben egy még futó vágás a közben visszaállított eredeti helyére írhatna, és az eredeti elveszne
+const recLocks = new Map();
+function withRecLock(p, fn) {
+  const k = path.resolve(p).toLowerCase();
+  const run = (recLocks.get(k) || Promise.resolve()).catch(() => {}).then(fn);
+  const tail = run.catch(() => {});
+  recLocks.set(k, tail);
+  tail.then(() => recLocks.get(k) === tail && recLocks.delete(k));
+  return run;
+}
+const recTrim = (p, start, end, cuts = []) => withRecLock(p, () => recTrimRaw(p, start, end, cuts));
+const recRestore = (p) => withRecLock(p, () => recRestoreRaw(p));
+async function recTrimRaw(p, start, end, cuts = []) {
   if (!FF) throw new Error(_t('Az FFmpeg nem érhető el.'));
   start = Math.max(0, +start || 0);
   end = +end || 0;
@@ -840,7 +853,7 @@ async function recTrim(p, start, end, cuts = []) {
 }
 
 /** Az eredeti visszaállítása (a vágás elvetése). */
-async function recRestore(p) {
+async function recRestoreRaw(p) {
   const orig = originalOf(p);
   if (!fs.existsSync(orig)) return false;
   assertNotRecording(p);
@@ -872,7 +885,6 @@ async function recDetect(p, onProgress) {
     await ffRun(['-hide_banner', '-nostdin', '-i', file, '-t', '0', '-f', 'null', '-'], { onSpawn, onLine: (l) => (info += l + '\n') }).catch((e) => (probeErr = e));
     check();
     const pi = parseInfo(info);
-    const base = +(/Duration:.*?, start: (-?[\d.]+)/.exec(info) || [])[1] || 0;
     if (!pi.audio.length && !pi.video.length) {
       const why = (/(Invalid data found[^\r\n]*|No such file[^\r\n]*|Permission denied[^\r\n]*)/.exec(info) || [])[1] || probeErr?.message || info.trim().split(/\r?\n/).pop();
       throw new Error(`${_t('a fájl nem elemezhető')}${why ? ` (${why})` : ''}`);
@@ -911,19 +923,24 @@ async function recDetect(p, onProgress) {
         for (let i = 0; i < list.length; i++) {
           const [s, e] = list[i];
           const from = Math.max(0, s - 5);
-          let black = null;
+          const found = [];
           await ffRun(['-hide_banner', '-nostdin', '-ss', from.toFixed(3), '-i', file, '-t', (Math.min(10, e - s) + 7.6).toFixed(3), '-map', '0:v:0', '-an', '-sn', '-vf', 'scale=64:-2,blackdetect=d=0:pix_th=0.12', '-f', 'null', '-'], {
             onSpawn,
             onLine: (l) => {
+              // (J03) a bemeneti tekerés után a kimenet ideje a tekerés pontjától, 0-tól számít – a fájl kezdőideje
+              // (base) itt már nincs benne, nem vonjuk le újra
               const m = /black_start:(-?[\d.]+) black_end:(-?[\d.]+)/.exec(l);
-              if (m && !black) black = [from + Math.max(0, +m[1] - base), from + Math.max(0, +m[2] - base)];
+              if (m) found.push([from + Math.max(0, +m[1]), from + Math.max(0, +m[2])]);
             },
           }).catch((err) => {
             check();
             throw err;
           });
           check();
-          if (black) blacks.push(black);
+          // (a csenddel átfedő fekete szakasz; ennek híján a hozzá legközelebbi)
+          const gap = ([b0, b1]) => (b1 < s ? s - b1 : b0 > e ? b0 - e : 0);
+          const black = found.sort((x, y) => gap(x) - gap(y))[0];
+          if (black && gap(black) <= 2) blacks.push(black);
           progress(70 + ((i + 1) / list.length) * 30);
         }
       }
@@ -963,7 +980,7 @@ function recDetectStop(p) {
 
 module.exports = {
   init, available: () => !!FF, status, probe, start, stop, stopAll, cover, parseInfo,
-  recStart, recStop, recList, recTrim, recRestore, recDetect, recDetectStop, keepRanges, recSource, originalOf, isRecording, recStopAll: () => [...recordings.keys()].forEach(recStop),
+  recStart, recStop, recList, recTrim, recRestore, withRecLock, recDetect, recDetectStop, keepRanges, recSource, originalOf, isRecording, recStopAll: () => [...recordings.keys()].forEach(recStop),
   // a futó felvételek (a felület újratöltése után ebből veszi vissza őket): [{ id, file, started, until, meta }]
   recActive: () => [...recordings.entries()].map(([id, r]) => ({ id, file: r.file, started: r.started, until: r.until, meta: r.meta })),
   _test: { inputOf, ensureServer, srcCount: () => srcUrls.size, freeBytes },

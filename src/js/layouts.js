@@ -1,6 +1,6 @@
 // Felület-elrendezések megjelenítése (a definíciók és a body-jelölés a layoutdefs.js-ben).
 // A Főoldal (és a Részletes / Gyűjtemény elrendezésben a TV oldal) elrendezésenként más; a többi oldal közös.
-import { menuOn } from './menus.js';
+import { menuOn, menuShown } from './menus.js';
 import { esc, html, hashHue, fmtTime, bus, debounce, seededShuffle, norm } from './util.js';
 import { api } from './api.js';
 import { store } from './store.js';
@@ -242,7 +242,7 @@ function appRowEl() {
     radioMenuOn() && ['radio', '#/radio', _t('Rádió')],
     menuOn('vod') && ['vod', '#/vod', _t('VOD')],
     sportMenuOn() && ['sport', '#/sport', _t('Sport')],
-    menuOn('favorites') && ['favorites', '#/favorites', _t('Kedvencek')],
+    menuShown('favorites') && ['favorites', '#/favorites', _t('Kedvencek')],
     ['recordings', '#/recordings', _t('Felvételek'), REC_ICO],
   ].filter(Boolean);
   return html(`<section class="app-row" aria-label="${_t('Fő részek')}">${items
@@ -731,7 +731,7 @@ function sections() {
     radioMenuOn() && ['radio', '#/radio', _t('Rádió'), navIcon('radio')],
     menuOn('vod') && ['vod', '#/vod', _t('VOD'), navIcon('vod')],
     sportMenuOn() && ['sport', '#/sport', _t('Sport'), navIcon('sport')],
-    menuOn('favorites') && ['favorites', '#/favorites', _t('Kedvencek'), navIcon('favorites')],
+    menuShown('favorites') && ['favorites', '#/favorites', _t('Kedvencek'), navIcon('favorites')],
     ['recordings', '#/recordings', _t('Felvételek'), REC_ICO],
     ['settings', '#/settings', _t('Beállítások'), navIcon('settings')],
   ].filter(Boolean);

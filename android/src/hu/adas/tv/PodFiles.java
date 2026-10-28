@@ -66,8 +66,8 @@ final class PodFiles {
   }
 
   /** Írás közben: elég-e a hely a következő szakaszhoz – a többi letöltés foglalását levonva (a sajátot nem). */
-  private static synchronized boolean roomFor(File d, long own) {
-    return d.getUsableSpace() - (reserved - own) - STEP >= RESERVE;
+  private static synchronized boolean roomFor(File d, long own, long step) {
+    return d.getUsableSpace() - (reserved - own) - step >= RESERVE;
   }
 
   /** A félbemaradt (pl. az alkalmazás leállásakor megszakadt) letöltések maradéka – a most futókét nem bántja. */
@@ -134,7 +134,9 @@ final class PodFiles {
           if (size + n > MAX) throw new IOException("Túl nagy fájl");
           if (size + n - checked > STEP) {
             checked = size;
-            if (!roomFor(d, held)) throw new IOException("Kevés a szabad hely");
+            // (ismert méretnél a következő szakasz legfeljebb a hátralévő rész)
+            long step = len > 0 ? Math.min(STEP, Math.max(0, len - size)) : STEP;
+            if (!roomFor(d, held, step)) throw new IOException("Kevés a szabad hely");
           }
           out.write(buf, 0, n);
           size += n;

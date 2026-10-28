@@ -6,7 +6,7 @@ import { catalog, loadCatalog, catalogRefreshDue, reloadLists } from './catalog.
 import { epg } from './epg.js';
 import { player } from './player.js';
 import { ICON, closeTopModal, modalOpen, topModalEl, openProgram, openInfo, confirmDialog, avatarHtml, emptyState } from './components.js';
-import { MENU_ITEMS, menuOn, isMenuKey, menuOfKey } from './menus.js';
+import { MENU_ITEMS, menuOn, menuShown, isMenuKey, menuOfKey } from './menus.js';
 import { initPodcasts } from './podcast.js';
 import { applyTheme } from './themes.js';
 import { refreshAll, refreshing } from './refresh.js';
@@ -163,7 +163,8 @@ function route({ keepScroll = false } = {}) {
   if (name === 'sport' && !sportMenuOn()) return void location.replace('#/home');
   if (name === 'radio' && !radioMenuOn()) return void location.replace('#/home');
   // (a Főoldal – és egyes elrendezésekben a TV oldal – az elrendezéstől függ)
-  const fn = layoutRoute(name) || routeFn(name);
+  // (kikapcsolt menüpontnál az elrendezés saját oldala sem – a tájékoztató oldal jön)
+  const fn = (menuOn(name) && layoutRoute(name)) || routeFn(name);
   if (name !== 'tv') leaveHome();
   const full = location.hash;
   const sameRoute = full === currentRoute;
@@ -239,7 +240,7 @@ bus.on('profile-layout', () => {
 const applyMenus = () => {
   for (const [id] of MENU_ITEMS()) {
     const a = $(`.links a[data-route="${id}"]`, nav);
-    if (a) a.hidden = !menuOn(id);
+    if (a) a.hidden = !menuShown(id);
   }
 };
 const applySportMenu = applyMenus;
@@ -256,7 +257,7 @@ bus.on('settings', (k) => {
     else if (id === 'podcast') initPodcasts().catch(() => {});
     if (id === 'radio' && !catalog.channels.length && epg.loadedAt === 0) epg.load();
   }
-  if (started && parseHash().name === id) rerender();
+  if (started && parseHash().name === id) route({ keepScroll: true });
 });
 bus.on('profile', applyMenus);
 // betöltött adók: a rádió főoldala újrarajzolódik (a böngészés és a keresés mezői nem)

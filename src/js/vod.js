@@ -254,10 +254,11 @@ const attr = (v) => String(v || '').replace(/"/g, "'");
 export function combinePlaylists(files) {
   const parsed = files
     .filter((f) => PLAYLIST_RX.test(f.name))
-    .map((f) => ({ name: f.name, entries: parseM3U(f.text).entries.filter((e) => e.url) }))
+    .map((f) => ({ name: f.name, text: f.text, entries: parseM3U(f.text).entries.filter((e) => e.url) }))
     .filter((f) => f.entries.length);
   if (!parsed.length) return { text: '', entries: 0, files: 0 };
-  if (parsed.length === 1) return { text: files.find((f) => f.name === parsed[0].name).text, entries: parsed[0].entries.length, files: 1, mode: 'single' };
+  // (J07) a feldolgozott fájl saját szövege – név szerinti visszakeresés helyett (azonos nevű fájlok is lehetnek)
+  if (parsed.length === 1) return { text: parsed[0].text, entries: parsed[0].entries.length, files: 1, mode: 'single' };
   const seen = new Map(); // url -> fájlok száma
   for (const f of parsed) for (const u of new Set(f.entries.map((e) => e.url))) seen.set(u, (seen.get(u) || 0) + 1);
   const total = parsed.reduce((n, f) => n + f.entries.length, 0);
@@ -841,7 +842,8 @@ function loadLib(lib, { force = false, recheck = false } = {}) {
       // A Saját részlegnél előbb a forrásmappák átnézése (új / eltűnt lejátszólisták).
       if (lib === own) await scanOwnSources({ force });
       // Az online VOD a csatornalistákban talált filmeket is tartalmazza: megvárjuk a csatornalistát.
-      if (lib === vod && !catalog.ready) {
+      // (kikapcsolt TV menüpontnál a csatornalista nem töltődik – nincs mire várni)
+      if (lib === vod && !catalog.ready && menuOn('tv')) {
         await new Promise((r) => {
           const off = bus.on('tv-vod', () => (off?.(), r()));
           setTimeout(r, 30000);
@@ -1113,9 +1115,10 @@ export async function openInExternalPlayer(item, ep = null) {
   if (item.type === 'series') {
     ep ||= nextEpisodeOf(item).ep;
     const i = Math.max(0, item.episodes.findIndex((e) => e.key === ep.key));
-    items = item.episodes.slice(i, i + 60).map((e) => ({ url: e.urls[0], title: `${item.title} – ${epLabel(e)}${e.title ? ' – ' + e.title : ''}` }));
+    // (J08) a forrás által kért fejlécek (User-Agent, Referer) részenként a külső lejátszónak is
+    items = item.episodes.slice(i, i + 60).map((e) => ({ url: e.urls[0], title: `${item.title} – ${epLabel(e)}${e.title ? ' – ' + e.title : ''}`, ua: e.ua || item.ua || '', referrer: e.referrer || item.referrer || '' }));
     saveProgress(item.id, 0, 0, { last: ep.key });
-  } else items = [{ url: item.urls[0], title: item.title + (item.year ? ` (${item.year})` : '') }];
+  } else items = [{ url: item.urls[0], title: item.title + (item.year ? ` (${item.year})` : ''), ua: item.ua || '', referrer: item.referrer || '' }];
   player.active && player.close();
   const err = await api.openInPlayer(items, item.title);
   if (err) toast(`${_t('Nem sikerült megnyitni: {err}. Telepíts egy videólejátszót (pl. VLC), és társítsd az .m3u fájlokhoz.', { err })}`, { timeout: 9000 });

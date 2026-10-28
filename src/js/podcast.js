@@ -284,7 +284,7 @@ export async function refreshFeed(url, { force = false, profile = null } = {}) {
       d.inbox = [...fresh.map(snap), ...d.inbox.filter((x) => !fresh.some((e) => e.key === x.key))].slice(0, 300);
       bus.emit('pod-new', { feed: f, eps: fresh, profile: prof });
       // (értesítés csak a most aktív profil műsoráról)
-      if (sub.set?.notify !== false && store.profile?.id === prof.id) api.notify?.({ title: f.title, body: fresh.length > 1 ? _t('{n} új epizód: {title}', { n: fresh.length, title: fresh[0].title }) : _t('Új epizód: {title}', { title: fresh[0].title }) });
+      if (sub.set?.notify !== false && store.profile?.id === prof.id && menuOn('podcast')) api.notify?.({ title: f.title, body: fresh.length > 1 ? _t('{n} új epizód: {title}', { n: fresh.length, title: fresh[0].title }) : _t('Új epizód: {title}', { title: fresh[0].title }) });
     }
     savePod();
   }
@@ -303,7 +303,8 @@ export function refreshAll({ force = false } = {}) {
     const errors = [];
     await Promise.all(
       Array.from({ length: Math.min(4, list.length) }, async () => {
-        while (i < list.length) {
+        // (a menüpont közbeni kikapcsolásakor a még sorra nem került folyamok már nem töltődnek)
+        while (i < list.length && menuOn('podcast')) {
           const u = list[i++];
           await refreshFeed(u, { force, profile: prof }).catch((e) => errors.push([u, e.message || String(e)]));
         }

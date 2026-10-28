@@ -180,7 +180,8 @@ const SPORT_POD_RX = /sport|foci|futball|football|soccer|forma[- ]?1|\bf1\b|nba|
 function podcastRows() {
   if (!menuOn('podcast') || !store.profile) return '';
   const rx = sportRx();
-  const ok = (t) => SPORT_POD_RX.test(t) && (!rx || rx.test(norm(t)));
+  // (választott sportágnál annak kulcsszava elég; egyébként az általános sport-minta)
+  const ok = (t) => (rx ? rx.test(norm(t)) : SPORT_POD_RX.test(t));
   const subs = pod().subs.filter((s) => ok(`${s.title} ${s.author || ''}`));
   const extra = (podFound || []).filter((s) => !subs.some((x) => x.url === s.url) && (!rx || rx.test(norm(`${s.title} ${s.genre || ''}`))));
   return [...subs.map((s) => ({ ...s, sub: true })), ...extra]
@@ -311,8 +312,10 @@ function bind(view) {
     }
     const rs = e.target.closest('[data-sp-radio]');
     if (rs) {
-      const s = sportRadios().find((x) => x.id === rs.dataset.spRadio) || radio.byId.get(rs.dataset.spRadio);
-      if (s) radioPlayer.play(s, sportRadios());
+      const list = sportRadios();
+      const s = list.find((x) => x.id === rs.dataset.spRadio) || radio.byId.get(rs.dataset.spRadio);
+      // (a léptetéshez: a lista tartalmazza az indított adót is)
+      if (s) radioPlayer.play(s, list.some((x) => x.id === s.id) ? list : [s, ...list]);
       return;
     }
     const chip = e.target.closest('[data-sp-chip]');

@@ -289,7 +289,10 @@ function key(k) {
   const t = document.activeElement || document.body;
   const ev = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true });
   t.dispatchEvent(ev);
-  if (k === 'Enter' && !ev.defaultPrevented && t !== document.body && t.click) t.click();
+  // (rövid nyomás: a felengedés is – a keyup-ra induló elemek, pl. a rádiókártya, különben hosszú nyomásnak vennék)
+  const up = new KeyboardEvent('keyup', { key: k, bubbles: true, cancelable: true });
+  t.dispatchEvent(up);
+  if (k === 'Enter' && !ev.defaultPrevented && !up.defaultPrevented && t !== document.body && t.click) t.click();
 }
 
 /**

@@ -20,10 +20,14 @@ const NO_KIDS = new Set(['radio', 'podcast', 'sport']);
 /** Látszik-e (és fut-e) a szolgáltatás. */
 export function menuOn(id) {
   const k = Object.prototype.hasOwnProperty.call(KEY, id) ? KEY[id] : null;
+  // (a Kedvencek kikapcsolva csak a menüből tűnik el – az oldala és a rá mutató hivatkozások továbbra is működnek)
+  if (id === 'favorites') return true;
   if (!k) return true;
   if (store.settings?.[k] === false) return false;
   return !(NO_KIDS.has(id) && store.profile?.kids);
 }
 /** A beállításkulcs menüponthoz tartozik-e (a változásra a menü és a betöltés igazodik). */
 export const isMenuKey = (k) => Object.values(KEY).includes(k);
+/** Látszik-e a menüpont (a Kedvencek oldala kikapcsolt menüpontnál is elérhető, csak a menüben nincs). */
+export const menuShown = (id) => (id === 'favorites' ? store.settings?.favoritesMenu !== false : menuOn(id));
 export const menuOfKey = (k) => Object.keys(KEY).find((id) => KEY[id] === k) || '';
