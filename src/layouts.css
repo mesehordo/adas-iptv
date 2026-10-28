@@ -468,7 +468,8 @@
   body[data-layout="tiles"] #nav, body[data-layout="tiles"] #nav.solid { right: auto; bottom: 0; width: 76px; height: auto; flex-direction: column; align-items: stretch; gap: 14px; padding: 18px 10px;
     background: linear-gradient(90deg, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.55)) !important; transition: width 0.2s, background 0.2s; overflow: hidden; }
   body[data-layout="tiles"] #nav:hover, body[data-layout="tiles"] #nav:focus-within { width: 230px; background: rgba(0, 0, 0, 0.94) !important; }
-  body[data-layout="tiles"] #nav .brand { font-size: 1rem; text-align: center; }
+  body[data-layout="tiles"] #nav .brand { font-size: 1rem; text-align: center; max-width: 100%; box-sizing: border-box; overflow: hidden; text-overflow: clip; }
+  body[data-layout="tiles"][data-theme="stardate"] #nav .brand { padding: 2px 6px; border-radius: 0 12px 12px 0; font-size: 0.82rem; letter-spacing: 0; }
   body[data-layout="tiles"] #nav .links { flex: none; flex-direction: column; gap: 4px; margin: 20px 0 0; }
   body[data-layout="tiles"] #nav .links a { display: flex !important; align-items: center; gap: 18px; padding: 12px 16px !important; margin: 0 !important; border: 0 !important; border-radius: 10px; white-space: nowrap; color: #ccc !important; }
   body[data-layout="tiles"] #nav .links a.active, body[data-layout="tiles"] #nav .links a:hover { color: #fff !important; background: rgba(255, 255, 255, 0.1); }
