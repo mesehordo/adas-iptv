@@ -678,7 +678,7 @@ body[data-pskin="bar"] {
   --pv-top: rgba(18, 18, 22, 0.94); --pv-bottom: rgba(18, 18, 22, 0.94);
 }
 body[data-pskin="round"] {
-  --pl-btn: 60px; --pl-play: 88px; --pl-bar-btn: 46px; --pl-seek: 10px; --pl-bar-r: 28px; --pl-btn-bg: rgba(127, 127, 127, 0.2); --pv-btn: 58px;
+  --pl-btn: 60px; --pl-play: 88px; --pl-bar-btn: 46px; --pl-seek: 10px; --pl-bar-r: 28px; --pl-btn-bg: rgba(127, 127, 127, 0.2); --pv-btn: 52px;
 }
 body[data-pskin="minimal"] {
   --pl-btn-bg: transparent; --pl-seek: 3px; --pl-shadow: 0 6px 18px rgba(0, 0, 0, 0.25); --pl-btn: 42px; --pl-play: 58px;
@@ -740,7 +740,10 @@ body[data-pskin="glass"] #player .p-bottom { left: 24px; right: 24px; bottom: 20
 body[data-pskin="glass"] #player .p-top { background: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent); }
 body[data-pskin="bar"] #player .p-top { padding: 10px 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
 body[data-pskin="bar"] #player .p-bottom { padding: 10px 18px 12px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
-body[data-pskin="round"] #player .p-controls { gap: 10px; }
+body[data-pskin="round"] #player .p-controls { gap: 8px; }
+/* (a videó gombsora egy sorban marad: keskenyebb ablakban kisebb gombok) */
+@media (max-width: 1100px) { body { --pv-btn: 42px; } body[data-pskin="round"] { --pv-btn: 46px; } body[data-pskin="round"] #player .p-controls { gap: 4px; } }
+@media (max-width: 860px) { body, body[data-pskin="round"] { --pv-btn: 38px; } #player .p-controls { gap: 2px; } }
 body[data-pskin="round"] #player .p-controls .icon-btn { background: rgba(255, 255, 255, 0.12); }
 body[data-pskin="minimal"] #player .p-controls .icon-btn { opacity: 0.85; }
 @media (max-width: 700px) {

@@ -575,7 +575,7 @@ async function command({ c, a }) {
 /** A rádió parancsai a telefonról (a gyerekprofilban nincs rádió). */
 /** A podcast-lejátszó vezérlése (a rádiótól függetlenül – kikapcsolt Rádió menüpontnál is). */
 function podCommand(c) {
-  if (!podPlayer.active || !menuOn('podcast')) return;
+  if (!podPlayer.active) return; // (a szóló epizód a menüpont kikapcsolása után is vezérelhető)
   if (c === 'ptoggle') podPlayer.toggle();
   else if (c === 'pback') podPlayer.skip(-(podCfg().skipBack || 10));
   else if (c === 'pfwd') podPlayer.skip(podCfg().skipFwd || 30);

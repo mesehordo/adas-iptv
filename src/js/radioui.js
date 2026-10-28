@@ -194,7 +194,7 @@ function openFull() {
   full.addEventListener('click', onFullClick);
   full.querySelector('input').addEventListener('input', (e) => radioPlayer.setVolume(Number(e.target.value)));
   if (audioFxAvailable) drawVisualizer(full.querySelector('.rf-vis'), () => fx().vis);
-  lastCover = '';
+  lastCover = null; // (logó nélküli adónál is kirajzolja – a monogrammal)
   drawFxChips();
   updateFull();
   full.querySelector('[data-rf="toggle"]').focus({ preventScroll: true });
@@ -368,8 +368,10 @@ function updateFull() {
   full.querySelector('.rf-artist').textContent = isSong ? n.artist : '';
   full.querySelector('.rf-state').textContent = r.state === 'playing' ? (n.text ? '' : _t('Az adó nem küldi, mi szól éppen.')) : stateText();
   const cover = n.cover || st.logo || '';
-  if (cover !== lastCover) {
-    lastCover = cover;
+  // (adónként is: egy másik adó ugyanazzal a címmel – vagy logó nélkül – a saját monogramját kapja)
+  const coverKey = `${st.id}|${cover}`;
+  if (coverKey !== lastCover) {
+    lastCover = coverKey;
     const c = full.querySelector('.rf-cover');
     c.classList.toggle('is-logo', !n.cover);
     c.style.setProperty('--h', String(hashHue(st.name)));
