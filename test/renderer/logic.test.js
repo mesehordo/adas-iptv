@@ -405,6 +405,11 @@ test('színváltozat: témánként válogatott paletták – legalább 3 változ
   for (const v of THEME_VARIANTS.stardate) {
     for (const k of ['accent', 'accent-2', 'lav', 'peach', 'sky', 'text', 'text-strong', 'muted']) assert.ok((lum(v.vars[k]) + 0.05) / 0.05 >= 4.5, `${v.id} ${k}`);
   }
+  // (a korábbi kiadásban mentett, megszűnt változat az utódjára fordul; ismeretlen név: eredeti)
+  const { currentVariant } = await import('../../src/js/themes.js');
+  assert.equal(currentVariant('stardate', { themeVariants: { stardate: 'emerald' } })?.id, 'padd');
+  assert.equal(currentVariant('stardate', { themeVariants: { stardate: 'redalert' } })?.id, 'redalert');
+  assert.equal(currentVariant('stardate', { themeVariants: { stardate: 'constructor' } }), null);
   // (Neon City szintihulláma: a neonsárgából élénk rózsaszín lesz, nem fakó pasztell; a szürke marad)
   const pink = variantColor('#fcee0a', THEME_VARIANTS.cyberpunk[0]);
   assert.ok(hueOf(pink) > 320 || hueOf(pink) < 10, pink);

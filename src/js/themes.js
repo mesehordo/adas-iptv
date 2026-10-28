@@ -191,9 +191,13 @@ export function themeVariants(id) {
   if (!THEMES[id] || THEMES[id].custom) return [];
   return THEME_VARIANTS[id] || variantsFor(hueOf(themeAccent(id)));
 }
+// a megszűnt változatok utódja (a korábbi kiadásokban mentett választás így megmarad)
+const VARIANT_RENAMED = { stardate: { bluealert: 'deepblue', emerald: 'padd' } };
 /** A profil választott változata az adott témához (vagy null: eredeti). */
 export function currentVariant(id = currentTheme(), p = store.profile) {
-  const vid = p?.themeVariants?.[id];
+  let vid = p?.themeVariants?.[id];
+  const ren = Object.prototype.hasOwnProperty.call(VARIANT_RENAMED, id) ? VARIANT_RENAMED[id] : null;
+  if (ren && typeof vid === 'string' && Object.prototype.hasOwnProperty.call(ren, vid)) vid = ren[vid];
   return (vid && themeVariants(id).find((v) => v.id === vid)) || null;
 }
 

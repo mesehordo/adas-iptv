@@ -81,7 +81,9 @@ export function adaptPage(view, name) {
 // ---------------------------------------------------------------------------
 // Kiemelt borító (Mozi, Kirakat, Csempék): a sorok első kártyáiból
 // ---------------------------------------------------------------------------
+/** A kiemelt sáv a kártyákból – kártya nélkül (pl. üres oldal) nincs (null). */
 function heroOf(cards) {
+  if (!cards.length) return null;
   const multi = cards.length > 1;
   const el = html(`<section class="hero lay-hero adapt-hero ${multi ? 'carousel' : ''}">
     <div class="hero-slides">${cards
@@ -126,6 +128,7 @@ function heroOf(cards) {
 const firstCards = (secs, n) => secs.map((s) => s.cards.find((c) => !c.classList.contains('tile'))).filter(Boolean).slice(0, n);
 /** A kiemelt / átrendezett rész a fejléc (a sorok előtti fülsor, gombok) alá kerül. */
 function putTop(box, el) {
+  if (!el) return;
   const first = box.querySelector(':scope > .row, :scope > .row-group, :scope > .adapt-store');
   if (first) first.before(el);
   else box.append(el);
@@ -144,7 +147,8 @@ function showcase(view, box, secs) {
     if (b) secs.find((s) => s.i === Number(b.dataset.go))?.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
   putTop(box, tiles);
-  tiles.before(heroOf(firstCards(secs, 6)));
+  const hero = heroOf(firstCards(secs, 6));
+  if (hero) tiles.before(hero);
 }
 function tiles(view, box, secs) {
   const t = html(`<section class="coll-tiles adapt-sections">${secs
@@ -156,7 +160,8 @@ function tiles(view, box, secs) {
     if (b) secs.find((s) => s.i === Number(b.dataset.go))?.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
   putTop(box, t);
-  t.before(heroOf(firstCards(secs, 1)));
+  const hero = heroOf(firstCards(secs, 1));
+  if (hero) t.before(hero);
 }
 
 // ---------------------------------------------------------------------------

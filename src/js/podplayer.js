@@ -24,6 +24,7 @@ class PodPlayer {
     this.skipSilence = false;
     this.lastSave = 0;
     this.lastStat = 0;
+    this.wantPause = false; // (a felhasználó szüneteltetett – betöltés / újrapróbálás közben is érvényes)
     this.el = null;
     this.fx = null;
   }
@@ -44,6 +45,8 @@ class PodPlayer {
     if (player.active) player.close();
     if (radioPlayer.playing) radioPlayer.pause();
     this.saveNow();
+    this.flushStat();
+    this.wantPause = false;
     const full = findEp(ep.key) || ep;
     this.ep = full;
     const cfg = podCfg();
@@ -92,8 +95,9 @@ class PodPlayer {
     a.addEventListener('error', () => {
       if (a !== this.el) return;
       // (CORS-módban nem indult: hangfeldolgozás nélkül még egyszer; a letöltött fájl hiányzik: az eredeti címről)
-      if (cors) return this.playWeb(url, this.pos || start, false, paused);
-      if (url.startsWith('file:') && this.ep?.url && this.ep.url !== url) return this.playWeb(this.ep.url, this.pos || start, undefined, paused);
+      // (a szünet a mostani szándék szerint – nem a régi elem indításakori állapot)
+      if (cors) return this.playWeb(url, this.pos || start, false, this.wantPause);
+      if (url.startsWith('file:') && this.ep?.url && this.ep.url !== url) return this.playWeb(this.ep.url, this.pos || start, undefined, this.wantPause);
       this.setState('error');
     });
     if (cors) this.attachFx(a);
@@ -142,8 +146,9 @@ class PodPlayer {
   // -------------------------------------------------------------------------- állapot
   setState(s) {
     if (this.state === s) return;
+    // (a hallgatási idő csak a folyamatos lejátszás szakaszaiból számít – a lezáruló szakasz még az epizódé)
+    this.flushStat();
     this.state = s;
-    // (a hallgatási idő csak a folyamatos lejátszás szakaszaiból számít)
     this.lastStat = 0;
     if (s === 'paused') this.saveNow();
     if ('mediaSession' in navigator && !NATIVE) navigator.mediaSession.playbackState = s === 'playing' ? 'playing' : 'paused';
@@ -159,7 +164,7 @@ class PodPlayer {
       savePos(this.ep, pos, this.dur);
     }
     if (this.playing && now - this.lastStat > 15000) {
-      if (this.lastStat) addListen(this.ep.feed, Math.round((now - this.lastStat) / 1000));
+      this.flushStat();
       this.lastStat = now;
     }
     // a záró rész átugrása (a műsor beállítása szerint)
@@ -171,6 +176,12 @@ class PodPlayer {
       this.emit('sleep');
     }
     this.emit('time');
+  }
+  /** A legutóbbi elszámolás óta hallgatott idő a mostani epizód műsorához. */
+  flushStat() {
+    const now = Date.now();
+    if (this.ep && this.playing && this.lastStat) addListen(this.ep.feed, Math.round((now - this.lastStat) / 1000));
+    if (this.lastStat) this.lastStat = now;
   }
   saveNow() {
     if (this.ep && this.pos > 1) savePos(this.ep, this.pos, this.dur);
@@ -191,12 +202,14 @@ class PodPlayer {
   // -------------------------------------------------------------------------- kezelés
   pause() {
     if (!this.ep) return;
+    this.wantPause = true;
     if (NATIVE) window.AdasAndroid.podPause();
     else this.el?.pause();
     this.setState('paused');
   }
   resume() {
     if (!this.ep) return;
+    this.wantPause = false;
     if (player.active) player.close();
     if (radioPlayer.playing) radioPlayer.pause();
     if (NATIVE) window.AdasAndroid.podResume();
@@ -228,12 +241,12 @@ class PodPlayer {
   setBoost(b) {
     this.boost = b;
     if (this.fx) this.fx.gain.gain.value = b;
-    else if (this.ep && b > 1 && !NATIVE && audioFxAvailable) this.playWeb(playUrl(this.ep), this.pos, true, !this.playing);
+    else if (this.ep && b > 1 && !NATIVE && audioFxAvailable) this.playWeb(playUrl(this.ep), this.pos, true, this.wantPause);
     this.emit('rate');
   }
   setSkipSilence(on) {
     this.skipSilence = on;
-    if (on && !this.fx && this.ep && !NATIVE && audioFxAvailable) this.playWeb(playUrl(this.ep), this.pos, true, !this.playing);
+    if (on && !this.fx && this.ep && !NATIVE && audioFxAvailable) this.playWeb(playUrl(this.ep), this.pos, true, this.wantPause);
     this.emit('rate');
   }
   /** Alvásidőzítő: perc, -1 = az epizód végén, 0 = ki. */
@@ -248,6 +261,7 @@ class PodPlayer {
   }
   stop() {
     this.saveNow();
+    this.flushStat();
     if (NATIVE) window.AdasAndroid.podStop();
     this.teardownWeb();
     this.ep = null;

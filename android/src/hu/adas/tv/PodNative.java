@@ -9,8 +9,8 @@ import androidx.media3.common.MediaItem;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.PlaybackParameters;
 import androidx.media3.common.Player;
+import androidx.media3.datasource.DataSource;
 import androidx.media3.datasource.DefaultDataSource;
-import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import org.json.JSONObject;
@@ -37,55 +37,18 @@ class PodNative implements Player.Listener {
     this.act = act;
   }
 
-  int playGen; // (az indítás sorszáma: a háttérben feloldott cím csak a legutóbbi indításhoz tartozik)
-
   void play(JSONObject o) {
     release();
-    final int gen = ++playGen;
-    final String url = o.optString("url");
     // csak internetes (http / https) epizód – a híd más sémájú címet (file:, content: …) nem nyit meg
-    Uri uri = Uri.parse(url);
+    Uri uri = Uri.parse(o.optString("url"));
     String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(java.util.Locale.ROOT);
     if (!scheme.equals("http") && !scheme.equals("https")) {
       send("error", -1, -1);
       return;
     }
-    // A helyi hálózati szabály (mint a lap kéréseinél): a cím és minden átirányítása a HttpOpen ellenőrzésén át
-    // oldódik fel (háttérszálon); a lejátszó a feloldott címet kapja.
-    final boolean block = !act.lanAllowed;
-    new Thread(() -> {
-      String target = url;
-      try {
-        java.util.Map<String, String> h = new java.util.HashMap<>();
-        h.put("User-Agent", MainActivity.CHROME_UA);
-        h.put("Range", "bytes=0-0");
-        java.net.HttpURLConnection c = HttpOpen.open(url, "GET", h, null, 15000, block);
-        target = c.getURL().toString();
-        c.disconnect();
-      } catch (Exception e) {
-        // (tiltott helyi cím: nem indul; egyéb hálózati hiba: az ExoPlayer maga próbálja – a saját hibajelzésével)
-        String m = e.getMessage() == null ? "" : e.getMessage();
-        if (m.contains("helyi hálózat")) {
-          handler.post(() -> {
-            if (gen == playGen) send("error", -1, -1);
-          });
-          return;
-        }
-      }
-      final String u = target;
-      handler.post(() -> {
-        if (gen == playGen) start(Uri.parse(u), o);
-      });
-    }).start();
-  }
-
-  void start(Uri uri, JSONObject o) {
-    DefaultHttpDataSource.Factory http =
-        new DefaultHttpDataSource.Factory()
-            .setUserAgent(MainActivity.CHROME_UA)
-            .setAllowCrossProtocolRedirects(true)
-            .setConnectTimeoutMs(15000)
-            .setReadTimeoutMs(30000);
+    // A helyi hálózati szabály (mint a lap kéréseinél): a lejátszó minden kérése – a tekeréskor küldött tartomány-
+    // kérések és minden átirányítás is – a HttpOpen ellenőrzésén megy át (LanDataSource).
+    DataSource.Factory http = new LanDataSource.Factory(!act.lanAllowed, MainActivity.CHROME_UA);
     DefaultDataSource.Factory data = new DefaultDataSource.Factory(act, http);
     player = new ExoPlayer.Builder(act).setMediaSourceFactory(new DefaultMediaSourceFactory(data)).build();
     player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_SPEECH).build(), true);
@@ -124,7 +87,6 @@ class PodNative implements Player.Listener {
   }
 
   void release() {
-    playGen++;
     handler.removeCallbacks(ticker);
     if (player == null) return;
     player.removeListener(this);

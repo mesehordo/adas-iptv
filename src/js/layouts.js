@@ -507,7 +507,9 @@ function renderDetail(view, params, home = false) {
       detail.querySelector('[data-lplay]')?.focus({ preventScroll: true });
     }
   };
+  let focusTimer = 0; // (a fókuszra késleltetve nyíló adatlap – az áttekintés megnyitása elveti)
   const showHome = () => {
+    clearTimeout(focusTimer);
     detailSel = '';
     stopPreview();
     clearTimeout(previewTimer);
@@ -519,7 +521,10 @@ function renderDetail(view, params, home = false) {
   if (detailSel) show(detailSel);
   else showHome();
   view.querySelector('.md-q').addEventListener('input', debounce((e) => drawList(e.target.value), 150));
-  const pickFocus = debounce((id) => show(id), 180);
+  const pickFocus = (id) => {
+    clearTimeout(focusTimer);
+    focusTimer = setTimeout(() => show(id), 180);
+  };
   groups.addEventListener('focusin', (e) => e.target.dataset?.mid && e.target.dataset.mid !== detailSel && pickFocus(e.target.dataset.mid));
   groups.addEventListener('click', (e) => {
     const b = e.target.closest('.md-item');

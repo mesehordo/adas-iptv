@@ -239,14 +239,18 @@ export async function cachedFeed(url) {
   return feeds.get(url) || null;
 }
 /** A folyam letöltése (a gyorsítótár korától függően), az új epizódok felismerése. */
-export async function refreshFeed(url, { force = false } = {}) {
-  const { text: xml } = await api.fetchText(url, { maxAgeHours: force ? 0 : podCfg().refreshHours, force });
+export async function refreshFeed(url, { force = false, profile = null } = {}) {
+  // (a frissítést indító profil – ha közben profilt váltanak, az eredmény is ahhoz kerül)
+  const prof = profile || store.profile;
+  const hours = prof ? (pod(prof).cfg.refreshHours ?? 6) : 6;
+  const { text: xml } = await api.fetchText(url, { maxAgeHours: force ? 0 : hours, force });
   const f = parseFeed(xml, url);
   feeds.set(url, f);
   api.docSet?.(docKey(url), f).catch?.(() => {});
-  const sub = subOf(url);
+  const d = prof ? pod(prof) : null;
+  const sub = d?.subs.find((s) => s.url === url);
   if (sub) {
-    const d = pod();
+    const isPlayed = (key) => !!(Object.prototype.hasOwnProperty.call(d.eps, key) && d.eps[key]?.played);
     // (a feliratkozás adatai frissülnek, ha a műsor nevet / képet váltott)
     if (f.title && sub.title !== f.title) sub.title = f.title;
     if (f.image && sub.image !== f.image) sub.image = f.image;
@@ -264,26 +268,28 @@ export async function refreshFeed(url, { force = false } = {}) {
   return f;
 }
 /** Minden feliratkozás frissítése (párhuzamosan, legfeljebb 4 egyszerre). */
-let refreshing = null;
+const refreshing = new Map(); // profil → a folyamatban lévő frissítés (más profil nem csatlakozik hozzá)
 export function refreshAll({ force = false } = {}) {
-  if (refreshing) return refreshing;
+  const prof = store.profile;
+  if (refreshing.has(prof)) return refreshing.get(prof);
   const list = pod().subs.map((s) => s.url);
-  refreshing = (async () => {
+  const run = (async () => {
     let i = 0;
     const errors = [];
     await Promise.all(
       Array.from({ length: Math.min(4, list.length) }, async () => {
         while (i < list.length) {
           const u = list[i++];
-          await refreshFeed(u, { force }).catch((e) => errors.push([u, e.message || String(e)]));
+          await refreshFeed(u, { force, profile: prof }).catch((e) => errors.push([u, e.message || String(e)]));
         }
       })
     );
-    refreshing = null;
+    refreshing.delete(prof);
     bus.emit('pod-refreshed', errors);
     return errors;
   })();
-  return refreshing;
+  refreshing.set(prof, run);
+  return run;
 }
 /** Indításkor: a feliratkozások gyorsítótárból, utána a háttérben frissítés; óránként újra (a beállított időközzel). */
 export async function initPodcasts() {

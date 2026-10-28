@@ -1294,7 +1294,7 @@ function renderAppearance(box) {
     box.querySelector('[data-theme-select]').value = id;
     box.querySelector('.theme-desc').textContent = THEMES[id].desc;
   };
-  const tp = themePicker({ theme, variant: currentVariant(theme)?.id || '', compact: false, savedVariant: (id) => store.profile.themeVariants?.[id] || '', onChange: save });
+  const tp = themePicker({ theme, variant: currentVariant(theme)?.id || '', compact: false, savedVariant: (id) => currentVariant(id)?.id || '', onChange: save });
   box.querySelector('.tp-slot').replaceWith(tp.el);
   // (értékadással: az újrarajzolás után sem halmozódik a figyelő)
   // elrendezés: azonnal érvényes (a téma mellett, attól függetlenül)
@@ -1318,7 +1318,7 @@ function renderAppearance(box) {
   box.onclick = (e) => {
     const pt = e.target.closest('[data-lay-theme]');
     if (pt) {
-      save(pt.dataset.layTheme, store.profile.themeVariants?.[pt.dataset.layTheme] || '');
+      save(pt.dataset.layTheme, currentVariant(pt.dataset.layTheme)?.id || '');
       return renderAppearance(box);
     }
     const id = pickLayoutIn(box, e.target);
@@ -1339,7 +1339,7 @@ function renderAppearance(box) {
       e.stopPropagation();
       // (a legördülőből választva a téma megjegyzett változata él tovább)
       const id = e.target.value;
-      save(id, store.profile.themeVariants?.[id] || '');
+      save(id, currentVariant(id)?.id || '');
       renderAppearance(box);
     }
   };
@@ -1541,7 +1541,7 @@ function editProfile(prof, done) {
   </form>`);
   el.querySelector('.avatar-slot').replaceWith(picker.el);
   const pTheme = prof?.theme && THEMES[prof.theme] ? prof.theme : 'netflix';
-  const tp = themePicker({ theme: pTheme, variant: prof?.themeVariants?.[pTheme] || '', savedVariant: (id) => prof?.themeVariants?.[id] || '' });
+  const tp = themePicker({ theme: pTheme, variant: (prof && currentVariant(pTheme, prof)?.id) || '', savedVariant: (id) => (prof && currentVariant(id, prof)?.id) || '' });
   el.querySelector('.tp-slot').replaceWith(tp.el);
   const close = openModal(el, { cls: 'medium' });
   // PIN: mentéskor érvényesül. undefined = nem változik, null = törlés, '1234' = új

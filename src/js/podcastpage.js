@@ -204,9 +204,19 @@ export function renderPodcast(view, params) {
   if (feed) return renderFeed(view, feed);
   const tab = params.get('tab') || 'home';
   renderSeq++;
-  // (csak a felsorolt fülek – a címből jövő név nem hívhat tetszőleges függvényt)
-  const TABFN = new Map([['home', tabHome], ['inbox', tabInbox], ['queue', tabQueue], ['subs', tabSubs], ['downloads', tabDownloads], ['hist', tabHist], ['favs', tabFavs], ['discover', tabDiscover], ['stats', tabStats], ['settings', tabSettings]]);
-  (TABFN.get(tab) || tabHome)(view, params);
+  // (rögzített választás – a címből jövő név nem hívhat tetszőleges függvényt; ismeretlen névre az Áttekintés)
+  switch (tab) {
+    case 'inbox': return tabInbox(view, params);
+    case 'queue': return tabQueue(view, params);
+    case 'subs': return tabSubs(view, params);
+    case 'downloads': return tabDownloads(view, params);
+    case 'hist': return tabHist(view, params);
+    case 'favs': return tabFavs(view, params);
+    case 'discover': return tabDiscover(view, params);
+    case 'stats': return tabStats(view, params);
+    case 'settings': return tabSettings(view, params);
+    default: return tabHome(view, params);
+  }
 }
 
 function tabHome(view) {
@@ -386,7 +396,7 @@ async function renderFeed(view, url) {
       <label>${_t('Bevezető átugrása (mp)')} <input class="input" type="number" min="0" max="600" step="5" data-ps="skipIntro" value="${esc(set.skipIntro || '')}" /></label>
       <label>${_t('Zárórész átugrása (mp)')} <input class="input" type="number" min="0" max="600" step="5" data-ps="skipOutro" value="${esc(set.skipOutro || '')}" /></label>
       ${audioFxAvailable ? `<label>${_t('Hangerő-erősítés')} <select data-ps="boost"><option value="">${_t('nincs')}</option><option value="1.5" ${Number(set.boost) === 1.5 ? 'selected' : ''}>+50%</option><option value="2" ${Number(set.boost) === 2 ? 'selected' : ''}>+100%</option></select></label>
-      <label class="pchk"><input type="checkbox" data-ps="skipSilence" ${set.skipSilence ? 'checked' : ''} /> ${_t('Csend átugrása')}</label>` : ''}
+      <label class="pchk"><input type="checkbox" data-ps="skipSilence" ${(set.skipSilence ?? podCfg().skipSilence) ? 'checked' : ''} /> ${_t('Csend átugrása')}</label>` : ''}
       <label class="pchk"><input type="checkbox" data-ps="notify" ${set.notify !== false ? 'checked' : ''} /> ${_t('Értesítés új epizódról')}</label>
       ${canDownload() ? `<label class="pchk"><input type="checkbox" data-ps="autoDl" ${set.autoDl ? 'checked' : ''} /> ${_t('Új epizódok automatikus letöltése')}</label>` : ''}
     </div></details>` : ''}
