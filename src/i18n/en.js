@@ -2802,5 +2802,7 @@ export default {
  "Kikapcsolva csak a menüpont tűnik el – a kedvencek megmaradnak.": "When off, only the menu item disappears – your favourites are kept.",
  "Menüpontok": "Menu items",
  "A Főoldal mindig látszik. A kikapcsolt rész nem töltődik be, és a háttérben sem frissül – így kevesebb hálózatot, memóriát és energiát használ.": "Home is always shown. A part that is turned off isn’t loaded and isn’t refreshed in the background either – so it uses less network, memory and power.",
- "Saját felirat": "Own subtitles"
+ "Saját felirat": "Own subtitles",
+ "Most nem szól podcast.": "No podcast is playing.",
+ "🎙 Podcast": "🎙 Podcasts"
 };

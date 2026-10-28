@@ -1472,6 +1472,8 @@ body.rc-nav .tile:focus, body.rc-nav .see-all:focus { transform: scale(1.06); z-
 .spl-play svg { width: 14px; height: 14px; fill: currentColor; }
 /* sport a tévében most */
 .sp-tvlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+/* (a rádió- és podcastsorok a tévés lista alatt, elválasztva – nem külön görgetődoboz) */
+.sp-tvlist.sp-media { max-height: none; overflow: visible; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
 .sp-tvrow { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px; border: 0; border-radius: 8px; background: transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
 .sp-tvrow:hover, .sp-tvrow:focus-visible { background: var(--bg-3); outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
 .sp-tvrow.is-off { opacity: 0.5; }

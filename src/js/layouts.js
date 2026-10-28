@@ -733,7 +733,6 @@ function sections() {
     sportMenuOn() && ['sport', '#/sport', _t('Sport'), navIcon('sport')],
     menuShown('favorites') && ['favorites', '#/favorites', _t('Kedvencek'), navIcon('favorites')],
     ['recordings', '#/recordings', _t('Felvételek'), REC_ICO],
-    ['settings', '#/settings', _t('Beállítások'), navIcon('settings')],
   ].filter(Boolean);
 }
 /** Kijelölés fókuszra / rámutatásra (késleltetve), és az élő előnézet a háttérben. */
@@ -838,15 +837,15 @@ function ribbonCats() {
   const onAir = recommendOrder([...vis].filter((c) => epg.now(c.id)?.cur));
   const rf = radioMenuOn() ? radioFavs() : [];
   const cats = [
-    { id: 'favs', label: _t('Kedvencek'), ico: navIcon('favorites'), items: favs.length ? favs.map(chItem) : [link('#/tv', _t('Csatornák böngészése'), _t('A csatornák kártyáján a + gombbal jelölhetsz kedvencet.'), navIcon('tv'))] },
-    { id: 'now', label: _t('Most a tévében'), ico: GUIDE_ICO, items: onAir.slice(0, 80).map(chItem) },
-    recent.length && { id: 'recent', label: _t('Legutóbb nézett'), ico: HISTORY_ICO, items: recent.map(chItem) },
-    { id: 'tonight', label: _t('Ma este'), ico: GUIDE_ICO, items: tonightPrograms(12).map(({ ch, p: pr }) => ({ kind: 'prog', ch, pr, title: pr.title, sub: `${fmtTime(pr.start)} · ${ch.name}` })) },
+    menuOn('tv') && { id: 'favs', label: _t('Kedvencek'), ico: navIcon('favorites'), items: favs.length ? favs.map(chItem) : [link('#/tv', _t('Csatornák böngészése'), _t('A csatornák kártyáján a + gombbal jelölhetsz kedvencet.'), navIcon('tv'))] },
+    menuOn('tv') && { id: 'now', label: _t('Most a tévében'), ico: GUIDE_ICO, items: onAir.slice(0, 80).map(chItem) },
+    menuOn('tv') && recent.length && { id: 'recent', label: _t('Legutóbb nézett'), ico: HISTORY_ICO, items: recent.map(chItem) },
+    menuOn('tv') && { id: 'tonight', label: _t('Ma este'), ico: GUIDE_ICO, items: tonightPrograms(12).map(({ ch, p: pr }) => ({ kind: 'prog', ch, pr, title: pr.title, sub: `${fmtTime(pr.start)} · ${ch.name}` })) },
     // (a hírek a háttérben töltődnek – renderRibbon)
     !p.kids && { id: 'news', label: _t('Hírek'), ico: NEWS_ICO, items: [] },
-    { id: 'tv', label: _t('TV'), ico: navIcon('tv'), items: [link('#/tv', _t('Csatornák'), _t('A csatornák sorai')), link('#/guide', _t('Műsorújság')), link('#/browse', _t('Böngészés')), link('#/countries', _t('Országok')), link('#/recordings', _t('Felvételek'))] },
+    menuOn('tv') && { id: 'tv', label: _t('TV'), ico: navIcon('tv'), items: [link('#/tv', _t('Csatornák'), _t('A csatornák sorai')), link('#/guide', _t('Műsorújság')), link('#/browse', _t('Böngészés')), link('#/countries', _t('Országok')), link('#/recordings', _t('Felvételek'))] },
     radioMenuOn() && { id: 'radio', label: _t('Rádió'), ico: navIcon('radio'), items: [...rf.map((st, i) => ({ kind: 'radio', i, title: st.name, sub: [countryName(st.country), st.codec].filter(Boolean).join(' · '), st })), link('#/radio', _t('Rádiók')), link('#/radio?tab=guide', _t('Rádió-műsorújság')), link('#/radio?tab=browse', _t('Böngészés'))] },
-    { id: 'vod', label: _t('Videotár'), ico: navIcon('vod'), items: [link('#/vod', _t('Online listák')), link('#/own', _t('Saját médiatár'))] },
+    menuOn('vod') && { id: 'vod', label: _t('Videotár'), ico: navIcon('vod'), items: [link('#/vod', _t('Online listák')), link('#/own', _t('Saját médiatár'))] },
     sportMenuOn() && { id: 'sport', label: _t('Sport'), ico: navIcon('sport'), items: [link('#/sport', _t('Sport'), _t('Élő eredmények, menetrend, tabella'))] },
     { id: 'settings', label: _t('Beállítások'), ico: navIcon('settings'), items: [link('#/settings', _t('Beállítások')), link('#/settings?section=appearance', _t('Megjelenés')), link('#/profiles', _t('Profilok kezelése')), link('#/help', _t('Súgó'))] },
   ].filter((c) => c && (c.items.length || c.id === 'news'));

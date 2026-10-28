@@ -555,7 +555,9 @@
 [data-tone="light"] .adapt-shelf-info { color: var(--text-strong); }
 
 /* Könyvtár: a sorok rácsként, két sorban (a többi az „Összes” mögött) */
-.rows.adapt-library .row-track { flex-wrap: wrap; overflow: hidden; max-height: calc(2 * (var(--card-w) * 0.5625 + 70px)); row-gap: 14px; }
+/* (a kártyák nem vágódnak félbe magasságkorláttal – a sor legfeljebb 10 elemet mutat, a többi az „Összes” mögött) */
+.rows.adapt-library .row-track { flex-wrap: wrap; overflow: visible; max-height: none; row-gap: 14px; }
+.rows.adapt-library .row-track > :nth-child(n + 11):not(.see-all) { display: none !important; }
 .rows.adapt-library .row-arrow { display: none !important; }
 .rows.adapt-library .row-title { font-size: 1.3rem; }
 
@@ -605,7 +607,8 @@
 .adapt-fx .fx-tile .initials { font-size: 1.2rem; }
 
 /* Asztal: a sorok élő csempékként (lapos, színes négyzetek), soronként legfeljebb két sor */
-.rows.adapt-desk .row-track { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; overflow: hidden; max-height: calc(2 * 150px + 8px + 60px); }
+.rows.adapt-desk .row-track { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; overflow: visible; max-height: none; }
+.rows.adapt-desk .row-track > :nth-child(n + 13):not(.see-all) { display: none !important; }
 .rows.adapt-desk .row-track :is(.card, .vcard, .rcard) { width: auto !important; }
 .rows.adapt-desk .row-track .thumb { border-radius: 2px; }
 .rows.adapt-desk .row-track :is(.card, .rcard) .thumb { aspect-ratio: 1; }
@@ -827,7 +830,8 @@ body[data-pskin="minimal"] .rf-ctrls .round { border-color: transparent; backgro
 .st-tag small { color: var(--muted); }
 .st-tag:hover, .st-tag:focus-visible { background: rgba(103, 193, 245, 0.32); }
 .rows.adapt-store-detail .row-track, .rows.adapt-store-focus .row-track, .rows.adapt-store-wall .row.adapt-open .row-track { flex-wrap: wrap; overflow: visible; row-gap: 18px; }
-.rows.adapt-store-detail .row-track { max-height: calc(2 * (var(--card-w) * 1.5 + 70px)); overflow: hidden; }
+.rows.adapt-store-detail .row-track { max-height: none; overflow: visible; }
+.rows.adapt-store-detail .row-track > :nth-child(n + 13):not(.see-all) { display: none !important; }
 .rows.adapt-store-detail .row-arrow, .rows.adapt-store-focus .row-arrow, .rows.adapt-store-wall .row.adapt-open .row-arrow { display: none !important; }
 @media (max-width: 900px) { .st-box { grid-template-columns: 1fr; } .st-img { min-height: 220px; } }
 /* Fókusz: bal oldali kategórialista + nagy rács */
@@ -896,3 +900,27 @@ body[data-layout] #nav .links a[hidden] { display: none !important; }
 [data-tone="light"] .shelf-info .muted, [data-tone="light"] .hero-now .muted { color: var(--text); }
 [data-tone="light"] .xmb-ico .initials { color: var(--text-strong); }
 [data-theme="comic"] .fx-info .hero-desc { color: #111; }
+/* Kirakat: keskenyebb ablakban a menü összébb húzódik, alatta csak ikonok (címkével a kiválasztott) – a profilgomb
+   és a jobb oldali gombok mindig a képernyőn maradnak */
+@media (min-width: 701px) and (max-width: 1360px) {
+  body[data-layout="showcase"] #nav .links { flex: 0 1 auto; min-width: 0; }
+  body[data-layout="showcase"] #nav .links a { padding: 7px 11px !important; gap: 6px; }
+}
+@media (min-width: 701px) and (max-width: 1180px) {
+  body[data-layout="showcase"] #nav .links a:not(.active) .lbl { display: none !important; }
+}
+/* telefonon: a fülsor egy sorban, vízszintesen görgethető (nem tördel, nem lóg ki) */
+@media (max-width: 700px) {
+  .tv-head .tabs, .vod-quick .tabs, .pod-tabs, .radio-tabs { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+  .tv-head .tabs::-webkit-scrollbar, .vod-quick .tabs::-webkit-scrollbar, .pod-tabs::-webkit-scrollbar, .radio-tabs::-webkit-scrollbar { display: none; }
+  .tv-head .tabs .tab, .pod-tabs .tab, .radio-tabs .tab { flex: none; }
+}
+/* felső menüsávos (nem oldalsávos) nézetben a Könyvtár és a Gyűjtemény oldalai a menüsáv alatt kezdődnek */
+@media (max-width: 899px) {
+  body[data-layout="library"] .lib-head { padding-top: 72px; }
+  body[data-layout="unified"] #view > .rows > .tv-head:first-child, body[data-layout="unified"] #view > .rows > .vod-quick:first-child { margin-top: 72px; }
+  body[data-layout="unified"] .adapt-uni { padding-top: 0; min-height: 0; }
+  body[data-layout="unified"] .adapt-uni .uni-side { min-height: 0; height: auto; }
+}
+/* a nagy címek (kiemelt sáv, adatlap, polc, fókusz) legfeljebb két sorban, és nem csúsznak a következő sorra */
+.hero-content h1, .md-title h1, .shelf-info h1, .fx-info h1, .adapt-shelf-info h1 { line-height: 1.12; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
