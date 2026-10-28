@@ -2788,5 +2788,7 @@ export default {
  "{n} letöltött fájl törölve, {m} nem törölhető": "{n} downloaded files deleted, {m} could not be deleted",
  "Podcast-epizódok": "Podcast episodes",
  "A(z) {name} profil podcast-beállításai.": "Podcast settings of the {name} profile.",
- "Új epizódok keresése, lejátszás (sebesség, ugrások, csend átugrása), letöltések és a feliratkozások átvitele (OPML). Itt kapcsolhatod ki a Podcast menüpontot is.": "Checking for new episodes, playback (speed, skips, skip silence), downloads and moving subscriptions (OPML). You can also turn off the Podcasts menu item here."
+ "Új epizódok keresése, lejátszás (sebesség, ugrások, csend átugrása), letöltések és a feliratkozások átvitele (OPML). Itt kapcsolhatod ki a Podcast menüpontot is.": "Checking for new episodes, playback (speed, skips, skip silence), downloads and moving subscriptions (OPML). You can also turn off the Podcasts menu item here.",
+ "Sport most – tévé, rádió, podcast": "Sport now – TV, radio, podcasts",
+ "feliratkozva": "subscribed"
 };

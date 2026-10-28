@@ -1481,6 +1481,12 @@ body.rc-nav .tile:focus, body.rc-nav .see-all:focus { transform: scale(1.06); z-
 .sp-tvtxt b, .sp-tvtxt small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sp-tvtxt .bar { display: block; height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
 .sp-tvtxt .bar i { display: block; height: 100%; background: var(--accent); }
+/* a sor jelölése: tévé / rádió / podcast */
+.sp-kind { display: inline-block; padding: 0 5px; margin-right: 4px; border-radius: 4px; font-size: 0.7em; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; vertical-align: 1px; background: var(--bg-3); color: var(--text-strong); border: 1px solid var(--line); }
+.sp-kind-radio { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
+.sp-kind-podcast { border-style: dashed; }
+.sp-media:empty { display: none; }
+.sp-media { margin-top: 6px; }
 /* tabella */
 .sp-table-sel { margin: 0 0 10px; max-width: 100%; }
 .sp-table-name { margin: 0 0 8px; }
