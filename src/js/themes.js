@@ -247,11 +247,24 @@ function fitOnAccent() {
   const probe = document.createElement('i');
   probe.style.cssText = 'position:absolute;left:-9999px;color:var(--accent)';
   body.append(probe);
-  const [r, g, b] = (getComputedStyle(probe).color.match(/[\d.]+/g) || []).map(Number);
+  const css = getComputedStyle(probe).color;
   probe.remove();
-  if (r == null) return;
-  // (a fekete és a fehér betű kontrasztja kb. 0,18-as világosságnál egyezik)
-  body.style.setProperty('--on-accent', relLum(r, g, b) > 0.18 ? '#111' : '#fff');
+  // (a számított szín lehet oklch() / color() alakú is: egy képpontos vásznon sRGB-re fordítva olvassuk ki)
+  let rgb = null;
+  try {
+    const cx = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+    cx.fillStyle = css;
+    cx.fillRect(0, 0, 1, 1);
+    rgb = [...cx.getImageData(0, 0, 1, 1).data].slice(0, 3);
+  } catch {
+    rgb = (css.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+  }
+  if (rgb?.length !== 3) return;
+  // (a valódi kontrasztarányok szerint: a sötét felirat, ha legalább annyira olvasható, mint a fehér)
+  const L = relLum(...rgb);
+  const dark = (L + 0.05) / (relLum(17, 17, 17) + 0.05);
+  const light = 1.05 / (L + 0.05);
+  body.style.setProperty('--on-accent', dark >= light ? '#111' : '#fff');
 }
 
 /**

@@ -1293,6 +1293,8 @@ function renderAppearance(box) {
     applyTheme();
     box.querySelector('[data-theme-select]').value = id;
     box.querySelector('.theme-desc').textContent = THEMES[id].desc;
+    // (az elrendezéshez illő téma ajánlása a most választott téma szerint)
+    drawPair();
   };
   const tp = themePicker({ theme, variant: currentVariant(theme)?.id || '', compact: false, savedVariant: (id) => currentVariant(id)?.id || '', onChange: save });
   box.querySelector('.tp-slot').replaceWith(tp.el);

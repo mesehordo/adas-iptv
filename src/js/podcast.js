@@ -39,9 +39,9 @@ export const epState = (key) => pod().eps[key] || null;
 // (a kulcsok külső adatból – folyamcím, epizód-azonosító – jönnek: az objektum beépített tulajdonságai nem írhatók felül)
 const BAD_KEY = new Set(['__proto__', 'constructor', 'prototype']);
 export const safeKey = (k) => typeof k === 'string' && k && !BAD_KEY.has(k);
-function setState(key, patch) {
+function setState(key, patch, prof = store.profile) {
   if (!safeKey(key)) return;
-  const d = pod();
+  const d = pod(prof);
   const s = { ...(d.eps[key] || {}), ...patch };
   for (const k of Object.keys(s)) if (s[k] === undefined || s[k] === null || s[k] === false || s[k] === 0) delete s[k];
   if (Object.keys(s).length) d.eps[key] = s;
@@ -63,8 +63,9 @@ export const progressOf = (key) => {
   const s = epState(key);
   return s?.pos && s?.dur ? Math.min(1, s.pos / s.dur) : 0;
 };
-export function savePos(ep, pos, dur) {
-  setState(ep.key, { pos: Math.floor(pos), dur: Math.floor(dur || ep.dur || 0) });
+/** prof: a lejátszást indító profil (profilváltáskor a záró pozíció is az övé). */
+export function savePos(ep, pos, dur, prof = store.profile) {
+  setState(ep.key, { pos: Math.floor(pos), dur: Math.floor(dur || ep.dur || 0) }, prof);
 }
 export function markPlayed(ep, played = true) {
   setState(ep.key, { played: played ? Date.now() : undefined, pos: played ? undefined : epState(ep.key)?.pos });
@@ -87,9 +88,9 @@ export function pushHistory(ep) {
   d.hist = [{ ...snap(ep), at: Date.now() }, ...d.hist.filter((x) => x.key !== ep.key)].slice(0, 200);
   savePod();
 }
-export function addListen(feedUrl, sec) {
-  if (!safeKey(feedUrl)) return;
-  const d = pod();
+export function addListen(feedUrl, sec, prof = store.profile) {
+  if (!safeKey(feedUrl) || !prof) return;
+  const d = pod(prof);
   d.stats[feedUrl] = (d.stats[feedUrl] || 0) + sec;
 }
 
@@ -259,8 +260,9 @@ export async function refreshFeed(url, { force = false, profile = null } = {}) {
     if (f.eps[0]?.pub) sub.seen = Math.max(seen, f.eps[0].pub);
     if (fresh.length) {
       d.inbox = [...fresh.map(snap), ...d.inbox.filter((x) => !fresh.some((e) => e.key === x.key))].slice(0, 300);
-      bus.emit('pod-new', { feed: f, eps: fresh });
-      if (sub.set?.notify !== false) api.notify?.({ title: f.title, body: fresh.length > 1 ? _t('{n} új epizód: {title}', { n: fresh.length, title: fresh[0].title }) : _t('Új epizód: {title}', { title: fresh[0].title }) });
+      bus.emit('pod-new', { feed: f, eps: fresh, profile: prof });
+      // (értesítés csak a most aktív profil műsoráról)
+      if (sub.set?.notify !== false && store.profile?.id === prof.id) api.notify?.({ title: f.title, body: fresh.length > 1 ? _t('{n} új epizód: {title}', { n: fresh.length, title: fresh[0].title }) : _t('Új epizód: {title}', { title: fresh[0].title }) });
     }
     savePod();
   }
@@ -381,14 +383,14 @@ export function importOpml(xml) {
 export const canDownload = () => !!api.podDownload && !IS_ANDROID;
 const downloading = new Map(); // kulcs → ígéret
 export const isDownloading = (key) => downloading.has(key);
-export function downloadEp(ep) {
-  if (!canDownload() || downloading.has(ep.key) || epState(ep.key)?.dl) return downloading.get(ep.key) || Promise.resolve();
+export function downloadEp(ep, prof = store.profile) {
+  if (!canDownload() || !prof || downloading.has(ep.key) || pod(prof).eps[ep.key]?.dl) return downloading.get(ep.key) || Promise.resolve();
   const name = `${(ep.feedTitle || 'podcast').slice(0, 40)} - ${(ep.title || ep.key).slice(0, 80)}`;
   const p = api
-    .podDownload({ url: ep.url, feed: ep.feed, name, key: ep.key, profile: store.profile?.id || '' })
+    .podDownload({ url: ep.url, feed: ep.feed, name, key: ep.key, profile: prof.id || '' })
     .then((r) => {
       // (a pillanatkép: a Letöltések akkor is mutatja, ha a folyamból / a sorból már kikerült)
-      setState(ep.key, { dl: { path: r.path, url: r.url, size: r.size, ep: snap(ep) } });
+      setState(ep.key, { dl: { path: r.path, url: r.url, size: r.size, ep: snap(ep) } }, prof);
       return r;
     })
     .finally(() => {
@@ -416,9 +418,10 @@ export const downloadedList = () => {
     .filter(Boolean);
 };
 // új epizód: automatikus letöltés, ha a műsornál be van kapcsolva
-bus.on('pod-new', ({ feed, eps }) => {
-  if (!canDownload() || !subOf(feed.url)?.set?.autoDl) return;
-  eps.slice(0, 3).forEach((e) => downloadEp(e).catch(() => {}));
+bus.on('pod-new', ({ feed, eps, profile }) => {
+  const prof = profile || store.profile;
+  if (!canDownload() || !prof || !pod(prof).subs.find((s) => s.url === feed.url)?.set?.autoDl) return;
+  eps.slice(0, 3).forEach((e) => downloadEp(e, prof).catch(() => {}));
 });
 
 export const _podTest = { parseFeed, parseDur, parseOpml, toOpml, epKey };

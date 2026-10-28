@@ -2,6 +2,7 @@
 // alvásidőzítővel, lejátszási sorral. Asztali gépen (és a webes változatban) a böngésző audioeleme, Androidon a natív
 // lejátszó (háttérben, kikapcsolt képernyőnél is szól) – a felület ugyanaz (podcastpage.js).
 import { bus } from './util.js';
+import { store } from './store.js';
 import { api, IS_ANDROID } from './api.js';
 import { pod, podCfg, subOf, savePos, markPlayed, pushHistory, addListen, playUrl, epState, deleteDownload, findEp } from './podcast.js';
 import { radioPlayer, audioFxAvailable } from './radioplayer.js';
@@ -47,6 +48,7 @@ class PodPlayer {
     this.saveNow();
     this.flushStat();
     this.wantPause = false;
+    this.prof = store.profile; // (a lejátszó profilja: a pozíció és a hallgatási idő ide kerül, profilváltáskor is)
     const full = findEp(ep.key) || ep;
     this.ep = full;
     const cfg = podCfg();
@@ -149,7 +151,8 @@ class PodPlayer {
     // (a hallgatási idő csak a folyamatos lejátszás szakaszaiból számít – a lezáruló szakasz még az epizódé)
     this.flushStat();
     this.state = s;
-    this.lastStat = 0;
+    // (új lejátszási szakasz: az elszámolás innen indul; más állapotban nincs)
+    this.lastStat = s === 'playing' ? Date.now() : 0;
     if (s === 'paused') this.saveNow();
     if ('mediaSession' in navigator && !NATIVE) navigator.mediaSession.playbackState = s === 'playing' ? 'playing' : 'paused';
     this.emit('state');
@@ -161,7 +164,7 @@ class PodPlayer {
     const now = Date.now();
     if (now - this.lastSave > 5000) {
       this.lastSave = now;
-      savePos(this.ep, pos, this.dur);
+      savePos(this.ep, pos, this.dur, this.prof);
     }
     if (this.playing && now - this.lastStat > 15000) {
       this.flushStat();
@@ -180,11 +183,11 @@ class PodPlayer {
   /** A legutóbbi elszámolás óta hallgatott idő a mostani epizód műsorához. */
   flushStat() {
     const now = Date.now();
-    if (this.ep && this.playing && this.lastStat) addListen(this.ep.feed, Math.round((now - this.lastStat) / 1000));
+    if (this.ep && this.playing && this.lastStat) addListen(this.ep.feed, Math.round((now - this.lastStat) / 1000), this.prof);
     if (this.lastStat) this.lastStat = now;
   }
   saveNow() {
-    if (this.ep && this.pos > 1) savePos(this.ep, this.pos, this.dur);
+    if (this.ep && this.pos > 1) savePos(this.ep, this.pos, this.dur, this.prof);
   }
   ended() {
     const ep = this.ep;
