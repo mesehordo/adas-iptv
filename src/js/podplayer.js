@@ -4,7 +4,7 @@
 import { bus } from './util.js';
 import { store } from './store.js';
 import { api, IS_ANDROID } from './api.js';
-import { pod, podCfg, subOf, savePos, markPlayed, pushHistory, addListen, playUrl, epState, deleteDownload, findEp } from './podcast.js';
+import { pod, podCfg, subOf, savePos, markPlayed, pushHistory, addListen, playUrl, epState, deleteDownload, forgetDownload, findEp } from './podcast.js';
 import { radioPlayer, audioFxAvailable } from './radioplayer.js';
 import { player } from './player.js';
 import { _t } from './i18n.js';
@@ -26,6 +26,7 @@ class PodPlayer {
     this.lastSave = 0;
     this.lastStat = 0;
     this.wantPause = false; // (a felhasználó szüneteltetett – betöltés / újrapróbálás közben is érvényes)
+    this.gen = 0; // (Androidon a natív indítás sorszáma: a korábbi indítás késve érkező eseménye nem számít)
     this.el = null;
     this.fx = null;
   }
@@ -73,7 +74,7 @@ class PodPlayer {
     const url = playUrl(full);
     if (NATIVE) {
       this.nativeUrl = url;
-      window.AdasAndroid.podPlay(JSON.stringify({ url, start, rate: this.rate, title: full.title, artist: full.feedTitle || '', art: full.image || '' }));
+      window.AdasAndroid.podPlay(JSON.stringify({ gen: ++this.gen, url, start, rate: this.rate, title: full.title, artist: full.feedTitle || '', art: full.image || '' }));
     } else this.playWeb(url, start);
     this.mediaSession();
   }
@@ -108,11 +109,13 @@ class PodPlayer {
     else a.play().catch(() => {});
   }
   /** Androidon: a letöltött fájl hiányzik / nem játszható – még egyszer az eredeti címről (true: újrapróbálja). */
-  nativeRetry() {
+  nativeRetry(missing = false) {
     const ep = this.ep;
     if (!NATIVE || !ep?.url || !this.nativeUrl?.startsWith('file:') || this.nativeUrl === ep.url) return false;
+    // (csak a ténylegesen hiányzó fájl letöltés-adata törlődik – más lejátszási hibánál a fájl megmarad)
+    if (missing) forgetDownload(ep);
     this.nativeUrl = ep.url;
-    window.AdasAndroid.podPlay(JSON.stringify({ url: ep.url, start: this.pos, rate: this.rate, title: ep.title, artist: ep.feedTitle || '', art: ep.image || '' }));
+    window.AdasAndroid.podPlay(JSON.stringify({ gen: ++this.gen, url: ep.url, start: this.pos, rate: this.rate, title: ep.title, artist: ep.feedTitle || '', art: ep.image || '' }));
     if (this.wantPause) window.AdasAndroid.podPause();
     return true;
   }
@@ -331,8 +334,9 @@ export const podPlayer = new PodPlayer();
 // Android: a natív lejátszó jelzései (állapot, pozíció)
 window.__adasPod = (o) => {
   if (!podPlayer.ep || !o) return;
+  if (o.gen != null && o.gen !== podPlayer.gen) return;
   if (typeof o.pos === 'number') podPlayer.tick(o.pos, o.dur || podPlayer.dur);
-  if (o.st === 'error' && podPlayer.nativeRetry()) return;
+  if (o.st === 'error' && podPlayer.nativeRetry(!!o.missing)) return;
   if (o.st === 'playing' || o.st === 'paused' || o.st === 'loading' || o.st === 'error') podPlayer.setState(o.st);
   if (o.st === 'ended') podPlayer.ended();
 };

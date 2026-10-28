@@ -37,13 +37,19 @@ class PodNative implements Player.Listener {
     this.act = act;
   }
 
+  int gen = -1; // (a lap indítási sorszáma: minden esemény viszi, a korábbi indítás késő eseménye így kiszűrhető)
+  java.io.File localFile; // (a letöltött fájl, ha abból szól – hibánál: hiányzik-e)
+
   void play(JSONObject o) {
     release();
+    gen = o.optInt("gen", -1);
+    localFile = null;
     // internetes (http / https) epizód, vagy a letöltött fájl – de csak a podcast-mappából (PodFiles); más
     // sémájú (content: …) vagy máshová mutató helyi címet a híd nem nyit meg
     Uri uri = Uri.parse(o.optString("url"));
     String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(java.util.Locale.ROOT);
     boolean local = scheme.equals("file") && uri.getPath() != null && PodFiles.inDir(act, new java.io.File(uri.getPath()));
+    if (local) localFile = new java.io.File(uri.getPath());
     if (!local && !scheme.equals("http") && !scheme.equals("https")) {
       send("error", -1, -1);
       return;
@@ -116,7 +122,8 @@ class PodNative implements Player.Listener {
 
   @Override
   public void onPlayerError(PlaybackException e) {
-    send("error", pos(), dur());
+    // (a letöltött fájl hiányzik: a lap ilyenkor a letöltés adatát is elejti; más hibánál a fájl marad)
+    send("error", pos(), dur(), localFile != null && !localFile.exists());
   }
 
   double pos() {
@@ -134,8 +141,14 @@ class PodNative implements Player.Listener {
   }
 
   void send(String st, double pos, double dur) {
+    send(st, pos, dur, false);
+  }
+
+  void send(String st, double pos, double dur, boolean missing) {
     try {
       JSONObject o = new JSONObject();
+      if (gen >= 0) o.put("gen", gen);
+      if (missing) o.put("missing", true);
       if (st != null) o.put("st", st);
       if (pos >= 0) o.put("pos", pos);
       if (dur > 0) o.put("dur", dur);

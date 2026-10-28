@@ -409,10 +409,18 @@ export function downloadEp(ep, prof = store.profile) {
   bus.emit('pod-dl', ep.key);
   return p;
 }
+/** A letöltött fájl törlése; true: törölve (a letöltés adata csak ekkor törlődik), false: nem sikerült. */
 export async function deleteDownload(ep) {
   const dl = epState(ep.key)?.dl;
-  if (!dl) return;
-  await api.podDelete?.(dl.path).catch(() => {});
+  if (!dl) return true;
+  const ok = await Promise.resolve(api.podDelete?.(dl.path)).then((r) => r !== false, () => false);
+  if (!ok) return false;
+  forgetDownload(ep);
+  return true;
+}
+/** A letöltés adatának elejtése (a fájl már nincs meg – pl. a lejátszó nem találta). */
+export function forgetDownload(ep) {
+  if (!epState(ep.key)?.dl) return;
   setState(ep.key, { dl: undefined });
   bus.emit('pod-dl', ep.key);
 }

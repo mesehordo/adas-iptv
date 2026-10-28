@@ -133,7 +133,7 @@ document.addEventListener('click', (e) => {
   else if (act === 'up' || act === 'down') moveInQueue(ep.key, act === 'up' ? -1 : 1);
   else if (act === 'fav') toast(toggleFav(ep) ? _t('Kedvencekhez adva') : _t('Eltávolítva a kedvencek közül'));
   else if (act === 'played') markPlayed(ep, !isPlayed(ep.key));
-  else if (act === 'dldel') deleteDownload(ep).then(() => toast(_t('A letöltött fájl törölve: {title}', { title: ep.title })));
+  else if (act === 'dldel') deleteDownload(ep).then((ok) => toast(ok ? _t('A letöltött fájl törölve: {title}', { title: ep.title }) : _t('A fájl nem törölhető: {title}', { title: ep.title })));
   else if (act === 'dl' && !epState(ep.key)?.dl)
     downloadEp(ep)
       .then(() => toast(_t('Letöltve: {title}', { title: ep.title })))
@@ -491,8 +491,9 @@ document.addEventListener('click', async (e) => {
     const list = downloadedList().filter((ep) => a === 'dl-del-all' || isPlayed(ep.key));
     const q = a === 'dl-del-all' ? _t('Törlöd mind a(z) {n} letöltött epizódot ({size})? Az epizódok a listákban maradnak, csak a fájl törlődik.', { n: list.length, size: fmtSize(downloadedSize(list)) }) : _t('Törlöd a(z) {n} meghallgatott epizód letöltött fájlját?', { n: list.length });
     if (list.length && (await confirmDialog(q, { ok: _t('Törlés'), danger: true }))) {
-      for (const ep of list) await deleteDownload(ep).catch(() => {});
-      toast(_t('{n} letöltött fájl törölve', { n: list.length }));
+      let done = 0;
+      for (const ep of list) if (await deleteDownload(ep).catch(() => false)) done++;
+      toast(done === list.length ? _t('{n} letöltött fájl törölve', { n: done }) : _t('{n} letöltött fájl törölve, {m} nem törölhető', { n: done, m: list.length - done }));
     }
   }
   rerender();

@@ -2783,5 +2783,7 @@ export default {
  "{n} epizód, {size}": "{n} episodes, {size}",
  "Törlöd mind a(z) {n} letöltött epizódot ({size})? Az epizódok a listákban maradnak, csak a fájl törlődik.": "Delete all {n} downloaded episodes ({size})? The episodes stay in your lists – only the files are deleted.",
  "Törlöd a(z) {n} meghallgatott epizód letöltött fájlját?": "Delete the downloaded files of {n} played episodes?",
- "{n} letöltött fájl törölve": "{n} downloaded files deleted"
+ "{n} letöltött fájl törölve": "{n} downloaded files deleted",
+ "A fájl nem törölhető: {title}": "The file could not be deleted: {title}",
+ "{n} letöltött fájl törölve, {m} nem törölhető": "{n} downloaded files deleted, {m} could not be deleted"
 };
