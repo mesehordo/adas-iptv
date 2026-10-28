@@ -616,16 +616,17 @@ function openFull() {
   if (!podPlayer.ep) return;
   closeFull(false);
   full = html(`<section id="pod-full" role="dialog" aria-label="${_t('Most szól')}">
-    <div class="pf-top"><button class="round" data-pf2="close" title="${_t('Bezárás (Esc)')}">${ICON.chevron}</button><span class="muted">${_t('Podcast')}</span></div>
-    <div class="pf-main"><div class="pf-art"></div>
-      <div class="pf-info"><a class="pf-feed muted" href=""></a><h1 class="pf-title"></h1><div class="pf-chap muted"></div>
-        <div class="pf-seek"><span class="pf-cur">0:00</span><input type="range" class="seek" min="0" max="1000" value="0" aria-label="${_t('Tekerés')}" /><span class="pf-rem">0:00</span></div>
-        <div class="pf-ctrls rf-ctrls"><button class="round" data-pf2="prevch" title="${_t('Előző fejezet')}"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button><button class="round" data-pf2="back"></button><button class="round white big" data-pf2="toggle"></button><button class="round" data-pf2="fwd"></button><button class="round" data-pf2="next" title="${_t('Következő a sorban')}"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button></div>
-        <div class="pf-opts"><button class="btn small" data-pf2="rate"></button><button class="btn small" data-pf2="sleep"></button>
+    <div class="pf-top pl-head"><button class="round" data-pf2="close" title="${_t('Bezárás (Esc)')}">${ICON.chevron}</button><span class="muted">${_t('Most szól')} · ${_t('Podcast')}</span></div>
+    <div class="pf-body"><div class="pf-main"><div class="pf-art"></div>
+      <div class="pf-info"><a class="pf-feed muted" href=""></a><h1 class="pf-title"></h1><div class="pf-chap muted"></div></div></div>
+    <div class="pf-lists"><section class="pf-chapters" hidden><h3>${_t('Fejezetek')}</h3><ol></ol></section><section class="pf-queue"><h3>${_t('Következik a sorban')}</h3><div class="pep-list pq-list"></div></section></div></div>
+    <div class="pl-deck">
+        <div class="pf-seek pl-seek"><span class="pf-cur">0:00</span><input type="range" class="seek" min="0" max="1000" value="0" aria-label="${_t('Tekerés')}" /><span class="pf-rem">0:00</span></div>
+        <div class="pl-row"><div class="pf-ctrls pl-transport"><button class="round" data-pf2="prevch" title="${_t('Előző fejezet')}"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button><button class="round" data-pf2="back"></button><button class="round white big" data-pf2="toggle"></button><button class="round" data-pf2="fwd"></button><button class="round" data-pf2="next" title="${_t('Következő a sorban')}"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button></div>
+        <div class="pf-opts pl-opts"><button class="btn small" data-pf2="rate"></button><button class="btn small" data-pf2="sleep"></button>
           ${audioFxAvailable ? `<button class="btn small" data-pf2="boost"></button><button class="btn small" data-pf2="silence"></button>` : ''}
-          <button class="btn small" data-pf2="notes">${_t('Műsorjegyzet')}</button></div>
-        <div class="pf-menu" hidden></div></div></div>
-    <div class="pf-lists"><section class="pf-chapters" hidden><h3>${_t('Fejezetek')}</h3><ol></ol></section><section class="pf-queue"><h3>${_t('Következik a sorban')}</h3><div class="pep-list pq-list"></div></section></div>
+          <button class="btn small" data-pf2="notes">${_t('Műsorjegyzet')}</button></div></div>
+        <div class="pf-menu" hidden></div></div>
   </section>`);
   document.body.append(full);
   document.body.classList.add('pod-full');

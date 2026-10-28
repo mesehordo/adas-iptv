@@ -77,23 +77,25 @@ export const LAYOUTS = {
 export const currentLayout = (p = store.profile) => (p && LAYOUTS[p.layout] ? p.layout : 'classic');
 
 /** A lejátszó kinézetei (body[data-pskin]); a profil választhat egyet, alapból az elrendezéshez illő. */
+// (Mind az öt ugyanazt a szerkezetet használja – videó, rádió, podcast, teljes nézet és kis sáv –: fejléc balra a
+// vissza gombbal, alul a kezelőpult; a kinézet csak a gombok alakját, méretét, a felületet és a sáv helyét állítja.)
 export const PLAYER_SKINS = {
-  classic: _t('Klasszikus – áttetsző sötétítés alul és felül'),
-  cinema: _t('Mozi – vastag idősáv, nagy ikonok'),
+  classic: _t('Klasszikus – kerek gombok, áttetsző sötétítés, lebegő sáv'),
   glass: _t('Üveg – lebegő, áttetsző kezelőpanel'),
-  capsule: _t('Kapszula – középre zárt, lekerekített üvegsáv'),
-  bar: _t('Sáv – tömör kezelősáv alul, középen a gombok'),
-  round: _t('Kerek – nagy, kerek gombok, vastag idősáv'),
-  app: _t('Alkalmazás – tömör címsáv és alsó sáv'),
-  window: _t('Ablak – lapos, szögletes asztali lejátszó'),
-  pill: _t('Pirula – lekerekített, kiemelt színű gombok'),
-  minimal: _t('Minimál – vékony, szinte láthatatlan sáv'),
+  bar: _t('Sáv – tömör, a képernyő aljához rögzített kezelősáv, szögletes gombok'),
+  round: _t('Kerek – nagy, kerek gombok, vastag idősáv (távirányítóhoz, gyerekeknek)'),
+  minimal: _t('Minimál – vékony idősáv, keret nélküli gombok'),
 };
-const LAYOUT_SKIN = { classic: 'classic', cinema: 'cinema', showcase: 'glass', shelf: 'capsule', library: 'bar', tiles: 'round', detail: 'app', unified: 'app', wall: 'pill', squares: 'round', ribbon: 'minimal', focus: 'glass', desk: 'window' };
+// (a korábbi kinézetek: a hozzájuk legközelebbi)
+const SKIN_ALIAS = { cinema: 'classic', capsule: 'glass', app: 'bar', window: 'bar', pill: 'round' };
+const LAYOUT_SKIN = { classic: 'classic', cinema: 'classic', showcase: 'glass', shelf: 'glass', library: 'bar', tiles: 'round', detail: 'bar', unified: 'bar', wall: 'round', squares: 'round', ribbon: 'minimal', focus: 'glass', desk: 'bar' };
 /** Az elrendezéshez illő lejátszó-kinézet. */
 export const layoutSkin = (id = currentLayout()) => LAYOUT_SKIN[id] || 'classic';
 /** A használt lejátszó-kinézet: a profil saját választása, vagy az elrendezéshez illő. */
-export const currentSkin = (p = store.profile) => (p && PLAYER_SKINS[p.playerSkin] ? p.playerSkin : layoutSkin(currentLayout(p)));
+export const currentSkin = (p = store.profile) => {
+  const s = p && (SKIN_ALIAS[p.playerSkin] || p.playerSkin);
+  return PLAYER_SKINS[s] ? s : layoutSkin(currentLayout(p));
+};
 
 /**
  * Elrendezés-választó kis vázlatrajzokkal (Beállítások → Megjelenés, profil szerkesztése). A kijelölés a

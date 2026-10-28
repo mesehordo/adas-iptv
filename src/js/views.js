@@ -15,7 +15,7 @@ import {
 } from './components.js';
 import { player, stopPreview, PLAYER_BUTTONS } from './player.js';
 import { THEMES, currentTheme, currentVariant, applyTheme, profileRows, defaultRows, rowLabel } from './themes.js';
-import { LAYOUTS, currentLayout, layoutPickerHtml, pickLayoutIn, PLAYER_SKINS, layoutSkin } from './layoutdefs.js';
+import { LAYOUTS, currentLayout, layoutPickerHtml, pickLayoutIn, PLAYER_SKINS, layoutSkin, currentSkin } from './layoutdefs.js';
 import { renderLists } from './lists.js';
 import { renderVodLists, renderOwnLists, searchVod, vcardHtml, vod, vodFavItems, loadVod } from './vod.js';
 import { renderHuSettings } from './subtitles.js';
@@ -1326,7 +1326,7 @@ function renderAppearance(box) {
   const drawSkins = () => {
     const auto = layoutSkin();
     box.querySelector('[data-pskin-select]').innerHTML = `<option value="">${esc(_t('Az elrendezéshez illő: {name}', { name: PLAYER_SKINS[auto].split(' – ')[0] }))}</option>${Object.entries(PLAYER_SKINS)
-      .map(([id, d]) => `<option value="${id}" ${store.profile.playerSkin === id ? 'selected' : ''}>${esc(d)}</option>`)
+      .map(([id, d]) => `<option value="${id}" ${store.profile.playerSkin && currentSkin() === id ? 'selected' : ''}>${esc(d)}</option>`)
       .join('')}`;
   };
   drawSkins();
