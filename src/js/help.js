@@ -43,6 +43,7 @@ let index = null;
 /** Melyik téma tartozik az egyes képernyőkhöz (F1 / ? gomb). */
 const ROUTE_TOPICS = {
   home: 'dashboard',
+  podcast: 'podcast',
   recordings: 'recording',
   tv: 'home',
   guide: 'guide-grid',

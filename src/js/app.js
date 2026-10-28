@@ -27,6 +27,10 @@ import {
   renderTv, leaveHome, renderBrowse, renderCountries, renderFavorites, renderSearch, renderGuide, renderSettings, renderProfiles,
 } from './views.js';
 import { renderDashboard } from './dashboard.js';
+import { layoutRoute } from './layouts.js'; // profilonként választható felület-elrendezések
+import { adaptPage } from './pageadapt.js';
+import { renderPodcast, podMenuOn } from './podcastpage.js'; // podcastok (feliratkozás, sor, letöltés, lejátszó)
+import { podPlayer } from './podplayer.js';
 import { renderRecordingsPage } from './recorder.js'; // felvétel (asztali) és a felvételek oldala
 import './remote.js'; // távirányító telefonról
 import { applySubStyle } from './backup.js'; // automatikus mentés, feliratstílus
@@ -77,6 +81,7 @@ function routeFn(name) {
     case 'stats': return renderStats;
     case 'sport': return renderSport;
     case 'radio': return renderRadio;
+    case 'podcast': return renderPodcast;
     default: return renderDashboard;
   }
 }
@@ -136,7 +141,8 @@ function route({ keepScroll = false } = {}) {
   // kikapcsolt (vagy gyerekprofilban rejtett) Sport menüpontnál a főoldal
   if (name === 'sport' && !sportMenuOn()) return void location.replace('#/home');
   if (name === 'radio' && !radioMenuOn()) return void location.replace('#/home');
-  const fn = routeFn(name);
+  // (a Főoldal – és egyes elrendezésekben a TV oldal – az elrendezéstől függ)
+  const fn = layoutRoute(name) || routeFn(name);
   if (name !== 'tv') leaveHome();
   const full = location.hash;
   const sameRoute = full === currentRoute;
@@ -162,6 +168,8 @@ function route({ keepScroll = false } = {}) {
   const card = !keep && sameRoute && ae && view.contains(ae) ? ae.closest('.card, .see-all') : null;
   const cardKeep = card && cardSel(card) ? { sel: cardSel(card), n: [...view.querySelectorAll(cardSel(card))].indexOf(card) } : null;
   fn(view, params);
+  // (a TV, VOD, Rádió oldal kártyái az elrendezés módján rendeződnek át)
+  adaptPage(view, name);
   if (cardKeep && !view.contains(document.activeElement)) {
     const all = view.querySelectorAll(cardKeep.sel);
     (all[cardKeep.n] || all[0])?.focus({ preventScroll: true });
@@ -200,6 +208,11 @@ bus.on('profile', () => {
   rerender();
 });
 bus.on('favorites', () => parseHash().name === 'favorites' && rerender());
+// elrendezésváltás (Beállítások → Megjelenés, profil szerkesztése): a body jelölése és a Főoldal / TV oldal azonnal
+bus.on('profile-layout', () => {
+  applyTheme();
+  rerender();
+});
 // Sport menüpont: Beállítások → Sport (gyerekprofilban nem látszik)
 const applySportMenu = () => {
   const a = $('.links a[data-route="sport"]', nav);
@@ -214,6 +227,13 @@ const applyRadioMenu = () => {
 };
 bus.on('settings', (k) => k === 'radioMenu' && applyRadioMenu());
 bus.on('profile', applyRadioMenu);
+// Podcast menüpont (a Podcast oldal beállításaiban kapcsolható; gyerekprofilban nem látszik)
+const applyPodMenu = () => {
+  const a = $('.links a[data-route="podcast"]', nav);
+  if (a) a.hidden = !podMenuOn();
+};
+bus.on('settings', (k) => k === 'podcastMenu' && applyPodMenu());
+bus.on('profile', applyPodMenu);
 // betöltött adók: a rádió főoldala újrarajzolódik (a böngészés és a keresés mezői nem)
 bus.on('radio', debounce(() => {
   const { name, params } = parseHash();
@@ -448,10 +468,20 @@ bus.on('save-state', (err) => {
 window.__adasStopPlayback = () => {
   if (player.active) player.close();
   if (radioPlayer.active) radioPlayer.stop();
+  if (podPlayer.active) podPlayer.stop();
 };
 // (B37) az értesítés / a rendszer médiavezérlői (fülhallgató, Bluetooth, zárolt képernyő, tévé): play, pause,
 // next, prev – a rádióra, ha az szól, egyébként a videólejátszóra
 window.__adasMedia = (cmd) => {
+  // (a podcast, ha az szól – vagy szüneteltetve az az utolsó)
+  if (podPlayer.active && !player.active && !radioPlayer.playing) {
+    if (cmd === 'play') podPlayer.resume();
+    else if (cmd === 'pause') podPlayer.pause();
+    else if (cmd === 'toggle') podPlayer.toggle();
+    else if (cmd === 'next') podPlayer.skip(30);
+    else if (cmd === 'prev') podPlayer.skip(-10);
+    return;
+  }
   if (radioPlayer.active && !player.active) {
     if (cmd === 'play') radioPlayer.resume();
     else if (cmd === 'pause') radioPlayer.pause();
@@ -485,14 +515,14 @@ bus.on('player-opened', () => api.setVideoActive?.(true));
 // van-e betöltött adás (videó vagy rádió – szünetelve is): Androidon addig látszik a lejátszás értesítése
 let mediaActiveWas = false;
 const reportMediaActive = () => {
-  const on = !!(player.active || radioPlayer.active);
+  const on = !!(player.active || radioPlayer.active || podPlayer.active);
   if (on === mediaActiveWas) return;
   mediaActiveWas = on;
   api.setMediaActive?.(on);
 };
 // (azonnal, késleltetés nélkül: mindkét lejátszó az esemény előtt frissíti az állapotát – így egy közben zajló
 // képernyőzárás már az új értéket látja)
-['player-opened', 'player-closed', 'radio-player'].forEach((ev) => bus.on(ev, reportMediaActive));
+['player-opened', 'player-closed', 'radio-player', 'pod-player'].forEach((ev) => bus.on(ev, reportMediaActive));
 bus.on('player-closed', () => api.setVideoActive?.(false));
 // Háttér-beállítások átadása a keretnek: kilépéskor kis ablak (videó) / háttérlejátszás (csak hang) – külön
 const sendBgPrefs = () => api.setBackgroundPrefs?.(store.settings.autoPip === true, !!store.settings.bgAudio);
@@ -515,7 +545,11 @@ window.addEventListener('focus', () => {
     a.setSelectionRange(s, e);
   } catch {}
 });
-document.addEventListener('focusout', () => setTimeout(() => document.body.classList.toggle('typing', isTypingField(document.activeElement)), 0));
+const syncTyping = () => document.body.classList.toggle('typing', isTypingField(document.activeElement));
+document.addEventListener('focusout', () => setTimeout(syncTyping, 0));
+// (a fókuszban lévő mező eltávolításakor – pl. a profil létrehozása után – nincs focusout: a menüsáv ne maradjon rejtve)
+window.addEventListener('hashchange', syncTyping);
+document.addEventListener('pointerdown', () => setTimeout(syncTyping, 0), true);
 
 let lastContentFocus = null;
 document.addEventListener('focusin', (e) => {
@@ -894,6 +928,7 @@ async function boot() {
   updateProfileButton();
   applySportMenu();
   applyRadioMenu();
+  applyPodMenu();
   startSplashStatus();
   const loading = loadWithRetry();
   // (a csatornalista közben már töltődik; a profilválasztó az indítóanimáció után jelenik meg)

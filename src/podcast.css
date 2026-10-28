@@ -1,0 +1,161 @@
+/* Podcastok: a Podcast oldal, a műsor oldala, az epizódok sorai, a kis lejátszósáv (#pod-bar) és a teljes nézet
+   (#pod-full). A színek a téma változóiból; a lejátszósáv és a teljes nézet a lejátszó kinézetét követi (data-pskin). */
+
+/* ------------------------------------------------------------------ Kártyák */
+.pcard .thumb { overflow: hidden; }
+.pcard .thumb .pimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.pcard .thumb .q { z-index: 2; }
+.pcard .thumb .bar { z-index: 2; }
+.pshow .thumb, .thumb.psq { aspect-ratio: 1; }
+.pod-rows .row-track .pshow { width: calc(var(--card-w) * 0.62); }
+.pod-grid { grid-template-columns: repeat(auto-fill, minmax(min(170px, 42vw), 1fr)) !important; gap: 22px 12px !important; }
+.pod-grid .pcard { width: auto; }
+.pod-rows { padding-top: 96px; }
+.pod-rows .pod-empty { margin: 0 var(--gutter) 3vw; }
+
+/* ------------------------------------------------------------------ Oldalak */
+.pod-tabs .tab small { opacity: 0.75; margin-left: 4px; }
+.pod-page .page-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; }
+.pod-tools { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pod-search { display: flex; gap: 10px; margin: 0 0 18px; }
+.pod-search .input { flex: 1; min-width: 0; }
+.pod-import { margin: 14px 0 26px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.pod-stat-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.pod-stat-top > div { display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: var(--radius); background: var(--bg-2); }
+.pod-stat-top small { color: var(--muted); }
+.pod-stat-top b { font-size: 1.4rem; }
+.pod-stats { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.pod-stats li { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 2fr) auto; gap: 12px; align-items: center; }
+.pod-stats a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-strong); }
+.pbar { height: 8px; border-radius: 4px; background: var(--bg-3); overflow: hidden; }
+.pbar i { display: block; height: 100%; background: var(--accent); }
+
+/* ------------------------------------------------------------------ Epizódsorok */
+.pep-list { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.pep { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 10px 4px; border-bottom: 1px solid var(--line); }
+.pep.played { opacity: 0.62; }
+.pep.now { background: rgba(127, 127, 127, 0.1); box-shadow: inset 3px 0 0 var(--accent); }
+.pep-art { position: relative; width: 64px; height: 64px; border-radius: 8px; border: 0; padding: 0; overflow: hidden; cursor: pointer; background: linear-gradient(135deg, hsl(var(--h) 45% 32%), hsl(var(--h) 40% 14%)); }
+.pep-art .pimg { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pep-play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.35); color: #fff; opacity: 0; transition: opacity 0.15s; }
+.pep-play svg { width: 28px; height: 28px; fill: currentColor; }
+.pep-art:hover .pep-play, .pep-art:focus-visible .pep-play, .pep.now .pep-play { opacity: 1; }
+.pep-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; cursor: pointer; }
+.pep-main b { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.3; }
+.pep-main small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pep-main .bar { max-width: 260px; margin-top: 4px; }
+.pep-btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.pep-btns .round { width: 34px; height: 34px; font-size: 0.85rem; }
+.pep-btns .round svg { width: 55%; height: 55%; fill: currentColor; }
+.pep-btns .round.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+@media (max-width: 700px) {
+  .pep { grid-template-columns: 52px minmax(0, 1fr); }
+  .pep-art { width: 52px; height: 52px; }
+  .pep-btns { grid-column: 1 / -1; justify-content: flex-start; }
+}
+
+/* ------------------------------------------------------------------ A műsor oldala */
+.pfeed-head { display: flex; gap: 24px; align-items: flex-start; padding: 22px; margin-bottom: 18px; border-radius: 14px; background: linear-gradient(135deg, hsl(var(--h) 40% 22%), hsl(var(--h) 35% 10%)); color: #fff; }
+.pfeed-art { flex: none; width: clamp(130px, 18vw, 220px); aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: rgba(0, 0, 0, 0.25); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45); }
+.pfeed-art .pimg { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pfeed-info { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.pfeed-info h1 { margin: 0; font-size: clamp(1.5rem, 2.6vw, 2.3rem); }
+.pfeed-info .muted { color: rgba(255, 255, 255, 0.75); }
+.pfeed-desc { margin: 0; color: rgba(255, 255, 255, 0.85); line-height: 1.45; white-space: pre-line; max-height: 7.5em; overflow: hidden; }
+.pfeed-set { margin: 0 0 16px; padding: 10px 14px; border-radius: var(--radius); background: var(--bg-2); }
+.pfeed-set summary { cursor: pointer; font-weight: 600; }
+.pfeed-set-in { display: flex; flex-wrap: wrap; gap: 14px 22px; margin-top: 12px; align-items: center; }
+.pfeed-set-in label { display: flex; align-items: center; gap: 8px; }
+.pfeed-set-in .input { width: 90px; }
+.pfeed-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+.pfeed-bar .input { flex: 1 1 200px; min-width: 0; }
+@media (max-width: 700px) { .pfeed-head { flex-direction: column; padding: 16px; } .pfeed-art { width: 140px; } }
+
+/* ------------------------------------------------------------------ Az epizód adatlapja */
+.pod-ep-head { display: flex; gap: 16px; align-items: flex-start; padding-right: 36px; }
+.pod-ep-art { flex: none; width: 96px; height: 96px; border-radius: 10px; overflow: hidden; background: linear-gradient(135deg, hsl(var(--h) 45% 30%), hsl(var(--h) 40% 12%)); }
+.pod-ep-art .pimg { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pod-ep-head h2 { margin: 4px 0; }
+.pod-notes { max-height: 42vh; overflow-y: auto; line-height: 1.55; overflow-wrap: anywhere; padding: 12px 14px; border-radius: var(--radius); background: var(--bg-3); }
+.pod-links { display: flex; flex-direction: column; gap: 4px; }
+.pod-links summary { cursor: pointer; }
+.pod-links .link-btn { background: none; border: 0; color: var(--accent); text-align: left; padding: 2px 0; cursor: pointer; font: inherit; overflow-wrap: anywhere; }
+
+/* ------------------------------------------------------------------ Kis lejátszósáv */
+#pod-bar { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 900; display: flex; align-items: center; gap: 10px; padding: 8px 12px 10px 8px; border-radius: var(--radius); background: var(--bg-2); color: var(--text); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); border: 1px solid var(--line); overflow: hidden; }
+#pod-bar[hidden] { display: none; }
+body.pod-on #radio-bar, body.playing #pod-bar, body.picking #pod-bar { display: none; }
+.pb-main { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto; background: none; border: 0; color: inherit; font: inherit; text-align: left; padding: 0; cursor: pointer; }
+.pb-art { flex: none; width: 46px; height: 46px; border-radius: 6px; overflow: hidden; background: var(--bg-3); }
+.pb-art .pimg { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pb-text { min-width: 0; display: flex; flex-direction: column; }
+.pb-text b, .pb-text small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pb-text small { color: var(--muted); }
+#pod-bar .round { flex: none; width: 40px; height: 40px; }
+#pod-bar .round svg { width: 55%; height: 55%; fill: currentColor; }
+.pskip { position: relative; display: inline-flex; align-items: center; justify-content: center; font-size: 1.25rem; line-height: 1; }
+.pskip small { position: absolute; font-size: 0.5rem; font-weight: 800; }
+.pb-prog { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(127, 127, 127, 0.25); }
+.pb-prog i { display: block; height: 100%; background: var(--accent); }
+@media (max-width: 700px) {
+  #pod-bar { left: 8px; right: 8px; bottom: calc(58px + 8px + env(safe-area-inset-bottom)); }
+  #pod-bar [data-pb="back"], #pod-bar [data-pb="fwd"] { display: none; }
+  html body.pod-on #view { padding-bottom: calc(66px + 90px + env(safe-area-inset-bottom)); }
+}
+@media (min-width: 900px) { body.side-nav #pod-bar { left: calc(var(--side-w) + 12px); } }
+@media (min-width: 701px) { body[data-layout="desk"] #pod-bar { bottom: 66px; } body[data-layout="tiles"] #pod-bar { left: 88px; } }
+
+/* ------------------------------------------------------------------ Teljes nézet */
+#pod-full { position: fixed; inset: 0; z-index: 950; overflow-y: auto; color: #fff; padding: 18px var(--gutter) 40px; display: flex; flex-direction: column; gap: 18px;
+  background: radial-gradient(ellipse at 30% 20%, hsl(var(--h, 220) 45% 26%), hsl(var(--h, 220) 40% 7%) 75%); }
+body.pod-full { overflow: hidden; }
+body.pod-full > :not(#pod-full):not(#modal-root):not(#toasts):not(#rc-cursor) { visibility: hidden; }
+.pf-top { display: flex; align-items: center; gap: 12px; }
+.pf-top .round svg { transform: rotate(90deg); width: 55%; height: 55%; fill: currentColor; }
+.pf-main { display: flex; gap: 4vw; align-items: center; flex-wrap: wrap; }
+.pf-art { flex: none; width: min(42vh, 80vw); aspect-ratio: 1; border-radius: 14px; overflow: hidden; background: rgba(0, 0, 0, 0.25); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); display: flex; align-items: center; justify-content: center; }
+.pf-art .pimg { width: 100%; height: 100%; object-fit: cover; }
+.pf-art .initials { font-size: 3rem; }
+.pf-info { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.pf-feed { color: rgba(255, 255, 255, 0.75) !important; }
+.pf-title { margin: 0; font-size: clamp(1.4rem, 2.8vw, 2.4rem); line-height: 1.15; overflow-wrap: anywhere; }
+.pf-chap { min-height: 1.2em; }
+.pf-seek { display: flex; align-items: center; gap: 12px; font-variant-numeric: tabular-nums; }
+.pf-seek .seek { flex: 1; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--accent) var(--pct, 0%), rgba(255, 255, 255, 0.28) var(--pct, 0%)); cursor: pointer; }
+.pf-seek .seek::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2px solid var(--accent); }
+.pf-ctrls { display: flex; align-items: center; gap: 12px; }
+.pf-ctrls .round { width: 52px; height: 52px; font-size: 1.1rem; }
+.pf-ctrls .round.big { width: 72px; height: 72px; }
+.pf-ctrls .round svg { width: 50%; height: 50%; fill: currentColor; }
+.pf-opts, .pf-menu { display: flex; flex-wrap: wrap; gap: 8px; }
+.pf-opts .btn.on, .pf-menu .btn.on { background: var(--accent); color: #fff; }
+.pf-menu[hidden] { display: none; }
+.pf-lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+.pf-lists h3 { margin: 0 0 8px; }
+.pf-chapters ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.pf-chapters button { width: 100%; display: flex; gap: 12px; text-align: left; padding: 8px 10px; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; cursor: pointer; }
+.pf-chapters button:hover, .pf-chapters button.on { background: rgba(255, 255, 255, 0.12); }
+.pf-chapters time { font-variant-numeric: tabular-nums; color: rgba(255, 255, 255, 0.7); }
+.pf-queue[hidden], .pf-chapters[hidden] { display: none; }
+.pf-queue .pep { border-color: rgba(255, 255, 255, 0.12); }
+.pf-queue .pep-main small { color: rgba(255, 255, 255, 0.65); }
+
+/* ------------------------------------------------------------------ A lejátszó kinézete (mint a rádiósávnál) */
+body[data-pskin="cinema"] #pod-bar { border-radius: 4px; border-top: 3px solid var(--accent); }
+body:is([data-pskin="glass"], [data-pskin="capsule"]) #pod-bar { border-radius: 18px; background: rgba(28, 28, 34, 0.72); color: #fff; -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border-color: rgba(255, 255, 255, 0.1); }
+@media (min-width: 701px) {
+  body[data-pskin="capsule"] #pod-bar { left: 50%; right: auto; transform: translateX(-50%); width: min(820px, calc(100% - 48px)); border-radius: 999px; }
+  body[data-pskin="bar"] #pod-bar { left: 0; right: 0; bottom: 0; border-radius: 0; border-width: 1px 0 0; padding: 10px 20px 12px; }
+  body[data-layout="library"][data-pskin="bar"] #pod-bar { left: var(--side-w, 0); }
+  body[data-layout="desk"][data-pskin] #pod-bar { bottom: 66px; }
+}
+body[data-pskin="round"] #pod-bar { border-radius: 26px; }
+body:is([data-pskin="app"], [data-pskin="window"]) #pod-bar { border-radius: 4px; }
+body:is([data-pskin="app"], [data-pskin="window"]) #pod-bar .round, body:is([data-pskin="app"], [data-pskin="window"]) .pf-ctrls .round { border-radius: 6px; }
+body[data-pskin="pill"] #pod-bar { border-radius: 999px; padding-left: 10px; }
+body[data-pskin="pill"] .pf-ctrls .round { border-radius: 999px; width: 62px; }
+body[data-pskin="round"] .pf-ctrls .round { width: 64px; height: 64px; }
+body[data-pskin="round"] .pf-ctrls .round.big { width: 88px; height: 88px; }
+body[data-pskin="minimal"] #pod-bar { background: transparent; border-color: transparent; box-shadow: none; }
+body[data-pskin="cinema"] .pf-seek .seek, body[data-pskin="round"] .pf-seek .seek { height: 9px; }
+body:is([data-pskin="glass"], [data-pskin="capsule"]) .pf-info { padding: 18px 20px; border-radius: 20px; background: rgba(28, 28, 34, 0.45); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }

@@ -285,8 +285,17 @@ function renderMenu() {
   if (btn) {
     const fr = full.getBoundingClientRect();
     const br = btn.getBoundingClientRect();
-    menu.style.bottom = `${Math.round(fr.bottom - br.top + 8)}px`;
-    menu.style.right = `${Math.max(8, Math.round(fr.right - br.right))}px`;
+    // (a méret a teljes szélességen mérve – az előző menü helye ne szűkítse)
+    Object.assign(menu.style, { top: '0px', bottom: 'auto', right: '8px' });
+    // (álló telefonon a lejátszó görget: a hely a görgetett tartalomhoz mérve; ha a gomb fölött nem fér el, alá kerül)
+    const h = menu.offsetHeight;
+    const above = br.top - fr.top - h - 8;
+    menu.style.top = `${Math.round(full.scrollTop + (above >= 8 ? above : br.bottom - fr.top + 8))}px`;
+    // (keskeny képernyőn a bal oldali gomb menüje se lógjon ki balra)
+    const w = menu.offsetWidth;
+    // (a right a görgetősáv nélküli szélességhez mér)
+    const cw = full.clientWidth;
+    menu.style.right = `${Math.max(8, Math.min(Math.round(cw - (br.right - fr.left)), Math.round(cw - w - 8)))}px`;
   }
 }
 function openMenu(kind) {

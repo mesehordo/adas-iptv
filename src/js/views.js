@@ -7,7 +7,7 @@ import { epg } from './epg.js';
 import { health } from './health.js';
 import {
   catalog, visible, getChannels, search, countryName, countryFlag, categoryName, rankScore, loadCatalog,
-  KIDS_CATEGORIES, channelStatus, bestQuality, MINE, activeLists, homeRank, homeFirst, COUNTRY_LANG, geoState, byAvailability,
+  KIDS_CATEGORIES, channelStatus, bestQuality, MINE, activeLists, homeRank, homeFirst, COUNTRY_LANG, geoState, byAvailability, recommendOrder,
 } from './catalog.js';
 import {
   ICON, rowEl, gridEl, cardHtml, registerContext, openProgram, openModal, confirmDialog, promptDialog,
@@ -15,6 +15,7 @@ import {
 } from './components.js';
 import { player, stopPreview, PLAYER_BUTTONS } from './player.js';
 import { THEMES, currentTheme, currentVariant, applyTheme, profileRows, defaultRows, rowLabel } from './themes.js';
+import { LAYOUTS, currentLayout, layoutPickerHtml, pickLayoutIn, PLAYER_SKINS, layoutSkin } from './layoutdefs.js';
 import { renderLists } from './lists.js';
 import { renderVodLists, renderOwnLists, searchVod, vcardHtml, vod, vodFavItems, loadVod } from './vod.js';
 import { renderHuSettings } from './subtitles.js';
@@ -58,7 +59,10 @@ function popular(list) {
 
 
 
+// (az átrendező elrendezésekben – a sorokból lista, szalag, csoportgombok lesznek – rögtön minden sor kell)
+const ALL_ROWS = new Set(['detail', 'unified', 'squares', 'ribbon', 'focus', 'showcase', 'tiles']);
 function lazyRows(container, factories, initial = 4) {
+  if (ALL_ROWS.has(document.body.dataset.layout)) initial = factories.length;
   let i = 0;
   const sentinel = html('<div class="rows-sentinel"></div>');
   const more = (n) => {
@@ -97,9 +101,8 @@ export function renderTv(view) {
   view.innerHTML = '';
   const rows = html(`<div class="rows tv-rows"><div class="tv-head">${tvTabs('tv')}</div></div>`);
   view.append(rows);
-  const onAir = vis.filter((c) => epg.now(c.id)?.cur);
-  const favSet = new Set(p.favorites);
-  onAir.sort((a, b) => (favSet.has(b.id) - favSet.has(a.id)) || (homeRank(b) - homeRank(a)) || rankScore(b) - rankScore(a));
+  // elöl a kedvencek, utánuk ajánlásként a hozzájuk hasonló, azonos nyelvű csatornák
+  const onAir = recommendOrder(vis.filter((c) => epg.now(c.id)?.cur));
 
   const builders = {
     recent: () => recent.length && rowEl(_t('Legutóbb nézett'), recent, { href: '#/favorites' }),
@@ -1263,6 +1266,12 @@ function renderAppearance(box) {
         .join('')}</select></label>
     <div class="tp-slot"></div>
     <div class="ct-box"></div>
+    <h3>${_t('Felület elrendezése')}</h3>
+    <p class="muted lay-desc">${esc(LAYOUTS[currentLayout()].desc)}</p>
+    <p class="lay-pair"></p>
+    ${layoutPickerHtml(currentLayout())}
+    <label class="setting"><span>${_t('<b>A lejátszó kinézete</b>')}<small>${_t('A videó- és a rádiólejátszó kezelőfelülete (a kis rádiósáv is). Alapból az elrendezéshez illő.')}</small></span>
+      <select data-pskin-select></select></label>
     <h3>${_t('A TV oldal sorai')}</h3>
     <p class="muted">${_t('Húzással vagy a nyilakkal rendezheted, a kapcsolóval elrejtheted a sorokat.')}</p>
     <div class="tv-rows"></div>`;
@@ -1284,16 +1293,55 @@ function renderAppearance(box) {
     applyTheme();
     box.querySelector('[data-theme-select]').value = id;
     box.querySelector('.theme-desc').textContent = THEMES[id].desc;
+    // (az elrendezéshez illő téma ajánlása a most választott téma szerint)
+    drawPair();
   };
-  const tp = themePicker({ theme, variant: currentVariant(theme)?.id || '', compact: false, savedVariant: (id) => store.profile.themeVariants?.[id] || '', onChange: save });
+  const tp = themePicker({ theme, variant: currentVariant(theme)?.id || '', compact: false, savedVariant: (id) => currentVariant(id)?.id || '', onChange: save });
   box.querySelector('.tp-slot').replaceWith(tp.el);
   // (értékadással: az újrarajzolás után sem halmozódik a figyelő)
+  // elrendezés: azonnal érvényes (a téma mellett, attól függetlenül)
+  // az elrendezéshez illő téma ajánlása (ha nem az van bekapcsolva)
+  const drawPair = () => {
+    const l = LAYOUTS[currentLayout()];
+    const el = box.querySelector('.lay-pair');
+    const th = l.theme && THEMES[l.theme];
+    el.hidden = !th || currentTheme() === l.theme;
+    if (th) el.innerHTML = `${_t('Ehhez az elrendezéshez illő téma: <b>{name}</b>', { name: esc(th.label) })} <button class="btn small" data-lay-theme="${esc(l.theme)}">${_t('Bekapcsolás')}</button>`;
+  };
+  drawPair();
+  // a lejátszó kinézete: „az elrendezéshez illő” vagy egy választott
+  const drawSkins = () => {
+    const auto = layoutSkin();
+    box.querySelector('[data-pskin-select]').innerHTML = `<option value="">${esc(_t('Az elrendezéshez illő: {name}', { name: PLAYER_SKINS[auto].split(' – ')[0] }))}</option>${Object.entries(PLAYER_SKINS)
+      .map(([id, d]) => `<option value="${id}" ${store.profile.playerSkin === id ? 'selected' : ''}>${esc(d)}</option>`)
+      .join('')}`;
+  };
+  drawSkins();
+  box.onclick = (e) => {
+    const pt = e.target.closest('[data-lay-theme]');
+    if (pt) {
+      save(pt.dataset.layTheme, currentVariant(pt.dataset.layTheme)?.id || '');
+      return renderAppearance(box);
+    }
+    const id = pickLayoutIn(box, e.target);
+    if (!id) return;
+    store.setProfileValue('layout', id);
+    box.querySelector('.lay-desc').textContent = LAYOUTS[id].desc;
+    drawPair();
+    drawSkins();
+  };
   box.onchange = (e) => {
+    if (e.target.matches('[data-pskin-select]')) {
+      e.stopPropagation();
+      store.setProfileValue('playerSkin', e.target.value || undefined);
+      applyTheme();
+      return;
+    }
     if (e.target.matches('[data-theme-select]')) {
       e.stopPropagation();
       // (a legördülőből választva a téma megjegyzett változata él tovább)
       const id = e.target.value;
-      save(id, store.profile.themeVariants?.[id] || '');
+      save(id, currentVariant(id)?.id || '');
       renderAppearance(box);
     }
   };
@@ -1480,6 +1528,8 @@ function editProfile(prof, done) {
     <div class="swatches">${PROFILE_COLORS.map((c) => `<button type="button" class="swatch ${c === color ? 'sel' : ''}" data-c="${c}" style="background:${c}" aria-label="${_t('Szín')}"></button>`).join('')}</div>
     <div>${_t('<b>Kinézet</b>')} <small class="muted">${_t('(téma és színváltozat ehhez a profilhoz)')}</small></div>
     <div class="tp-slot"></div>
+    <div>${_t('<b>Elrendezés</b>')} <small class="muted">${_t('(hol a menü, mi van a Főoldalon – a témától független)')}</small></div>
+    ${layoutPickerHtml(currentLayout(prof || {}))}
     <label class="setting"><span>${_t('<b>Gyerekprofil</b>')}<small>${_t('Csak gyerek-, családi, animációs és oktatási csatornák.')}</small></span>
       <input type="checkbox" class="switch" name="kids" ${prof?.kids ? 'checked' : ''} /></label>
     <div class="setting"><span>${_t('<b>Gombkiosztás</b>')}<small>${_t('A távirányító és a kontroller gombjainak betanítása (ehhez az eszközhöz, minden profilnak).')}</small></span>
@@ -1493,11 +1543,14 @@ function editProfile(prof, done) {
   </form>`);
   el.querySelector('.avatar-slot').replaceWith(picker.el);
   const pTheme = prof?.theme && THEMES[prof.theme] ? prof.theme : 'netflix';
-  const tp = themePicker({ theme: pTheme, variant: prof?.themeVariants?.[pTheme] || '', savedVariant: (id) => prof?.themeVariants?.[id] || '' });
+  const tp = themePicker({ theme: pTheme, variant: (prof && currentVariant(pTheme, prof)?.id) || '', savedVariant: (id) => (prof && currentVariant(id, prof)?.id) || '' });
   el.querySelector('.tp-slot').replaceWith(tp.el);
   const close = openModal(el, { cls: 'medium' });
   // PIN: mentéskor érvényesül. undefined = nem változik, null = törlés, '1234' = új
   let newPin;
+  // elrendezés: mentéskor érvényesül
+  let layout = currentLayout(prof || {});
+  el.addEventListener('click', (e) => (layout = pickLayoutIn(el, e.target) || layout));
   const pinState = () => {
     const on = newPin === undefined ? hasPin(prof) : !!newPin;
     el.querySelector('.pin-state').textContent = on
@@ -1538,6 +1591,7 @@ function editProfile(prof, done) {
     target.theme = look.theme;
     target.themeVariants = { ...(target.themeVariants || {}), [look.theme]: look.variant };
     if (!look.variant) delete target.themeVariants[look.theme];
+    target.layout = layout;
     if (newPin !== undefined) await setPin(target, newPin);
     store.save();
     bus.emit('profile');

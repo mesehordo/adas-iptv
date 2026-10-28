@@ -753,9 +753,30 @@ ${go('#/profiles', 'Manage profiles')}`,
     keywords: 'theme style look zen wabi sabi light dark neon manga comic console',
     body: `
 <p>The look of the interface can be chosen per profile: <b>Settings → Appearance → Interface style</b> (drop-down menu, or click the samples). The change takes effect immediately.</p>
-<p>The <b>layout is the same in every style</b> (top menu bar, the same card sizes, rows and cards on the home page) – the style only gives the look: colours, font, borders, shadows, background patterns, animations.</p>
+<p>The style only gives the <b>look</b>; the <b>structure</b> – where the menu is, what’s on Home – comes from the <b>layout</b>, which you can choose independently (see below).</p>
+<h2>Layouts</h2>
+<p><b>Settings → Appearance → Interface layout</b> : per profile, click a sketch – there it applies immediately. It can also be chosen when editing a profile; there it takes effect after <b>Save</b> (closing discards it).</p>
+<ul>
+<li><b>Classic</b> – top menu, customizable cards on Home (weather, news, TV listings).</li>
+<li><b>Cinema</b> – a large featured banner at the top of Home (your favourite or last watched channel, with live preview), channel rows below.</li>
+<li><b>Showcase</b> – a rotating featured strip, big buttons for the main sections (TV, Guide, Radio, VOD, Sport, Favourites, Recordings), rows below.</li>
+<li><b>Shelf</b> – the selected channel fills the background (programme, live preview), one row of large cards at the bottom; for TVs.</li>
+<li><b>Library</b> – a side menu with your collections and favourites, and a fixed radio bar at the bottom.</li>
+<li><b>Tiles</b> – a featured banner and large topic tiles (news, kids, sport, movies…).</li>
+<li><b>Detailed</b> – the channel list on the left (with a filter), the selected channel’s details on the right with today’s schedule and your watch time. Click: select, second click / OK: play.</li>
+<li><b>Collection</b> – every source in one place with filters (source, country, category, working / favourites only), grid or list view; the filters are remembered.</li>
+</ul>
+<ul>
+<li><b>Tile wall</b> – a large “Continue” tile, a grid of pinned favourites and a guide to what’s on now.</li>
+<li><b>Squares</b> – one row of large square tiles with round buttons for the main sections; for kids and TVs.</li>
+<li><b>Ribbon</b> – sections run horizontally, their content vertically; with a remote: ← → section, ↑ ↓ item, OK open.</li>
+<li><b>Focus</b> – a function bar and a row of tiles; the selected one is larger, with its programme and buttons below.</li>
+<li><b>Desktop</b> – live tiles (clock, on now, tonight, weather, news) with the menu as a taskbar at the bottom.</li>
+</ul>
+<p>Every layout has <b>its own menu</b> (top bar, centred capsule, left icon rail, upper-case tab bar, round icons, taskbar…), and <b>Home</b> shows your day in its style (weather, tonight, news, on now). The rows of the <b>TV, VOD and Radio</b> pages are rearranged the layout’s way too: featured banner, group tiles, list and details, filterable collection, ribbon, tiles; the Sport page’s cards take on the layout’s style.</p>
+<p>The side menu and the taskbar appear on wide screens; in a narrow window and on phones the usual top / bottom menu stays. The Detailed and Collection layouts also replace the TV page with their own view.</p>
 <h2>Colour variants</h2>
-<p>Besides the original, most styles have <b>three colour variants</b> – each a palette picked to suit the style’s mood, with its own name (e.g. Neon City: <i>Synthwave</i>, <i>Acid green</i>, <i>Red neon</i>; Phosphor: the amber, cyan and plasma colours of old monitors; Deco: rose gold, emerald, silver). Choose one in the <i>Colour variant</i> row under the samples. A variant turns every coloured element of the style – highlights, buttons, borders, decorations – into the palette’s colours (in multi-coloured styles such as Neon City, Pow! and Kikagaku, each colour separately); the background brightness and the readability of text stay the same, and black, white and grey shades as well as status colours (working / error, recording, LIVE) are kept. For styles with a black-and-white highlight (e.g. Manga, Mu) the variant adds a coloured highlight. The variant is remembered per style and per profile; the High contrast style has no variants, for accessibility.</p>
+<p>Besides the original, most styles have <b>three colour variants</b> – each a palette picked to suit the style’s mood, with its own name (e.g. Neon City: <i>Synthwave</i>, <i>Acid green</i>, <i>Red neon</i>; Phosphor: the amber, cyan and plasma colours of old monitors; Deco: rose gold, emerald, silver). Choose one in the <i>Colour variant</i> row under the samples. A variant turns every coloured element of the style – highlights, buttons, borders, decorations – into the palette’s colours (in multi-coloured styles such as Neon City, Pow! and Kikagaku, each colour separately); the background brightness and the readability of text stay the same, and black, white and grey shades as well as status colours (working / error, recording, LIVE) are kept. For styles with a black-and-white highlight (e.g. Manga, Mu) the variant adds a coloured highlight; the Uchūreki variants are the exact palettes of different eras of the control interface. The labels on accent-coloured buttons and tabs follow the accent (dark on light accents, white on dark ones). The variant is remembered per style and per profile; the High contrast style has no variants, for accessibility.</p>
 <p>The style and colour variant can already be chosen when creating a profile (at the first start and under Manage profiles), and when editing a profile.</p>
 <table class="help-table">
 <tr><th colspan="2">Dark styles</th></tr>
@@ -776,7 +797,7 @@ ${go('#/profiles', 'Manage profiles')}`,
 <tr><td><b>Deco</b></td><td>The art deco world of old picture palaces: black and gold, geometric frames, elegant lettering.</td></tr>
 <tr><td><b>Shōwa</b></td><td>The 1970s: orange, brown and mustard, rounded “TV screen” cards, striped decoration.</td></tr>
 <tr><td><b>Holo</b></td><td>A sci-fi control panel: dark bluish grid, cyan hologram glow, thin frames, cut-corner buttons.</td></tr>
-<tr><td><b>Stardate</b></td><td>The control interface of a starship’s bridge: black background, round-ended orange, lavender and peach bars, narrow capitals.</td></tr>
+<tr><td><b>Uchūreki</b> (stardate)</td><td>The control interface of a starship’s bridge: black background, round-ended orange, lavender and peach bars, narrow capitals.</td></tr>
 <tr><th colspan="2">Light styles</th></tr>
 <tr><td><b>Zen</b></td><td>Rice-paper white background, moss-green highlights, lots of space, quiet, slow movements, an ensō circle in the logo.</td></tr>
 <tr><td><b>Wabi-sabi</b></td><td>Warm, earth-toned paper texture, slightly irregular cards, rust and indigo, a golden kintsugi crack on hover.</td></tr>
@@ -943,7 +964,6 @@ ${go('#/settings', 'Open Settings')}`,
 <p>Settings → Channel lists → <b>Built-in lists</b>: each can be switched on and off with its own switch. Next to them you can see how many channels they give.</p>
 <table class="help-table">
 <tr><td><b>iptv-org</b></td><td>The largest community collection (about 10,000 channels), with detailed data (country, language, owner, website…). Its address can be changed with the <i>Address</i> button (e.g. a single country’s list).</td></tr>
-<tr><td><b>iptv-org – Animation</b></td><td>iptv-org’s animation channels as a separate list; with iptv-org switched on they merge with it, on their own they’re useful if iptv-org is switched off.</td></tr>
 <tr><td><b>Free-TV</b></td><td>Hand-picked free channels by country.</td></tr>
 <tr><td><b>Pluto TV</b>, <b>Samsung TV Plus</b>, <b>Plex</b></td><td>Free, ad-supported streaming channels from several countries, with their own TV guide.</td></tr>
 <tr><td><b>FreeCast Hub</b></td><td>A small selection (news, music, sport).</td></tr>
@@ -1276,6 +1296,29 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 </ul>
 <p>You can only rewind as far as the player has already downloaded – when you switch to a channel the buffer is empty, and it grows minute by minute.</p>
 <div class="note">A TV’s built-in player (webOS) decides itself how much to keep; there, rewinding may be shorter or missing, depending on the broadcaster.</div>`,
+  },
+  {
+    id: 'podcast',
+    cat: 'watch',
+    title: 'Podcasts',
+    keywords: 'podcast episode subscribe rss opml antennapod queue download speed silence chapter sleep chart',
+    body: `
+<p>The <b>Podcast</b> menu item (the Radio page’s <i>Podcasts</i> tab leads here too) brings podcasts – with subscriptions, like a podcast app.</p>
+<h2>Finding shows, subscribing</h2>
+<ul><li><b>Discover</b>: search by name (with the public Apple Podcasts search, fyyd as a fallback), the top chart of your country, or paste an <b>RSS address</b>.</li>
+<li><b>OPML</b>: bring your subscriptions from another app (AntennaPod, Pocket Casts…) or take them there (Discover or Settings).</li>
+<li>Subscriptions are <b>per profile</b>; they also carry over to another device with settings backups and sync.</li></ul>
+<h2>Tabs</h2>
+<ul><li><b>Overview</b> – continue, new episodes, queue, subscriptions, latest episodes, top chart (in the layout’s style).</li>
+<li><b>New episodes</b> – new episodes of your subscriptions (with a notification); mark all as played or queue them.</li>
+<li><b>Queue</b> – reorder with ▲ ▼; with continuous playback, the next one starts when an episode ends.</li>
+<li><b>Downloads</b> (on desktop) – downloaded episodes play without internet; the file can be deleted after playing (setting).</li>
+<li><b>History</b>, <b>Favourites</b> (★), <b>Statistics</b> (listening time per show), <b>Settings</b>.</li></ul>
+<h2>The show page</h2>
+<p>Filters (unplayed, in progress, played, favourite, downloaded), search, sorting. <b>Show settings</b>: own speed, skipping the intro and outro (in seconds), volume boost, skip silence, notifications, automatic download of new episodes.</p>
+<h2>Playback</h2>
+<p>On the small player bar and in the full view: seeking, skipping back and forward (intervals in the settings), <b>speed</b> (0.75–3×), <b>sleep timer</b> (minutes or “at end of episode”), <b>chapters</b> (if the show provides them), show notes, next in queue. Adás remembers where you are and continues from there. On Android the native player plays, even with the screen off. The look follows the <b>player look</b> (Settings → Appearance).</p>
+<div class="note">Shows available only on Spotify have no public RSS feed – they can’t be played in Adás.</div>`,
   },
   {
     id: 'radio',

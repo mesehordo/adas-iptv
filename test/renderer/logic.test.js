@@ -2,7 +2,7 @@
 import { test, assert, sleep } from './harness.js';
 import { cmpVersion, isPrerelease } from '../../src/js/semver.js';
 import { qrMatrix } from '../../src/js/qr.js';
-import { parseM3U, nameKey } from '../../src/js/catalog.js';
+import { parseM3U, nameKey, recommendOrder } from '../../src/js/catalog.js';
 import { parseSubs } from '../../src/js/subtitles.js';
 import { bytesToText } from '../../src/js/unzip.js';
 import { validateImport, sanitizeSettings, cleanProfile } from '../../src/js/store.js';
@@ -12,6 +12,8 @@ import { esc } from '../../src/js/util.js';
 import { api } from '../../src/js/api.js';
 import { resolveStream, radioPlayer } from '../../src/js/radioplayer.js';
 import { HELP_CATEGORIES, ARTICLES } from '../../src/js/help-content.js';
+import { LAYOUTS, currentLayout, layoutPickerHtml, pickLayoutIn } from '../../src/js/layoutdefs.js';
+import { _podTest } from '../../src/js/podcast.js';
 
 // ------------------------------------------------------------------ alapfüggvények
 test('semver: sorrend, előzetes kiadás', () => {
@@ -386,15 +388,28 @@ test('mentési pontok (X09): felülírás előtt a régi (v1) pont a mostani tar
 
 import { THEME_VARIANTS, variantColor } from '../../src/js/themevariants.js';
 
-test('színváltozat: témánként válogatott paletták – 3 változat egyedi azonosítóval és névvel, élénk célszínekkel', async () => {
+test('színváltozat: témánként válogatott paletták – legalább 3 változat egyedi azonosítóval és névvel, élénk célszínekkel', async () => {
   const { THEMES } = await import('../../src/js/themes.js');
   for (const id of Object.keys(THEMES).filter((k) => !THEMES[k].custom && k !== 'contrast')) {
     const vs = THEME_VARIANTS[id];
-    assert.ok(vs?.length === 3, `${id}: ${vs?.length}`);
-    assert.equal(new Set(vs.map((v) => v.id)).size, 3, id);
-    assert.ok(vs.every((v) => v.name() && (v.tint != null || v.map?.length)), id);
+    assert.ok(vs?.length >= 3, `${id}: ${vs?.length}`);
+    assert.equal(new Set(vs.map((v) => v.id)).size, vs.length, id);
+    assert.ok(vs.every((v) => v.name() && (v.tint != null || v.map?.length || v.vars)), id);
   }
   assert.deepEqual(THEME_VARIANTS.contrast, []);
+  // (Uchūreki: pontos paletták – fekete alapon a sávszín, a sávon fekete felirat: mindegyik legalább 4,5:1)
+  const lum = (h) => {
+    const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  for (const v of THEME_VARIANTS.stardate) {
+    for (const k of ['accent', 'accent-2', 'lav', 'peach', 'sky', 'text', 'text-strong', 'muted']) assert.ok((lum(v.vars[k]) + 0.05) / 0.05 >= 4.5, `${v.id} ${k}`);
+  }
+  // (a korábbi kiadásban mentett, megszűnt változat az utódjára fordul; ismeretlen név: eredeti)
+  const { currentVariant } = await import('../../src/js/themes.js');
+  assert.equal(currentVariant('stardate', { themeVariants: { stardate: 'emerald' } })?.id, 'padd');
+  assert.equal(currentVariant('stardate', { themeVariants: { stardate: 'redalert' } })?.id, 'redalert');
+  assert.equal(currentVariant('stardate', { themeVariants: { stardate: 'constructor' } }), null);
   // (Neon City szintihulláma: a neonsárgából élénk rózsaszín lesz, nem fakó pasztell; a szürke marad)
   const pink = variantColor('#fcee0a', THEME_VARIANTS.cyberpunk[0]);
   assert.ok(hueOf(pink) > 320 || hueOf(pink) < 10, pink);
@@ -495,4 +510,61 @@ test('lanpolicy: helyi címek és a saját helyi forrás felismerése', () => {
   assert.equal(hasLocalSource({ customPlaylists: [{ url: 'http://192.168.1.20/tv.m3u', enabled: true }] }), true);
   assert.equal(hasLocalSource({ ownSources: [{ kind: 'folder', path: 'D:/Filmek', enabled: true }] }), true);
   assert.equal(hasLocalSource({ ownSources: [{ kind: 'folder', path: 'D:/Filmek', enabled: false }] }), false);
+});
+
+test('elrendezések: alapérték, ismeretlen név, választó', () => {
+  assert.equal(currentLayout({}), 'classic');
+  assert.equal(currentLayout({ layout: 'nincs-ilyen' }), 'classic');
+  assert.equal(currentLayout({ layout: 'detail' }), 'detail');
+  const ids = Object.keys(LAYOUTS);
+  assert.equal(ids.length, 13);
+  for (const id of ids) assert.ok(LAYOUTS[id].label && LAYOUTS[id].desc, id);
+  const box = document.createElement('div');
+  box.innerHTML = layoutPickerHtml('shelf');
+  assert.equal(box.querySelectorAll('[data-layout-pick]').length, 13);
+  assert.equal(box.querySelector('.sel').dataset.layoutPick, 'shelf');
+  assert.equal(pickLayoutIn(box, box.querySelector('[data-layout-pick="unified"] b')), 'unified');
+  assert.equal(box.querySelector('.sel').dataset.layoutPick, 'unified');
+  assert.equal(box.querySelector('[aria-checked="true"]').dataset.layoutPick, 'unified');
+  assert.equal(pickLayoutIn(box, box), null);
+});
+
+test('ajánlott sorrend: kedvencek elöl, utánuk az azonos nyelvű, hasonló csatornák', () => {
+  const ch = (id, country, languages, categories) => ({ id, name: id, country, languages, categories, streams: [{ url: 'http://x/' + id }], logo: '' });
+  const list = [ch('idegen-hirek', 'XX', ['xxx'], ['news']), ch('hazai-sport', 'HU', ['hun'], ['sports']), ch('hazai-hirek', 'HU', ['hun'], ['news']), ch('kedv2', 'XX', ['xxx'], ['music']), ch('kedv1', 'HU', ['hun'], ['news'])];
+  const p = { favorites: ['kedv1', 'kedv2'], recent: [] };
+  const ids = recommendOrder(list, p).map((c) => c.id);
+  assert.deepEqual(ids.slice(0, 2), ['kedv1', 'kedv2']);
+  // (a kedvencek a katalógusban nincsenek, így a hasonlóság nem számít: az azonos nyelvűek előre, az idegen a végére)
+  assert.equal(ids[ids.length - 1], 'idegen-hirek');
+  assert.ok(ids.indexOf('hazai-hirek') < ids.indexOf('idegen-hirek') && ids.indexOf('hazai-sport') < ids.indexOf('idegen-hirek'));
+});
+
+test('podcast: RSS (iTunes, fejezetek), időtartam, OPML oda-vissza', () => {
+  const xml = `<?xml version="1.0"?><rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:podcast="https://podcastindex.org/namespace/1.0" xmlns:psc="http://podlove.org/simple-chapters">
+  <channel><title>Próba műsor</title><itunes:author>Szerző</itunes:author><itunes:image href="https://p.hu/c.jpg"/><description>Leírás</description><podcast:funding url="https://p.hu/tamogatas">Támogass</podcast:funding>
+  <item><title>Régi rész</title><guid>a1</guid><pubDate>Mon, 01 Jan 2024 10:00:00 GMT</pubDate><enclosure url="https://p.hu/1.mp3" type="audio/mpeg" length="1000"/><itunes:duration>1:02:03</itunes:duration></item>
+  <item><title>Új rész</title><guid>a2</guid><pubDate>Tue, 02 Jan 2024 10:00:00 GMT</pubDate><enclosure url="https://p.hu/2.mp3" type="audio/mpeg"/><itunes:duration>754</itunes:duration>
+    <podcast:chapters url="https://p.hu/2.json" type="application/json+chapters"/></item>
+  <item><title>Fejezetes</title><guid>a3</guid><pubDate>Wed, 03 Jan 2024 10:00:00 GMT</pubDate><enclosure url="https://p.hu/3.mp3" type="audio/mpeg"/><psc:chapters><psc:chapter start="00:00:00" title="Eleje"/><psc:chapter start="00:05:30" title="Közepe"/></psc:chapters></item>
+  <item><title>Hang nélkül</title><guid>a4</guid></item></channel></rss>`;
+  const f = _podTest.parseFeed(xml, 'https://p.hu/feed');
+  assert.equal(f.title, 'Próba műsor');
+  assert.equal(f.author, 'Szerző');
+  assert.equal(f.image, 'https://p.hu/c.jpg');
+  assert.equal(f.funding, 'https://p.hu/tamogatas');
+  assert.equal(f.eps.length, 3); // (a hangfájl nélküli rész kimarad)
+  assert.deepEqual(f.eps.map((e) => e.title), ['Fejezetes', 'Új rész', 'Régi rész']); // legújabb elöl
+  assert.equal(f.eps[2].dur, 3723);
+  assert.equal(f.eps[1].dur, 754);
+  assert.equal(f.eps[1].chapters, 'https://p.hu/2.json');
+  assert.deepEqual(f.eps[0].chapters.map((c) => [c.start, c.title]), [[0, 'Eleje'], [330, 'Közepe']]);
+  assert.equal(f.eps[0].key, _podTest.epKey('https://p.hu/feed', 'a3', 'https://p.hu/3.mp3'));
+  assert.ok(f.eps[0].key !== f.eps[1].key);
+  assert.throws(() => _podTest.parseFeed('<html><body>nem</body></html>', 'x'));
+  const opml = _podTest.toOpml([{ url: 'https://a.hu/rss?x=1&y=2', title: 'A & B' }, { url: 'https://b.hu/feed', title: 'B' }]);
+  assert.deepEqual(_podTest.parseOpml(opml), [{ url: 'https://a.hu/rss?x=1&y=2', title: 'A & B' }, { url: 'https://b.hu/feed', title: 'B' }]);
+  assert.equal(_podTest.parseDur('45'), 45);
+  assert.equal(_podTest.parseDur('10:05'), 605);
+  assert.equal(_podTest.parseDur(''), 0);
 });

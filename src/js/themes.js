@@ -4,6 +4,7 @@ import { variantsFor, hueOf, applyVariantCss, THEME_VARIANTS } from './themevari
 import { categoryName, countryName } from './catalog.js';
 
 import { _t } from './i18n.js';
+import { applyLayout } from './layoutdefs.js';
 /**
  * Minden stílus ugyanazzal az elrendezéssel (felső menüsáv, azonos kártyaméretek);
  * a stílus csak a kinézetet adja (színek, betűk, keretek, árnyékok, minták) – themes.css, body[data-theme].
@@ -157,8 +158,8 @@ export const THEMES = {
     desc: _t('Yami: keserédes gótikus lolita – fekete–levendula alap, élénk rózsaszín, krémszín csipkefodrok, masnik, kameés keretek, fekete-fehér sakktábla, masnis kis koponyák és denevérek, kézírásos címek.'),
   },
   stardate: {
-    label: _t('Csillagidő'),
-    desc: _t('Csillagidő: egy csillaghajó parancsnoki hídjának kezelőfelülete – fekete alap, lekerekített végű narancs, levendula és barack színsávok, keskeny, nagybetűs feliratok.'),
+    label: 'Uchūreki',
+    desc: _t('Uchūreki (csillagidő): egy csillaghajó parancsnoki hídjának kezelőfelülete – fekete alap, lekerekített végű narancs, levendula és barack színsávok, keskeny, nagybetűs feliratok.'),
   },
 };
 
@@ -190,9 +191,13 @@ export function themeVariants(id) {
   if (!THEMES[id] || THEMES[id].custom) return [];
   return THEME_VARIANTS[id] || variantsFor(hueOf(themeAccent(id)));
 }
+// a megszűnt változatok utódja (a korábbi kiadásokban mentett választás így megmarad)
+const VARIANT_RENAMED = { stardate: { bluealert: 'deepblue', emerald: 'padd' } };
 /** A profil választott változata az adott témához (vagy null: eredeti). */
 export function currentVariant(id = currentTheme(), p = store.profile) {
-  const vid = p?.themeVariants?.[id];
+  let vid = p?.themeVariants?.[id];
+  const ren = Object.prototype.hasOwnProperty.call(VARIANT_RENAMED, id) ? VARIANT_RENAMED[id] : null;
+  if (ren && typeof vid === 'string' && Object.prototype.hasOwnProperty.call(ren, vid)) vid = ren[vid];
   return (vid && themeVariants(id).find((v) => v.id === vid)) || null;
 }
 
@@ -210,7 +215,7 @@ export function applyTheme(forced = null) {
   document.body.dataset.theme = def ? (def.base && THEMES[def.base] && !THEMES[def.base].custom ? def.base : 'custom') : id;
   if (def) document.body.dataset.custom = def.id;
   else delete document.body.dataset.custom;
-  document.body.dataset.layout = 'top'; // minden stílus ugyanazzal az elrendezéssel (felső menüsáv)
+  applyLayout(); // (az elrendezés a témától független, profilonként – layoutdefs.js)
   document.body.dataset.tone = (def ? def.tone === 'light' : t.light) ? 'light' : 'dark';
   let style = document.getElementById('custom-theme-css');
   if (!style) {
@@ -225,6 +230,41 @@ export function applyTheme(forced = null) {
   else delete document.body.dataset.variant;
   applyVariantCss(id, variant);
   fitThumbInk();
+  fitOnAccent();
+}
+
+const relLum = (r, g, b) => {
+  const lin = (v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+};
+/**
+ * A kiemelőszínű felületeken (pl. a kiválasztott menüpont háttere) a felirat színe: világos kiemelőn sötét, sötéten
+ * fehér – a változat és a saját téma kiemelőszínéhez is (--on-accent).
+ */
+function fitOnAccent() {
+  const body = document.body;
+  body.style.removeProperty('--on-accent');
+  const probe = document.createElement('i');
+  probe.style.cssText = 'position:absolute;left:-9999px;color:var(--accent)';
+  body.append(probe);
+  const css = getComputedStyle(probe).color;
+  probe.remove();
+  // (a számított szín lehet oklch() / color() alakú is: egy képpontos vásznon sRGB-re fordítva olvassuk ki)
+  let rgb = null;
+  try {
+    const cx = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+    cx.fillStyle = css;
+    cx.fillRect(0, 0, 1, 1);
+    rgb = [...cx.getImageData(0, 0, 1, 1).data].slice(0, 3);
+  } catch {
+    rgb = (css.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+  }
+  if (rgb?.length !== 3) return;
+  // (a valódi kontrasztarányok szerint: a sötét felirat, ha legalább annyira olvasható, mint a fehér)
+  const L = relLum(...rgb);
+  const dark = (L + 0.05) / (relLum(17, 17, 17) + 0.05);
+  const light = 1.05 / (L + 0.05);
+  body.style.setProperty('--on-accent', dark >= light ? '#111' : '#fff');
 }
 
 /**
@@ -240,12 +280,12 @@ function fitThumbInk() {
   probe.innerHTML = '<div class="thumb" style="--h:210"><span class="initials">AB</span></div>';
   document.body.append(probe);
   const th = getComputedStyle(probe.firstChild);
-  const col = (/rgba?\([^)]+\)/.exec(th.backgroundImage) || [])[0] || th.backgroundColor;
+  // (színátmenetnél a színek átlaga – a betű a kártya közepén van, nem a legvilágosabb sarkán)
+  const cols = th.backgroundImage.match(/rgba?\([^)]+\)/g) || [th.backgroundColor];
   probe.remove();
-  const [r, g, b, a = 1] = (col.match(/[\d.]+/g) || []).map(Number);
-  if (!(a > 0.4)) return; // (átlátszó háttér: a lap hátteréhez nem igazítunk)
-  const lin = (v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
-  const lum = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  const vals = cols.map((c) => (c.match(/[\d.]+/g) || []).map(Number)).filter((v) => v.length >= 3);
+  if (!vals.length || !vals.every(([, , , a = 1]) => a > 0.4)) return; // (átlátszó háttér: a lap hátteréhez nem igazítunk)
+  const lum = vals.reduce((s, [r, g, b]) => s + relLum(r, g, b), 0) / vals.length;
   // (a fehér és a sötét betű kontrasztja kb. 0,22-es világosságnál egyezik: fölötte a sötét olvashatóbb)
   if (lum > 0.22) root.style.setProperty('--thumb-ink', 'rgba(20, 20, 20, 0.72)');
 }

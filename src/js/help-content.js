@@ -753,9 +753,30 @@ ${go('#/profiles', 'Profilok kezelése')}`,
     keywords: 'téma stílus kinézet netflix disney skyshowtime rakuten prime apple zen wabi szabi nintendo wii switch világos sötét',
     body: `
 <p>A felület kinézete profilonként választható: <b>Beállítások → Megjelenés → Felület stílusa</b> (legördülő menü, vagy kattints a mintákra). A váltás azonnal érvényes.</p>
-<p>Az <b>elrendezés minden stílusban ugyanaz</b> (felső menüsáv, azonos kártyaméretek, sorok és kártyák a főoldalon) – a stílus csak a kinézetet adja: színek, betűtípus, keretek, árnyékok, háttérminták, animációk.</p>
+<p>A stílus csak a <b>kinézetet</b> adja: színek, betűtípus, keretek, árnyékok, háttérminták, animációk. A felület <b>szerkezetét</b> – hol a menü, mi van a Főoldalon – az <b>elrendezés</b> adja, ez a stílustól függetlenül választható (lásd lent).</p>
+<h2>Elrendezések</h2>
+<p><b>Beállítások → Megjelenés → Felület elrendezése</b> : profilonként, a vázlatra kattintva – ott azonnal érvényes. A profil szerkesztésekor is választható; ott a <b>Mentés</b> után lép életbe (bezárásra elvetve).</p>
+<ul>
+<li><b>Klasszikus</b> – felső menü, a Főoldalon testreszabható kártyák (időjárás, hírek, műsor).</li>
+<li><b>Mozi</b> – a Főoldal tetején nagy kiemelt borító (a kedvenc vagy utoljára nézett csatorna, élő előnézettel), alatta csatornasorok.</li>
+<li><b>Kirakat</b> – lapozó kiemelt sáv, nagy gombok a fő részekhez (TV, Műsorújság, Rádió, VOD, Sport, Kedvencek, Felvételek), alatta sorok.</li>
+<li><b>Polc</b> – a kijelölt csatorna tölti ki a hátteret (műsor, élő előnézet), alul egy sor nagy kártya; tévére.</li>
+<li><b>Könyvtár</b> – oldalsó menü a gyűjteményeiddel és kedvenceiddel, alul rögzített rádiósáv.</li>
+<li><b>Csempék</b> – kiemelt borító és nagy témakör-csempék (hírek, gyerek, sport, film…).</li>
+<li><b>Részletes</b> – balra a csatornalista (szűrővel), jobbra a kiválasztott csatorna adatlapja a mai műsorral és a nézési idővel. Kattintás: kijelölés, második kattintás / OK: lejátszás.</li>
+<li><b>Gyűjtemény</b> – minden forrás egy helyen, szűrőkkel (forrás, ország, kategória, csak működők / kedvencek), rács- vagy listanézettel; a szűrők megmaradnak.</li>
+</ul>
+<ul>
+<li><b>Csempefal</b> – nagy „Folytatás” csempe, a rögzített kedvencek rácsa, mellette útmutató a most futó műsorokkal.</li>
+<li><b>Négyzetek</b> – egy sor nagy, négyzetes csempe, alul kerek gombok a fő részekhez; gyerekeknek és tévére.</li>
+<li><b>Menüszalag</b> – vízszintesen a részek, függőlegesen a tartalmuk; távirányítóval: ← → rész, ↑ ↓ elem, OK megnyitás.</li>
+<li><b>Fókusz</b> – funkciósáv, egy sor csempe; a kijelölt nagyobb, alatta a műsora és a gombjai.</li>
+<li><b>Asztal</b> – élő csempék (óra, most, ma este, időjárás, hírek), a menü alul tálcaként.</li>
+</ul>
+<p>Minden elrendezésnek <b>saját menüje</b> van (felső sáv, középre zárt kapszula, bal oldali ikonsáv, nagybetűs fülsáv, kerek ikonok, tálca…), és a <b>Főoldal</b> is a stílusában mutatja a napot (időjárás, ma este, hírek, most a tévében). A <b>TV, VOD és Rádió</b> oldal sorai is az elrendezés módján rendeződnek: kiemelt borító, csoportcsempék, lista és adatlap, szűrős gyűjtemény, menüszalag, csempék; a Sport oldal kártyái az elrendezés stílusát kapják.</p>
+<p>Az oldalsó menü és a tálca széles képernyőn látszik; keskeny ablakban és telefonon a szokásos felső / alsó menü marad. A Részletes és a Gyűjtemény elrendezés a TV oldalt is a saját nézetére cseréli.</p>
 <h2>Színváltozatok</h2>
-<p>A legtöbb stílusnak az eredeti mellett <b>három színváltozata</b> is van – mindegyik a stílus hangulatához válogatott paletta, saját névvel (pl. Neon City: <i>Szintihullám</i>, <i>Savas zöld</i>, <i>Vörös neon</i>; Phosphor: a régi monitorok borostyán, cián és plazma színei; Deco: rózsaarany, smaragd, ezüst). A minták alatt, a <i>Színváltozat</i> sorban választható. A változat a stílus minden színes elemét – kiemelés, gombok, keretek, díszítések – a paletta színeire fordítja (a több színű stílusoknál, pl. Neon City, Pow!, Kikagaku, mindegyik színt külön); a háttér világossága és a szöveg olvashatósága nem változik, és a fekete, fehér, szürke árnyalatok, valamint az állapotjelzések (működik / hiba, felvétel, ÉLŐ) is maradnak. Fekete-fehér kiemelésű stílusnál (pl. Manga, Mu) a változat színes kiemelőt ad. A változat stílusonként és profilonként megmarad; a Kontraszt stílusnak – akadálymentességi okból – nincs változata.</p>
+<p>A legtöbb stílusnak az eredeti mellett <b>három színváltozata</b> is van – mindegyik a stílus hangulatához válogatott paletta, saját névvel (pl. Neon City: <i>Szintihullám</i>, <i>Savas zöld</i>, <i>Vörös neon</i>; Phosphor: a régi monitorok borostyán, cián és plazma színei; Deco: rózsaarany, smaragd, ezüst). A minták alatt, a <i>Színváltozat</i> sorban választható. A változat a stílus minden színes elemét – kiemelés, gombok, keretek, díszítések – a paletta színeire fordítja (a több színű stílusoknál, pl. Neon City, Pow!, Kikagaku, mindegyik színt külön); a háttér világossága és a szöveg olvashatósága nem változik, és a fekete, fehér, szürke árnyalatok, valamint az állapotjelzések (működik / hiba, felvétel, ÉLŐ) is maradnak. Fekete-fehér kiemelésű stílusnál (pl. Manga, Mu) a változat színes kiemelőt ad; az Uchūreki változatai a kezelőfelület különböző korszakainak pontos palettái. A kiemelőszínű gombok, fülek felirata a kiemelőhöz igazodik (világoson sötét, sötéten fehér). A változat stílusonként és profilonként megmarad; a Kontraszt stílusnak – akadálymentességi okból – nincs változata.</p>
 <p>A stílus és a színváltozat már a profil létrehozásakor is választható (az első indításkor és a Profilok kezelése alatt), a profil szerkesztésekor is.</p>
 <table class="help-table">
 <tr><th colspan="2">Sötét stílusok</th></tr>
@@ -776,7 +797,7 @@ ${go('#/profiles', 'Profilok kezelése')}`,
 <tr><td><b>Deco</b></td><td>A régi mozipaloták art deco világa: fekete és arany, geometrikus keretek, elegáns betűk.</td></tr>
 <tr><td><b>Shōwa</b></td><td>A 70-es évek: narancs, barna és mustár, lekerekített „tévéképernyő” kártyák, csíkos díszítés.</td></tr>
 <tr><td><b>Holo</b></td><td>Sci-fi irányítópult: sötét kékes rácsos alap, cián hologramfény, vékony keretek, levágott sarkú gombok.</td></tr>
-<tr><td><b>Csillagidő</b></td><td>Egy csillaghajó parancsnoki hídjának kezelőfelülete: fekete alap, lekerekített végű narancs, levendula és barack sávok, keskeny nagybetűk.</td></tr>
+<tr><td><b>Uchūreki</b> (csillagidő)</td><td>Egy csillaghajó parancsnoki hídjának kezelőfelülete: fekete alap, lekerekített végű narancs, levendula és barack sávok, keskeny nagybetűk.</td></tr>
 <tr><th colspan="2">Világos stílusok</th></tr>
 <tr><td><b>Zen</b></td><td>Rizspapír-fehér háttér, mohazöld kiemelés, sok levegő, csendes, lassú mozgások, ensō kör a logóban.</td></tr>
 <tr><td><b>Wabi-sabi</b></td><td>Meleg, földszínű papírtextúra, kissé szabálytalan kártyák, rozsda- és indigószín, rámutatásra arany kintsugi-repedés.</td></tr>
@@ -943,7 +964,6 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
 <p>Beállítások → Csatornalisták → <b>Beépített listák</b>: mindegyik külön kapcsolóval ki-be kapcsolható. Mellettük látszik, hány csatornát adnak.</p>
 <table class="help-table">
 <tr><td><b>iptv-org</b></td><td>A legnagyobb közösségi gyűjtemény (kb. 10 000 csatorna), részletes adatokkal (ország, nyelv, tulajdonos, weboldal…). A címe a <i>Cím</i> gombbal módosítható (pl. csak egy ország listája).</td></tr>
-<tr><td><b>iptv-org – Animáció</b></td><td>Az iptv-org animációs csatornái külön listaként; bekapcsolt iptv-org mellett összevonódnak vele, önállóan akkor hasznos, ha az iptv-org ki van kapcsolva.</td></tr>
 <tr><td><b>Free-TV</b></td><td>Kézzel válogatott, ingyenes csatornák országonként.</td></tr>
 <tr><td><b>Pluto TV</b>, <b>Samsung TV Plus</b>, <b>Plex</b></td><td>Az ingyenes, reklámmal támogatott streamingcsatornák több országból, saját műsorújsággal.</td></tr>
 <tr><td><b>FreeCast Hub</b></td><td>Kis válogatás (hírek, zene, sport).</td></tr>
@@ -1276,6 +1296,29 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
 </ul>
 <p>Visszatekerni csak addig lehet, ameddig a lejátszó az adást már letöltötte – a csatornára kapcsoláskor a puffer üres, és percről percre nő.</p>
 <div class="note">A tévék beépített lejátszója (webOS) maga dönt arról, mennyit tárol; ott a visszatekerés az adótól függően rövidebb lehet vagy hiányozhat.</div>`,
+  },
+  {
+    id: 'podcast',
+    cat: 'watch',
+    title: 'Podcastok',
+    keywords: 'podcast epizód feliratkozás rss opml antennapod sor lejátszási sor letöltés sebesség csend fejezet alvás toplista',
+    body: `
+<p>A menüsor <b>Podcast</b> pontja (a Rádió oldal <i>Podcastok</i> füle is ide visz) a podcastokat hozza – feliratkozással, mint egy podcast-alkalmazás.</p>
+<h2>Műsorok keresése, feliratkozás</h2>
+<ul><li><b>Felfedezés</b>: keresés név szerint (az Apple Podcasts nyilvános keresőjével, tartalékként az fyyd-vel), a beállított ország toplistája, vagy egy <b>RSS-cím</b> beírása.</li>
+<li><b>OPML</b>: más alkalmazásból (AntennaPod, Pocket Casts…) áthozhatod a feliratkozásaidat, és oda is viheted (Felfedezés vagy Beállítások).</li>
+<li>A feliratkozások <b>profilonként</b> vannak; a beállítások mentésével és a szinkronnal másik eszközre is átkerülnek.</li></ul>
+<h2>Fülek</h2>
+<ul><li><b>Áttekintés</b> – folytatás, új epizódok, sor, feliratkozások, legújabb részek, toplista (az elrendezés stílusában).</li>
+<li><b>Új epizódok</b> – a feliratkozások új részei (értesítéssel); mind meghallgatottnak jelölhető vagy a sorba tehető.</li>
+<li><b>Lejátszási sor</b> – a sorrend ▲ ▼ gombokkal; folyamatos lejátszásnál egy epizód végén a következő indul.</li>
+<li><b>Letöltések</b> (asztali gépen) – a letöltött epizód internet nélkül is szól; meghallgatás után a fájl törölhető (beállítás).</li>
+<li><b>Előzmények</b>, <b>Kedvencek</b> (★), <b>Statisztika</b> (műsoronként a hallgatási idő), <b>Beállítások</b>.</li></ul>
+<h2>A műsor oldala</h2>
+<p>Szűrők (meghallgatatlan, félbehagyott, meghallgatott, kedvenc, letöltött), keresés, rendezés. <b>A műsor beállításai</b>: saját sebesség, a bevezető és a zárórész átugrása (másodpercben), hangerő-erősítés, csend átugrása, értesítés, új epizódok automatikus letöltése.</p>
+<h2>Lejátszás</h2>
+<p>A kis lejátszósávon és a teljes nézetben: tekerés, vissza- és előreugrás (az időközök a beállításokban), <b>sebesség</b> (0,75–3×), <b>alvásidőzítő</b> (perc vagy „az epizód végén”), <b>fejezetek</b> (ha a műsor megadja), műsorjegyzet, következő a sorban. Az Adás megjegyzi, hol tartasz, és onnan folytatja. Androidon a natív lejátszó szól, kikapcsolt képernyőnél is. A kinézet a <b>lejátszó kinézetét</b> követi (Beállítások → Megjelenés).</p>
+<div class="note">A csak a Spotify-on elérhető műsoroknak nincs nyilvános RSS-folyama – ezek nem hallgathatók az Adásban.</div>`,
   },
   {
     id: 'radio',

@@ -104,12 +104,14 @@ export async function buildWebBundle(appDir, { flagScript }) {
   // (dash.js 5: a régebbi böngészőmotorokhoz – webOS 4, régi Android WebView – fordított változat)
   copy(r('node_modules/dashjs/dist/legacy/umd/dash.all.min.js'), path.join(appDir, 'lib/dash.all.min.js'));
 
-  const css = [r('src/style.css'), r('src/themes.css'), r('webos/tv-fallback.css')].map((f) => fs.readFileSync(f, 'utf8')).join('\n');
+  const css = [r('src/style.css'), r('src/themes.css'), r('src/layouts.css'), r('src/podcast.css'), r('webos/tv-fallback.css')].map((f) => fs.readFileSync(f, 'utf8')).join('\n');
   fs.writeFileSync(path.join(appDir, 'style.css'), legacyCss(css));
 
   let htmlSrc = fs.readFileSync(r('src/index.html'), 'utf8');
   htmlSrc = htmlSrc
     .replace(/\s*<link rel="stylesheet" href="themes.css" \/>/, '')
+    .replace(/\s*<link rel="stylesheet" href="layouts.css" \/>/, '')
+    .replace(/\s*<link rel="stylesheet" href="podcast.css" \/>/, '')
     .replace(/\.\.\/node_modules\/hls\.js\/dist\//, 'lib/')
     .replace(/\.\.\/node_modules\/mpegts\.js\/dist\//, 'lib/')
     .replace(/\.\.\/node_modules\/dashjs\/dist\/modern\/umd\//, 'lib/')
