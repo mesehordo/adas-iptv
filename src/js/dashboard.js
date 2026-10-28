@@ -1035,7 +1035,7 @@ Object.assign(UNITS, {
   },
   radiofavs: {
     title: _t('Kedvenc rádiók'),
-    link: ['#/radio?tab=favs', _t('Kedvencek ›')],
+    link: ['#/favorites', _t('Kedvencek ›')],
     mobile: 260,
     kids: false,
     radio: true,
@@ -1051,7 +1051,7 @@ Object.assign(UNITS, {
       const th = Math.min(130, Math.floor((h - gap * (rows - 1)) / rows));
       return `<ul class="d-favs" style="grid-template-columns:repeat(${cols}, minmax(0, 1fr));grid-auto-rows:${th}px">${shown
         .map((st) => `<li><button class="d-fav d-rfav ${isOn(st) ? 'on' : ''}" data-radio="${esc(st.id)}" title="${esc(st.name)}" style="--h:${hashHue(st.name)}"><span class="d-fav-logo">${rLogo(st)}</span><small>${isOn(st) ? `♪ ${esc(st.name)}` : esc(st.name)}</small></button></li>`)
-        .join('')}${list.length > shown.length ? `<li><a class="d-fav more" href="#/radio?tab=favs">+${list.length - shown.length}</a></li>` : ''}</ul>`;
+        .join('')}${list.length > shown.length ? `<li><a class="d-fav more" href="#/favorites">+${list.length - shown.length}</a></li>` : ''}</ul>`;
     },
   },
   radioguide: {

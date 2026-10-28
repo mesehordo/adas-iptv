@@ -357,7 +357,7 @@ function libNavHtml() {
     ['#/favorites', _t('Kedvenc csatornák')],
     ['#/guide', _t('Műsorújság')],
     ['#/recordings', _t('Felvételek')],
-    radioMenuOn() && ['#/radio?tab=favs', _t('Kedvenc rádiók')],
+    radioMenuOn() && ['#/favorites', _t('Kedvenc rádiók')],
     ['#/own', _t('Saját médiatár')],
   ].filter(Boolean);
   return `<h4>${_t('Gyűjteményeid')}</h4>${links.map(([h, l]) => `<a href="${h}">${esc(l)}</a>`).join('')}
@@ -1139,7 +1139,7 @@ function collageGridEl() {
   const cover = (imgs) => `<span class="col-cover">${[...imgs.filter(Boolean), '', '', '', ''].slice(0, 4).map((src) => (src ? `<img src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : '<i></i>')).join('')}</span>`;
   return html(`<section class="lib-colls"><h2 class="row-title">${_t('Gyűjteményeid')}</h2><div class="col-grid">${[
     ...sets.map(([href, name, l]) => `<a class="col-tile" href="${href}">${cover(l.map((c) => c.logo))}<b>${esc(name)}</b><small>${_t('{count} csatorna', { count: l.length })}</small></a>`),
-    rf.length ? `<a class="col-tile" href="#/radio?tab=favs">${cover(rf.map((s) => s.logo))}<b>${_t('Kedvenc rádiók')}</b><small>${_t('{n} adó', { n: rf.length })}</small></a>` : '',
+    rf.length ? `<a class="col-tile" href="#/favorites">${cover(rf.map((s) => s.logo))}<b>${_t('Kedvenc rádiók')}</b><small>${_t('{n} adó', { n: rf.length })}</small></a>` : '',
   ].join('')}</div></section>`);
 }
 /** Könyvtár: „Most szól” panel jobbra (széles képernyőn) – a szóló rádió vagy az utoljára nézett csatorna. */

@@ -736,7 +736,7 @@ export function tvTabs(cur) {
 /** A Rádió oldal fülei: adók, műsorújság, böngészés és (asztali változatban) a rádiófelvételek. */
 export function radioTabs(cur) {
   const tab = (id, href, label) => `<a class="tab ${cur === id ? 'active' : ''}" href="${href}">${label}</a>`;
-  return `<div class="tabs vod-tabs radio-tabs">${tab('home', '#/radio', _t('Rádiók'))}${tab('favs', '#/radio?tab=favs', _t('Kedvencek'))}${tab('guide', '#/radio?tab=guide', _t('Műsorújság@@rádió'))}${tab('browse', '#/radio?tab=browse', _t('Böngészés'))}${api.recStart ? tab('rec', '#/recordings?kind=radio', _t('Felvételek')) : ''}${tab('pod', '#/podcast', _t('Podcastok'))}</div>`;
+  return `<div class="tabs vod-tabs radio-tabs">${tab('home', '#/radio', _t('Rádiók'))}${tab('guide', '#/radio?tab=guide', _t('Műsorújság@@rádió'))}${tab('browse', '#/radio?tab=browse', _t('Böngészés'))}${api.recStart ? tab('rec', '#/recordings?kind=radio', _t('Felvételek')) : ''}${tab('pod', '#/podcast', _t('Podcastok'))}</div>`;
 }
 
 /**
