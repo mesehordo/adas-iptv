@@ -1,6 +1,7 @@
 // Felületi építőelemek: csatornakártya, sor, rács, modális ablakok, csatorna-adatlap, műsor-adatlap.
 import { esc, html, hashHue, initials, fmtTime, fmtDay, dayStart, dayLabel, fmtDuration, toast, bus, $ } from './util.js';
 import { isKidsChannel, setKidsMark } from './kids.js';
+import { menuOn } from './menus.js';
 import { store, avatarUrl, REFRESH_CHOICES, refreshHoursOf } from './store.js';
 import { epg } from './epg.js';
 import { health } from './health.js';
@@ -736,7 +737,7 @@ export function tvTabs(cur) {
 /** A Rádió oldal fülei: adók, műsorújság, böngészés és (asztali változatban) a rádiófelvételek. */
 export function radioTabs(cur) {
   const tab = (id, href, label) => `<a class="tab ${cur === id ? 'active' : ''}" href="${href}">${label}</a>`;
-  return `<div class="tabs vod-tabs radio-tabs">${tab('home', '#/radio', _t('Rádiók'))}${tab('guide', '#/radio?tab=guide', _t('Műsorújság@@rádió'))}${tab('browse', '#/radio?tab=browse', _t('Böngészés'))}${api.recStart ? tab('rec', '#/recordings?kind=radio', _t('Felvételek')) : ''}${tab('pod', '#/podcast', _t('Podcastok'))}</div>`;
+  return `<div class="tabs vod-tabs radio-tabs">${tab('home', '#/radio', _t('Rádiók'))}${tab('guide', '#/radio?tab=guide', _t('Műsorújság@@rádió'))}${tab('browse', '#/radio?tab=browse', _t('Böngészés'))}${api.recStart ? tab('rec', '#/recordings?kind=radio', _t('Felvételek')) : ''}${menuOn('podcast') ? tab('pod', '#/podcast', _t('Podcastok')) : ''}</div>`;
 }
 
 /**

@@ -2790,5 +2790,16 @@ export default {
  "A(z) {name} profil podcast-beállításai.": "Podcast settings of the {name} profile.",
  "Új epizódok keresése, lejátszás (sebesség, ugrások, csend átugrása), letöltések és a feliratkozások átvitele (OPML). Itt kapcsolhatod ki a Podcast menüpontot is.": "Checking for new episodes, playback (speed, skips, skip silence), downloads and moving subscriptions (OPML). You can also turn off the Podcasts menu item here.",
  "Sport most – tévé, rádió, podcast": "Sport now – TV, radio, podcasts",
- "feliratkozva": "subscribed"
+ "feliratkozva": "subscribed",
+ "A(z) {name} menüpont ki van kapcsolva": "The {name} menu item is turned off",
+ "Gyerekprofilban ez a rész nem érhető el.": "This part isn’t available in a kids profile.",
+ "Bekapcsolni itt, vagy a Beállítások → Megjelenés → Menüpontok alatt lehet.": "You can turn it on here, or under Settings → Appearance → Menu items.",
+ "Kikapcsolva a csatornalisták és a műsorújság sem töltődnek be (a Kedvencek és a Főoldal csatornás részei is üresek).": "When off, the channel lists and the TV guide aren’t loaded either (the channel parts of Favourites and Home stay empty).",
+ "Kikapcsolva a rádióadók listái sem töltődnek be.": "When off, the radio station lists aren’t loaded either.",
+ "Kikapcsolva a feliratkozások sem frissülnek, és nem jön értesítés új epizódról.": "When off, subscriptions aren’t refreshed and there are no new-episode notifications.",
+ "Kikapcsolva a film- és sorozatlisták sem töltődnek be.": "When off, the movie and series lists aren’t loaded either.",
+ "Kikapcsolva az eredmények és a menetrend sem frissülnek.": "When off, scores and fixtures aren’t refreshed either.",
+ "Kikapcsolva csak a menüpont tűnik el – a kedvencek megmaradnak.": "When off, only the menu item disappears – your favourites are kept.",
+ "Menüpontok": "Menu items",
+ "A Főoldal mindig látszik. A kikapcsolt rész nem töltődik be, és a háttérben sem frissül – így kevesebb hálózatot, memóriát és energiát használ.": "Home is always shown. A part that is turned off isn’t loaded and isn’t refreshed in the background either – so it uses less network, memory and power."
 };

@@ -162,6 +162,11 @@ const DEFAULT_SETTINGS = {
   autoCheck: true,
   sportMenu: true, // Sport menüpont (a TV, VOD mellett) – Beállítások → Sport
   radioMenu: true, // Rádió menüpont – Beállítások → Rádió
+  // a többi menüpont (Beállítások → Megjelenés → Menüpontok): kikapcsolva a szolgáltatás nem is töltődik (menus.js)
+  tvMenu: true,
+  vodMenu: true,
+  podcastMenu: true,
+  favoritesMenu: true,
   radioSources: { rb: true, verified: true, iprd: true }, // rádióforrások be/ki
   radioLists: [], // saját rádiólisták: { id, name, url, enabled }
   // rádió-hangzás: hangszínszabályzó, hangerő-kiegyenlítés, térhatás, retro szűrő, átúsztatás (mp), vizualizáció

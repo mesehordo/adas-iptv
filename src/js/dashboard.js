@@ -1,5 +1,6 @@
 // Főoldal (irányítópult): időjárás, a kedvenc csatornák műsora, RSS-hírek, „Ma este a tévében”,
 // TV- és VOD-folytatás. Két oszlop × négy sor (telefonon, álló helyzetben egymás alatt).
+import { menuOn } from './menus.js';
 import { esc, html, hashHue, fmtTime, fmtDay, toast, debounce, fmtNum, bus, initials } from './util.js';
 import { api, IS_TV, coverSrc } from './api.js';
 import { store } from './store.js';
@@ -1148,7 +1149,9 @@ function radioClick(e) {
 const DEFAULT_DASH = { cols: 4, rows: 2, units: [{ id: 'weather', w: 1, h: 1 }, { id: 'epg', w: 2, h: 1 }, { id: 'rss', w: 1, h: 2 }, { id: 'tonight', w: 1, h: 1 }, { id: 'tv', w: 1, h: 1 }, { id: 'vod', w: 1, h: 1 }] };
 const DEFAULT_KIDS = { cols: 3, rows: 2, units: [{ id: 'weather', w: 1, h: 1 }, { id: 'epg', w: 2, h: 1 }, { id: 'tonight', w: 1, h: 1 }, { id: 'tv', w: 1, h: 1 }, { id: 'vod', w: 1, h: 1 }] };
 const LIMITS = { cols: [1, 5], rows: [1, 4] };
-const allowed = (id) => UNITS[id] && !(store.profile.kids && UNITS[id].kids === false) && !(UNITS[id].radio && !radioMenuOn());
+// a csempék szolgáltatása: kikapcsolt menüpontnál (TV, VOD, Sport, Rádió) a hozzá tartozó csempe sem látszik
+const UNIT_SVC = { epg: 'tv', tonight: 'tv', tv: 'tv', reminders: 'tv', favs: 'tv', recommend: 'tv', watchlist: 'tv', newep: 'tv', soon: 'tv', movies: 'tv', discover: 'tv', vod: 'vod', sport: 'sport' };
+const allowed = (id) => UNITS[id] && !(store.profile.kids && UNITS[id].kids === false) && !(UNITS[id].radio && !radioMenuOn()) && !(Object.prototype.hasOwnProperty.call(UNIT_SVC, id) && !menuOn(UNIT_SVC[id]));
 const U = (id, w = 1, h = 1) => ({ id, w, h });
 /** Kész elrendezések (a testreszabásnál betölthetők; napszak szerinti váltásnál a reggeli és az esti). */
 export const PRESETS = {

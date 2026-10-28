@@ -25,6 +25,7 @@ import { renderDashSettings } from './dashboard.js';
 import { watchList } from './sports.js';
 import { radioFavsSection, radioSearchSection, radioSearchCount, startRadioSearch } from './radiopage.js';
 import { renderRadioSettings } from './radiosettings.js';
+import { MENU_ITEMS } from './menus.js';
 import { renderPodcastSettings, podFavsSection } from './podcastpage.js';
 const sportWatchCount = () => watchList().filter((w) => w.on !== false).length;
 import { requireAdult, requireAdultAlways, hasPin, choosePin, setPin } from './pin.js';
@@ -780,6 +781,9 @@ export function renderSettings(view) {
       <label class="setting"><span><b>${_t('A felület nyelve')}</b><small>${_t('Menük, üzenetek és súgó. Váltáskor az alkalmazás újraindul.')}</small></span>
         <select data-lang>${LANGS.map((l) => `<option value="${l.id}" ${l.id === uiLang ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select></label></section>
     <section class="set-section appearance" id="appearance" data-g="look"></section>
+    <section class="set-section" id="menus" data-g="look"><h2>${_t('Menüpontok')}</h2>
+      <p class="muted">${_t('A Főoldal mindig látszik. A kikapcsolt rész nem töltődik be, és a háttérben sem frissül – így kevesebb hálózatot, memóriát és energiát használ.')}</p>
+      ${MENU_ITEMS().map(([, k, name, desc]) => toggle(k, esc(name), esc(desc))).join('')}</section>
     <section class="set-section" id="dashboard" data-g="home"></section>
 
     <section class="set-section" id="playback" data-g="play"><h2>${_t('Lejátszás@@beállítás')} <button class="help-link" data-help="engines" title="${_t('Súgó')}">?</button></h2>

@@ -1,6 +1,7 @@
 // Podcastok – a felület: a Podcast oldal (áttekintés, új epizódok, lejátszási sor, feliratkozások, letöltések,
 // előzmények, kedvencek, felfedezés, statisztika, beállítások), a műsor oldala, az epizód adatlapja, a kis
 // lejátszósáv és a teljes képernyős „Most szól” nézet. Az adatok a podcast.js-ben, a lejátszás a podplayer.js-ben.
+import { menuOn } from './menus.js';
 import { esc, html, bus, debounce, toast, hashHue } from './util.js';
 import { api } from './api.js';
 import { store } from './store.js';
@@ -15,7 +16,7 @@ import { radioPlayer, audioFxAvailable } from './radioplayer.js';
 import { player } from './player.js';
 import { _t, LOCALE } from './i18n.js';
 
-export const podMenuOn = () => store.settings.podcastMenu !== false && !store.profile?.kids;
+export const podMenuOn = () => menuOn('podcast');
 
 // ---------------------------------------------------------------------------
 // Formázás
@@ -353,7 +354,7 @@ export function renderPodcastSettings(el) {
     ${chk('skipSilence', _t('Csend átugrása'), audioFxAvailable ? _t('A csendes részeket gyorsítva játssza le (műsoronként is állítható).') : _t('Ezen az eszközön nem érhető el.'))}
     ${canDownload() ? chk('autoDelete', _t('Letöltés törlése meghallgatás után'), _t('A meghallgatott, letöltött epizód fájlja törlődik.')) : ''}
     ${canDownload() && downloadedList().length ? `<div class="setting"><span><b>${_t('Letöltött epizódok')}</b><small>${esc(_t('{n} epizód, {size}', { n: downloadedList().length, size: fmtSize(downloadedSize()) }))}</small></span><span><a class="btn small" href="#/podcast?tab=downloads">${_t('Megnyitás')}</a> <button class="btn small" data-pt="dl-del-all">${_t('Összes törlése')}</button></span></div>` : ''}
-    ${chk('podcastMenu', _t('Podcast a menüben'), _t('A menüpont elrejthető; a podcastok a Rádió oldalról is elérhetők.'), store.settings.podcastMenu !== false)}
+    ${chk('podcastMenu', _t('Podcast a menüben'), _t('Kikapcsolva a feliratkozások sem frissülnek, és nem jön értesítés új epizódról.'), store.settings.podcastMenu !== false)}
     <h3>${_t('Feliratkozások átvitele')}</h3>
       <p class="muted">${_t('Más podcast-alkalmazásba (AntennaPod, Pocket Casts…) vagy onnan: OPML-fájllal. A feliratkozások a beállítások mentésével és a szinkronnal is átkerülnek.')}</p>
       <div class="inline"><button class="btn small" data-pt="opml-export">${_t('Exportálás (OPML)')}</button><label class="btn small">${_t('OPML-fájl betöltése…')}<input type="file" accept=".opml,.xml,text/xml,text/x-opml" data-pt-file="opml" hidden /></label></div>`;

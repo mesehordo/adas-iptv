@@ -1,5 +1,6 @@
 // Filmek és sorozatok (VOD): M3U / M3U8 listákból (akár egész GitHub-tárhelyből) betöltött
 // filmek és sorozatok felismerése, böngészése, adatlapja, lejátszása folytatással.
+import { menuOn } from './menus.js';
 import { $, $$, esc, html, norm, hashHue, toast, bus, debounce, seededShuffle, errText, fmtNum } from './util.js';
 import { api, coverSrc, IS_TV, IS_ANDROID } from './api.js';
 import { store, VOD_BUILTIN, refreshHoursOf, DEFAULT_REFRESH_HOURS, setRefreshHours } from './store.js';
@@ -919,7 +920,8 @@ function loadLib(lib, { force = false, recheck = false } = {}) {
   return lib.loading;
 }
 
-export const loadVod = (opts) => loadLib(vod, opts);
+// (kikapcsolt VOD menüpont: a film- és sorozatlisták nem töltődnek)
+export const loadVod = (opts) => (menuOn('vod') ? loadLib(vod, opts) : Promise.resolve());
 // Ha a csatornalista frissülése után más filmek kerültek át a VOD-ba, újratöltjük.
 bus.on('tv-vod', () => {
   const sig = (catalog.tvVod || []).map((t) => t.id + t.entries.length + ':' + (t.at || 0)).join(',');

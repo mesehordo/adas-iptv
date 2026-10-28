@@ -52,7 +52,10 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
-**Podcast-letöltés Androidon, letöltések törlése, podcast a Beállításokban és a Kedvencekben (1.33.1)**
+**Podcast-letöltés Androidon, letöltések törlése, kikapcsolható menüpontok, sport rádióban és podcastban (1.33.1)**
+- **Kikapcsolható menüpontok** (Beállítások → Megjelenés → Menüpontok): a Főoldal kivételével mind (TV, Rádió, Podcast, VOD, Sport, Kedvencek). A kikapcsolt rész nem töltődik be és nem frissül a háttérben (csatornalisták és műsorújság, VOD-listák, rádióadók, podcast-folyamok, sporteredmények) – kevesebb hálózat, memória, energia; a Főoldal hozzá tartozó csempéi sem látszanak, a címén egy gombbal visszakapcsolható.
+- **Sport oldal: rádió és podcast is** – a „Sport most” kártyán a tévés sportműsorok mellett sportrádiók és sportpodcastok, mindegyik jelölve (TV / Rádió / Podcast); a sportág-választó ezekre is szűr.
+- **A kedvencek egy helyen**: a rádió és a podcast kedvencei is a Kedvencek oldalon (a rádióadók ott rendezhetők át); a Rádió és a Podcast oldal külön Kedvencek füle helyett.
 - **Letöltés Androidon is**: az epizódok az alkalmazás saját tárhelyére töltődnek (a helyi hálózati szabállyal, legfeljebb 2 GB / epizód, mindig marad 500 MB szabad hely), és internet nélkül, a natív lejátszóval szólnak; ha a fájl hiányzik, az eredeti címről.
 - **Külön törlés minden rendszeren**: a letöltött epizódnál a ⇩ helyett kuka gomb (az epizód a listákban marad); a Letöltések fülön a foglalt hely, *Meghallgatottak törlése* és *Összes törlése*; a Podcast-beállításokban is.
 - **A podcast-beállítások a Beállításokban**: saját *Podcastok* csoport a Rádió és a Sport mellett (a podcastoldal külön Beállítások füle helyett); a **kedvenc epizódok a Kedvencek oldalon**, a csatornák, filmek és rádiók mellett (a podcastoldal Kedvencek füle helyett). A régi fülcímek oda vezetnek.

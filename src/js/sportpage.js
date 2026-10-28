@@ -2,6 +2,7 @@
 // események napokra bontva, friss eredmények és tabellák – a Sportfigyelőben követett tételekből. Mit követ
 // a felhasználó, és látszik-e a menüpont: Beállítások → Sport (a Sportfigyelő ablak is onnan nyílik).
 // Élő esemény közben percenként, egyébként 5 percenként frissül, amíg az oldal nyitva van.
+import { menuOn } from './menus.js';
 import { esc, fmtTime, fmtDay, dayStart, dayLabel, toast, norm } from './util.js';
 import { store } from './store.js';
 import { catalog, channelStatus } from './catalog.js';
@@ -18,7 +19,7 @@ const st = { sport: '', table: '', timer: 0, root: null, at: 0 };
 const standings = new Map(); // bajnokság → { at, groups } | { at, err }
 
 /** Látszik-e a Sport menüpont (beállítás; gyerekprofilban nem). */
-export const sportMenuOn = () => store.settings.sportMenu !== false && !store.profile?.kids;
+export const sportMenuOn = () => menuOn('sport');
 
 const here = () => !!st.root && document.body.contains(st.root) && location.hash.startsWith('#/sport');
 
@@ -155,7 +156,7 @@ const kindTag = (k) => `<span class="sp-kind sp-kind-${k}">${esc(KIND()[k])}</sp
 
 /** Sportrádiók: a nevük / címkéik szerint (a kedvencek elöl) – ha a Rádió be van kapcsolva. */
 function sportRadios() {
-  if (store.settings.radioMenu === false || !radio.byId?.size) return [];
+  if (!menuOn('radio') || !radio.byId?.size) return [];
   const rx = sportRx();
   const want = (s) => /sport/.test(s.search || norm(s.name || '')) && (!rx || rx.test(s.search || ''));
   const favs = radioFavs().filter(want);
@@ -177,7 +178,7 @@ function radioRows() {
 let podFound = null;
 const SPORT_POD_RX = /sport|foci|futball|football|soccer|forma[- ]?1|\bf1\b|nba|nfl|tenisz|tennis|kézilabda|kosárlabda|bajnok/i;
 function podcastRows() {
-  if (store.settings.podcastMenu === false || !store.profile) return '';
+  if (!menuOn('podcast') || !store.profile) return '';
   const rx = sportRx();
   const ok = (t) => SPORT_POD_RX.test(t) && (!rx || rx.test(norm(t)));
   const subs = pod().subs.filter((s) => ok(`${s.title} ${s.author || ''}`));
@@ -200,8 +201,8 @@ function mediaNow() {
     if (box && here()) box.innerHTML = radioRows() + podcastRows();
   };
   // (a rádióadók listája csak itt, igény szerint töltődik be – ha a Rádió be van kapcsolva)
-  if (store.settings.radioMenu !== false && !radio.ready) Promise.resolve(loadRadio()).then(fill, () => {});
-  if (podFound == null && store.settings.podcastMenu !== false) {
+  if (menuOn('radio') && !radio.ready) Promise.resolve(loadRadio()).then(fill, () => {});
+  if (podFound == null && menuOn('podcast')) {
     podFound = [];
     searchPodcasts('sport')
       .then((list) => {

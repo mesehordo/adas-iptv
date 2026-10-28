@@ -2,6 +2,7 @@
 // adók, műfajok, a világ legnépszerűbbjei, országok), böngészés szűrőkkel és kereséssel, műfaj- és
 // országoldalak. Mindenhol az elérhető adók állnak elöl. A lejátszás a radioui.js mini-lejátszójában szól.
 // A menüpont kikapcsolható: Beállítások → Rádió.
+import { menuOn } from './menus.js';
 import { esc, hashHue, initials, html, debounce, toast, bus, fmtTime, fmtDay, dayStart, dayLabel } from './util.js';
 import { api, IS_TV } from './api.js';
 import { epg } from './epg.js';
@@ -17,7 +18,7 @@ import {
 import { radioPlayer } from './radioplayer.js';
 
 /** Látszik-e a Rádió menüpont (beállítás; gyerekprofilban nem). */
-export const radioMenuOn = () => store.settings.radioMenu !== false && !store.profile?.kids;
+export const radioMenuOn = () => menuOn('radio');
 
 const homeCC = () => {
   const c = (store.settings.homeCountry || 'HU').toUpperCase();

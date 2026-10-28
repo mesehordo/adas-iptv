@@ -1,6 +1,7 @@
 // Podcastok – az adatok: feliratkozások (profilonként), a műsorok RSS-folyamai, az epizódok állapota (hol tartasz,
 // meghallgatva, kedvenc, letöltve), a lejátszási sor, az új epizódok, az előzmények; keresés, toplista, OPML.
 // A lejátszás a podplayer.js-ben, a felület a podcastpage.js-ben.
+import { menuOn } from './menus.js';
 import { store } from './store.js';
 import { api } from './api.js';
 import { bus, debounce } from './util.js';
@@ -273,6 +274,7 @@ export async function refreshFeed(url, { force = false, profile = null } = {}) {
 const refreshing = new Map(); // profil → a folyamatban lévő frissítés (más profil nem csatlakozik hozzá)
 export function refreshAll({ force = false } = {}) {
   const prof = store.profile;
+  if (!menuOn('podcast')) return Promise.resolve([]);
   if (refreshing.has(prof)) return refreshing.get(prof);
   const list = pod().subs.map((s) => s.url);
   const run = (async () => {
@@ -295,7 +297,8 @@ export function refreshAll({ force = false } = {}) {
 }
 /** Indításkor: a feliratkozások gyorsítótárból, utána a háttérben frissítés; óránként újra (a beállított időközzel). */
 export async function initPodcasts() {
-  if (!store.profile) return;
+  // (kikapcsolt Podcast menüpont: a folyamok nem töltődnek, nem frissülnek)
+  if (!store.profile || !menuOn('podcast')) return;
   await Promise.all(pod().subs.map((s) => cachedFeed(s.url)));
   bus.emit('pod-subs');
   setTimeout(() => refreshAll().catch(() => {}), 8000);

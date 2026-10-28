@@ -1,5 +1,6 @@
 // Felület-elrendezések megjelenítése (a definíciók és a body-jelölés a layoutdefs.js-ben).
 // A Főoldal (és a Részletes / Gyűjtemény elrendezésben a TV oldal) elrendezésenként más; a többi oldal közös.
+import { menuOn } from './menus.js';
 import { esc, html, hashHue, fmtTime, bus, debounce, seededShuffle, norm } from './util.js';
 import { api } from './api.js';
 import { store } from './store.js';
@@ -236,12 +237,12 @@ function navIcon(route) {
 }
 function appRowEl() {
   const items = [
-    ['tv', '#/tv', _t('TV')],
-    ['guide', '#/guide', _t('Műsorújság'), GUIDE_ICO],
+    menuOn('tv') && ['tv', '#/tv', _t('TV')],
+    menuOn('tv') && ['guide', '#/guide', _t('Műsorújság'), GUIDE_ICO],
     radioMenuOn() && ['radio', '#/radio', _t('Rádió')],
-    ['vod', '#/vod', _t('VOD')],
+    menuOn('vod') && ['vod', '#/vod', _t('VOD')],
     sportMenuOn() && ['sport', '#/sport', _t('Sport')],
-    ['favorites', '#/favorites', _t('Kedvencek')],
+    menuOn('favorites') && ['favorites', '#/favorites', _t('Kedvencek')],
     ['recordings', '#/recordings', _t('Felvételek'), REC_ICO],
   ].filter(Boolean);
   return html(`<section class="app-row" aria-label="${_t('Fő részek')}">${items
@@ -725,12 +726,12 @@ const noChannels = (view) =>
 /** A fő részek (ikon, cím, cím) – a kikapcsolt Rádió / Sport nélkül. */
 function sections() {
   return [
-    ['tv', '#/tv', _t('TV'), navIcon('tv')],
-    ['guide', '#/guide', _t('Műsorújság'), GUIDE_ICO],
+    menuOn('tv') && ['tv', '#/tv', _t('TV'), navIcon('tv')],
+    menuOn('tv') && ['guide', '#/guide', _t('Műsorújság'), GUIDE_ICO],
     radioMenuOn() && ['radio', '#/radio', _t('Rádió'), navIcon('radio')],
-    ['vod', '#/vod', _t('VOD'), navIcon('vod')],
+    menuOn('vod') && ['vod', '#/vod', _t('VOD'), navIcon('vod')],
     sportMenuOn() && ['sport', '#/sport', _t('Sport'), navIcon('sport')],
-    ['favorites', '#/favorites', _t('Kedvencek'), navIcon('favorites')],
+    menuOn('favorites') && ['favorites', '#/favorites', _t('Kedvencek'), navIcon('favorites')],
     ['recordings', '#/recordings', _t('Felvételek'), REC_ICO],
     ['settings', '#/settings', _t('Beállítások'), navIcon('settings')],
   ].filter(Boolean);
