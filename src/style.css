@@ -1472,6 +1472,8 @@ body.rc-nav .tile:focus, body.rc-nav .see-all:focus { transform: scale(1.06); z-
 .spl-play svg { width: 14px; height: 14px; fill: currentColor; }
 /* sport a tévében most */
 .sp-tvlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+/* (a rádió- és podcastsorok a tévés lista alatt, elválasztva – nem külön görgetődoboz) */
+.sp-tvlist.sp-media { max-height: none; overflow: visible; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
 .sp-tvrow { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px; border: 0; border-radius: 8px; background: transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
 .sp-tvrow:hover, .sp-tvrow:focus-visible { background: var(--bg-3); outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
 .sp-tvrow.is-off { opacity: 0.5; }
@@ -1481,6 +1483,12 @@ body.rc-nav .tile:focus, body.rc-nav .see-all:focus { transform: scale(1.06); z-
 .sp-tvtxt b, .sp-tvtxt small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sp-tvtxt .bar { display: block; height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
 .sp-tvtxt .bar i { display: block; height: 100%; background: var(--accent); }
+/* a sor jelölése: tévé / rádió / podcast */
+.sp-kind { display: inline-block; padding: 0 5px; margin-right: 4px; border-radius: 4px; font-size: 0.7em; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; vertical-align: 1px; background: var(--bg-3); color: var(--text-strong); border: 1px solid var(--line); }
+.sp-kind-radio { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
+.sp-kind-podcast { border-style: dashed; }
+.sp-media:empty { display: none; }
+.sp-media { margin-top: 6px; }
 /* tabella */
 .sp-table-sel { margin: 0 0 10px; max-width: 100%; }
 .sp-table-name { margin: 0 0 8px; }
@@ -1777,7 +1785,6 @@ body.radio-full > :not(#radio-full):not(#modal-root):not(#toasts):not(#rc-cursor
 .rg-bar { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--accent); }
 .rf-vis { width: 100%; height: 120px; flex: none; }
 /* alul egyetlen kezelősáv: lejátszás, kedvenc, felvétel, hangerő – és a beállítások rövid menügombjai */
-.rf-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; margin-top: 2vh; padding-top: 1.6vh; border-top: 1px solid var(--line); }
 .rf-menus { display: flex; gap: 8px; flex-wrap: wrap; }
 .rf-mb { display: inline-flex; align-items: center; gap: 7px; }
 .rf-mb svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
@@ -1803,12 +1810,9 @@ body.radio-full > :not(#radio-full):not(#modal-root):not(#toasts):not(#rc-cursor
 /* Fekvő képernyőn (tévé, asztal, fektetett telefon) minden egy képernyőn, görgetés nélkül: borító | adatok |
    hangkép, alatta a kezelősáv. Állítva marad az egymás alatti, görgethető elrendezés. */
 @media (orientation: landscape) and (min-width: 700px) {
-  #radio-full { overflow: hidden; padding-bottom: 2.4vh; }
   .rf-main { flex: 1 1 0; min-height: 0; flex-wrap: nowrap; margin: 1vh 0 0; gap: 3vw; }
-  .rf-art { width: min(46vh, 26vw); margin: 0; }
   .rf-info { flex: 1 1 0; max-height: 100%; overflow-y: auto; }
   .rf-vis { flex: 1 1 0; min-width: 0; height: min(36vh, 100%); }
-  .rf-bar { margin-top: 1.6vh; }
 }
 @media (orientation: landscape) and (min-width: 700px) and (max-height: 620px) {
   .rf-title { font-size: clamp(1.25rem, 2.6vw, 2rem); margin-top: 4px; }
@@ -1825,7 +1829,6 @@ body.radio-full > :not(#radio-full):not(#modal-root):not(#toasts):not(#rc-cursor
 
 /* Telefon (alsó menüsávval): a rádió mini-lejátszója a menüsáv fölött – nem takarja el (a tartalom alatta is elfér) */
 @media (max-width: 700px) {
-  #radio-bar { left: 8px; right: 8px; bottom: calc(58px + 8px + env(safe-area-inset-bottom)); }
   html body.radio-on #view { padding-bottom: calc(66px + 90px + env(safe-area-inset-bottom)); }
 }
 /* Érintőképernyő (telefon, tablet): koppintás után a menüpont nem kap fókuszkeretet – a programból kapott fókusz

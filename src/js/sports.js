@@ -5,6 +5,7 @@
 //  - műsorújság: bármilyen sportág / játék / csapat kulcsszóval – rögtön csatornával;
 //  - naptár (ICS / iCal): bármilyen szervezet nyilvános eseménynaptára.
 // A strukturált eseményekhez a műsorújságból keres csatornát (csapatnév, bajnokság, sportág + időpont).
+import { menuOn } from './menus.js';
 import { esc, toast, fmtTime, norm, debounce, html, bus } from './util.js';
 import { api } from './api.js';
 import { store } from './store.js';
@@ -644,6 +645,8 @@ export const sportStale = () => !cache.events || cache.ek !== dataKey() || Date.
 
 /** force: a gyorsítótár mellőzése; live: az élő állás friss (legfeljebb 1 perces) legyen. */
 export function loadSportEvents(force = false, { live = false } = {}) {
+  // (kikapcsolt Sport menüpont: az eredmények és a menetrend nem töltődnek)
+  if (!menuOn('sport')) return Promise.resolve(cache.events || []);
   const ek = dataKey();
   if (!force && cache.events && cache.ek === ek && Date.now() - cache.at < 5 * 60e3) return Promise.resolve(cache.events);
   if (loading && loadingVer === cacheVer) return loading;

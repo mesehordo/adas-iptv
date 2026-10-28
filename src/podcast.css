@@ -82,80 +82,51 @@
 .pod-links .link-btn { background: none; border: 0; color: var(--accent); text-align: left; padding: 2px 0; cursor: pointer; font: inherit; overflow-wrap: anywhere; }
 
 /* ------------------------------------------------------------------ Kis lejátszósáv */
-#pod-bar { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 900; display: flex; align-items: center; gap: 10px; padding: 8px 12px 10px 8px; border-radius: var(--radius); background: var(--bg-2); color: var(--text); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); border: 1px solid var(--line); overflow: hidden; }
+/* (a helye, alakja és felülete a rádiósávéval közös – layouts.css, „A lejátszók közös nyelve”) */
+#pod-bar { position: fixed; z-index: 900; display: flex; align-items: center; overflow: hidden; }
 #pod-bar[hidden] { display: none; }
 body.pod-on #radio-bar, body.playing #pod-bar, body.picking #pod-bar { display: none; }
 .pb-main { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto; background: none; border: 0; color: inherit; font: inherit; text-align: left; padding: 0; cursor: pointer; }
-.pb-art { flex: none; width: 46px; height: 46px; border-radius: 6px; overflow: hidden; background: var(--bg-3); }
+.pb-art { flex: none; overflow: hidden; background: var(--bg-3); }
 .pb-art .pimg { width: 100%; height: 100%; object-fit: cover; display: block; }
 .pb-text { min-width: 0; display: flex; flex-direction: column; }
 .pb-text b, .pb-text small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pb-text small { color: var(--muted); }
-#pod-bar .round { flex: none; width: 40px; height: 40px; }
 #pod-bar .round svg { width: 55%; height: 55%; fill: currentColor; }
 .pskip { position: relative; display: inline-flex; align-items: center; justify-content: center; font-size: 1.25rem; line-height: 1; }
 .pskip small { position: absolute; font-size: 0.5rem; font-weight: 800; }
 .pb-prog { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(127, 127, 127, 0.25); }
 .pb-prog i { display: block; height: 100%; background: var(--accent); }
 @media (max-width: 700px) {
-  #pod-bar { left: 8px; right: 8px; bottom: calc(58px + 8px + env(safe-area-inset-bottom)); }
   #pod-bar [data-pb="back"], #pod-bar [data-pb="fwd"] { display: none; }
   html body.pod-on #view { padding-bottom: calc(66px + 90px + env(safe-area-inset-bottom)); }
 }
-@media (min-width: 900px) { body.side-nav #pod-bar { left: calc(var(--side-w) + 12px); } }
-@media (min-width: 701px) { body[data-layout="desk"] #pod-bar { bottom: 66px; } body[data-layout="tiles"] #pod-bar { left: 88px; } }
 
 /* ------------------------------------------------------------------ Teljes nézet */
-#pod-full { position: fixed; inset: 0; z-index: 950; overflow-y: auto; color: #fff; padding: 18px var(--gutter) 40px; display: flex; flex-direction: column; gap: 18px;
-  background: radial-gradient(ellipse at 30% 20%, hsl(var(--h, 220) 45% 26%), hsl(var(--h, 220) 40% 7%) 75%); }
+#pod-full { position: fixed; inset: 0; z-index: 950; }
 body.pod-full { overflow: hidden; }
 body.pod-full > :not(#pod-full):not(#modal-root):not(#toasts):not(#rc-cursor) { visibility: hidden; }
 .pf-top { display: flex; align-items: center; gap: 12px; }
-.pf-top .round svg { transform: rotate(90deg); width: 55%; height: 55%; fill: currentColor; }
 .pf-main { display: flex; gap: 4vw; align-items: center; flex-wrap: wrap; }
-.pf-art { flex: none; width: min(42vh, 80vw); aspect-ratio: 1; border-radius: 14px; overflow: hidden; background: rgba(0, 0, 0, 0.25); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); display: flex; align-items: center; justify-content: center; }
+.pf-art { flex: none; aspect-ratio: 1; overflow: hidden; background: rgba(0, 0, 0, 0.25); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); display: flex; align-items: center; justify-content: center; }
 .pf-art .pimg { width: 100%; height: 100%; object-fit: cover; }
 .pf-art .initials { font-size: 3rem; }
 .pf-info { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-.pf-feed { color: rgba(255, 255, 255, 0.75) !important; }
-.pf-title { margin: 0; font-size: clamp(1.4rem, 2.8vw, 2.4rem); line-height: 1.15; overflow-wrap: anywhere; }
+.pf-feed { color: var(--muted) !important; }
+.pf-title { margin: 0; overflow-wrap: anywhere; }
 .pf-chap { min-height: 1.2em; }
-.pf-seek { display: flex; align-items: center; gap: 12px; font-variant-numeric: tabular-nums; }
-.pf-seek .seek { flex: 1; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--accent) var(--pct, 0%), rgba(255, 255, 255, 0.28) var(--pct, 0%)); cursor: pointer; }
+.pf-seek .seek { flex: 1; -webkit-appearance: none; appearance: none; background: linear-gradient(90deg, var(--accent) var(--pct, 0%), rgba(127, 127, 127, 0.3) var(--pct, 0%)); cursor: pointer; }
 .pf-seek .seek::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2px solid var(--accent); }
-.pf-ctrls { display: flex; align-items: center; gap: 12px; }
-.pf-ctrls .round { width: 52px; height: 52px; font-size: 1.1rem; }
-.pf-ctrls .round.big { width: 72px; height: 72px; }
-.pf-ctrls .round svg { width: 50%; height: 50%; fill: currentColor; }
-.pf-opts, .pf-menu { display: flex; flex-wrap: wrap; gap: 8px; }
-.pf-opts .btn.on, .pf-menu .btn.on { background: var(--accent); color: #fff; }
+.pf-menu { display: flex; flex-wrap: wrap; gap: 8px; }
+.pf-opts .btn.on, .pf-menu .btn.on { background: var(--accent); color: var(--on-accent, #fff); }
 .pf-menu[hidden] { display: none; }
+/* (a sebesség / alvás választója a kezelőpult fölött) */
+.pl-deck .pf-menu { position: absolute; right: var(--gutter); bottom: calc(100% + 8px); max-width: calc(100% - 2 * var(--gutter)); padding: 10px; border-radius: var(--radius); background: var(--bg-2); border: 1px solid var(--line); box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4); z-index: 5; }
 .pf-lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
 .pf-lists h3 { margin: 0 0 8px; }
 .pf-chapters ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .pf-chapters button { width: 100%; display: flex; gap: 12px; text-align: left; padding: 8px 10px; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; cursor: pointer; }
-.pf-chapters button:hover, .pf-chapters button.on { background: rgba(255, 255, 255, 0.12); }
-.pf-chapters time { font-variant-numeric: tabular-nums; color: rgba(255, 255, 255, 0.7); }
+.pf-chapters button:hover, .pf-chapters button.on { background: rgba(127, 127, 127, 0.16); }
+.pf-chapters time { font-variant-numeric: tabular-nums; color: var(--muted); }
 .pf-queue[hidden], .pf-chapters[hidden] { display: none; }
-.pf-queue .pep { border-color: rgba(255, 255, 255, 0.12); }
-.pf-queue .pep-main small { color: rgba(255, 255, 255, 0.65); }
 
-/* ------------------------------------------------------------------ A lejátszó kinézete (mint a rádiósávnál) */
-body[data-pskin="cinema"] #pod-bar { border-radius: 4px; border-top: 3px solid var(--accent); }
-body:is([data-pskin="glass"], [data-pskin="capsule"]) #pod-bar { border-radius: 18px; background: rgba(28, 28, 34, 0.72); color: #fff; -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border-color: rgba(255, 255, 255, 0.1); }
-@media (min-width: 701px) {
-  body[data-pskin="capsule"] #pod-bar { left: 50%; right: auto; transform: translateX(-50%); width: min(820px, calc(100% - 48px)); border-radius: 999px; }
-  body[data-pskin="bar"] #pod-bar { left: 0; right: 0; bottom: 0; border-radius: 0; border-width: 1px 0 0; padding: 10px 20px 12px; }
-  body[data-layout="library"][data-pskin="bar"] #pod-bar { left: var(--side-w, 0); }
-  body[data-layout="desk"][data-pskin] #pod-bar { bottom: 66px; }
-}
-body[data-pskin="round"] #pod-bar { border-radius: 26px; }
-body:is([data-pskin="app"], [data-pskin="window"]) #pod-bar { border-radius: 4px; }
-body:is([data-pskin="app"], [data-pskin="window"]) #pod-bar .round, body:is([data-pskin="app"], [data-pskin="window"]) .pf-ctrls .round { border-radius: 6px; }
-body[data-pskin="pill"] #pod-bar { border-radius: 999px; padding-left: 10px; }
-body[data-pskin="pill"] .pf-ctrls .round { border-radius: 999px; width: 62px; }
-body[data-pskin="round"] .pf-ctrls .round { width: 64px; height: 64px; }
-body[data-pskin="round"] .pf-ctrls .round.big { width: 88px; height: 88px; }
-body[data-pskin="minimal"] #pod-bar { background: transparent; border-color: transparent; box-shadow: none; }
-body[data-pskin="cinema"] .pf-seek .seek, body[data-pskin="round"] .pf-seek .seek { height: 9px; }
-body:is([data-pskin="glass"], [data-pskin="capsule"]) .pf-info { padding: 18px 20px; border-radius: 20px; background: rgba(28, 28, 34, 0.45); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }

@@ -15,7 +15,7 @@ import {
 } from './components.js';
 import { player, stopPreview, PLAYER_BUTTONS } from './player.js';
 import { THEMES, currentTheme, currentVariant, applyTheme, profileRows, defaultRows, rowLabel } from './themes.js';
-import { LAYOUTS, currentLayout, layoutPickerHtml, pickLayoutIn, PLAYER_SKINS, layoutSkin } from './layoutdefs.js';
+import { LAYOUTS, currentLayout, layoutPickerHtml, pickLayoutIn, PLAYER_SKINS, layoutSkin, currentSkin } from './layoutdefs.js';
 import { renderLists } from './lists.js';
 import { renderVodLists, renderOwnLists, searchVod, vcardHtml, vod, vodFavItems, loadVod } from './vod.js';
 import { renderHuSettings } from './subtitles.js';
@@ -25,6 +25,8 @@ import { renderDashSettings } from './dashboard.js';
 import { watchList } from './sports.js';
 import { radioFavsSection, radioSearchSection, radioSearchCount, startRadioSearch } from './radiopage.js';
 import { renderRadioSettings } from './radiosettings.js';
+import { MENU_ITEMS } from './menus.js';
+import { renderPodcastSettings, podFavsSection } from './podcastpage.js';
 const sportWatchCount = () => watchList().filter((w) => w.on !== false).length;
 import { requireAdult, requireAdultAlways, hasPin, choosePin, setPin } from './pin.js';
 import { renderTransfer, importData, attachDocs, stageDocs, dropDocs } from './transfer.js';
@@ -334,6 +336,10 @@ export function renderFavorites(view) {
   const recentHead = $('#clear-recent', view)?.closest('.page-head');
   if (radioBox && recentHead) recentHead.before(radioBox);
   else if (radioBox) page.append(radioBox);
+  // a kedvenc podcast-epizódok (a Podcast menüpont kikapcsolásakor is – a Rádió oldalról is elérhetők)
+  const podBox = podFavsSection();
+  if (podBox && recentHead) recentHead.before(podBox);
+  else if (podBox) page.append(podBox);
   if (recent.length) {
     page.append(gridEl(recent, { title: _t('Legutóbb nézett') }));
     $('#clear-recent', view).onclick = () => {
@@ -481,7 +487,7 @@ export function renderSearch(view, params) {
   const chans = search(q);
   const vis = new Set(visible().map((c) => c.id));
   const progs = homeFirst(
-    epg.searchPrograms(tokens).filter((x) => vis.has(x.channelId)),
+    epg.searchPrograms(tokens, 60, (id) => vis.has(id)),
     (x) => homeRank(catalog.byId.get(x.channelId))
   );
   // (a filmek / sorozatok listája csak később töltődik be – kereséskor azonnal; a végén újrarajzol: app.js)
@@ -775,6 +781,9 @@ export function renderSettings(view) {
       <label class="setting"><span><b>${_t('A felület nyelve')}</b><small>${_t('Menük, üzenetek és súgó. Váltáskor az alkalmazás újraindul.')}</small></span>
         <select data-lang>${LANGS.map((l) => `<option value="${l.id}" ${l.id === uiLang ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select></label></section>
     <section class="set-section appearance" id="appearance" data-g="look"></section>
+    <section class="set-section" id="menus" data-g="look"><h2>${_t('Menüpontok')}</h2>
+      <p class="muted">${_t('A Főoldal mindig látszik. A kikapcsolt rész nem töltődik be, és a háttérben sem frissül – így kevesebb hálózatot, memóriát és energiát használ.')}</p>
+      ${MENU_ITEMS().map(([, k, name, desc]) => toggle(k, esc(name), esc(desc))).join('')}</section>
     <section class="set-section" id="dashboard" data-g="home"></section>
 
     <section class="set-section" id="playback" data-g="play"><h2>${_t('Lejátszás@@beállítás')} <button class="help-link" data-help="engines" title="${_t('Súgó')}">?</button></h2>
@@ -895,6 +904,8 @@ export function renderSettings(view) {
 
     <section class="set-section" id="radio-settings" data-g="radio"></section>
 
+    <section class="set-section" id="podcast-settings" data-g="podcast"></section>
+
     <section class="set-section" id="data" data-g="data"><h2>${_t('Profilok és mentés')} <button class="help-link" data-help="backup" title="${_t('Súgó')}">?</button></h2>
       <div class="inline"><a class="btn" href="#/profiles">${_t('Profilok kezelése')}</a>
       ${api.caps.files ? `<button class="btn" data-act="export">${_t('Mentés fájlba')}</button>
@@ -981,6 +992,7 @@ export function renderSettings(view) {
   renderKidsSettings($('#kidsallow', view));
   renderDashSettings($('#dashboard', view));
   renderRadioSettings($('#radio-settings', view));
+  renderPodcastSettings($('#podcast-settings', view));
   renderRecordings($('#recordings', view));
   renderRemoteSettings($('#remote', view));
   renderBackups($('#autobackup', view));
@@ -1141,6 +1153,7 @@ const SET_GROUPS = [
   ['vod', '🎬', _t('VOD és médiatár'), _t('Film- és sorozatlisták, kiegészítő csomagok és a saját (NAS-) médiatár mappái. Itt rendezheted a VOD oldal sorait is.')],
   ['epg', '🗓️', _t('Műsorújság'), _t('A műsorújság forrásai és a frissítésük gyakorisága. Itt látod azt is, melyik forrás hány csatornát fed le.')],
   ['radio', '📻', _t('Rádió'), _t('A Rádió oldal forrásai (Radio Browser, Verified Radio Streams, IPRD), saját rádiólisták és -csomagok, a hangzás. Itt kapcsolhatod ki a Rádió menüpontot is.')],
+  ['podcast', '🎙️', _t('Podcastok'), _t('Új epizódok keresése, lejátszás (sebesség, ugrások, csend átugrása), letöltések és a feliratkozások átvitele (OPML). Itt kapcsolhatod ki a Podcast menüpontot is.')],
   ['sport', '🏆', _t('Sport'), _t('A Sport oldal és a Sportfigyelő: milyen bajnokságokat, csapatokat, sportágakat követsz. Itt kapcsolhatod ki a Sport menüpontot is.')],
   ['kids', '👪', _t('Tartalom és gyerekek'), _t('A hazai ország, a felnőtt tartalom és a nyelvek. Itt állíthatod be, mit nézhetnek a gyerekprofilok.')],
   ['notify', '🔔', _t('Értesítések'), _t('Emlékeztetők a kedvenc műsoraidra, automatikus átkapcsolás. Itt dől el az is, hogy az Adás a háttérben fusson-e.')],
@@ -1313,7 +1326,7 @@ function renderAppearance(box) {
   const drawSkins = () => {
     const auto = layoutSkin();
     box.querySelector('[data-pskin-select]').innerHTML = `<option value="">${esc(_t('Az elrendezéshez illő: {name}', { name: PLAYER_SKINS[auto].split(' – ')[0] }))}</option>${Object.entries(PLAYER_SKINS)
-      .map(([id, d]) => `<option value="${id}" ${store.profile.playerSkin === id ? 'selected' : ''}>${esc(d)}</option>`)
+      .map(([id, d]) => `<option value="${id}" ${store.profile.playerSkin && currentSkin() === id ? 'selected' : ''}>${esc(d)}</option>`)
       .join('')}`;
   };
   drawSkins();

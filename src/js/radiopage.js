@@ -2,6 +2,7 @@
 // adók, műfajok, a világ legnépszerűbbjei, országok), böngészés szűrőkkel és kereséssel, műfaj- és
 // országoldalak. Mindenhol az elérhető adók állnak elöl. A lejátszás a radioui.js mini-lejátszójában szól.
 // A menüpont kikapcsolható: Beállítások → Rádió.
+import { menuOn } from './menus.js';
 import { esc, hashHue, initials, html, debounce, toast, bus, fmtTime, fmtDay, dayStart, dayLabel } from './util.js';
 import { api, IS_TV } from './api.js';
 import { epg } from './epg.js';
@@ -17,7 +18,7 @@ import {
 import { radioPlayer } from './radioplayer.js';
 
 /** Látszik-e a Rádió menüpont (beállítás; gyerekprofilban nem). */
-export const radioMenuOn = () => store.settings.radioMenu !== false && !store.profile?.kids;
+export const radioMenuOn = () => menuOn('radio');
 
 const homeCC = () => {
   const c = (store.settings.homeCountry || 'HU').toUpperCase();
@@ -416,20 +417,14 @@ export function renderRadio(view, params) {
   if (/^[A-Z]{2}$/.test(c)) return renderCountry(view, c);
   if (params.get('tab') === 'browse') return renderBrowse(view, params);
   if (params.get('tab') === 'guide') return renderGuide(view);
-  if (params.get('tab') === 'favs') return renderFavs(view);
+  // (a kedvenc adók a Kedvencek oldalon, a csatornák és a podcastok mellett – a régi cím oda vezet)
+  if (params.get('tab') === 'favs') return void location.replace('#/favorites');
   renderHome(view);
 }
 
 // --- Kedvencek: sorba rendezhető rács (húzással; billentyűzeten Ctrl / ⌘ + nyilak, tévén CH+ / CH−)
-function renderFavs(view) {
-  const favs = radioFavs();
-  const mac = /Mac/.test(navigator.platform);
-  const how = IS_TV ? _t('áthelyezés: kijelölve a CH+ / CH− gombbal') : mac ? _t('áthelyezés: húzással vagy a ⌘← / ⌘→ billentyűvel') : _t('áthelyezés: húzással vagy a Ctrl+← / Ctrl+→ billentyűvel');
-  view.innerHTML = `<div class="page radio-page">${tabs('favs')}
-    <div class="page-head"><h1>${_t('Kedvenc rádiók')}</h1><span class="muted">${_t('{n} adó', { n: favs.length })}${favs.length > 1 ? ' · ' + how : ''}</span></div>
-    ${favs.length ? `<div class="rbox rfav-grid">${gridHtml(favs, { limit: 1000 })}</div>` : emptyState(_t('Még nincsenek kedvenc rádióid'), _t('Egy rádióadó kártyáján a + gombbal (vagy kijelölve az F billentyűvel) teheted ide.'), `<a class="btn primary" href="#/radio">${_t('Rádiók')}</a>`)}</div>`;
-  const grid = view.querySelector('.rgrid');
-  if (!grid) return;
+/** A kedvenc adók átrendezése húzással, ill. Ctrl+← / → (tévén CH+ / CH−); redraw(id): újrarajzolás, a fókusz az adón. */
+function bindFavOrder(grid, redraw) {
   grid.querySelectorAll('.rcard').forEach((c) => (c.draggable = true));
   let drag = '';
   grid.addEventListener('dragstart', (e) => {
@@ -442,7 +437,7 @@ function renderFavs(view) {
     const t = e.target.closest('.rcard');
     if (!drag || !t || t.dataset.rid === drag) return;
     moveRadioFav(drag, radioFavs().findIndex((s) => s.id === t.dataset.rid));
-    renderFavs(view);
+    redraw(drag);
   });
   grid.addEventListener('keydown', (e) => {
     const c = e.target.closest('.rcard');
@@ -452,8 +447,7 @@ function renderFavs(view) {
     e.stopPropagation();
     const i = radioFavs().findIndex((s) => s.id === c.dataset.rid);
     moveRadioFav(c.dataset.rid, i + dir);
-    renderFavs(view);
-    view.querySelector(`.rcard[data-rid="${CSS.escape(c.dataset.rid)}"]`)?.focus();
+    redraw(c.dataset.rid);
   }, true);
 }
 
@@ -620,7 +614,7 @@ function renderHome(view) {
   const rows = html(`<div class="rows radio-rows"><div class="tv-head">${tabs('home')}</div></div>`);
   view.append(rows);
   if (recent.length) rows.append(stationRowEl(_t('Legutóbb hallgatott'), recent));
-  if (favs.length) rows.append(stationRowEl(_t('Kedvenc rádiók'), favs));
+  if (favs.length) rows.append(stationRowEl(_t('Kedvenc rádiók'), favs, { href: '#/favorites' }));
   if (home.length) rows.append(stationRowEl(_t('{country} rádiói', { country: countryName(cc) }), home, { href: `#/radio?c=${cc}`, limit: 80 }));
   rows.append(tileRowEl(_t('Műfajok'), GENRES.map(([id]) => genreTile(id))));
   // a hazai adók a 4 legnagyobb műfajban (a többi a Műfajok csempéiről érhető el)
@@ -832,11 +826,19 @@ export function radioSearchSection(q, { limit = 18 } = {}) {
 export function radioFavsSection() {
   if (!radioMenuOn()) return null;
   const favs = radioFavs();
-  const box = html(`<div class="radio-favs"><div class="page-head sub"><h2>${_t('Rádiók')}</h2>${favs.length ? `<span class="muted">${_t('{n} adó', { n: favs.length })}</span>` : ''}</div></div>`);
+  const mac = /Mac/.test(navigator.platform);
+  const how = IS_TV ? _t('áthelyezés: kijelölve a CH+ / CH− gombbal') : mac ? _t('áthelyezés: húzással vagy a ⌘← / ⌘→ billentyűvel') : _t('áthelyezés: húzással vagy a Ctrl+← / Ctrl+→ billentyűvel');
+  const box = html(`<div class="radio-favs"><div class="page-head sub"><h2>${_t('Rádiók')}</h2>${favs.length ? `<span class="muted">${_t('{n} adó', { n: favs.length })}${favs.length > 1 ? ' · ' + how : ''}</span>` : ''}</div></div>`);
   if (favs.length) {
-    const grid = html(`<div class="rbox">${gridHtml(favs)}</div>`);
+    const grid = html(`<div class="rbox rfav-grid">${gridHtml(favs, { limit: 1000 })}</div>`);
     bindMore(grid, () => favs);
     box.append(grid);
+    const g = grid.querySelector('.rgrid') || grid;
+    bindFavOrder(g, (id) => {
+      const next = radioFavsSection();
+      box.replaceWith(next);
+      next.querySelector(`.rcard[data-rid="${CSS.escape(id)}"]`)?.focus();
+    });
   }
   else box.append(html(`<p class="muted">${_t('Egy rádióadó kártyáján a + gombbal (vagy kijelölve az F billentyűvel) teheted ide.')} <a href="#/radio">${_t('Rádiók')}</a></p>`));
   return box;

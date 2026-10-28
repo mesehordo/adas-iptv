@@ -196,12 +196,14 @@ export const epg = {
   },
 
   /** Műsorok keresése a következő 2 napban. */
-  searchPrograms(tokens, limit = 60) {
+  /** allow(csatornaazonosító): csak a látható / engedélyezett csatornák – (J11) a korlát előtt szűrve. */
+  searchPrograms(tokens, limit = 60, allow = null) {
     const out = [];
     const now = Date.now();
     const until = now + 48 * 3600e3;
     const fold = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
     for (const [id, list] of this.byChannel) {
+      if (allow && !allow(id)) continue;
       const conv = !!list[PROGS];
       for (let i = 0; i < list.length; i++) {
         const x = list[i];

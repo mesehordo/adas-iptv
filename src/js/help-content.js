@@ -778,6 +778,7 @@ ${go('#/profiles', 'Profilok kezelése')}`,
 <h2>Színváltozatok</h2>
 <p>A legtöbb stílusnak az eredeti mellett <b>három színváltozata</b> is van – mindegyik a stílus hangulatához válogatott paletta, saját névvel (pl. Neon City: <i>Szintihullám</i>, <i>Savas zöld</i>, <i>Vörös neon</i>; Phosphor: a régi monitorok borostyán, cián és plazma színei; Deco: rózsaarany, smaragd, ezüst). A minták alatt, a <i>Színváltozat</i> sorban választható. A változat a stílus minden színes elemét – kiemelés, gombok, keretek, díszítések – a paletta színeire fordítja (a több színű stílusoknál, pl. Neon City, Pow!, Kikagaku, mindegyik színt külön); a háttér világossága és a szöveg olvashatósága nem változik, és a fekete, fehér, szürke árnyalatok, valamint az állapotjelzések (működik / hiba, felvétel, ÉLŐ) is maradnak. Fekete-fehér kiemelésű stílusnál (pl. Manga, Mu) a változat színes kiemelőt ad; az Uchūreki változatai a kezelőfelület különböző korszakainak pontos palettái. A kiemelőszínű gombok, fülek felirata a kiemelőhöz igazodik (világoson sötét, sötéten fehér). A változat stílusonként és profilonként megmarad; a Kontraszt stílusnak – akadálymentességi okból – nincs változata.</p>
 <p>A stílus és a színváltozat már a profil létrehozásakor is választható (az első indításkor és a Profilok kezelése alatt), a profil szerkesztésekor is.</p>
+<p><b>Menüpontok</b> (Beállítások → Megjelenés): a Főoldal kivételével minden menüpont – TV, Rádió, Podcast, VOD, Sport, Kedvencek – kikapcsolható. A kikapcsolt rész nem töltődik be, és a háttérben sem frissül (pl. kikapcsolt TV-nél a csatornalisták és a műsorújság, kikapcsolt VOD-nál a film- és sorozatlisták), így kevesebb hálózatot, memóriát és energiát használ; a Főoldal hozzá tartozó csempéi sem látszanak. Ha egy kikapcsolt rész címére lépsz, egy gombbal visszakapcsolható.</p>
 <table class="help-table">
 <tr><th colspan="2">Sötét stílusok</th></tr>
 <tr><td><b>Kurenai</b></td><td>(bíborvörös) Esti mozi: fekete háttér, vörös kiemelés, rámutatásra kinagyuló kártyák.</td></tr>
@@ -1306,14 +1307,14 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
 <p>A menüsor <b>Podcast</b> pontja (a Rádió oldal <i>Podcastok</i> füle is ide visz) a podcastokat hozza – feliratkozással, mint egy podcast-alkalmazás.</p>
 <h2>Műsorok keresése, feliratkozás</h2>
 <ul><li><b>Felfedezés</b>: keresés név szerint (az Apple Podcasts nyilvános keresőjével, tartalékként az fyyd-vel), a beállított ország toplistája, vagy egy <b>RSS-cím</b> beírása.</li>
-<li><b>OPML</b>: más alkalmazásból (AntennaPod, Pocket Casts…) áthozhatod a feliratkozásaidat, és oda is viheted (Felfedezés vagy Beállítások).</li>
+<li><b>OPML</b>: más alkalmazásból (AntennaPod, Pocket Casts…) áthozhatod a feliratkozásaidat, és oda is viheted (Felfedezés, vagy Beállítások → Podcastok).</li>
 <li>A feliratkozások <b>profilonként</b> vannak; a beállítások mentésével és a szinkronnal másik eszközre is átkerülnek.</li></ul>
 <h2>Fülek</h2>
 <ul><li><b>Áttekintés</b> – folytatás, új epizódok, sor, feliratkozások, legújabb részek, toplista (az elrendezés stílusában).</li>
 <li><b>Új epizódok</b> – a feliratkozások új részei (értesítéssel); mind meghallgatottnak jelölhető vagy a sorba tehető.</li>
 <li><b>Lejátszási sor</b> – a sorrend ▲ ▼ gombokkal; folyamatos lejátszásnál egy epizód végén a következő indul.</li>
-<li><b>Letöltések</b> (asztali gépen) – a letöltött epizód internet nélkül is szól; meghallgatás után a fájl törölhető (beállítás).</li>
-<li><b>Előzmények</b>, <b>Kedvencek</b> (★), <b>Statisztika</b> (műsoronként a hallgatási idő), <b>Beállítások</b>.</li></ul>
+<li><b>Letöltések</b> (asztali gépen és Androidon) – a letöltött epizód internet nélkül is szól. A letöltött epizódnál a ⇩ helyett a kuka gomb törli a fájlt (az epizód a listákban marad); a Letöltések fülön látszik a foglalt hely, és egyszerre törölhetők a meghallgatottak vagy az összes. Meghallgatás után a fájl magától is törölhető (beállítás). Androidon a fájlok az alkalmazás saját tárhelyére kerülnek (az alkalmazás eltávolításakor törlődnek).</li>
+<li><b>Előzmények</b> és <b>Statisztika</b> (műsoronként a hallgatási idő). A ★ kedvenc epizódok a fő <b>Kedvencek</b> oldalon vannak (a csatornák és rádiók mellett), a podcast-beállítások pedig a <b>Beállítások → Podcastok</b> alatt.</li></ul>
 <h2>A műsor oldala</h2>
 <p>Szűrők (meghallgatatlan, félbehagyott, meghallgatott, kedvenc, letöltött), keresés, rendezés. <b>A műsor beállításai</b>: saját sebesség, a bevezető és a zárórész átugrása (másodpercben), hangerő-erősítés, csend átugrása, értesítés, új epizódok automatikus letöltése.</p>
 <h2>Lejátszás</h2>

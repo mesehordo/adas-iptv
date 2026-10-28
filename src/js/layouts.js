@@ -1,5 +1,6 @@
 // Felület-elrendezések megjelenítése (a definíciók és a body-jelölés a layoutdefs.js-ben).
 // A Főoldal (és a Részletes / Gyűjtemény elrendezésben a TV oldal) elrendezésenként más; a többi oldal közös.
+import { menuOn, menuShown } from './menus.js';
 import { esc, html, hashHue, fmtTime, bus, debounce, seededShuffle, norm } from './util.js';
 import { api } from './api.js';
 import { store } from './store.js';
@@ -236,12 +237,12 @@ function navIcon(route) {
 }
 function appRowEl() {
   const items = [
-    ['tv', '#/tv', _t('TV')],
-    ['guide', '#/guide', _t('Műsorújság'), GUIDE_ICO],
+    menuOn('tv') && ['tv', '#/tv', _t('TV')],
+    menuOn('tv') && ['guide', '#/guide', _t('Műsorújság'), GUIDE_ICO],
     radioMenuOn() && ['radio', '#/radio', _t('Rádió')],
-    ['vod', '#/vod', _t('VOD')],
+    menuOn('vod') && ['vod', '#/vod', _t('VOD')],
     sportMenuOn() && ['sport', '#/sport', _t('Sport')],
-    ['favorites', '#/favorites', _t('Kedvencek')],
+    menuShown('favorites') && ['favorites', '#/favorites', _t('Kedvencek')],
     ['recordings', '#/recordings', _t('Felvételek'), REC_ICO],
   ].filter(Boolean);
   return html(`<section class="app-row" aria-label="${_t('Fő részek')}">${items
@@ -357,7 +358,7 @@ function libNavHtml() {
     ['#/favorites', _t('Kedvenc csatornák')],
     ['#/guide', _t('Műsorújság')],
     ['#/recordings', _t('Felvételek')],
-    radioMenuOn() && ['#/radio?tab=favs', _t('Kedvenc rádiók')],
+    radioMenuOn() && ['#/favorites', _t('Kedvenc rádiók')],
     ['#/own', _t('Saját médiatár')],
   ].filter(Boolean);
   return `<h4>${_t('Gyűjteményeid')}</h4>${links.map(([h, l]) => `<a href="${h}">${esc(l)}</a>`).join('')}
@@ -725,14 +726,13 @@ const noChannels = (view) =>
 /** A fő részek (ikon, cím, cím) – a kikapcsolt Rádió / Sport nélkül. */
 function sections() {
   return [
-    ['tv', '#/tv', _t('TV'), navIcon('tv')],
-    ['guide', '#/guide', _t('Műsorújság'), GUIDE_ICO],
+    menuOn('tv') && ['tv', '#/tv', _t('TV'), navIcon('tv')],
+    menuOn('tv') && ['guide', '#/guide', _t('Műsorújság'), GUIDE_ICO],
     radioMenuOn() && ['radio', '#/radio', _t('Rádió'), navIcon('radio')],
-    ['vod', '#/vod', _t('VOD'), navIcon('vod')],
+    menuOn('vod') && ['vod', '#/vod', _t('VOD'), navIcon('vod')],
     sportMenuOn() && ['sport', '#/sport', _t('Sport'), navIcon('sport')],
-    ['favorites', '#/favorites', _t('Kedvencek'), navIcon('favorites')],
+    menuShown('favorites') && ['favorites', '#/favorites', _t('Kedvencek'), navIcon('favorites')],
     ['recordings', '#/recordings', _t('Felvételek'), REC_ICO],
-    ['settings', '#/settings', _t('Beállítások'), navIcon('settings')],
   ].filter(Boolean);
 }
 /** Kijelölés fókuszra / rámutatásra (késleltetve), és az élő előnézet a háttérben. */
@@ -837,15 +837,15 @@ function ribbonCats() {
   const onAir = recommendOrder([...vis].filter((c) => epg.now(c.id)?.cur));
   const rf = radioMenuOn() ? radioFavs() : [];
   const cats = [
-    { id: 'favs', label: _t('Kedvencek'), ico: navIcon('favorites'), items: favs.length ? favs.map(chItem) : [link('#/tv', _t('Csatornák böngészése'), _t('A csatornák kártyáján a + gombbal jelölhetsz kedvencet.'), navIcon('tv'))] },
-    { id: 'now', label: _t('Most a tévében'), ico: GUIDE_ICO, items: onAir.slice(0, 80).map(chItem) },
-    recent.length && { id: 'recent', label: _t('Legutóbb nézett'), ico: HISTORY_ICO, items: recent.map(chItem) },
-    { id: 'tonight', label: _t('Ma este'), ico: GUIDE_ICO, items: tonightPrograms(12).map(({ ch, p: pr }) => ({ kind: 'prog', ch, pr, title: pr.title, sub: `${fmtTime(pr.start)} · ${ch.name}` })) },
+    menuOn('tv') && { id: 'favs', label: _t('Kedvencek'), ico: navIcon('favorites'), items: favs.length ? favs.map(chItem) : [link('#/tv', _t('Csatornák böngészése'), _t('A csatornák kártyáján a + gombbal jelölhetsz kedvencet.'), navIcon('tv'))] },
+    menuOn('tv') && { id: 'now', label: _t('Most a tévében'), ico: GUIDE_ICO, items: onAir.slice(0, 80).map(chItem) },
+    menuOn('tv') && recent.length && { id: 'recent', label: _t('Legutóbb nézett'), ico: HISTORY_ICO, items: recent.map(chItem) },
+    menuOn('tv') && { id: 'tonight', label: _t('Ma este'), ico: GUIDE_ICO, items: tonightPrograms(12).map(({ ch, p: pr }) => ({ kind: 'prog', ch, pr, title: pr.title, sub: `${fmtTime(pr.start)} · ${ch.name}` })) },
     // (a hírek a háttérben töltődnek – renderRibbon)
     !p.kids && { id: 'news', label: _t('Hírek'), ico: NEWS_ICO, items: [] },
-    { id: 'tv', label: _t('TV'), ico: navIcon('tv'), items: [link('#/tv', _t('Csatornák'), _t('A csatornák sorai')), link('#/guide', _t('Műsorújság')), link('#/browse', _t('Böngészés')), link('#/countries', _t('Országok')), link('#/recordings', _t('Felvételek'))] },
+    menuOn('tv') && { id: 'tv', label: _t('TV'), ico: navIcon('tv'), items: [link('#/tv', _t('Csatornák'), _t('A csatornák sorai')), link('#/guide', _t('Műsorújság')), link('#/browse', _t('Böngészés')), link('#/countries', _t('Országok')), link('#/recordings', _t('Felvételek'))] },
     radioMenuOn() && { id: 'radio', label: _t('Rádió'), ico: navIcon('radio'), items: [...rf.map((st, i) => ({ kind: 'radio', i, title: st.name, sub: [countryName(st.country), st.codec].filter(Boolean).join(' · '), st })), link('#/radio', _t('Rádiók')), link('#/radio?tab=guide', _t('Rádió-műsorújság')), link('#/radio?tab=browse', _t('Böngészés'))] },
-    { id: 'vod', label: _t('Videotár'), ico: navIcon('vod'), items: [link('#/vod', _t('Online listák')), link('#/own', _t('Saját médiatár'))] },
+    menuOn('vod') && { id: 'vod', label: _t('Videotár'), ico: navIcon('vod'), items: [link('#/vod', _t('Online listák')), link('#/own', _t('Saját médiatár'))] },
     sportMenuOn() && { id: 'sport', label: _t('Sport'), ico: navIcon('sport'), items: [link('#/sport', _t('Sport'), _t('Élő eredmények, menetrend, tabella'))] },
     { id: 'settings', label: _t('Beállítások'), ico: navIcon('settings'), items: [link('#/settings', _t('Beállítások')), link('#/settings?section=appearance', _t('Megjelenés')), link('#/profiles', _t('Profilok kezelése')), link('#/help', _t('Súgó'))] },
   ].filter((c) => c && (c.items.length || c.id === 'news'));
@@ -1139,7 +1139,7 @@ function collageGridEl() {
   const cover = (imgs) => `<span class="col-cover">${[...imgs.filter(Boolean), '', '', '', ''].slice(0, 4).map((src) => (src ? `<img src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : '<i></i>')).join('')}</span>`;
   return html(`<section class="lib-colls"><h2 class="row-title">${_t('Gyűjteményeid')}</h2><div class="col-grid">${[
     ...sets.map(([href, name, l]) => `<a class="col-tile" href="${href}">${cover(l.map((c) => c.logo))}<b>${esc(name)}</b><small>${_t('{count} csatorna', { count: l.length })}</small></a>`),
-    rf.length ? `<a class="col-tile" href="#/radio?tab=favs">${cover(rf.map((s) => s.logo))}<b>${_t('Kedvenc rádiók')}</b><small>${_t('{n} adó', { n: rf.length })}</small></a>` : '',
+    rf.length ? `<a class="col-tile" href="#/favorites">${cover(rf.map((s) => s.logo))}<b>${_t('Kedvenc rádiók')}</b><small>${_t('{n} adó', { n: rf.length })}</small></a>` : '',
   ].join('')}</div></section>`);
 }
 /** Könyvtár: „Most szól” panel jobbra (széles képernyőn) – a szóló rádió vagy az utoljára nézett csatorna. */

@@ -1164,7 +1164,9 @@ ipcMain.handle('open-in-player', async (_e, { items, name }) => {
   playerTmpDirs.push(dir);
   const file = path.join(dir, String(name || 'adas').replace(/[\\/:*?"<>|\r\n]+/g, '_').slice(0, 80) + '.m3u');
   const clean = (s) => String(s || '').replace(/[\r\n]+/g, ' ');
-  fs.writeFileSync(file, '#EXTM3U\n' + list.map((x) => `#EXTINF:-1,${clean(x.title)}\n${clean(x.url)}`).join('\n') + '\n', { encoding: 'utf8', flag: 'wx', mode: 0o600 });
+  // (J08) a forrás által kért fejlécek tételenként – a VLC az #EXTVLCOPT, az mpv a saját #EXTVLCOPT-olvasásával kapja
+  const opt = (x) => (x.ua ? `#EXTVLCOPT:http-user-agent=${clean(x.ua)}\n` : '') + (x.referrer ? `#EXTVLCOPT:http-referrer=${clean(x.referrer)}\n` : '');
+  fs.writeFileSync(file, '#EXTM3U\n' + list.map((x) => `#EXTINF:-1,${clean(x.title)}\n${opt(x)}${clean(x.url)}`).join('\n') + '\n', { encoding: 'utf8', flag: 'wx', mode: 0o600 });
   return shell.openPath(file); // '' = sikerült; különben pl. „nincs társított alkalmazás”
 });
 const playerTmpDirs = [];
@@ -1402,11 +1404,15 @@ ipcMain.handle('pod-folder', () => {
 ipcMain.handle('rec-trash', async (_e, p) => {
   if (!inRecDir(p) || media.isRecording(p)) return false; // futó felvétel nem mehet a Lomtárba
   p = path.resolve(p);
+  // (J04) egy épp futó vágás / visszaállítás után – addig nem nyúlunk a fájlhoz
+  return media.withRecLock(p, async () => {
+  if (media.isRecording(p)) return false; // (a zárra várva indult el a felvétel)
   await shell.trashItem(p);
   // a vágás előtti eredeti is megy (külön nem játszható le, csak újravágáshoz kellett)
   const orig = media.originalOf(p);
   if (fs.existsSync(orig)) await shell.trashItem(orig).catch(() => {});
   return true;
+  });
 });
 ipcMain.handle('rec-trim', (_e, { path: p, start, end, cuts } = {}) => (inRecDir(p) ? media.recTrim(path.resolve(p), start, end, cuts) : Promise.reject(new Error(_t('Érvénytelen fájl')))));
 // reklámhatárok keresése (csend + fekete kép); a haladás 'rec-detect-progress' eseményként jön

@@ -2,6 +2,7 @@
 // események napokra bontva, friss eredmények és tabellák – a Sportfigyelőben követett tételekből. Mit követ
 // a felhasználó, és látszik-e a menüpont: Beállítások → Sport (a Sportfigyelő ablak is onnan nyílik).
 // Élő esemény közben percenként, egyébként 5 percenként frissül, amíg az oldal nyitva van.
+import { menuOn } from './menus.js';
 import { esc, fmtTime, fmtDay, dayStart, dayLabel, toast, norm } from './util.js';
 import { store } from './store.js';
 import { catalog, channelStatus } from './catalog.js';
@@ -9,13 +10,16 @@ import { epg } from './epg.js';
 import { player } from './player.js';
 import { logoHtml, emptyState, ICON } from './components.js';
 import { _t } from './i18n.js';
+import { radio, radioFavs, radioPopular, loadRadio } from './radio.js';
+import { radioPlayer } from './radioplayer.js';
+import { pod, searchPodcasts } from './podcast.js';
 import { watchList, loadSportEvents, sportEventsCached, sportErrors, sportStale, eventRowHtml, channelFor, sportOf, sportOnTvNow, followedLeagues, loadStandings, dayLbl } from './sports.js';
 
 const st = { sport: '', table: '', timer: 0, root: null, at: 0 };
 const standings = new Map(); // bajnokság → { at, groups } | { at, err }
 
 /** Látszik-e a Sport menüpont (beállítás; gyerekprofilban nem). */
-export const sportMenuOn = () => store.settings.sportMenu !== false && !store.profile?.kids;
+export const sportMenuOn = () => menuOn('sport');
 
 const here = () => !!st.root && document.body.contains(st.root) && location.hash.startsWith('#/sport');
 
@@ -89,7 +93,7 @@ function draw(view, events) {
     const cols = [
       watched.length ? [card('next', _t('Következik'), next.length ? dayGroups(next, chanOn) : `<p class="muted">${_t('A beállított időszakban nincs közelgő esemény.')}</p>`)] : [],
       [
-        card('tv', _t('Sport a tévében most'), tvNow(), `<a class="dc-link" href="#/guide">${_t('Műsorújság ›')}</a>`),
+        card('tv', _t('Sport most – tévé, rádió, podcast'), tvNow() + mediaNow(), `<a class="dc-link" href="#/guide">${_t('Műsorújság ›')}</a>`),
         watched.length ? card('done', _t('Eredmények'), done.length ? `<ul class="d-sport">${done.map((e) => eventRowHtml(e, { channels: false })).join('')}</ul>` : `<p class="muted">${_t('Még nincs friss eredmény.')}</p>`) : '',
       ],
       leagues.length ? [card('table', _t('Tabella'), tableBox(leagues))] : [],
@@ -137,12 +141,83 @@ function liveTile(e, chanOn) {
     </div>`;
 }
 
-function tvNow() {
+/** A kiválasztott sportág kulcsszavai (szűréshez), vagy null. */
+function sportRx() {
   const kw = st.sport && sportOf(st.sport).kw;
-  let rx = null;
   try {
-    rx = kw ? new RegExp(norm(kw), 'i') : null;
-  } catch {}
+    return kw ? new RegExp(norm(kw), 'i') : null;
+  } catch {
+    return null;
+  }
+}
+// a sor jelölése: honnan szól (tévé, rádió, podcast)
+const KIND = () => ({ tv: _t('TV'), radio: _t('Rádió'), podcast: _t('Podcast') });
+const kindTag = (k) => `<span class="sp-kind sp-kind-${k}">${esc(KIND()[k])}</span>`;
+
+/** Sportrádiók: a nevük / címkéik szerint (a kedvencek elöl) – ha a Rádió be van kapcsolva. */
+function sportRadios() {
+  if (!menuOn('radio') || !radio.byId?.size) return [];
+  const rx = sportRx();
+  const want = (s) => /sport/.test(s.search || norm(s.name || '')) && (!rx || rx.test(s.search || ''));
+  const favs = radioFavs().filter(want);
+  const rest = radioPopular([...radio.byId.values()].filter(want)).filter((s) => !favs.some((f) => f.id === s.id));
+  return [...favs, ...rest].slice(0, 6);
+}
+function radioRows() {
+  const list = sportRadios();
+  return list
+    .map(
+      (s) => `<li><button class="sp-tvrow" data-sp-radio="${esc(s.id)}" title="${_t('{esc} lejátszása', { esc: esc(s.name) })}">
+          <span class="sp-tvlogo">${s.logo ? `<img src="${esc(s.logo)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : '📻'}</span>
+          <span class="sp-tvtxt"><b>${esc(s.name)}</b><small class="muted">${kindTag('radio')} ${esc([s.country, ...(s.tags || []).slice(0, 3)].filter(Boolean).join(' · '))}</small></span>
+        </button></li>`
+    )
+    .join('');
+}
+// sportpodcastok: a feliratkozások közül a sport témájúak, és a keresés „sport” találatai (6 órás gyorsítótárral)
+let podFound = null;
+const SPORT_POD_RX = /sport|foci|futball|football|soccer|forma[- ]?1|\bf1\b|nba|nfl|tenisz|tennis|kézilabda|kosárlabda|bajnok/i;
+function podcastRows() {
+  if (!menuOn('podcast') || !store.profile) return '';
+  const rx = sportRx();
+  // (választott sportágnál annak kulcsszava elég; egyébként az általános sport-minta)
+  const ok = (t) => (rx ? rx.test(norm(t)) : SPORT_POD_RX.test(t));
+  const subs = pod().subs.filter((s) => ok(`${s.title} ${s.author || ''}`));
+  const extra = (podFound || []).filter((s) => !subs.some((x) => x.url === s.url) && (!rx || rx.test(norm(`${s.title} ${s.genre || ''}`))));
+  const subbed = new Set(pod().subs.map((s) => s.url));
+  return [...subs.map((s) => ({ ...s, sub: true })), ...extra.map((s) => (subbed.has(s.url) ? { ...s, sub: true } : s))]
+    .slice(0, 6)
+    .map(
+      (s) => `<li><a class="sp-tvrow" href="#/podcast?feed=${encodeURIComponent(s.url)}" title="${esc(s.title)}">
+          <span class="sp-tvlogo">${s.image ? `<img src="${esc(s.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : '🎙️'}</span>
+          <span class="sp-tvtxt"><b>${esc(s.title)}</b><small class="muted">${kindTag('podcast')} ${esc([s.author, s.sub ? _t('feliratkozva') : ''].filter(Boolean).join(' · '))}</small></span>
+        </a></li>`
+    )
+    .join('');
+}
+/** A rádió- és podcast-sorok a Sport oldalon (a TV-sorok alatt, jelölve) – a podcast-keresés után kiegészül. */
+function mediaNow() {
+  const rows = radioRows() + podcastRows();
+  const fill = () => {
+    const box = st.root?.querySelector('.sp-media');
+    if (box && here()) box.innerHTML = radioRows() + podcastRows();
+  };
+  // (a rádióadók listája csak itt, igény szerint töltődik be – ha a Rádió be van kapcsolva)
+  if (menuOn('radio') && !radio.ready) Promise.resolve(loadRadio()).then(fill, () => {});
+  if (podFound == null && menuOn('podcast')) {
+    podFound = [];
+    searchPodcasts('sport')
+      .then((list) => {
+        podFound = list.filter((s) => /sport/i.test(s.genre || '') || SPORT_POD_RX.test(s.title));
+        fill();
+      })
+      .catch(() => {});
+  }
+  return `<ul class="sp-tvlist sp-media">${rows}</ul>`;
+}
+
+function tvNow() {
+  const rx = sportRx();
   const now = Date.now();
   // (a sportág szerinti szűrés a levágás előtt – különben a többi sportág kiszoríthatná a találatokat)
   const rows = sportOnTvNow(12, rx ? (x) => rx.test(norm(`${x.p.title} ${x.p.category || ''}`)) : null);
@@ -153,7 +228,7 @@ function tvNow() {
       const pct = Math.min(100, Math.max(0, ((now - p.start) / (p.stop - p.start)) * 100));
       return `<li><button class="sp-tvrow ${off ? 'is-off' : ''}" data-play="${esc(ch.id)}" title="${_t('{esc} lejátszása', { esc: esc(ch.name) })}">
           <span class="sp-tvlogo">${logoHtml(ch, 'logo-sm')}</span>
-          <span class="sp-tvtxt"><b>${esc(p.title)}</b><small class="muted">${esc(ch.name)} · ${fmtTime(p.start)}–${fmtTime(p.stop)}${off ? ` · ${_t('nem elérhető')}` : ''}</small><span class="bar"><i style="width:${pct.toFixed(1)}%"></i></span></span>
+          <span class="sp-tvtxt"><b>${esc(p.title)}</b><small class="muted">${kindTag('tv')} ${esc(ch.name)} · ${fmtTime(p.start)}–${fmtTime(p.stop)}${off ? ` · ${_t('nem elérhető')}` : ''}</small><span class="bar"><i style="width:${pct.toFixed(1)}%"></i></span></span>
         </button></li>`;
     })
     .join('')}</ul>`;
@@ -234,6 +309,14 @@ function bind(view) {
       const ch = catalog.byId.get(pl.dataset.play);
       if (ch) player.play(ch);
       else toast(_t('A csatorna nem található a csatornalistákban.'));
+      return;
+    }
+    const rs = e.target.closest('[data-sp-radio]');
+    if (rs) {
+      const list = sportRadios();
+      const s = list.find((x) => x.id === rs.dataset.spRadio) || radio.byId.get(rs.dataset.spRadio);
+      // (a léptetéshez: a lista tartalmazza az indított adót is)
+      if (s) radioPlayer.play(s, list.some((x) => x.id === s.id) ? list : [s, ...list]);
       return;
     }
     const chip = e.target.closest('[data-sp-chip]');

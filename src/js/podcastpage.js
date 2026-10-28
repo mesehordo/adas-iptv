@@ -1,6 +1,7 @@
 // Podcastok – a felület: a Podcast oldal (áttekintés, új epizódok, lejátszási sor, feliratkozások, letöltések,
 // előzmények, kedvencek, felfedezés, statisztika, beállítások), a műsor oldala, az epizód adatlapja, a kis
 // lejátszósáv és a teljes képernyős „Most szól” nézet. Az adatok a podcast.js-ben, a lejátszás a podplayer.js-ben.
+import { menuOn } from './menus.js';
 import { esc, html, bus, debounce, toast, hashHue } from './util.js';
 import { api } from './api.js';
 import { store } from './store.js';
@@ -8,18 +9,19 @@ import { ICON, openModal, confirmDialog, emptyState } from './components.js';
 import {
   pod, podCfg, savePod, feeds, cachedFeed, refreshFeed, refreshAll, initPodcasts, subscribe, unsubscribe, isSubscribed, subOf, setSubOpt,
   epState, isPlayed, progressOf, markPlayed, toggleFav, enqueue, dequeue, moveInQueue, inQueue, clearInbox, searchPodcasts, topPodcasts,
-  importOpml, toOpml, canDownload, downloadEp, deleteDownload, isDownloading, downloadedList, findEp,
+  importOpml, toOpml, canDownload, downloadEp, deleteDownload, isDownloading, downloadedList, downloadedSize, findEp,
 } from './podcast.js';
 import { podPlayer, RATES } from './podplayer.js';
 import { radioPlayer, audioFxAvailable } from './radioplayer.js';
 import { player } from './player.js';
 import { _t, LOCALE } from './i18n.js';
 
-export const podMenuOn = () => store.settings.podcastMenu !== false && !store.profile?.kids;
+export const podMenuOn = () => menuOn('podcast');
 
 // ---------------------------------------------------------------------------
 // Formázás
 // ---------------------------------------------------------------------------
+const fmtSize = (b) => (b >= 1e9 ? `${(b / 1e9).toLocaleString(LOCALE, { maximumFractionDigits: 2 })} GB` : `${Math.max(0.1, b / 1e6).toLocaleString(LOCALE, { maximumFractionDigits: 1 })} MB`);
 const fmtDur = (s) => {
   const m = Math.round((s || 0) / 60);
   if (!m) return '';
@@ -88,7 +90,7 @@ function epRowHtml(ep, { queue = false, showFeed = true } = {}) {
     <div class="pep-main" data-pact="info"><b>${esc(ep.title)}</b><small>${esc(info)}</small>${pr > 0.01 && !st?.played ? `<div class="bar"><i style="width:${(pr * 100).toFixed(1)}%"></i></div>` : ''}</div>
     <div class="pep-btns">
       ${queue ? `<button class="round small" data-pact="up" title="${_t('Feljebb')}">▲</button><button class="round small" data-pact="down" title="${_t('Lejjebb')}">▼</button><button class="round small" data-pact="dequeue" title="${_t('Kivétel a sorból')}">${ICON.close}</button>` : `<button class="round small" data-pact="queue" title="${inQueue(ep.key) ? _t('Kivétel a sorból') : _t('A lejátszási sorba')}">${inQueue(ep.key) ? ICON.check : ICON.plus}</button>`}
-      ${canDownload() ? `<button class="round small ${dl ? 'on' : ''}" data-pact="dl" title="${dl ? _t('Letöltés törlése') : busy ? _t('Letöltés folyamatban…') : _t('Letöltés')}" ${busy ? 'disabled' : ''}>${busy ? '…' : dl ? '⇩✓' : '⇩'}</button>` : ''}
+      ${canDownload() ? (dl ? `<button class="round small" data-pact="dldel" title="${_t('Letöltés törlése')}">${ICON.trash}</button>` : `<button class="round small" data-pact="dl" title="${busy ? _t('Letöltés folyamatban…') : _t('Letöltés')}" ${busy ? 'disabled' : ''}>${busy ? '…' : '⇩'}</button>`) : ''}
       <button class="round small ${st?.fav ? 'on' : ''}" data-pact="fav" title="${st?.fav ? _t('Eltávolítás a kedvencek közül') : _t('Kedvencekhez')}">★</button>
       <button class="round small ${st?.played ? 'on' : ''}" data-pact="played" title="${st?.played ? _t('Meghallgatatlannak jelölés') : _t('Meghallgatottnak jelölés')}">✓</button>
     </div></div>`;
@@ -132,13 +134,11 @@ document.addEventListener('click', (e) => {
   else if (act === 'up' || act === 'down') moveInQueue(ep.key, act === 'up' ? -1 : 1);
   else if (act === 'fav') toast(toggleFav(ep) ? _t('Kedvencekhez adva') : _t('Eltávolítva a kedvencek közül'));
   else if (act === 'played') markPlayed(ep, !isPlayed(ep.key));
-  else if (act === 'dl') {
-    if (epState(ep.key)?.dl) deleteDownload(ep);
-    else
-      downloadEp(ep)
-        .then(() => toast(_t('Letöltve: {title}', { title: ep.title })))
-        .catch((err) => toast(_t('A letöltés nem sikerült: {e}', { e: err.message || err })));
-  }
+  else if (act === 'dldel') deleteDownload(ep).then((ok) => toast(ok ? _t('A letöltött fájl törölve: {title}', { title: ep.title }) : _t('A fájl nem törölhető: {title}', { title: ep.title })));
+  else if (act === 'dl' && !epState(ep.key)?.dl)
+    downloadEp(ep)
+      .then(() => toast(_t('Letöltve: {title}', { title: ep.title })))
+      .catch((err) => toast(_t('A letöltés nem sikerült: {e}', { e: err.message || err })));
   refreshRows();
 });
 document.addEventListener('keydown', (e) => {
@@ -155,12 +155,14 @@ document.addEventListener('keydown', (e) => {
 });
 /** Az oldal újrarajzolása (ha a Podcast oldal látszik). */
 const here = () => location.hash.startsWith('#/podcast');
+// (a podcast-elemek a Kedvencek oldalon és a Beállításokban is megjelennek)
+const hostsPod = (el) => here() || !!el?.closest?.('#podcast-settings, .fav-pod');
 let viewEl = null;
 let lastParams = null;
 const rerender = debounce(() => here() && viewEl?.isConnected && renderPodcast(viewEl, lastParams || new URLSearchParams()), 120);
 /** Csak az állapotjelzések frissítése (gombok, haladás) újrarajzolás nélkül – a görgetés és a fókusz marad. */
 const refreshRows = debounce(() => {
-  if (!here()) return;
+  if (!here() && !document.querySelector('#view .fav-pod')) return;
   document.querySelectorAll('#view .pep[data-pkey]').forEach((r) => {
     const ep = findEp(r.dataset.pkey);
     if (!ep) return;
@@ -184,10 +186,8 @@ const TABS = () => [
   ['subs', _t('Feliratkozások')],
   canDownload() && ['downloads', _t('Letöltések')],
   ['hist', _t('Előzmények')],
-  ['favs', _t('Kedvencek')],
   ['discover', _t('Felfedezés')],
   ['stats', _t('Statisztika')],
-  ['settings', _t('Beállítások')],
 ].filter(Boolean);
 const tabsHtml = (cur) => {
   const d = pod();
@@ -211,10 +211,11 @@ export function renderPodcast(view, params) {
     case 'subs': return tabSubs(view, params);
     case 'downloads': return tabDownloads(view, params);
     case 'hist': return tabHist(view, params);
-    case 'favs': return tabFavs(view, params);
+    // (a kedvenc epizódok a Kedvencek oldalon, a beállítások a fő Beállításokban – a régi címek oda vezetnek)
+    case 'favs': return void location.replace('#/favorites');
+    case 'settings': return void location.replace('#/settings?g=podcast');
     case 'discover': return tabDiscover(view, params);
     case 'stats': return tabStats(view, params);
-    case 'settings': return tabSettings(view, params);
     default: return tabHome(view, params);
   }
 }
@@ -243,9 +244,9 @@ function tabHome(view) {
   if (d.subs.length && !feeds.size) initPodcasts().catch(() => {});
 }
 
-function listPage(view, tab, title, list, { empty, tools = '', queue = false } = {}) {
+function listPage(view, tab, title, list, { empty, tools = '', queue = false, info = '' } = {}) {
   view.innerHTML = `<div class="page pod-page">${tabsHtml(tab)}
-    <div class="page-head"><h1>${esc(title)}</h1><span class="muted">${_t('{n} epizód', { n: list.length })}</span><span class="pod-tools">${tools}</span></div>
+    <div class="page-head"><h1>${esc(title)}</h1><span class="muted">${_t('{n} epizód', { n: list.length })}${info ? ' · ' + esc(info) : ''}</span><span class="pod-tools">${tools}</span></div>
     ${list.length ? `<div class="pep-list ${queue ? 'pq-list' : ''}">${list.slice(0, 300).map((ep) => epRowHtml(ep, { queue })).join('')}</div>` : `<p class="muted">${esc(empty)}</p>`}</div>`;
 }
 function tabInbox(view) {
@@ -274,16 +275,22 @@ function tabSubs(view) {
 }
 function tabDownloads(view) {
   const list = downloadedList();
+  const played = list.filter((ep) => isPlayed(ep.key)).length;
   listPage(view, 'downloads', _t('Letöltések'), list, {
     empty: _t('Nincs letöltött epizód. A ⇩ gombbal tölthetsz le – a letöltött epizód internet nélkül is szól.'),
-    tools: `<button class="btn small" data-pt="dl-folder">${_t('Mappa megnyitása')}</button>`,
+    info: list.length ? _t('{size} a tárhelyen', { size: fmtSize(downloadedSize()) }) : '',
+    tools: `${api.podFolder ? `<button class="btn small" data-pt="dl-folder">${_t('Mappa megnyitása')}</button>` : ''}${played ? `<button class="btn small" data-pt="dl-del-played">${_t('Meghallgatottak törlése ({n})', { n: played })}</button>` : ''}${list.length ? `<button class="btn small" data-pt="dl-del-all">${_t('Összes törlése')}</button>` : ''}`,
   });
 }
 function tabHist(view) {
   listPage(view, 'hist', _t('Előzmények'), pod().hist, { empty: _t('Még nem hallgattál podcastot.'), tools: pod().hist.length ? `<button class="btn small" data-pt="hist-clear">${_t('Előzmények törlése')}</button>` : '' });
 }
-function tabFavs(view) {
-  listPage(view, 'favs', _t('Kedvencek'), pod().favs, { empty: _t('A ★ gombbal jelölheted meg a kedvenc epizódjaidat.') });
+/** A Kedvencek oldal podcast-része: a kedvenc epizódok (ha van ilyen). */
+export function podFavsSection() {
+  const list = store.profile ? pod().favs : [];
+  if (!list.length) return null;
+  return html(`<div class="fav-pod"><div class="page-head sub"><h2>${_t('Podcast-epizódok')}</h2><span class="muted">${_t('{n} epizód', { n: list.length })}</span></div>
+    <div class="pep-list">${list.slice(0, 300).map((ep) => epRowHtml(ep)).join('')}</div></div>`);
 }
 
 function tabDiscover(view, params) {
@@ -330,14 +337,15 @@ function tabStats(view) {
     ${rows.length ? `<ol class="pod-stats">${rows.slice(0, 40).map((r) => `<li><a href="#/podcast?feed=${encodeURIComponent(r.url)}">${esc(r.title)}</a><span class="pbar"><i style="width:${((r.sec / max) * 100).toFixed(1)}%"></i></span><span class="muted">${esc(fmtDur(r.sec))}</span></li>`).join('')}</ol>` : `<p class="muted">${_t('Még nincs hallgatási adat.')}</p>`}</div>`;
 }
 
-function tabSettings(view) {
+/** A podcast-beállítások – a fő Beállítások „Podcastok” csoportjában (profilonként). */
+export function renderPodcastSettings(el) {
+  if (!el || !store.profile) return;
   const c = podCfg();
   const sel = (key, opts, label, desc) =>
     `<label class="setting"><span><b>${esc(label)}</b>${desc ? `<small>${esc(desc)}</small>` : ''}</span><select data-pc="${key}">${opts.map(([v, l]) => `<option value="${v}" ${String(c[key]) === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`;
   const chk = (key, label, desc, val = c[key]) => `<label class="setting"><span><b>${esc(label)}</b>${desc ? `<small>${esc(desc)}</small>` : ''}</span><input type="checkbox" class="switch" data-pc="${key}" ${val ? 'checked' : ''} /></label>`;
-  view.innerHTML = `<div class="page pod-page">${tabsHtml('settings')}
-    <div class="page-head"><h1>${_t('Podcast-beállítások')}</h1><span class="muted">${_t('· {name} profil', { name: esc(store.profile.name) })}</span></div>
-    <section class="set-section">
+  el.innerHTML = `<h2>${_t('Podcastok')} <button class="help-link" data-help="podcast" title="${_t('Súgó')}">?</button></h2>
+    <p class="muted">${esc(_t('A(z) {name} profil podcast-beállításai.', { name: store.profile.name }))}</p>
     ${sel('refreshHours', [[1, _t('óránként')], [3, _t('3 óránként')], [6, _t('6 óránként')], [12, _t('12 óránként')], [24, _t('naponta')]], _t('Új epizódok keresése'), _t('Ilyen gyakran nézi meg a feliratkozásaid új részeit (értesítéssel).'))}
     ${sel('speed', RATES.map((r) => [r, r + '×']), _t('Alapértelmezett sebesség'), _t('Műsoronként külön is állítható (a műsor oldalán).'))}
     ${sel('skipBack', [[5, '5 mp'], [10, '10 mp'], [15, '15 mp'], [30, '30 mp']], _t('Visszaugrás'))}
@@ -345,11 +353,11 @@ function tabSettings(view) {
     ${chk('continuous', _t('Folyamatos lejátszás'), _t('Egy epizód végén a lejátszási sor következő eleme indul.'))}
     ${chk('skipSilence', _t('Csend átugrása'), audioFxAvailable ? _t('A csendes részeket gyorsítva játssza le (műsoronként is állítható).') : _t('Ezen az eszközön nem érhető el.'))}
     ${canDownload() ? chk('autoDelete', _t('Letöltés törlése meghallgatás után'), _t('A meghallgatott, letöltött epizód fájlja törlődik.')) : ''}
-    ${chk('podcastMenu', _t('Podcast a menüben'), _t('A menüpont elrejthető; a podcastok a Rádió oldalról is elérhetők.'), store.settings.podcastMenu !== false)}
-    </section>
-    <section class="set-section"><h2>${_t('Feliratkozások átvitele')}</h2>
+    ${canDownload() && downloadedList().length ? `<div class="setting"><span><b>${_t('Letöltött epizódok')}</b><small>${esc(_t('{n} epizód, {size}', { n: downloadedList().length, size: fmtSize(downloadedSize()) }))}</small></span><span><a class="btn small" href="#/podcast?tab=downloads">${_t('Megnyitás')}</a> <button class="btn small" data-pt="dl-del-all">${_t('Összes törlése')}</button></span></div>` : ''}
+    ${chk('podcastMenu', _t('Podcast a menüben'), _t('Kikapcsolva a feliratkozások sem frissülnek, és nem jön értesítés új epizódról.'), store.settings.podcastMenu !== false)}
+    <h3>${_t('Feliratkozások átvitele')}</h3>
       <p class="muted">${_t('Más podcast-alkalmazásba (AntennaPod, Pocket Casts…) vagy onnan: OPML-fájllal. A feliratkozások a beállítások mentésével és a szinkronnal is átkerülnek.')}</p>
-      <div class="inline"><button class="btn small" data-pt="opml-export">${_t('Exportálás (OPML)')}</button><label class="btn small">${_t('OPML-fájl betöltése…')}<input type="file" accept=".opml,.xml,text/xml,text/x-opml" data-pt-file="opml" hidden /></label></div></section></div>`;
+      <div class="inline"><button class="btn small" data-pt="opml-export">${_t('Exportálás (OPML)')}</button><label class="btn small">${_t('OPML-fájl betöltése…')}<input type="file" accept=".opml,.xml,text/xml,text/x-opml" data-pt-file="opml" hidden /></label></div>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -461,7 +469,8 @@ async function renderFeed(view, url) {
 // az oldalak gombjai (eszköztár, keresés, OPML)
 document.addEventListener('click', async (e) => {
   const b = e.target.closest('[data-pt]');
-  if (!b || !here()) return;
+  if (!b || !hostsPod(b)) return;
+  const inSettings = !!b.closest('#podcast-settings');
   const a = b.dataset.pt;
   const d = pod();
   if (a === 'refresh') {
@@ -485,7 +494,17 @@ document.addEventListener('click', async (e) => {
     savePod();
   } else if (a === 'opml-export') api.saveFile?.('adas-podcastok.opml', toOpml());
   else if (a === 'dl-folder') api.podFolder?.();
+  else if (a === 'dl-del-played' || a === 'dl-del-all') {
+    const list = downloadedList().filter((ep) => a === 'dl-del-all' || isPlayed(ep.key));
+    const q = a === 'dl-del-all' ? _t('Törlöd mind a(z) {n} letöltött epizódot ({size})? Az epizódok a listákban maradnak, csak a fájl törlődik.', { n: list.length, size: fmtSize(downloadedSize(list)) }) : _t('Törlöd a(z) {n} meghallgatott epizód letöltött fájlját?', { n: list.length });
+    if (list.length && (await confirmDialog(q, { ok: _t('Törlés'), danger: true }))) {
+      let done = 0;
+      for (const ep of list) if (await deleteDownload(ep).catch(() => false)) done++;
+      toast(done === list.length ? _t('{n} letöltött fájl törölve', { n: done }) : _t('{n} letöltött fájl törölve, {m} nem törölhető', { n: done, m: list.length - done }));
+    }
+  }
   rerender();
+  if (inSettings) renderPodcastSettings(document.getElementById('podcast-settings'));
 });
 document.addEventListener('submit', (e) => {
   const f = e.target.closest('[data-pt-form="search"]');
@@ -507,7 +526,7 @@ document.addEventListener('change', async (e) => {
     }
     inp.value = '';
     rerender();
-  } else if (pc && here()) {
+  } else if (pc && hostsPod(pc)) {
     const k = pc.dataset.pc;
     const v = pc.type === 'checkbox' ? pc.checked : Number(pc.value);
     if (k === 'podcastMenu') {
@@ -534,7 +553,7 @@ export function openEpisode(ep) {
       <div class="muted small">${esc([fmtDate(ep.pub), fmtDur(ep.dur), ep.season ? _t('{s}. évad', { s: ep.season }) : '', ep.episode ? _t('{e}. rész', { e: ep.episode }) : '', st?.played ? _t('meghallgatva') : st?.pos ? _t('{t}-nál tartasz', { t: fmtClock(st.pos) }) : ''].filter(Boolean).join(' · '))}</div></div></div>
     <div class="dialog-btns"><button class="btn primary" data-pact="play">${ICON.play} ${st?.pos && !st?.played ? _t('Folytatás') : _t('Lejátszás')}</button>
       <button class="btn" data-pact="queue">${inQueue(ep.key) ? ICON.check : ICON.plus} ${_t('Lejátszási sor')}</button>
-      ${canDownload() ? `<button class="btn" data-pact="dl">${st?.dl ? _t('Letöltés törlése') : _t('⇩ Letöltés')}</button>` : ''}
+      ${canDownload() ? (st?.dl ? `<button class="btn" data-pact="dldel">${ICON.trash} ${_t('Letöltés törlése')}</button>` : `<button class="btn" data-pact="dl">${_t('⇩ Letöltés')}</button>`) : ''}
       <button class="btn" data-pact="fav">★ ${st?.fav ? _t('Kedvenc') : _t('Kedvencekhez')}</button>
       <button class="btn" data-pact="played">✓ ${st?.played ? _t('Meghallgatatlan') : _t('Meghallgatva')}</button>
       ${ep.link ? `<button class="btn" data-ext="${esc(ep.link)}">${ICON.external || ''} ${_t('Weboldal')}</button>` : ''}</div>
@@ -597,16 +616,17 @@ function openFull() {
   if (!podPlayer.ep) return;
   closeFull(false);
   full = html(`<section id="pod-full" role="dialog" aria-label="${_t('Most szól')}">
-    <div class="pf-top"><button class="round" data-pf2="close" title="${_t('Bezárás (Esc)')}">${ICON.chevron}</button><span class="muted">${_t('Podcast')}</span></div>
-    <div class="pf-main"><div class="pf-art"></div>
-      <div class="pf-info"><a class="pf-feed muted" href=""></a><h1 class="pf-title"></h1><div class="pf-chap muted"></div>
-        <div class="pf-seek"><span class="pf-cur">0:00</span><input type="range" class="seek" min="0" max="1000" value="0" aria-label="${_t('Tekerés')}" /><span class="pf-rem">0:00</span></div>
-        <div class="pf-ctrls rf-ctrls"><button class="round" data-pf2="prevch" title="${_t('Előző fejezet')}"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button><button class="round" data-pf2="back"></button><button class="round white big" data-pf2="toggle"></button><button class="round" data-pf2="fwd"></button><button class="round" data-pf2="next" title="${_t('Következő a sorban')}"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button></div>
-        <div class="pf-opts"><button class="btn small" data-pf2="rate"></button><button class="btn small" data-pf2="sleep"></button>
+    <div class="pf-top pl-head"><button class="round" data-pf2="close" title="${_t('Bezárás (Esc)')}">${ICON.chevron}</button><span class="muted">${_t('Most szól')} · ${_t('Podcast')}</span></div>
+    <div class="pf-body"><div class="pf-main"><div class="pf-art"></div>
+      <div class="pf-info"><a class="pf-feed muted" href=""></a><h1 class="pf-title"></h1><div class="pf-chap muted"></div></div></div>
+    <div class="pf-lists"><section class="pf-chapters" hidden><h3>${_t('Fejezetek')}</h3><ol></ol></section><section class="pf-queue"><h3>${_t('Következik a sorban')}</h3><div class="pep-list pq-list"></div></section></div></div>
+    <div class="pl-deck">
+        <div class="pf-seek pl-seek"><span class="pf-cur">0:00</span><input type="range" class="seek" min="0" max="1000" value="0" aria-label="${_t('Tekerés')}" /><span class="pf-rem">0:00</span></div>
+        <div class="pl-row"><div class="pf-ctrls pl-transport"><button class="round" data-pf2="prevch" title="${_t('Előző fejezet')}"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button><button class="round" data-pf2="back"></button><button class="round white big" data-pf2="toggle"></button><button class="round" data-pf2="fwd"></button><button class="round" data-pf2="next" title="${_t('Következő a sorban')}"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button></div>
+        <div class="pf-opts pl-opts"><button class="btn small" data-pf2="rate"></button><button class="btn small" data-pf2="sleep"></button>
           ${audioFxAvailable ? `<button class="btn small" data-pf2="boost"></button><button class="btn small" data-pf2="silence"></button>` : ''}
-          <button class="btn small" data-pf2="notes">${_t('Műsorjegyzet')}</button></div>
-        <div class="pf-menu" hidden></div></div></div>
-    <div class="pf-lists"><section class="pf-chapters" hidden><h3>${_t('Fejezetek')}</h3><ol></ol></section><section class="pf-queue"><h3>${_t('Következik a sorban')}</h3><div class="pep-list pq-list"></div></section></div>
+          <button class="btn small" data-pf2="notes">${_t('Műsorjegyzet')}</button></div></div>
+        <div class="pf-menu" hidden></div></div>
   </section>`);
   document.body.append(full);
   document.body.classList.add('pod-full');

@@ -778,6 +778,7 @@ ${go('#/profiles', 'Manage profiles')}`,
 <h2>Colour variants</h2>
 <p>Besides the original, most styles have <b>three colour variants</b> – each a palette picked to suit the style’s mood, with its own name (e.g. Neon City: <i>Synthwave</i>, <i>Acid green</i>, <i>Red neon</i>; Phosphor: the amber, cyan and plasma colours of old monitors; Deco: rose gold, emerald, silver). Choose one in the <i>Colour variant</i> row under the samples. A variant turns every coloured element of the style – highlights, buttons, borders, decorations – into the palette’s colours (in multi-coloured styles such as Neon City, Pow! and Kikagaku, each colour separately); the background brightness and the readability of text stay the same, and black, white and grey shades as well as status colours (working / error, recording, LIVE) are kept. For styles with a black-and-white highlight (e.g. Manga, Mu) the variant adds a coloured highlight; the Uchūreki variants are the exact palettes of different eras of the control interface. The labels on accent-coloured buttons and tabs follow the accent (dark on light accents, white on dark ones). The variant is remembered per style and per profile; the High contrast style has no variants, for accessibility.</p>
 <p>The style and colour variant can already be chosen when creating a profile (at the first start and under Manage profiles), and when editing a profile.</p>
+<p><b>Menu items</b> (Settings → Appearance): every menu item except Home – TV, Radio, Podcasts, VOD, Sport, Favourites – can be turned off. A part that is off isn’t loaded and isn’t refreshed in the background either (e.g. with TV off the channel lists and the TV guide, with VOD off the movie and series lists), so it uses less network, memory and power; its Home tiles are hidden too. If you open the address of a part that is off, a button turns it back on.</p>
 <table class="help-table">
 <tr><th colspan="2">Dark styles</th></tr>
 <tr><td><b>Kurenai</b></td><td>(crimson) Evening cinema: black background, red highlights, cards that grow on hover.</td></tr>
@@ -1306,14 +1307,14 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 <p>The <b>Podcast</b> menu item (the Radio page’s <i>Podcasts</i> tab leads here too) brings podcasts – with subscriptions, like a podcast app.</p>
 <h2>Finding shows, subscribing</h2>
 <ul><li><b>Discover</b>: search by name (with the public Apple Podcasts search, fyyd as a fallback), the top chart of your country, or paste an <b>RSS address</b>.</li>
-<li><b>OPML</b>: bring your subscriptions from another app (AntennaPod, Pocket Casts…) or take them there (Discover or Settings).</li>
+<li><b>OPML</b>: bring your subscriptions from another app (AntennaPod, Pocket Casts…) or take them there (Discover, or Settings → Podcasts).</li>
 <li>Subscriptions are <b>per profile</b>; they also carry over to another device with settings backups and sync.</li></ul>
 <h2>Tabs</h2>
 <ul><li><b>Overview</b> – continue, new episodes, queue, subscriptions, latest episodes, top chart (in the layout’s style).</li>
 <li><b>New episodes</b> – new episodes of your subscriptions (with a notification); mark all as played or queue them.</li>
 <li><b>Queue</b> – reorder with ▲ ▼; with continuous playback, the next one starts when an episode ends.</li>
-<li><b>Downloads</b> (on desktop) – downloaded episodes play without internet; the file can be deleted after playing (setting).</li>
-<li><b>History</b>, <b>Favourites</b> (★), <b>Statistics</b> (listening time per show), <b>Settings</b>.</li></ul>
+<li><b>Downloads</b> (on desktop and Android) – downloaded episodes play without internet. For a downloaded episode the bin button replaces ⇩ and deletes the file (the episode stays in your lists); the Downloads tab shows the space used and can delete the played ones or all at once. The file can also be deleted automatically after playing (setting). On Android the files go to the app’s own storage (removed when the app is uninstalled).</li>
+<li><b>History</b> and <b>Statistics</b> (listening time per show). Your ★ favourite episodes are on the main <b>Favourites</b> page (next to channels and radio stations), and the podcast settings are under <b>Settings → Podcasts</b>.</li></ul>
 <h2>The show page</h2>
 <p>Filters (unplayed, in progress, played, favourite, downloaded), search, sorting. <b>Show settings</b>: own speed, skipping the intro and outro (in seconds), volume boost, skip silence, notifications, automatic download of new episodes.</p>
 <h2>Playback</h2>

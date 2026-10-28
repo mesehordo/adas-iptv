@@ -49,7 +49,7 @@ const AC = window.AudioContext || window.webkitAudioContext;
 export const NATIVE_RADIO = IS_ANDROID && typeof window.AdasAndroid?.radioPlay === 'function';
 export const audioFxAvailable = !!AC && !NATIVE_RADIO && (!!window.api || IS_ANDROID);
 const PLAIN = 2; // a tartalék (CORS és hangfeldolgozás nélküli) audioelem sorszáma
-const PLAYLIST_RX = /\.(pls|m3u|asx|xspf)(\?|$)/i;
+const PLAYLIST_RX = /\.(pls|m3u|asx|xspf)([?#]|$)/i;
 const START_TIMEOUT = 15000;
 const RESOLVE_TIMEOUT = 8000; // a lejátszólista (.pls / .m3u…) letöltésének felső ideje
 
@@ -58,7 +58,7 @@ const RESOLVE_TIMEOUT = 8000; // a lejátszólista (.pls / .m3u…) letöltésé
  * (User-Agent, Referer) – (H11) a védett lejátszólista lekérése is ezekkel megy. io: a lekérő (tesztekhez).
  */
 export async function resolveStream(url, hdr = null, io = api) {
-  if (!PLAYLIST_RX.test(url) || /\.m3u8(\?|$)/i.test(url)) return url;
+  if (!PLAYLIST_RX.test(url) || /\.m3u8([?#]|$)/i.test(url)) return url;
   try {
     let timer = 0;
     const headers = {};
@@ -188,6 +188,13 @@ class RadioPlayer {
     if (this.nWait) {
       if (e.st === 'playing') this.nWait.finish(true);
       else if (e.st === 'error' || e.st === 'ended') this.nWait.finish(false);
+      // (J09) a rendszer az indulás közben megállította (hangfókusz, fejhallgató): az indulás sikeres – nem hiba, nem
+      // következő forrás –, utána a felület is szünetre vált
+      else if (e.st === 'paused') {
+        this.nWait.finish(true);
+        const id = this.nId;
+        setTimeout(() => id === this.nId && this.state === 'playing' && this.pause(), 0);
+      }
       return;
     }
     if (e.meta !== undefined) return void this.setNowText(String(e.meta).trim(), this.seq);
@@ -424,6 +431,11 @@ class RadioPlayer {
       }
     }
     if (seq !== this.seq) return;
+    // (J05) az új adó egyik címe sem indult: az átúsztatás miatt még szóló előző adó is elhallgat – a felület, a
+    // hang és a rendszer médiavezérlője ugyanazt mutatja (hibás új adó, nincs hang)
+    if (NATIVE_RADIO) window.AdasAndroid.radioStop?.();
+    else for (const el of this.els) if (el && !el.paused) el.pause();
+    api.setPlaying?.(false);
     this.state = 'error';
     this.error = _t('Az adó most nem szól (egyik címe sem indult el).');
     this.emit();
@@ -478,7 +490,7 @@ class RadioPlayer {
       el.addEventListener('playing', onOk);
       el.addEventListener('error', onErr);
       if (this.ctx && next !== PLAIN) this.srcGain[next].gain.value = old.paused || !old.src || this.cur === PLAIN ? 1 : 0;
-      if (/\.m3u8(\?|$)/i.test(url) && window.Hls?.isSupported() && !el.canPlayType('application/vnd.apple.mpegurl')) {
+      if (/\.m3u8([?#]|$)/i.test(url) && window.Hls?.isSupported() && !el.canPlayType('application/vnd.apple.mpegurl')) {
         const h = new window.Hls({ lowLatencyMode: false });
         h.on(window.Hls.Events.ERROR, (_e, d) => d.fatal && onErr());
         h.loadSource(url);

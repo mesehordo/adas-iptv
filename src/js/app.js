@@ -5,7 +5,9 @@ import { store } from './store.js';
 import { catalog, loadCatalog, catalogRefreshDue, reloadLists } from './catalog.js';
 import { epg } from './epg.js';
 import { player } from './player.js';
-import { ICON, closeTopModal, modalOpen, topModalEl, openProgram, openInfo, confirmDialog, avatarHtml } from './components.js';
+import { ICON, closeTopModal, modalOpen, topModalEl, openProgram, openInfo, confirmDialog, avatarHtml, emptyState } from './components.js';
+import { MENU_ITEMS, menuOn, menuShown, isMenuKey, menuOfKey } from './menus.js';
+import { initPodcasts } from './podcast.js';
 import { applyTheme } from './themes.js';
 import { refreshAll, refreshing } from './refresh.js';
 import { channelDialog } from './lists.js';
@@ -64,8 +66,27 @@ let settingsGrant = 0; // a felnőtt jóváhagyás eddig érvényes (gyerekprofi
 // ---------------------------------------------------------------------------
 // Útvonalak
 // ---------------------------------------------------------------------------
+/** Kikapcsolt menüpont oldala: mit kapcsolt ki, és egy gomb a visszakapcsoláshoz. */
+function menuOffPage(view) {
+  const name = parseHash().name;
+  const m = MENU_ITEMS().find(([id]) => id === name);
+  const kids = store.profile?.kids && store.settings[m?.[1]] !== false;
+  view.innerHTML = `<div class="page">${emptyState(
+    _t('A(z) {name} menüpont ki van kapcsolva', { name: m?.[2] || name }),
+    kids ? _t('Gyerekprofilban ez a rész nem érhető el.') : `${esc(m?.[3] || '')} ${_t('Bekapcsolni itt, vagy a Beállítások → Megjelenés → Menüpontok alatt lehet.')}`,
+    kids ? `<a class="btn primary" href="#/home">${_t('Főoldal')}</a>` : `<button class="btn primary" data-menu-on="${esc(m?.[1] || '')}">${_t('Bekapcsolás')}</button> <a class="btn" href="#/home">${_t('Főoldal')}</a>`
+  )}</div>`;
+  view.querySelector('[data-menu-on]')?.addEventListener('click', (e) => {
+    const k = e.currentTarget.dataset.menuOn;
+    if (!isMenuKey(k)) return;
+    store.settings[k] = true;
+    store.save();
+    bus.emit('settings', k);
+  });
+}
 /** A címből jövő név → oldal (rögzített választás; ismeretlen névre a főoldal). */
 function routeFn(name) {
+  if (!menuOn(name)) return menuOffPage;
   switch (name) {
     case 'tv': return renderTv;
     case 'browse': return renderBrowse;
@@ -142,7 +163,8 @@ function route({ keepScroll = false } = {}) {
   if (name === 'sport' && !sportMenuOn()) return void location.replace('#/home');
   if (name === 'radio' && !radioMenuOn()) return void location.replace('#/home');
   // (a Főoldal – és egyes elrendezésekben a TV oldal – az elrendezéstől függ)
-  const fn = layoutRoute(name) || routeFn(name);
+  // (kikapcsolt menüpontnál az elrendezés saját oldala sem – a tájékoztató oldal jön)
+  const fn = (menuOn(name) && layoutRoute(name)) || routeFn(name);
   if (name !== 'tv') leaveHome();
   const full = location.hash;
   const sameRoute = full === currentRoute;
@@ -213,27 +235,31 @@ bus.on('profile-layout', () => {
   applyTheme();
   rerender();
 });
-// Sport menüpont: Beállítások → Sport (gyerekprofilban nem látszik)
-const applySportMenu = () => {
-  const a = $('.links a[data-route="sport"]', nav);
-  if (a) a.hidden = !sportMenuOn();
+// Menüpontok: a Főoldal kivételével mind kikapcsolható (Beállítások → Megjelenés → Menüpontok; gyerekprofilban a
+// Rádió, a Podcast és a Sport nem látszik) – a kikapcsolt szolgáltatás nem is töltődik (menus.js)
+const applyMenus = () => {
+  for (const [id] of MENU_ITEMS()) {
+    const a = $(`.links a[data-route="${id}"]`, nav);
+    if (a) a.hidden = !menuShown(id);
+  }
 };
-bus.on('settings', (k) => k === 'sportMenu' && applySportMenu());
-bus.on('profile', applySportMenu);
-// Rádió menüpont: Beállítások → Rádió (gyerekprofilban nem látszik)
-const applyRadioMenu = () => {
-  const a = $('.links a[data-route="radio"]', nav);
-  if (a) a.hidden = !radioMenuOn();
-};
-bus.on('settings', (k) => k === 'radioMenu' && applyRadioMenu());
-bus.on('profile', applyRadioMenu);
-// Podcast menüpont (a Podcast oldal beállításaiban kapcsolható; gyerekprofilban nem látszik)
-const applyPodMenu = () => {
-  const a = $('.links a[data-route="podcast"]', nav);
-  if (a) a.hidden = !podMenuOn();
-};
-bus.on('settings', (k) => k === 'podcastMenu' && applyPodMenu());
-bus.on('profile', applyPodMenu);
+const applySportMenu = applyMenus;
+const applyRadioMenu = applyMenus;
+const applyPodMenu = applyMenus;
+bus.on('settings', (k) => {
+  if (!isMenuKey(k)) return;
+  applyMenus();
+  // (bekapcsoláskor a szolgáltatás most töltődik be; kikapcsoláskor a nyitott oldala helyett a tájékoztatás)
+  const id = menuOfKey(k);
+  if (menuOn(id)) {
+    if (id === 'tv') refreshAll({ force: false, epgToo: true, quiet: true });
+    else if (id === 'vod') vodLists().length && loadVod();
+    else if (id === 'podcast') initPodcasts().catch(() => {});
+    if (id === 'radio' && !catalog.channels.length && epg.loadedAt === 0) epg.load();
+  }
+  if (started && parseHash().name === id) route({ keepScroll: true });
+});
+bus.on('profile', applyMenus);
 // betöltött adók: a rádió főoldala újrarajzolódik (a böngészés és a keresés mezői nem)
 bus.on('radio', debounce(() => {
   const { name, params } = parseHash();
@@ -499,12 +525,24 @@ window.__adasMedia = (cmd) => {
 };
 const mediaVideo = $('#video');
 // a lejátszás állapota a keretnek (a háttér-értesítés szünet / folytatás gombja ehhez igazodik)
+// (a rendszer médiavezérlőjének: a ténylegesen aktív lejátszó állapota – videó, kivetítés, rádió vagy podcast)
 const reportMedia = () =>
-  api.setMediaState?.(radioPlayer.active && !player.active ? !radioPlayer.playing : player.castHooks?.active ? player.castHooks.paused : mediaVideo.paused);
+  api.setMediaState?.(
+    player.active ? (player.castHooks?.active ? player.castHooks.paused : mediaVideo.paused)
+      : radioPlayer.active && (radioPlayer.playing || !podPlayer.active) ? !radioPlayer.playing
+      : podPlayer.active ? !podPlayer.playing && podPlayer.state !== 'loading'
+      : player.castHooks?.active ? player.castHooks.paused : mediaVideo.paused
+  );
 mediaVideo.addEventListener('play', reportMedia);
 mediaVideo.addEventListener('pause', reportMedia);
 bus.on('radio-player', reportMedia);
 bus.on('cast-state', reportMedia); // (H34) kivetítéskor a rendszer a vevő állapotát mutatja
+// podcast: az állapot és a most szóló epizód címe is a rendszer felé (értesítés, zárolt képernyő)
+bus.on('pod-player', (kind) => {
+  if (kind !== 'state' && kind !== 'start' && kind !== 'stop') return;
+  reportMedia();
+  if (kind === 'start' && podPlayer.ep && !player.active && !radioPlayer.playing) api.setNowPlaying?.(`${podPlayer.ep.title}${podPlayer.ep.feedTitle ? ' – ' + podPlayer.ep.feedTitle : ''}`);
+});
 // (B38) Android kis ablak (kép a képben): csak a videó látszik; a vezérlők, a fejléc és a lap rejtve
 window.__adasPip = (on) => {
   document.body.classList.toggle('pip', !!on);
@@ -884,7 +922,8 @@ function splashAnimDone() {
 async function loadWithRetry() {
   for (;;) {
     try {
-      await loadCatalog({ onProgress: splashMsg });
+      // (kikapcsolt TV menüpont: a csatornalisták nem töltődnek)
+      if (menuOn('tv')) await loadCatalog({ onProgress: splashMsg });
       return;
     } catch (err) {
       console.error(err);
@@ -951,7 +990,8 @@ async function boot() {
   if (!location.hash || location.hash.startsWith('#/profiles')) location.replace('#/home');
   route();
 
-  epg.load().then(() => {
+  const epgWanted = () => menuOn('tv') || menuOn('radio');
+  if (epgWanted()) epg.load().then(() => {
     syncSeries();
     checkReminders();
   });
@@ -981,7 +1021,7 @@ async function boot() {
     if (autoBusy || player.active || refreshing()) return;
     autoBusy = true;
     try {
-      if (catalogRefreshDue()) await reloadLists();
+      if (menuOn('tv') && catalogRefreshDue()) await reloadLists();
       if (vodRefreshDue()) await loadVod();
     } catch (err) {
       console.warn('Automatikus listafrissítés', err);
@@ -998,15 +1038,15 @@ async function boot() {
   // ezt a refreshAll maga intézi – a futás közbeni kérés egy további körben teljesül)
   const tvReload = () => refreshAll({ force: false, epgToo: true, quiet: true });
   bus.on('packs', (kind) => {
-    if (kind === 'tv') tvReload();
+    if (kind === 'tv') menuOn('tv') && tvReload();
     else vod.loading ? vod.loading.then(() => loadVod()) : vod.ready && loadVod();
   });
   setTimeout(() => vodLists().length && loadVod(), 8000);
   // A VOD-listákban talált élő adások a csatornák közé kerülnek: ilyenkor újrafésüljük a csatornalistát.
-  bus.on('vod-live', () => refreshAll({ force: false, epgToo: false, quiet: true }));
+  bus.on('vod-live', () => menuOn('tv') && refreshAll({ force: false, epgToo: false, quiet: true }));
   setTimeout(() => (store.settings.ownSources || []).some((s) => s.enabled) && loadOwn(), 4000);
   setInterval(() => {
-    if (Date.now() - epg.loadedAt > store.settings.epgRefreshHours * 3600e3) epg.load();
+    if (epgWanted() && Date.now() - epg.loadedAt > store.settings.epgRefreshHours * 3600e3) epg.load();
   }, 15 * 60e3);
 
   if (store.settings.resumeLast && store.profile.lastChannel) {

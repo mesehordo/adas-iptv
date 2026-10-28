@@ -160,9 +160,9 @@ const XFADE = [0, 2, 4];
 function openFull() {
   if (!radioPlayer.active || full) return;
   full = html(`<section id="radio-full" role="dialog" aria-label="${_t('Most szól')}">
-    <div class="rf-head">
-      <span class="muted">${_t('Most szól')}</span><span class="grow"></span>
-      <button class="round small" data-rf="close" title="${_t('Vissza (Esc)')}">${ICON.chevron}</button>
+    <div class="rf-head pl-head">
+      <button class="round" data-rf="close" title="${_t('Vissza (Esc)')}">${ICON.chevron}</button>
+      <span class="muted">${_t('Most szól')} · ${_t('Rádió')}</span>
     </div>
     <div class="rf-main">
       <div class="rf-art"><div class="rf-cover"></div></div>
@@ -176,8 +176,8 @@ function openFull() {
       </div>
       ${audioFxAvailable ? '<canvas class="rf-vis" aria-hidden="true"></canvas>' : ''}
     </div>
-    <div class="rf-bar">
-      <div class="rf-ctrls">
+    <div class="rf-bar pl-deck"><div class="pl-row">
+      <div class="rf-ctrls pl-transport">
         <button class="round" data-rf="prev" title="${_t('Előző adó (CH−)')}">${P.prev}</button>
         <button class="round white big" data-rf="toggle"></button>
         <button class="round" data-rf="next" title="${_t('Következő adó (CH+)')}">${P.next}</button>
@@ -185,8 +185,8 @@ function openFull() {
         ${canRecord ? `<button class="round rb-rec" data-rf="rec"></button>` : ''}
         <label class="rb-vol">${P.vol}<input type="range" min="0" max="1" step="0.05" aria-label="${_t('Hangerő')}" /></label>
       </div>
-      <div class="rf-menus"></div>
-    </div>
+      <div class="rf-menus pl-opts"></div>
+    </div></div>
     <div class="p-menu rf-menu" role="menu" hidden></div>
   </section>`);
   document.body.append(full);
@@ -194,7 +194,7 @@ function openFull() {
   full.addEventListener('click', onFullClick);
   full.querySelector('input').addEventListener('input', (e) => radioPlayer.setVolume(Number(e.target.value)));
   if (audioFxAvailable) drawVisualizer(full.querySelector('.rf-vis'), () => fx().vis);
-  lastCover = '';
+  lastCover = null; // (logó nélküli adónál is kirajzolja – a monogrammal)
   drawFxChips();
   updateFull();
   full.querySelector('[data-rf="toggle"]').focus({ preventScroll: true });
@@ -368,12 +368,17 @@ function updateFull() {
   full.querySelector('.rf-artist').textContent = isSong ? n.artist : '';
   full.querySelector('.rf-state').textContent = r.state === 'playing' ? (n.text ? '' : _t('Az adó nem küldi, mi szól éppen.')) : stateText();
   const cover = n.cover || st.logo || '';
-  if (cover !== lastCover) {
-    lastCover = cover;
+  // (adónként is: egy másik adó ugyanazzal a címmel – vagy logó nélkül – a saját monogramját kapja)
+  const coverKey = `${st.id}|${cover}`;
+  if (coverKey !== lastCover) {
+    lastCover = coverKey;
     const c = full.querySelector('.rf-cover');
     c.classList.toggle('is-logo', !n.cover);
     c.style.setProperty('--h', String(hashHue(st.name)));
+    full.style.setProperty('--h', String(hashHue(st.name))); // (a háttér halvány fénye)
     c.innerHTML = cover ? `<img src="${esc(cover)}" alt="" referrerpolicy="no-referrer" />` : `<span class="initials">${esc(initials(st.name))}</span>`;
+    // (nem tölthető borító / logó: üres színes négyzet helyett az adó monogramja)
+    c.querySelector('img')?.addEventListener('error', () => { c.classList.remove('is-logo'); c.innerHTML = `<span class="initials">${esc(initials(st.name))}</span>`; }, { once: true });
   }
   const tg = full.querySelector('[data-rf="toggle"]');
   tg.innerHTML = r.playing ? P.pause : ICON.play;

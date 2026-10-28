@@ -273,7 +273,7 @@ const webApi = {
     } catch {}
   },
   async appInfo() {
-    return { version: '1.33.0', dataDir: _t('böngésző tárhely'), platform: 'web' };
+    return { version: '1.33.1', dataDir: _t('böngésző tárhely'), platform: 'web' };
   },
   exit() {},
 };
@@ -389,7 +389,7 @@ const tvApi = {
   },
   notifyPermission() {},
   async appInfo() {
-    return { version: '1.33.0', dataDir: _t('TV tárhely'), platform: 'LG webOS' };
+    return { version: '1.33.1', dataDir: _t('TV tárhely'), platform: 'LG webOS' };
   },
   exit() {
     try {
@@ -592,6 +592,9 @@ const androidApi = {
     androidProgress = cb;
   },
   saveFile: (name, text) => native('saveFile', { name, text }),
+  // Podcast-letöltés: az alkalmazás saját tárhelyére (a natív letöltő a helyi hálózati szabállyal); törlés
+  podDownload: (o) => native('podDownload', o),
+  podDelete: (p) => native('podDelete', { path: p }),
   // Háttérlejátszás (az első paraméter a megszűnt kép a képben módé – mindig false)
   setBackgroundPrefs(pip, audio) {
     try {

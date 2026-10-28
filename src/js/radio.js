@@ -6,6 +6,7 @@
 //  - Saját rádiólisták (M3U, webcímről) és rádió-kiegészítőcsomagok (…_radio.adaspack).
 // Az azonos adó (név + ország) egy tétellé olvad; a különböző forrásokból jött címei egymás tartalékai.
 // Egy ország adatai akkor töltődnek, amikor kell (a hazai ország induláskor, a többi megnyitáskor).
+import { menuOn } from './menus.js';
 import { api } from './api.js';
 import { store, refreshHoursOf } from './store.js';
 import { bus, norm } from './util.js';
@@ -224,6 +225,8 @@ export function loadRadioCountry(cc) {
 
 /** Induláskor: a hazai ország, a világ legnépszerűbbjei, a saját listák. */
 export function loadRadio({ force = false } = {}) {
+  // (kikapcsolt Rádió menüpont: az adólisták nem töltődnek)
+  if (!menuOn('radio')) return Promise.resolve();
   if (force) {
     gen++; // (a folyamatban lévő betöltések eredménye elévül)
     radio.byId.clear();

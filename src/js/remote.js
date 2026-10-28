@@ -14,6 +14,9 @@ import { radio, radioFavs, radioRecent, isRadioFav, toggleRadioFav, radioSearch,
 import { radioPlayer, fx, setFx, VIS_MODES, audioFxAvailable } from './radioplayer.js';
 import { radioFullOpen, closeRadioFull } from './radioui.js';
 import { radioMenuOn } from './radiopage.js';
+import { menuOn } from './menus.js';
+import { podPlayer } from './podplayer.js';
+import { podCfg } from './podcast.js';
 import { canRecord, recordingOf, toggleRadioRecording } from './recorder.js';
 
 import { _t, lang as uiLang } from './i18n.js';
@@ -38,29 +41,29 @@ function pageHtml(pinOn = false) {
   return `<!doctype html><html lang="${uiLang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#111"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><title>${_t('Adás – távirányító')}</title><style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}[hidden]{display:none!important}
-:root{--a:#e50914;--bg:#111;--c:#1d1d1d;--c2:#2a2a2a;--t:#eee;--m:#9a9a9a}
+:root{--a:#e50914;--oa:#fff;--bg:#111;--c:#1d1d1d;--c2:#2a2a2a;--t:#eee;--m:#9a9a9a;--ln:#2a2a2a;--r:14px}
 html,body{margin:0;background:var(--bg);color:var(--t);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 body{max-width:560px;margin:0 auto;padding:10px 12px calc(76px + env(safe-area-inset-bottom))}
 button{font:inherit;color:inherit;border:0;border-radius:14px;background:var(--c2);padding:14px 0;font-size:17px;touch-action:manipulation;cursor:pointer}
-button:active,button.on{background:var(--a);color:#fff}
+button{border-radius:var(--r)}button:active,button.on{background:var(--a);color:var(--oa)}
 .now{display:flex;gap:10px;align-items:center;background:var(--c);border-radius:14px;padding:10px;margin-bottom:10px;min-height:64px}
 .now img{width:56px;height:38px;object-fit:contain;flex:none;background:#000;border-radius:6px}.now .tx{min-width:0;flex:1}
 .now b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.now small{display:block;color:var(--m);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bar{height:4px;border-radius:2px;background:#333;margin-top:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--a)}
-.tabs{position:fixed;left:0;right:0;bottom:0;display:flex;background:#0b0b0b;border-top:1px solid #222;padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:5}
+.bar{height:4px;border-radius:2px;background:var(--ln);margin-top:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--a)}
+.tabs{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--bg);border-top:1px solid var(--ln);padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:5}
 .tabs button{flex:1;background:none;border-radius:10px;padding:8px 0;font-size:12px;color:var(--m)}.tabs button span{display:block;font-size:20px;margin-bottom:2px}.tabs button.sel{color:#fff;background:#222}
 .pane{display:none}.pane.sel{display:block}
 .pad{position:relative;height:min(46vh,300px);border-radius:20px;background:radial-gradient(circle at 50% 50%,#2b2b2b,#1a1a1a);display:grid;place-items:center;color:#666;font-size:13px;text-align:center;touch-action:none;margin-bottom:10px;border:1px solid #2a2a2a}
-.seg{display:flex;gap:6px;margin-bottom:8px}.seg button{flex:1;font-size:14px;padding:9px 0}.seg button.sel{background:var(--a);color:#fff;font-weight:700}
+.seg{display:flex;gap:6px;margin-bottom:8px}.seg button{flex:1;font-size:14px;padding:9px 0}.seg button.sel{background:var(--a);color:var(--oa);font-weight:700}
 .pad .hint{pointer-events:none;padding:0 20px}.pad .dot{position:absolute;width:56px;height:56px;border-radius:50%;background:rgba(229,9,20,.35);pointer-events:none;transform:translate(-50%,-50%);display:none}
 .row{display:grid;gap:8px;margin-bottom:8px}.r3{grid-template-columns:repeat(3,1fr)}.r4{grid-template-columns:repeat(4,1fr)}.r5{grid-template-columns:repeat(5,1fr)}
-.ok{background:var(--a);color:#fff;font-weight:700}.sm{font-size:14px;padding:11px 0}
+.ok{background:var(--a);color:var(--oa);font-weight:700}.sm{font-size:14px;padding:11px 0}
 .dpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}.dpad .e{visibility:hidden}
 .vol{display:flex;align-items:center;gap:10px;background:var(--c);border-radius:14px;padding:8px 12px;margin-bottom:8px}.vol input{flex:1;accent-color:var(--a);height:28px}
 h2{font-size:12px;color:var(--m);margin:14px 2px 8px;text-transform:uppercase;letter-spacing:.06em}
 .list{display:grid;grid-template-columns:1fr 1fr;gap:8px}.list button{font-size:14px;padding:10px 8px;text-align:left;display:flex;gap:8px;align-items:center;min-width:0}
 .list img{width:34px;height:22px;object-fit:contain;flex:none}.list span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.list small{display:block;color:var(--m);font-size:11px}
-input.q{width:100%;font:inherit;font-size:17px;padding:12px 14px;border-radius:14px;border:1px solid #333;background:var(--c);color:#fff;-webkit-user-select:text;user-select:text;margin-bottom:8px}
+input.q{width:100%;font:inherit;font-size:17px;padding:12px 14px;border-radius:var(--r);border:1px solid var(--ln);background:var(--c);color:var(--t);-webkit-user-select:text;user-select:text;margin-bottom:8px}
 .pin{display:flex;flex-direction:column;gap:10px;margin-top:30px}.pin input{font-size:30px;text-align:center;letter-spacing:.3em;padding:12px;border-radius:14px;border:1px solid #444;background:var(--c);color:#fff;-webkit-user-select:text;user-select:text}
 .err{color:#ff6b6b;min-height:1.2em}.muted{color:var(--m);font-size:13px}.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#333;color:#fff;padding:8px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}.toast.show{opacity:1}
 .off{color:#ff8a80}
@@ -78,6 +81,9 @@ ${pinOn ? '' : `<p class="muted">${_t('A PIN-es belépés ki van kapcsolva (a QR
  <div class="row r5"><button data-c="seek" data-a="-30" class="sm">−30″</button><button data-c="seek" data-a="-10" class="sm">−10″</button><button data-c="toggle" class="ok">⏯</button><button data-c="seek" data-a="10" class="sm">+10″</button><button data-c="seek" data-a="30" class="sm">+30″</button></div>
  <div class="row r4"><button data-c="chup">CH ▲</button><button data-c="chdown">CH ▼</button><button data-c="recall" class="sm">${_t('↺ Előző')}</button><button data-c="mute" id="muteBtn">🔇</button></div>
  <div class="vol"><span>🔈</span><input type="range" id="vol" min="0" max="1" step="0.02" aria-label="${_t('Hangerő')}"><span>🔊</span></div>
+ <div id="podBox" hidden><h2>${_t('Podcast')}</h2>
+ <div class="now" id="pnow"><div class="tx"><small>${_t('Most nem szól podcast.')}</small></div></div>
+ <div class="row r4"><button data-c="pback" class="sm">⏪</button><button data-c="ptoggle" class="ok">⏯</button><button data-c="pfwd" class="sm">⏩</button><button data-c="pnext" class="sm">⏭</button></div></div>
  <div class="row r4"><button data-c="menu" data-a="subs" class="sm">${_t('CC Felirat')}</button><button data-c="menu" data-a="settings" class="sm">${_t('⚙ Minőség')}</button><button data-c="menu" data-a="list" class="sm">${_t('☰ Lista')}</button><button data-c="menu" data-a="full" class="sm">${_t('⛶ Teljes')}</button></div>
  <div class="row r4"><button data-c="pfav" id="pfavBtn" class="sm">${_t('★ Kedvenc')}</button><button data-c="prec" id="precBtn" class="sm">${_t('● Felvétel')}</button><button data-c="menu" data-a="mini" id="miniBtn" class="sm">${_t('▣ Mini')}</button><button data-c="menu" data-a="cast" id="castBtn" class="sm">${_t('⇪ Kivetítés')}</button></div>
  <h2>${_t('Nyilak')}</h2>
@@ -106,7 +112,7 @@ ${pinOn ? '' : `<p class="muted">${_t('A PIN-es belépés ki van kapcsolva (a QR
  <div class="row r3"><button data-c="nav" data-a="home" class="sm">${_t('⌂ Főoldal')}</button><button data-c="nav" data-a="tv" class="sm">${_t('📺 TV')}</button><button data-c="nav" data-a="guide" class="sm">${_t('☰ Műsorújság')}</button>
  <button data-c="nav" data-a="favorites" class="sm">${_t('★ Kedvencek')}</button><button data-c="nav" data-a="vod" class="sm">${_t('🎬 VOD')}</button><button data-c="nav" data-a="recordings" class="sm">${_t('● Felvételek')}</button>
  <button data-c="nav" data-a="browse" class="sm">${_t('⌕ Böngészés')}</button><button data-c="nav" data-a="radio" class="sm rnav">${_t('📻 Rádió')}</button><button data-c="nav" data-a="radio-guide" class="sm rnav">${_t('📻 Rádió-műsor')}</button>
- <button data-c="nav" data-a="sport" class="sm">${_t('⚽ Sport')}</button><button data-c="nav" data-a="help" class="sm">${_t('? Súgó')}</button><button data-c="menu" data-a="close" class="sm">${_t('✕ Lejátszó bezárása')}</button></div>
+ <button data-c="nav" data-a="sport" class="sm">${_t('⚽ Sport')}</button><button data-c="nav" data-a="podcast" class="sm">${_t('🎙 Podcast')}</button><button data-c="nav" data-a="help" class="sm">${_t('? Súgó')}</button><button data-c="menu" data-a="close" class="sm">${_t('✕ Lejátszó bezárása')}</button></div>
  <h2>${_t('Szöveg küldése')}</h2>
  <input class="q" id="txt" type="text" placeholder="${_t('Keresés az Adásban / gépelés a kijelölt mezőbe')}" autocomplete="off">
  <div class="row r3"><button id="sendTxt" class="ok sm">${_t('Küldés')}</button><button id="searchTxt" class="sm">${_t('⌕ Keresés')}</button><button data-c="key" data-a="Backspace" class="sm">${_t('⌫ Törlés')}</button></div>
@@ -152,7 +158,11 @@ $('rnow').innerHTML=r?((r.logo?'<img src="'+esc(r.logo)+'" alt="" onerror="this.
 $('rfavBtn').className=r&&r.fav?'on':'';$('rrecBtn').className=r&&r.rec?'on':'';$('rrecBtn').hidden=!s.canRecord;$('rfullBtn').className=r&&r.full?'on':'';$('rvisBtn').hidden=!s.radioVis;$('rsleepBtn').className=r&&r.sleep?'on':'';
 if(document.activeElement!==$('rvol'))$('rvol').value=r?r.volume:1;
 $('rfavs').innerHTML=stBtns(s.rfavs,${JSON.stringify(_t('Nincs kedvenc rádió.'))});$('rrecent').innerHTML=stBtns(s.rrecent,${JSON.stringify(_t('Még nincs.'))});var rr=s.rresults,rq=$('rq').value.trim();$('rresults').innerHTML=rr&&rr.q===rq&&rq?stBtns(rr.items,${JSON.stringify(_t('Nincs találat.'))}):''}
-function render(s){last=s;renderRadio(s);$('pfavBtn').className=s.fav?'on':'';$('precBtn').className=s.rec?'on':'';$('precBtn').hidden=!s.canRecord;$('miniBtn').hidden=!s.caps||!s.caps.mini;$('castBtn').hidden=!s.caps||!s.caps.cast;$('pin').hidden=true;$('ui').hidden=false;$('tabs').hidden=false;var n=s.now||(s.radio?{name:'📻 '+s.radio.name,title:s.radio.title,logo:s.radio.logo}:null);
+function applyTheme(t){if(!t)return;var r=document.documentElement.style;for(var k in t)if(Object.prototype.hasOwnProperty.call(t,k)&&k!=='light')r.setProperty('--'+k,t[k]);var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',t.bg)}
+var MG={tv:'tv',guide:'tv',browse:'tv',recordings:'tv',radio:'radio','radio-guide':'radio',vod:'vod',sport:'sport',podcast:'podcast'};
+function applyMenus(mn){if(!mn)return;[].forEach.call(document.querySelectorAll('[data-c=nav]'),function(b){var g=MG[b.dataset.a];b.hidden=!!(g&&mn[g]===false)})}
+function renderPod(p){$('podBox').hidden=!p;if(!p)return;$('pnow').innerHTML='<div class="tx"><b></b><small></small></div>';$('pnow').querySelector('b').textContent=(p.playing?'▶ ':'❚❚ ')+p.title;$('pnow').querySelector('small').textContent=p.show||''}
+function render(s){last=s;applyTheme(s.theme);applyMenus(s.menus);renderPod(s.pod);renderRadio(s);$('pfavBtn').className=s.fav?'on':'';$('precBtn').className=s.rec?'on':'';$('precBtn').hidden=!s.canRecord;$('miniBtn').hidden=!s.caps||!s.caps.mini;$('castBtn').hidden=!s.caps||!s.caps.cast;$('pin').hidden=true;$('ui').hidden=false;$('tabs').hidden=false;var n=s.now||(s.radio?{name:'📻 '+s.radio.name,title:s.radio.title,logo:s.radio.logo}:null);
 $('now').innerHTML=n?((n.logo?'<img src="'+esc(n.logo)+'" alt="" onerror="this.remove()">':'')+'<div class="tx"><b>'+esc(n.name)+'</b><small>'+esc(n.title||'')+'</small>'+(n.next?'<small>'+${JSON.stringify(_t('Utána:'))}+' '+esc(n.next)+'</small>':'')+(n.progress!=null?'<div class="bar"><i style="width:'+Math.round(n.progress*100)+'%"></i></div>':'')+'</div>'):'<div class="tx"><b>'+esc(s.profile||'Adás')+'</b><small>'+${JSON.stringify(_t('Most nem megy semmi – válassz csatornát a Csatornák fülön, vagy nyomd meg a CH gombot.'))}+'</small></div>';
 if(document.activeElement!==$('vol'))$('vol').value=!s.now&&s.radio?s.radio.volume:s.volume==null?1:s.volume;$('muteBtn').className=s.muted?'on':'';
 $('favs').innerHTML=chBtns(s.favs,${JSON.stringify(_t('Nincs kedvenc csatorna.'))});$('recent').innerHTML=chBtns(s.recent,${JSON.stringify(_t('Még nincs.'))});var r=s.results,cq=$('q').value.trim();$('results').innerHTML=r&&r.q===cq&&cq?chBtns(r.items,${JSON.stringify(_t('Nincs találat.'))}):''}
@@ -280,7 +290,16 @@ function stateJson() {
     rfavs: radioOn ? radioFavs().slice(0, 40).map(stItem) : [],
     rrecent: radioOn ? radioRecent().slice(0, 12).map(stItem) : [],
     rresults: radioOn ? rresults : null,
+    theme: themeVars(),
+    menus: Object.fromEntries(['tv', 'radio', 'podcast', 'vod', 'sport'].map((id) => [id, menuOn(id)])),
+    pod: podPlayer.active && podPlayer.ep ? { title: podPlayer.ep.title || '', show: podPlayer.ep.feedTitle || '', playing: podPlayer.playing || podPlayer.state === 'loading' } : null,
   });
+}
+/** Az aktív téma színei a távirányító lapjának (a téma és a színváltozat szerint, a kiemelőhöz illő felirattal). */
+function themeVars() {
+  const cs = getComputedStyle(document.body);
+  const v = (n, d) => cs.getPropertyValue(n).trim() || d;
+  return { a: v('--accent', '#e50914'), oa: v('--on-accent', '#fff'), bg: v('--bg', '#111'), c: v('--bg-2', '#1d1d1d'), c2: v('--bg-3', '#2a2a2a'), t: v('--text', '#eee'), m: v('--muted', '#9a9a9a'), ln: v('--line', '#2a2a2a'), r: Math.min(18, parseFloat(v('--radius', '14')) || 14) + 'px' };
 }
 const pushState = () => info && api.rcState(stateJson());
 
@@ -289,7 +308,10 @@ function key(k) {
   const t = document.activeElement || document.body;
   const ev = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true });
   t.dispatchEvent(ev);
-  if (k === 'Enter' && !ev.defaultPrevented && t !== document.body && t.click) t.click();
+  // (rövid nyomás: a felengedés is – a keyup-ra induló elemek, pl. a rádiókártya, különben hosszú nyomásnak vennék)
+  const up = new KeyboardEvent('keyup', { key: k, bubbles: true, cancelable: true });
+  t.dispatchEvent(up);
+  if (k === 'Enter' && !ev.defaultPrevented && !up.defaultPrevented && t !== document.body && t.click) t.click();
 }
 
 /**
@@ -337,7 +359,7 @@ function findChannels(q) {
   };
 }
 
-const NAV = /^(home|tv|guide|vod|favorites|browse|recordings|help|search|radio|radio-guide|sport)$/;
+const NAV = /^(home|tv|guide|vod|favorites|browse|recordings|help|search|radio|radio-guide|sport|podcast)$/;
 const NAV_HASH = { 'radio-guide': 'radio?tab=guide' };
 
 // ---------------------------------------------------------------------------
@@ -428,6 +450,11 @@ async function command({ c, a }) {
     setTimeout(pushState, 250);
     return;
   }
+  if (/^p(toggle|back|fwd|next)$/.test(c)) {
+    podCommand(c);
+    setTimeout(pushState, 250);
+    return;
+  }
   if (c.startsWith('r') && /^r(play|toggle|prev|next|stop|fav|rec|vol|full|vis|sleep|find)$/.test(c)) {
     await radioCommand(c, a);
     setTimeout(pushState, 250);
@@ -510,6 +537,8 @@ async function command({ c, a }) {
     case 'nav':
       if (!NAV.test(a)) break;
       if ((a === 'radio' || a === 'radio-guide') && !radioMenuOn()) break; // (gyerekprofilban nincs rádió)
+      // (kikapcsolt menüpont: oda nem ugrik – a gomb sem látszik a távirányítón)
+      if (!menuOn({ guide: 'tv', browse: 'tv', recordings: 'tv', 'radio-guide': 'radio' }[a] || a)) break;
       if (live) player.close();
       location.hash = '#/' + (NAV_HASH[a] || a);
       break;
@@ -544,6 +573,14 @@ async function command({ c, a }) {
 }
 
 /** A rádió parancsai a telefonról (a gyerekprofilban nincs rádió). */
+/** A podcast-lejátszó vezérlése (a rádiótól függetlenül – kikapcsolt Rádió menüpontnál is). */
+function podCommand(c) {
+  if (!podPlayer.active) return; // (a szóló epizód a menüpont kikapcsolása után is vezérelhető)
+  if (c === 'ptoggle') podPlayer.toggle();
+  else if (c === 'pback') podPlayer.skip(-(podCfg().skipBack || 10));
+  else if (c === 'pfwd') podPlayer.skip(podCfg().skipFwd || 30);
+  else if (c === 'pnext') podPlayer.next();
+}
 async function radioCommand(c, a) {
   if (!radioMenuOn()) return;
   const r = radioPlayer;
@@ -639,6 +676,14 @@ export async function stopRemote() {
 if (canRemote) {
   api.onRemoteCmd((x) => command(x));
   for (const ev of ['player-opened', 'player-closed', 'profile', 'favorites']) bus.on(ev, pushState);
+  // (téma / színváltozat / elrendezés: a body jelölése és a változók változnak – egyszerre egyszer)
+  let themeT = 0;
+  new MutationObserver(() => {
+    clearTimeout(themeT);
+    themeT = setTimeout(pushState, 250);
+  }).observe(document.body, { attributes: true, attributeFilter: ['data-theme', 'data-variant', 'data-tone', 'style'] });
+  bus.on('pod-player', (k) => (k === 'state' || k === 'start' || k === 'stop') && pushState());
+  bus.on('settings', (k) => /Menu$/.test(k) && pushState());
   // (profil- vagy jogosultságváltáskor a korábbi keresési találatok sem maradnak a telefonon)
   bus.on('profile', () => {
     results = null;
