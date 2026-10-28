@@ -154,12 +154,14 @@ document.addEventListener('keydown', (e) => {
 });
 /** Az oldal újrarajzolása (ha a Podcast oldal látszik). */
 const here = () => location.hash.startsWith('#/podcast');
+// (a podcast-elemek a Kedvencek oldalon és a Beállításokban is megjelennek)
+const hostsPod = (el) => here() || !!el?.closest?.('#podcast-settings, .fav-pod');
 let viewEl = null;
 let lastParams = null;
 const rerender = debounce(() => here() && viewEl?.isConnected && renderPodcast(viewEl, lastParams || new URLSearchParams()), 120);
 /** Csak az állapotjelzések frissítése (gombok, haladás) újrarajzolás nélkül – a görgetés és a fókusz marad. */
 const refreshRows = debounce(() => {
-  if (!here()) return;
+  if (!here() && !document.querySelector('#view .fav-pod')) return;
   document.querySelectorAll('#view .pep[data-pkey]').forEach((r) => {
     const ep = findEp(r.dataset.pkey);
     if (!ep) return;
@@ -183,10 +185,8 @@ const TABS = () => [
   ['subs', _t('Feliratkozások')],
   canDownload() && ['downloads', _t('Letöltések')],
   ['hist', _t('Előzmények')],
-  ['favs', _t('Kedvencek')],
   ['discover', _t('Felfedezés')],
   ['stats', _t('Statisztika')],
-  ['settings', _t('Beállítások')],
 ].filter(Boolean);
 const tabsHtml = (cur) => {
   const d = pod();
@@ -210,10 +210,11 @@ export function renderPodcast(view, params) {
     case 'subs': return tabSubs(view, params);
     case 'downloads': return tabDownloads(view, params);
     case 'hist': return tabHist(view, params);
-    case 'favs': return tabFavs(view, params);
+    // (a kedvenc epizódok a Kedvencek oldalon, a beállítások a fő Beállításokban – a régi címek oda vezetnek)
+    case 'favs': return void location.replace('#/favorites');
+    case 'settings': return void location.replace('#/settings?g=podcast');
     case 'discover': return tabDiscover(view, params);
     case 'stats': return tabStats(view, params);
-    case 'settings': return tabSettings(view, params);
     default: return tabHome(view, params);
   }
 }
@@ -283,8 +284,12 @@ function tabDownloads(view) {
 function tabHist(view) {
   listPage(view, 'hist', _t('Előzmények'), pod().hist, { empty: _t('Még nem hallgattál podcastot.'), tools: pod().hist.length ? `<button class="btn small" data-pt="hist-clear">${_t('Előzmények törlése')}</button>` : '' });
 }
-function tabFavs(view) {
-  listPage(view, 'favs', _t('Kedvencek'), pod().favs, { empty: _t('A ★ gombbal jelölheted meg a kedvenc epizódjaidat.') });
+/** A Kedvencek oldal podcast-része: a kedvenc epizódok (ha van ilyen). */
+export function podFavsSection() {
+  const list = store.profile ? pod().favs : [];
+  if (!list.length) return null;
+  return html(`<div class="fav-pod"><div class="page-head sub"><h2>${_t('Podcast-epizódok')}</h2><span class="muted">${_t('{n} epizód', { n: list.length })}</span></div>
+    <div class="pep-list">${list.slice(0, 300).map((ep) => epRowHtml(ep)).join('')}</div></div>`);
 }
 
 function tabDiscover(view, params) {
@@ -331,14 +336,15 @@ function tabStats(view) {
     ${rows.length ? `<ol class="pod-stats">${rows.slice(0, 40).map((r) => `<li><a href="#/podcast?feed=${encodeURIComponent(r.url)}">${esc(r.title)}</a><span class="pbar"><i style="width:${((r.sec / max) * 100).toFixed(1)}%"></i></span><span class="muted">${esc(fmtDur(r.sec))}</span></li>`).join('')}</ol>` : `<p class="muted">${_t('Még nincs hallgatási adat.')}</p>`}</div>`;
 }
 
-function tabSettings(view) {
+/** A podcast-beállítások – a fő Beállítások „Podcastok” csoportjában (profilonként). */
+export function renderPodcastSettings(el) {
+  if (!el || !store.profile) return;
   const c = podCfg();
   const sel = (key, opts, label, desc) =>
     `<label class="setting"><span><b>${esc(label)}</b>${desc ? `<small>${esc(desc)}</small>` : ''}</span><select data-pc="${key}">${opts.map(([v, l]) => `<option value="${v}" ${String(c[key]) === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`;
   const chk = (key, label, desc, val = c[key]) => `<label class="setting"><span><b>${esc(label)}</b>${desc ? `<small>${esc(desc)}</small>` : ''}</span><input type="checkbox" class="switch" data-pc="${key}" ${val ? 'checked' : ''} /></label>`;
-  view.innerHTML = `<div class="page pod-page">${tabsHtml('settings')}
-    <div class="page-head"><h1>${_t('Podcast-beállítások')}</h1><span class="muted">${_t('· {name} profil', { name: esc(store.profile.name) })}</span></div>
-    <section class="set-section">
+  el.innerHTML = `<h2>${_t('Podcastok')} <button class="help-link" data-help="podcast" title="${_t('Súgó')}">?</button></h2>
+    <p class="muted">${esc(_t('A(z) {name} profil podcast-beállításai.', { name: store.profile.name }))}</p>
     ${sel('refreshHours', [[1, _t('óránként')], [3, _t('3 óránként')], [6, _t('6 óránként')], [12, _t('12 óránként')], [24, _t('naponta')]], _t('Új epizódok keresése'), _t('Ilyen gyakran nézi meg a feliratkozásaid új részeit (értesítéssel).'))}
     ${sel('speed', RATES.map((r) => [r, r + '×']), _t('Alapértelmezett sebesség'), _t('Műsoronként külön is állítható (a műsor oldalán).'))}
     ${sel('skipBack', [[5, '5 mp'], [10, '10 mp'], [15, '15 mp'], [30, '30 mp']], _t('Visszaugrás'))}
@@ -348,10 +354,9 @@ function tabSettings(view) {
     ${canDownload() ? chk('autoDelete', _t('Letöltés törlése meghallgatás után'), _t('A meghallgatott, letöltött epizód fájlja törlődik.')) : ''}
     ${canDownload() && downloadedList().length ? `<div class="setting"><span><b>${_t('Letöltött epizódok')}</b><small>${esc(_t('{n} epizód, {size}', { n: downloadedList().length, size: fmtSize(downloadedSize()) }))}</small></span><span><a class="btn small" href="#/podcast?tab=downloads">${_t('Megnyitás')}</a> <button class="btn small" data-pt="dl-del-all">${_t('Összes törlése')}</button></span></div>` : ''}
     ${chk('podcastMenu', _t('Podcast a menüben'), _t('A menüpont elrejthető; a podcastok a Rádió oldalról is elérhetők.'), store.settings.podcastMenu !== false)}
-    </section>
-    <section class="set-section"><h2>${_t('Feliratkozások átvitele')}</h2>
+    <h3>${_t('Feliratkozások átvitele')}</h3>
       <p class="muted">${_t('Más podcast-alkalmazásba (AntennaPod, Pocket Casts…) vagy onnan: OPML-fájllal. A feliratkozások a beállítások mentésével és a szinkronnal is átkerülnek.')}</p>
-      <div class="inline"><button class="btn small" data-pt="opml-export">${_t('Exportálás (OPML)')}</button><label class="btn small">${_t('OPML-fájl betöltése…')}<input type="file" accept=".opml,.xml,text/xml,text/x-opml" data-pt-file="opml" hidden /></label></div></section></div>`;
+      <div class="inline"><button class="btn small" data-pt="opml-export">${_t('Exportálás (OPML)')}</button><label class="btn small">${_t('OPML-fájl betöltése…')}<input type="file" accept=".opml,.xml,text/xml,text/x-opml" data-pt-file="opml" hidden /></label></div>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -463,7 +468,8 @@ async function renderFeed(view, url) {
 // az oldalak gombjai (eszköztár, keresés, OPML)
 document.addEventListener('click', async (e) => {
   const b = e.target.closest('[data-pt]');
-  if (!b || !here()) return;
+  if (!b || !hostsPod(b)) return;
+  const inSettings = !!b.closest('#podcast-settings');
   const a = b.dataset.pt;
   const d = pod();
   if (a === 'refresh') {
@@ -497,6 +503,7 @@ document.addEventListener('click', async (e) => {
     }
   }
   rerender();
+  if (inSettings) renderPodcastSettings(document.getElementById('podcast-settings'));
 });
 document.addEventListener('submit', (e) => {
   const f = e.target.closest('[data-pt-form="search"]');
@@ -518,7 +525,7 @@ document.addEventListener('change', async (e) => {
     }
     inp.value = '';
     rerender();
-  } else if (pc && here()) {
+  } else if (pc && hostsPod(pc)) {
     const k = pc.dataset.pc;
     const v = pc.type === 'checkbox' ? pc.checked : Number(pc.value);
     if (k === 'podcastMenu') {

@@ -25,6 +25,7 @@ import { renderDashSettings } from './dashboard.js';
 import { watchList } from './sports.js';
 import { radioFavsSection, radioSearchSection, radioSearchCount, startRadioSearch } from './radiopage.js';
 import { renderRadioSettings } from './radiosettings.js';
+import { renderPodcastSettings, podFavsSection } from './podcastpage.js';
 const sportWatchCount = () => watchList().filter((w) => w.on !== false).length;
 import { requireAdult, requireAdultAlways, hasPin, choosePin, setPin } from './pin.js';
 import { renderTransfer, importData, attachDocs, stageDocs, dropDocs } from './transfer.js';
@@ -334,6 +335,10 @@ export function renderFavorites(view) {
   const recentHead = $('#clear-recent', view)?.closest('.page-head');
   if (radioBox && recentHead) recentHead.before(radioBox);
   else if (radioBox) page.append(radioBox);
+  // a kedvenc podcast-epizódok (a Podcast menüpont kikapcsolásakor is – a Rádió oldalról is elérhetők)
+  const podBox = podFavsSection();
+  if (podBox && recentHead) recentHead.before(podBox);
+  else if (podBox) page.append(podBox);
   if (recent.length) {
     page.append(gridEl(recent, { title: _t('Legutóbb nézett') }));
     $('#clear-recent', view).onclick = () => {
@@ -895,6 +900,8 @@ export function renderSettings(view) {
 
     <section class="set-section" id="radio-settings" data-g="radio"></section>
 
+    <section class="set-section" id="podcast-settings" data-g="podcast"></section>
+
     <section class="set-section" id="data" data-g="data"><h2>${_t('Profilok és mentés')} <button class="help-link" data-help="backup" title="${_t('Súgó')}">?</button></h2>
       <div class="inline"><a class="btn" href="#/profiles">${_t('Profilok kezelése')}</a>
       ${api.caps.files ? `<button class="btn" data-act="export">${_t('Mentés fájlba')}</button>
@@ -981,6 +988,7 @@ export function renderSettings(view) {
   renderKidsSettings($('#kidsallow', view));
   renderDashSettings($('#dashboard', view));
   renderRadioSettings($('#radio-settings', view));
+  renderPodcastSettings($('#podcast-settings', view));
   renderRecordings($('#recordings', view));
   renderRemoteSettings($('#remote', view));
   renderBackups($('#autobackup', view));
@@ -1141,6 +1149,7 @@ const SET_GROUPS = [
   ['vod', '🎬', _t('VOD és médiatár'), _t('Film- és sorozatlisták, kiegészítő csomagok és a saját (NAS-) médiatár mappái. Itt rendezheted a VOD oldal sorait is.')],
   ['epg', '🗓️', _t('Műsorújság'), _t('A műsorújság forrásai és a frissítésük gyakorisága. Itt látod azt is, melyik forrás hány csatornát fed le.')],
   ['radio', '📻', _t('Rádió'), _t('A Rádió oldal forrásai (Radio Browser, Verified Radio Streams, IPRD), saját rádiólisták és -csomagok, a hangzás. Itt kapcsolhatod ki a Rádió menüpontot is.')],
+  ['podcast', '🎙️', _t('Podcastok'), _t('Új epizódok keresése, lejátszás (sebesség, ugrások, csend átugrása), letöltések és a feliratkozások átvitele (OPML). Itt kapcsolhatod ki a Podcast menüpontot is.')],
   ['sport', '🏆', _t('Sport'), _t('A Sport oldal és a Sportfigyelő: milyen bajnokságokat, csapatokat, sportágakat követsz. Itt kapcsolhatod ki a Sport menüpontot is.')],
   ['kids', '👪', _t('Tartalom és gyerekek'), _t('A hazai ország, a felnőtt tartalom és a nyelvek. Itt állíthatod be, mit nézhetnek a gyerekprofilok.')],
   ['notify', '🔔', _t('Értesítések'), _t('Emlékeztetők a kedvenc műsoraidra, automatikus átkapcsolás. Itt dől el az is, hogy az Adás a háttérben fusson-e.')],

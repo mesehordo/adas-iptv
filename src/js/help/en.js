@@ -1306,14 +1306,14 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 <p>The <b>Podcast</b> menu item (the Radio page’s <i>Podcasts</i> tab leads here too) brings podcasts – with subscriptions, like a podcast app.</p>
 <h2>Finding shows, subscribing</h2>
 <ul><li><b>Discover</b>: search by name (with the public Apple Podcasts search, fyyd as a fallback), the top chart of your country, or paste an <b>RSS address</b>.</li>
-<li><b>OPML</b>: bring your subscriptions from another app (AntennaPod, Pocket Casts…) or take them there (Discover or Settings).</li>
+<li><b>OPML</b>: bring your subscriptions from another app (AntennaPod, Pocket Casts…) or take them there (Discover, or Settings → Podcasts).</li>
 <li>Subscriptions are <b>per profile</b>; they also carry over to another device with settings backups and sync.</li></ul>
 <h2>Tabs</h2>
 <ul><li><b>Overview</b> – continue, new episodes, queue, subscriptions, latest episodes, top chart (in the layout’s style).</li>
 <li><b>New episodes</b> – new episodes of your subscriptions (with a notification); mark all as played or queue them.</li>
 <li><b>Queue</b> – reorder with ▲ ▼; with continuous playback, the next one starts when an episode ends.</li>
 <li><b>Downloads</b> (on desktop and Android) – downloaded episodes play without internet. For a downloaded episode the bin button replaces ⇩ and deletes the file (the episode stays in your lists); the Downloads tab shows the space used and can delete the played ones or all at once. The file can also be deleted automatically after playing (setting). On Android the files go to the app’s own storage (removed when the app is uninstalled).</li>
-<li><b>History</b>, <b>Favourites</b> (★), <b>Statistics</b> (listening time per show), <b>Settings</b>.</li></ul>
+<li><b>History</b> and <b>Statistics</b> (listening time per show). Your ★ favourite episodes are on the main <b>Favourites</b> page (next to channels and radio stations), and the podcast settings are under <b>Settings → Podcasts</b>.</li></ul>
 <h2>The show page</h2>
 <p>Filters (unplayed, in progress, played, favourite, downloaded), search, sorting. <b>Show settings</b>: own speed, skipping the intro and outro (in seconds), volume boost, skip silence, notifications, automatic download of new episodes.</p>
 <h2>Playback</h2>

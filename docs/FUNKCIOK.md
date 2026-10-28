@@ -52,9 +52,10 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
-**Podcast-letöltés Androidon, letöltések törlése (1.33.1)**
+**Podcast-letöltés Androidon, letöltések törlése, podcast a Beállításokban és a Kedvencekben (1.33.1)**
 - **Letöltés Androidon is**: az epizódok az alkalmazás saját tárhelyére töltődnek (a helyi hálózati szabállyal, legfeljebb 2 GB / epizód, mindig marad 500 MB szabad hely), és internet nélkül, a natív lejátszóval szólnak; ha a fájl hiányzik, az eredeti címről.
 - **Külön törlés minden rendszeren**: a letöltött epizódnál a ⇩ helyett kuka gomb (az epizód a listákban marad); a Letöltések fülön a foglalt hely, *Meghallgatottak törlése* és *Összes törlése*; a Podcast-beállításokban is.
+- **A podcast-beállítások a Beállításokban**: saját *Podcastok* csoport a Rádió és a Sport mellett (a podcastoldal külön Beállítások füle helyett); a **kedvenc epizódok a Kedvencek oldalon**, a csatornák, filmek és rádiók mellett (a podcastoldal Kedvencek füle helyett). A régi fülcímek oda vezetnek.
 
 **Felület-elrendezések, javítások telefonon, podcastok, olvashatóság (1.33.0)**
 - **Podcastok** (új menüpont, a Rádió oldalon is): keresés (Apple Podcasts, fyyd), toplista, RSS-cím, OPML-import és -export; feliratkozás profilonként; új epizódok értesítéssel; lejátszási sor; előzmények, kedvencek, statisztika; műsoronként szűrők és beállítások (sebesség, bevezető / zárórész átugrása, hangerő-erősítés, csend átugrása, értesítés, automatikus letöltés); lejátszó tekeréssel, ugrásokkal, sebességgel (0,75–3×), alvásidőzítővel, fejezetekkel, folytatással; letöltés asztali gépen; Androidon natív lejátszás (háttérben is).

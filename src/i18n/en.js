@@ -2785,5 +2785,8 @@ export default {
  "Törlöd a(z) {n} meghallgatott epizód letöltött fájlját?": "Delete the downloaded files of {n} played episodes?",
  "{n} letöltött fájl törölve": "{n} downloaded files deleted",
  "A fájl nem törölhető: {title}": "The file could not be deleted: {title}",
- "{n} letöltött fájl törölve, {m} nem törölhető": "{n} downloaded files deleted, {m} could not be deleted"
+ "{n} letöltött fájl törölve, {m} nem törölhető": "{n} downloaded files deleted, {m} could not be deleted",
+ "Podcast-epizódok": "Podcast episodes",
+ "A(z) {name} profil podcast-beállításai.": "Podcast settings of the {name} profile.",
+ "Új epizódok keresése, lejátszás (sebesség, ugrások, csend átugrása), letöltések és a feliratkozások átvitele (OPML). Itt kapcsolhatod ki a Podcast menüpontot is.": "Checking for new episodes, playback (speed, skips, skip silence), downloads and moving subscriptions (OPML). You can also turn off the Podcasts menu item here."
 };
