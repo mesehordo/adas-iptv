@@ -878,6 +878,8 @@ body[data-pskin="minimal"] .rf-ctrls .round { border-color: transparent; backgro
   body[data-layout="detail"][data-theme="bauhaus"] #nav .brand, body[data-layout="detail"][data-theme="bauhaus"] #nav .nav-right .icon-btn { color: var(--text-strong); }
   body[data-layout="wall"] #nav .links a:not(.active) { color: var(--text) !important; }
 }
+/* az elrejtett menüpont minden elrendezésben rejtve marad (az elrendezések display-szabálya erősebb a [hidden]-nél) */
+body[data-layout] #nav .links a[hidden] { display: none !important; }
 @media (min-width: 900px) {
   body.side-nav #nav .links a { background: none !important; color: var(--text) !important; }
   body.side-nav #nav .links a:hover { background: rgba(127, 127, 127, 0.12) !important; }

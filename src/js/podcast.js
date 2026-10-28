@@ -8,8 +8,21 @@ import { bus, debounce } from './util.js';
 import { _t } from './i18n.js';
 
 /** A profil podcast-adatai (első használatkor jönnek létre). */
+const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
+// (a lista elemei: csak címmel / kulccsal rendelkező objektumok – sérült, kézzel szerkesztett mentésből is)
+const cleanList = (a, k) => (Array.isArray(a) ? a.filter((x) => isObj(x) && typeof x[k] === 'string' && x[k]) : []);
+/** A profil podcast-adatai (első használatkor jönnek létre; a hibás típusú mezők biztonságos alapértéket kapnak). */
 export function pod(p = store.profile) {
-  const d = (p.pod ||= {});
+  if (!isObj(p.pod)) p.pod = {};
+  const d = p.pod;
+  if (!d._ok) {
+    // (egyszer profilonként: az importált / visszaállított adatok szerkezetének rendbetétele)
+    d.subs = cleanList(d.subs, 'url').filter((s) => /^https?:\/\//i.test(s.url)).map((s) => ({ ...s, set: isObj(s.set) ? s.set : {} }));
+    for (const k of ['queue', 'inbox', 'hist', 'favs']) d[k] = cleanList(d[k], 'key');
+    for (const k of ['eps', 'seen', 'stats', 'cfg']) if (!isObj(d[k])) d[k] = {};
+    for (const [k, v] of Object.entries(d.eps)) if (!isObj(v)) delete d.eps[k];
+    Object.defineProperty(d, '_ok', { value: true, enumerable: false });
+  }
   d.subs ||= []; // [{ url, title, author, image, added, set: { speed, skipIntro, skipOutro, notify, autoDl, keep } }]
   d.eps ||= {}; // epizódkulcs → { pos, dur, played, fav, dl: { path, url, size } }
   d.queue ||= []; // epizód-pillanatképek (a sor sorrendjében)
@@ -143,6 +156,8 @@ export function subscribe(feed) {
   d.subs.push({ url: feed.url, title: feed.title || feed.url, author: feed.author || '', image: feed.image || '', added: Date.now(), set: {}, seen: latest });
   savePod();
   bus.emit('pod-subs');
+  // (a helyi hálózati szabály még az első letöltés előtt frissül – saját, helyi hálózaton lévő folyamnál)
+  bus.emit('settings', 'podcastSubs');
   if (!feeds.has(feed.url)) refreshFeed(feed.url).catch(() => {});
 }
 export function unsubscribe(url) {
@@ -183,6 +198,10 @@ const text = (el, ...names) => {
 const attr = (el, name, a) => el.getElementsByTagName(name)[0]?.getAttribute(a) || '';
 /** Egy RSS 2.0 / iTunes / podcast-névteres (vagy Atom) folyam feldolgozása. */
 export function parseFeed(xml, url) {
+  // (névtér-előtaggal írt Atom-folyam – pl. <atom:feed xmlns:atom="http://www.w3.org/2005/Atom"> –: az előtag
+  // jelentése ugyanaz, mint az alapértelmezett névtéré, ezért elhagyjuk, és a szokásos úton olvassuk)
+  const pre = /<([A-Za-z_][\w.-]*):feed\b[^>]*\bxmlns:\1\s*=\s*["']http:\/\/www\.w3\.org\/2005\/Atom["']/.exec(String(xml || ''));
+  if (pre) xml = String(xml).replace(new RegExp('<(/?)' + pre[1].replace(/[.-]/g, '\\$&') + ':', 'g'), '<$1');
   const doc = new DOMParser().parseFromString(xml, 'text/xml');
   if (doc.getElementsByTagName('parsererror').length) throw new Error(_t('A podcast-folyam nem olvasható (hibás XML).'));
   const ch = doc.getElementsByTagName('channel')[0] || doc.getElementsByTagName('feed')[0];
@@ -232,12 +251,14 @@ export function parseFeed(xml, url) {
   return { url, title, author, image, desc: desc.slice(0, 5000), link, funding, eps: eps.slice(0, 1000), at: Date.now() };
 }
 
-const docKey = (url) => 'pod:' + hash(url);
+// (két független hash és a hossz: az ütközés gyakorlatilag kizárt; visszaolvasáskor a cím is egyezik)
+const docKey = (url) => 'pod2:' + hash(url) + hash(url.split('').reverse().join('')) + url.length.toString(36);
 /** A folyam a gyorsítótárból (azonnal), ha volt már letöltve. */
 export async function cachedFeed(url) {
   if (feeds.has(url)) return feeds.get(url);
   const c = await api.docGet?.(docKey(url)).catch(() => null);
-  if (c?.eps) feeds.set(url, c);
+  // (a rövid kulcs ütközhet: csak a ténylegesen ehhez a címhez tartozó folyam jó)
+  if (c?.eps && c.url === url) feeds.set(url, c);
   return feeds.get(url) || null;
 }
 /** A folyam letöltése (a gyorsítótár korától függően), az új epizódok felismerése. */
@@ -413,18 +434,20 @@ export function downloadEp(ep, prof = store.profile) {
   return p;
 }
 /** A letöltött fájl törlése; true: törölve (a letöltés adata csak ekkor törlődik), false: nem sikerült. */
-export async function deleteDownload(ep) {
-  const dl = epState(ep.key)?.dl;
+export async function deleteDownload(ep, prof = store.profile) {
+  // (az indító profil és a konkrét fájl rögzítve: közben profilváltás vagy újraletöltés sem keveredik bele)
+  const dl = prof && pod(prof).eps[ep.key]?.dl;
   if (!dl) return true;
   const ok = await Promise.resolve(api.podDelete?.(dl.path)).then((r) => r !== false, () => false);
   if (!ok) return false;
-  forgetDownload(ep);
+  forgetDownload(ep, prof, dl.path);
   return true;
 }
-/** A letöltés adatának elejtése (a fájl már nincs meg – pl. a lejátszó nem találta). */
-export function forgetDownload(ep) {
-  if (!epState(ep.key)?.dl) return;
-  setState(ep.key, { dl: undefined });
+/** A letöltés adatának elejtése (a fájl már nincs meg – pl. a lejátszó nem találta); path: csak ha még ez a fájl. */
+export function forgetDownload(ep, prof = store.profile, path = null) {
+  const cur = prof && pod(prof).eps[ep.key]?.dl;
+  if (!cur || (path && cur.path !== path)) return;
+  setState(ep.key, { dl: undefined }, prof);
   bus.emit('pod-dl', ep.key);
 }
 /** A lejátszandó cím: a letöltött fájl, ha van, különben az eredeti. */

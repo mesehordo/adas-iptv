@@ -1,6 +1,7 @@
 // Podcast-lejátszó: epizódok lejátszása tekeréssel, sebességgel, ugrásokkal, folytatással, fejezetekkel,
 // alvásidőzítővel, lejátszási sorral. Asztali gépen (és a webes változatban) a böngésző audioeleme, Androidon a natív
 // lejátszó (háttérben, kikapcsolt képernyőnél is szól) – a felület ugyanaz (podcastpage.js).
+import { menuOn } from './menus.js';
 import { bus } from './util.js';
 import { store } from './store.js';
 import { api, IS_ANDROID } from './api.js';
@@ -43,6 +44,8 @@ class PodPlayer {
   // -------------------------------------------------------------------------- indítás
   async play(ep, { from = null } = {}) {
     if (!ep?.url) return;
+    // (gyerekprofilban – és kikapcsolt Podcast menüpontnál – nincs podcast-lejátszás; a menü elrejtése nem elég)
+    if (!menuOn('podcast')) return;
     // (a videó és a rádió megáll – egyszerre egy hang szól)
     if (player.active) player.close();
     if (radioPlayer.playing) radioPlayer.pause();
@@ -208,9 +211,10 @@ class PodPlayer {
     markPlayed(ep, true);
     if (podCfg().autoDelete && epState(ep.key)?.dl) deleteDownload(ep).catch(() => {});
     this.emit('ended');
+    // (az „epizód végén” időzítő itt teljesül; a percre beállított határidő a következő epizódon is érvényes)
     const stopHere = this.sleepAt === -1;
-    this.sleepAt = 0;
-    const next = pod().queue.find((x) => x.key !== ep.key);
+    if (stopHere) this.sleepAt = 0;
+    const next = this.queueAfter(ep.key);
     if (!stopHere && podCfg().continuous && next) return void this.play(next);
     this.stop();
   }
@@ -262,6 +266,8 @@ class PodPlayer {
   }
   setSkipSilence(on) {
     this.skipSilence = on;
+    // (kikapcsoláskor a csend miatt épp gyorsított tempó azonnal a választott sebességre áll vissza)
+    if (!on && this.el) this.el.playbackRate = this.rate;
     if (on && !this.fx && this.ep && !NATIVE && audioFxAvailable) this.playWeb(playUrl(this.ep), this.pos, true, this.wantPause);
     this.emit('rate');
   }
@@ -270,9 +276,14 @@ class PodPlayer {
     this.sleepAt = min === -1 ? -1 : min ? Date.now() + min * 60e3 : 0;
     this.emit('sleep');
   }
+  /** A sorban a mostani után következő (ha a mostani nincs a sorban: a sor eleje). */
+  queueAfter(key) {
+    const q = pod().queue;
+    const i = q.findIndex((x) => x.key === key);
+    return (i < 0 ? q.find((x) => x.key !== key) : q.slice(i + 1).find((x) => x.key !== key)) || null;
+  }
   next() {
-    const cur = this.ep?.key;
-    const n = pod().queue.find((x) => x.key !== cur);
+    const n = this.queueAfter(this.ep?.key);
     if (n) this.play(n);
   }
   stop() {

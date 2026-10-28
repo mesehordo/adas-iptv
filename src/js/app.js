@@ -524,12 +524,24 @@ window.__adasMedia = (cmd) => {
 };
 const mediaVideo = $('#video');
 // a lejátszás állapota a keretnek (a háttér-értesítés szünet / folytatás gombja ehhez igazodik)
+// (a rendszer médiavezérlőjének: a ténylegesen aktív lejátszó állapota – videó, kivetítés, rádió vagy podcast)
 const reportMedia = () =>
-  api.setMediaState?.(radioPlayer.active && !player.active ? !radioPlayer.playing : player.castHooks?.active ? player.castHooks.paused : mediaVideo.paused);
+  api.setMediaState?.(
+    player.active ? (player.castHooks?.active ? player.castHooks.paused : mediaVideo.paused)
+      : radioPlayer.active ? !radioPlayer.playing
+      : podPlayer.active ? !podPlayer.playing && podPlayer.state !== 'loading'
+      : player.castHooks?.active ? player.castHooks.paused : mediaVideo.paused
+  );
 mediaVideo.addEventListener('play', reportMedia);
 mediaVideo.addEventListener('pause', reportMedia);
 bus.on('radio-player', reportMedia);
 bus.on('cast-state', reportMedia); // (H34) kivetítéskor a rendszer a vevő állapotát mutatja
+// podcast: az állapot és a most szóló epizód címe is a rendszer felé (értesítés, zárolt képernyő)
+bus.on('pod-player', (kind) => {
+  if (kind !== 'state' && kind !== 'start' && kind !== 'stop') return;
+  reportMedia();
+  if (kind === 'start' && podPlayer.ep && !player.active && !radioPlayer.active) api.setNowPlaying?.(`${podPlayer.ep.title}${podPlayer.ep.feedTitle ? ' – ' + podPlayer.ep.feedTitle : ''}`);
+});
 // (B38) Android kis ablak (kép a képben): csak a videó látszik; a vezérlők, a fejléc és a lap rejtve
 window.__adasPip = (on) => {
   document.body.classList.toggle('pip', !!on);

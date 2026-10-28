@@ -43,6 +43,8 @@ export function hasLocalSource(s = store.settings) {
     ...(s.vodCustom || []).filter((p) => p.enabled).map((p) => p.url),
     ...(s.customChannels || []).map((c) => c.url),
     ...(s.radioLists || []).filter((p) => p.enabled !== false).map((p) => p.url),
+    // (a kézzel felvett podcast-folyamok – pl. saját NAS RSS-e – bármelyik profilban)
+    ...(store.profiles || []).flatMap((p) => (Array.isArray(p?.pod?.subs) ? p.pod.subs : []).map((x) => x?.url)),
   ];
   // (a saját médiatár mappái – USB, helyi tár – mellett a listáik hálózati címeket is tartalmazhatnak)
   if ((s.ownSources || []).some((o) => o.enabled !== false && (o.kind === 'folder' || isLocalUrl(o.url)))) return true;
