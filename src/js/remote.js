@@ -81,6 +81,9 @@ ${pinOn ? '' : `<p class="muted">${_t('A PIN-es belépés ki van kapcsolva (a QR
  <div class="row r5"><button data-c="seek" data-a="-30" class="sm">−30″</button><button data-c="seek" data-a="-10" class="sm">−10″</button><button data-c="toggle" class="ok">⏯</button><button data-c="seek" data-a="10" class="sm">+10″</button><button data-c="seek" data-a="30" class="sm">+30″</button></div>
  <div class="row r4"><button data-c="chup">CH ▲</button><button data-c="chdown">CH ▼</button><button data-c="recall" class="sm">${_t('↺ Előző')}</button><button data-c="mute" id="muteBtn">🔇</button></div>
  <div class="vol"><span>🔈</span><input type="range" id="vol" min="0" max="1" step="0.02" aria-label="${_t('Hangerő')}"><span>🔊</span></div>
+ <div id="podBox" hidden><h2>${_t('Podcast')}</h2>
+ <div class="now" id="pnow"><div class="tx"><small>${_t('Most nem szól podcast.')}</small></div></div>
+ <div class="row r4"><button data-c="pback" class="sm">⏪</button><button data-c="ptoggle" class="ok">⏯</button><button data-c="pfwd" class="sm">⏩</button><button data-c="pnext" class="sm">⏭</button></div></div>
  <div class="row r4"><button data-c="menu" data-a="subs" class="sm">${_t('CC Felirat')}</button><button data-c="menu" data-a="settings" class="sm">${_t('⚙ Minőség')}</button><button data-c="menu" data-a="list" class="sm">${_t('☰ Lista')}</button><button data-c="menu" data-a="full" class="sm">${_t('⛶ Teljes')}</button></div>
  <div class="row r4"><button data-c="pfav" id="pfavBtn" class="sm">${_t('★ Kedvenc')}</button><button data-c="prec" id="precBtn" class="sm">${_t('● Felvétel')}</button><button data-c="menu" data-a="mini" id="miniBtn" class="sm">${_t('▣ Mini')}</button><button data-c="menu" data-a="cast" id="castBtn" class="sm">${_t('⇪ Kivetítés')}</button></div>
  <h2>${_t('Nyilak')}</h2>
@@ -99,9 +102,6 @@ ${pinOn ? '' : `<p class="muted">${_t('A PIN-es belépés ki van kapcsolva (a QR
  <div class="row r5"><button data-c="rprev">⏮</button><button data-c="rtoggle" class="ok">⏯</button><button data-c="rnext">⏭</button><button data-c="rfav" id="rfavBtn">★</button><button data-c="rrec" id="rrecBtn">●</button></div>
  <div class="vol"><span>🔈</span><input type="range" id="rvol" min="0" max="1" step="0.02" aria-label="${_t('Hangerő')}"><span>🔊</span></div>
  <div class="row r4"><button data-c="rfull" id="rfullBtn" class="sm">${_t('♪ Most szól')}</button><button data-c="rvis" id="rvisBtn" class="sm">${_t('〰 Hangkép')}</button><button data-c="rsleep" id="rsleepBtn" class="sm">${_t('☾ Elalvás')}</button><button data-c="rstop" class="sm">${_t('✕ Kikapcsolás')}</button></div>
- <div id="podBox" hidden><h2>${_t('Podcast')}</h2>
- <div class="now" id="pnow"><div class="tx"><small>${_t('Most nem szól podcast.')}</small></div></div>
- <div class="row r4"><button data-c="pback" class="sm">⏪</button><button data-c="ptoggle" class="ok">⏯</button><button data-c="pfwd" class="sm">⏩</button><button data-c="pnext" class="sm">⏭</button></div></div>
  <input class="q" id="rq" type="search" placeholder="${_t('Rádióadó keresése…')}" autocomplete="off">
  <div class="list" id="rresults"></div>
  <h2>${_t('Kedvenc rádiók')}</h2><div class="list" id="rfavs"></div>
@@ -450,6 +450,11 @@ async function command({ c, a }) {
     setTimeout(pushState, 250);
     return;
   }
+  if (/^p(toggle|back|fwd|next)$/.test(c)) {
+    podCommand(c);
+    setTimeout(pushState, 250);
+    return;
+  }
   if (c.startsWith('r') && /^r(play|toggle|prev|next|stop|fav|rec|vol|full|vis|sleep|find)$/.test(c)) {
     await radioCommand(c, a);
     setTimeout(pushState, 250);
@@ -568,6 +573,14 @@ async function command({ c, a }) {
 }
 
 /** A rádió parancsai a telefonról (a gyerekprofilban nincs rádió). */
+/** A podcast-lejátszó vezérlése (a rádiótól függetlenül – kikapcsolt Rádió menüpontnál is). */
+function podCommand(c) {
+  if (!podPlayer.active || !menuOn('podcast')) return;
+  if (c === 'ptoggle') podPlayer.toggle();
+  else if (c === 'pback') podPlayer.skip(-(podCfg().skipBack || 10));
+  else if (c === 'pfwd') podPlayer.skip(podCfg().skipFwd || 30);
+  else if (c === 'pnext') podPlayer.next();
+}
 async function radioCommand(c, a) {
   if (!radioMenuOn()) return;
   const r = radioPlayer;
@@ -581,18 +594,6 @@ async function radioCommand(c, a) {
       if (s0?.urls?.length) r.play(s0, radioFavs().some((y) => y.id === s0.id) ? radioFavs() : null);
       break;
     }
-    case 'ptoggle':
-      if (podPlayer.active) podPlayer.toggle();
-      break;
-    case 'pback':
-      if (podPlayer.active) podPlayer.skip(-(podCfg().skipBack || 10));
-      break;
-    case 'pfwd':
-      if (podPlayer.active) podPlayer.skip(podCfg().skipFwd || 30);
-      break;
-    case 'pnext':
-      if (podPlayer.active) podPlayer.next();
-      break;
     case 'rtoggle':
       if (r.active) r.toggle();
       else {

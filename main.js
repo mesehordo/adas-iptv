@@ -1406,6 +1406,7 @@ ipcMain.handle('rec-trash', async (_e, p) => {
   p = path.resolve(p);
   // (J04) egy épp futó vágás / visszaállítás után – addig nem nyúlunk a fájlhoz
   return media.withRecLock(p, async () => {
+  if (media.isRecording(p)) return false; // (a zárra várva indult el a felvétel)
   await shell.trashItem(p);
   // a vágás előtti eredeti is megy (külön nem játszható le, csak újravágáshoz kellett)
   const orig = media.originalOf(p);

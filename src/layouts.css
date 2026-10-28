@@ -558,7 +558,7 @@
 /* Könyvtár: a sorok rácsként, két sorban (a többi az „Összes” mögött) */
 /* (a kártyák nem vágódnak félbe magasságkorláttal – a sor legfeljebb 10 elemet mutat, a többi az „Összes” mögött) */
 .rows.adapt-library .row-track { flex-wrap: wrap; overflow: visible; max-height: none; row-gap: 14px; }
-.rows.adapt-library .row-track > :nth-child(n + 11):not(.see-all) { display: none !important; }
+.rows.adapt-library .row-track:has(> .see-all) > :nth-child(n + 11):not(.see-all) { display: none !important; }
 .rows.adapt-library .row-arrow { display: none !important; }
 .rows.adapt-library .row-title { font-size: 1.3rem; }
 
@@ -609,7 +609,7 @@
 
 /* Asztal: a sorok élő csempékként (lapos, színes négyzetek), soronként legfeljebb két sor */
 .rows.adapt-desk .row-track { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; overflow: visible; max-height: none; }
-.rows.adapt-desk .row-track > :nth-child(n + 13):not(.see-all) { display: none !important; }
+.rows.adapt-desk .row-track:has(> .see-all) > :nth-child(n + 13):not(.see-all) { display: none !important; }
 .rows.adapt-desk .row-track :is(.card, .vcard, .rcard) { width: auto !important; }
 .rows.adapt-desk .row-track .thumb { border-radius: 2px; }
 .rows.adapt-desk .row-track :is(.card, .rcard) .thumb { aspect-ratio: 1; }
@@ -832,7 +832,7 @@ body[data-pskin="minimal"] .rf-ctrls .round { border-color: transparent; backgro
 .st-tag:hover, .st-tag:focus-visible { background: rgba(103, 193, 245, 0.32); }
 .rows.adapt-store-detail .row-track, .rows.adapt-store-focus .row-track, .rows.adapt-store-wall .row.adapt-open .row-track { flex-wrap: wrap; overflow: visible; row-gap: 18px; }
 .rows.adapt-store-detail .row-track { max-height: none; overflow: visible; }
-.rows.adapt-store-detail .row-track > :nth-child(n + 13):not(.see-all) { display: none !important; }
+.rows.adapt-store-detail .row-track:has(> .see-all) > :nth-child(n + 13):not(.see-all) { display: none !important; }
 .rows.adapt-store-detail .row-arrow, .rows.adapt-store-focus .row-arrow, .rows.adapt-store-wall .row.adapt-open .row-arrow { display: none !important; }
 @media (max-width: 900px) { .st-box { grid-template-columns: 1fr; } .st-img { min-height: 220px; } }
 /* Fókusz: bal oldali kategórialista + nagy rács */

@@ -529,7 +529,7 @@ const mediaVideo = $('#video');
 const reportMedia = () =>
   api.setMediaState?.(
     player.active ? (player.castHooks?.active ? player.castHooks.paused : mediaVideo.paused)
-      : radioPlayer.active ? !radioPlayer.playing
+      : radioPlayer.active && (radioPlayer.playing || !podPlayer.active) ? !radioPlayer.playing
       : podPlayer.active ? !podPlayer.playing && podPlayer.state !== 'loading'
       : player.castHooks?.active ? player.castHooks.paused : mediaVideo.paused
   );
@@ -541,7 +541,7 @@ bus.on('cast-state', reportMedia); // (H34) kivetítéskor a rendszer a vevő á
 bus.on('pod-player', (kind) => {
   if (kind !== 'state' && kind !== 'start' && kind !== 'stop') return;
   reportMedia();
-  if (kind === 'start' && podPlayer.ep && !player.active && !radioPlayer.active) api.setNowPlaying?.(`${podPlayer.ep.title}${podPlayer.ep.feedTitle ? ' – ' + podPlayer.ep.feedTitle : ''}`);
+  if (kind === 'start' && podPlayer.ep && !player.active && !radioPlayer.playing) api.setNowPlaying?.(`${podPlayer.ep.title}${podPlayer.ep.feedTitle ? ' – ' + podPlayer.ep.feedTitle : ''}`);
 });
 // (B38) Android kis ablak (kép a képben): csak a videó látszik; a vezérlők, a fejléc és a lap rejtve
 window.__adasPip = (on) => {

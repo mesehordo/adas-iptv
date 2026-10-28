@@ -201,7 +201,7 @@ export function parseFeed(xml, url) {
   // (névtér-előtaggal írt Atom-folyam – pl. <atom:feed xmlns:atom="http://www.w3.org/2005/Atom"> –: az előtag
   // jelentése ugyanaz, mint az alapértelmezett névtéré, ezért elhagyjuk, és a szokásos úton olvassuk)
   const pre = /<([A-Za-z_][\w.-]*):feed\b[^>]*\bxmlns:\1\s*=\s*["']http:\/\/www\.w3\.org\/2005\/Atom["']/.exec(String(xml || ''));
-  if (pre) xml = String(xml).replace(new RegExp('<(/?)' + pre[1].replace(/[.-]/g, '\\$&') + ':', 'g'), '<$1');
+  if (pre) xml = String(xml).replace(new RegExp('<(/?)' + pre[1].replace(/[\\^$.*+?()[\]{}|-]/g, '\\$&') + ':', 'g'), '<$1');
   const doc = new DOMParser().parseFromString(xml, 'text/xml');
   if (doc.getElementsByTagName('parsererror').length) throw new Error(_t('A podcast-folyam nem olvasható (hibás XML).'));
   const ch = doc.getElementsByTagName('channel')[0] || doc.getElementsByTagName('feed')[0];

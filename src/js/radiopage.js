@@ -614,7 +614,7 @@ function renderHome(view) {
   const rows = html(`<div class="rows radio-rows"><div class="tv-head">${tabs('home')}</div></div>`);
   view.append(rows);
   if (recent.length) rows.append(stationRowEl(_t('Legutóbb hallgatott'), recent));
-  if (favs.length) rows.append(stationRowEl(_t('Kedvenc rádiók'), favs));
+  if (favs.length) rows.append(stationRowEl(_t('Kedvenc rádiók'), favs, { href: '#/favorites' }));
   if (home.length) rows.append(stationRowEl(_t('{country} rádiói', { country: countryName(cc) }), home, { href: `#/radio?c=${cc}`, limit: 80 }));
   rows.append(tileRowEl(_t('Műfajok'), GENRES.map(([id]) => genreTile(id))));
   // a hazai adók a 4 legnagyobb műfajban (a többi a Műfajok csempéiről érhető el)

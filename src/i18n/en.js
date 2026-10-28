@@ -2803,6 +2803,7 @@ export default {
  "Menüpontok": "Menu items",
  "A Főoldal mindig látszik. A kikapcsolt rész nem töltődik be, és a háttérben sem frissül – így kevesebb hálózatot, memóriát és energiát használ.": "Home is always shown. A part that is turned off isn’t loaded and isn’t refreshed in the background either – so it uses less network, memory and power.",
  "Saját felirat": "Own subtitles",
+ "A felirat nem menthető – a következő megnyitáskor nem töltődik vissza.": "The subtitles could not be saved – they won't be restored next time.",
  "Most nem szól podcast.": "No podcast is playing.",
  "🎙 Podcast": "🎙 Podcasts"
 };

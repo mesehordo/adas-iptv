@@ -533,13 +533,23 @@ async function useResult(video, ch, res) {
 // (J12) a kézzel választott felirat megmarad a filmhez (profilonként): a választás a profilban, a szöveg a
 // dokumentumtárban (nem a beállítások közt – egy felirat akár több száz kB)
 const manualKey = (key) => `subman:${store.profile?.id || ''}:${key}`;
-function rememberManual(ch, text, name) {
-  if (!ch?.vod?.key || !text) return;
+async function rememberManual(ch, text, name) {
+  if (!ch?.vod?.key || !text || !api.docSet) return;
   const p = store.profile;
+  const pick = pickSeq;
+  const my = session;
+  const key = manualKey(ch.vod.key);
+  try {
+    await api.docSet(key, { text: String(text).slice(0, 2e6), at: Date.now() });
+  } catch {
+    toast(_t('A felirat nem menthető – a következő megnyitáskor nem töltődik vissza.'));
+    return;
+  }
+  // (az írás közben újabb választás, bezárás vagy profilváltás történt: nem írjuk felül)
+  if (pick !== pickSeq || my !== session || store.profile !== p || player.channel !== ch) return;
   p.vodSubs ||= {};
   p.vodSubs[ch.vod.key] = { manual: String(name || _t('Saját felirat')).slice(0, 120) };
   store.save();
-  api.docSet?.(manualKey(ch.vod.key), { text: String(text).slice(0, 2e6), at: Date.now() }).catch?.(() => {});
 }
 export function applyText(video, text, label) {
   pickSeq++; // (ez is új választás: egy függő letöltés nem írhatja felül)
@@ -578,8 +588,7 @@ export function applyText(video, text, label) {
     }
     // (az olvasás közben a felhasználó másik filmre válthatott, bezárhatta a lejátszót, vagy újabb fájlt húzott be)
     if (gen !== dropGen || pick !== pickSeq || my !== session || player.channel !== ch || !player.active) return;
-    applyText(document.getElementById('video'), text, f.name);
-    rememberManual(ch, text, f.name);
+    if (applyText(document.getElementById('video'), text, f.name)) await rememberManual(ch, text, f.name);
   });
 }
 
@@ -853,6 +862,7 @@ player.subsHooks = {
           eng.setTextTrack('');
           if (isVod && store.profile.vodSubs) delete store.profile.vodSubs[ch.vod.key];
           if (isVod) forgetSubText(ch.vod.key);
+          if (isVod && api.docSet) Promise.resolve(api.docSet(manualKey(ch.vod.key), null)).catch(() => {});
           store.save();
           draw();
         } else if (a === 'embedded') {
@@ -906,8 +916,8 @@ player.subsHooks = {
           if (!cues.length) return toast(_t('A fájl nem tartalmaz feliratot.'));
           eng.setTextTrack('');
           apply(video, cues, f.name);
-          if (isVod) rememberManual(ch, f.text, f.name);
           menu.hidden = true;
+          if (isVod) await rememberManual(ch, f.text, f.name);
         } else if (a === 'off-' || a === 'off+') {
           state.offset += a === 'off+' ? 0.5 : -0.5;
           render(video);

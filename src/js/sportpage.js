@@ -184,7 +184,8 @@ function podcastRows() {
   const ok = (t) => (rx ? rx.test(norm(t)) : SPORT_POD_RX.test(t));
   const subs = pod().subs.filter((s) => ok(`${s.title} ${s.author || ''}`));
   const extra = (podFound || []).filter((s) => !subs.some((x) => x.url === s.url) && (!rx || rx.test(norm(`${s.title} ${s.genre || ''}`))));
-  return [...subs.map((s) => ({ ...s, sub: true })), ...extra]
+  const subbed = new Set(pod().subs.map((s) => s.url));
+  return [...subs.map((s) => ({ ...s, sub: true })), ...extra.map((s) => (subbed.has(s.url) ? { ...s, sub: true } : s))]
     .slice(0, 6)
     .map(
       (s) => `<li><a class="sp-tvrow" href="#/podcast?feed=${encodeURIComponent(s.url)}" title="${esc(s.title)}">

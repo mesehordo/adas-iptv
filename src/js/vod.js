@@ -849,7 +849,7 @@ function loadLib(lib, { force = false, recheck = false } = {}) {
           setTimeout(r, 30000);
         });
       }
-      lib.tvSig = (catalog.tvVod || []).map((t) => t.id + t.entries.length + ':' + (t.at || 0)).join(',');
+      lib.tvSig = tvSig();
       // (az előkészítés – mappa-átnézés, csatornalista – után a listák változhattak: a gyorsítótár az akkori kulccsal)
       const readKey = (lib.loadingKey = cacheKey(lib));
       if (!force && !recheck && api.kvGet) {
@@ -917,17 +917,19 @@ function loadLib(lib, { force = false, recheck = false } = {}) {
       bus.emit(lib.id === 'vod' ? 'vod' : 'own');
     } finally {
       lib.loading = null;
+      // (a betöltés alatt megváltozott a csatornalista – pl. most kapcsolták be a TV-t –: még egy kör)
+      if (lib === vod && lib.ready && tvSig() !== lib.tvSig) setTimeout(() => loadVod(), 0);
     }
   })();
   return lib.loading;
 }
+const tvSig = () => (catalog.tvVod || []).map((t) => t.id + t.entries.length + ':' + (t.at || 0)).join(',');
 
 // (kikapcsolt VOD menüpont: a film- és sorozatlisták nem töltődnek)
 export const loadVod = (opts) => (menuOn('vod') ? loadLib(vod, opts) : Promise.resolve());
 // Ha a csatornalista frissülése után más filmek kerültek át a VOD-ba, újratöltjük.
 bus.on('tv-vod', () => {
-  const sig = (catalog.tvVod || []).map((t) => t.id + t.entries.length + ':' + (t.at || 0)).join(',');
-  if (vod.ready && sig !== vod.tvSig) loadVod();
+  if (vod.ready && !vod.loading && tvSig() !== vod.tvSig) loadVod();
 });
 export const loadOwn = (opts) => loadLib(own, opts);
 
