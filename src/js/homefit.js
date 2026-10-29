@@ -4,7 +4,7 @@
 // A blokkok tartalma később töltődik be (időjárás, hírek, műsor), ezért méretváltozáskor újra illeszt.
 
 // (az elrendezések Főoldalának blokkjai, a dokumentum sorrendjében – elöl a fő rész: kiemelt borító, csempefal, fókuszsor)
-const BLOCKS = '#view > .lay-hero, #view > .wall, #view > .fx, #view > .shelf, #view > .cs, .home-rows > *, .shelf-rest, .md-home > *, .uni-home > *:not(.page-head)';
+const BLOCKS = '#view > .lay-hero, #view > .wall, #view > .fx, #view > .shelf, #view > .cs, #view > .sq, #view > .xmb, #view > .desk, .home-rows > *, .shelf-rest, .md-home > *, .uni-home > *:not(.page-head)';
 // (az elrendezés lényege – pl. a Csempék témakör-csempéi –: csak a többi után tűnik el)
 const KEEP = '.coll-tiles';
 const narrowPortrait = () => !!window.matchMedia?.('(max-width: 700px) and (orientation: portrait)').matches;
@@ -50,7 +50,8 @@ const later = () => {
 
 /** Az útvonal kirajzolása után (app.js): a Főoldalon bekapcsol, máshol kikapcsol. */
 export function fitHome(v, name) {
-  const on = name === 'home' && !narrowPortrait();
+  // (régebbi böngészőmotoron – pl. tévén – ResizeObserver nélkül: a Főoldal a szokásos módon görgethető)
+  const on = name === 'home' && !narrowPortrait() && typeof ResizeObserver === 'function';
   document.body.classList.toggle('home-fit', on);
   if (!on) {
     ro?.disconnect();

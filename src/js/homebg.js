@@ -31,7 +31,8 @@ export async function applyHomeBg() {
   if (v === 'custom') url = (await Promise.resolve(api.docGet?.(docKey(p))).catch(() => null))?.text || '';
   else if (HOME_BGS.some(([id]) => id === v)) url = `bg/${v}.svg`;
   if (my !== seq) return;
-  if (!url || !/^(data:image\/(jpeg|png|webp);base64,|bg\/)/.test(url)) {
+  const ok = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+=*$/.test(url) || (v !== 'custom' && url === `bg/${v}.svg`);
+  if (!url || !ok) {
     delete b.dataset.hbg;
     b.style.removeProperty('--hbg');
     return;
@@ -84,7 +85,12 @@ export function renderHomeBg(box) {
       const key = `homebg:${p.id}`;
       await api.docSet(key, { text: data });
       p.homeBgDoc = key;
-      store.setProfileValue('homeBg', 'custom');
+      // (közben profilt válthattak: a választás a feltöltést indító profilé)
+      if (store.profile === p) store.setProfileValue('homeBg', 'custom');
+      else {
+        p.homeBg = 'custom';
+        store.save();
+      }
       applyHomeBg();
       renderHomeBg(box);
     } catch {

@@ -27,6 +27,9 @@ const profileDocRefs = (profiles) => {
   return out;
 };
 
+/** A profilok saját dokumentumainak kulcsai (kézi feliratok, háttérkép). */
+export const profileDocKeys = (profiles) => profileDocRefs(profiles).map((r) => r.key);
+
 /** A fájlból felvett nagy listák szövege külön tárban van – a mentésbe ezeket is beletesszük. */
 export async function attachDocs(data) {
   const docs = {};

@@ -299,6 +299,18 @@ function relaunchAppImage(target, args) {
   spawn('/bin/sh', ['-c', script, 'adas-relaunch', String(process.pid), target, ...args], { detached: true, stdio: 'ignore' }).unref();
 }
 
+/** Külön (leválasztott) folyamat indítása: csak akkor teljesül, ha ténylegesen elindult (hibánál kivétel). */
+function launch(cmd, args, opts) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, { detached: true, stdio: 'ignore', ...opts });
+    child.once('error', reject);
+    child.once('spawn', () => {
+      child.unref();
+      resolve();
+    });
+  });
+}
+
 /**
  * A letöltött telepítő indítása, majd kilépés (Windows); máshol megnyitja a fájlt. silent: kérdések nélkül
  * (Windows: Setup /S, MSI /passive), utána az Adás újraindul; undefined: a telepítés módjához tartozó alapérték.
@@ -322,21 +334,24 @@ async function install(file, silent) {
       const lit = (x) => "'" + String(x).replace(/'/g, "''") + "'";
       const ps = `$f = ${lit(file)}; $e = ${lit(process.execPath)}; Start-Process -FilePath 'msiexec.exe' -ArgumentList ('/i "' + $f + '" /passive /norestart') -Wait; Start-Process -FilePath $e`;
       const enc = Buffer.from(ps, 'utf16le').toString('base64');
-      spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-EncodedCommand', enc], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
-    } else spawn('msiexec', ['/i', file], { detached: true, stdio: 'ignore' }).unref();
+      await launch('powershell.exe', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-EncodedCommand', enc], { windowsHide: true });
+    } else await launch('msiexec', ['/i', file]);
+    // (csak ha a telepítő elindult – hibánál a kivétel a felületre megy, az Adás fut tovább)
     setTimeout(() => app.quit(), 400);
     return 'started';
   }
   if (process.platform === 'win32' && /setup/i.test(path.basename(file))) {
     // (csendesen: /S – az NSIS nem kérdez, nem töröl; --force-run: a végén elindítja az Adást)
-    spawn(file, silent ? ['/S', '--force-run'] : [], { detached: true, stdio: 'ignore' }).unref();
+    await launch(file, silent ? ['/S', '--force-run'] : []);
     setTimeout(() => app.quit(), 400);
     return 'started';
   }
   if (process.platform === 'linux' && file.toLowerCase().endsWith('.appimage')) {
     fs.chmodSync(file, 0o755);
     // AppImage-ből futva: a régi fájl helyére tesszük, és az új változattal újraindulunk.
-    const cur = process.env.APPIMAGE;
+    // (a futó AppImage útvonala a környezetből: csak létező, abszolút útvonalú .AppImage fájl – a héjnak argumentumként megy)
+    const env = process.env.APPIMAGE || '';
+    const cur = path.isAbsolute(env) && !/[\0\n]/.test(env) && /\.appimage$/i.test(env) && fs.existsSync(env) && fs.statSync(env).isFile() ? path.resolve(env) : '';
     if (cur) {
       try {
         const tmp = cur + '.uj';

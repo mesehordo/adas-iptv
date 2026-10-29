@@ -48,8 +48,9 @@ module.exports = async function msiProjectCreated(projectFile) {
     <InstallExecuteSequence>
       <Custom Action="AdasAskClean" Before="InstallInitialize">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE AND NOT ADASASKED AND NOT CLEANDATA AND UILevel &gt; 2</Custom>
       <Custom Action="AdasCleanData" After="InstallInitialize">CLEANDATA="1" AND NOT UPGRADINGPRODUCTCODE</Custom>
-      <!-- (csak az ablakos telepítésnél – ott választható; csendes frissítésnél a korábbi választás marad) -->
-      <Custom Action="AdasSilentPref" Before="InstallFinalize">NOT REMOVE="ALL" AND UILevel &gt; 3</Custom>
+      <!-- (csak új telepítésnél, ha az Adatok oldal – rajta a választóval – megjelent; csendes frissítésnél, javításnál,
+           eltávolításnál a korábbi választás marad) -->
+      <Custom Action="AdasSilentPref" Before="InstallFinalize">ADASASKED AND NOT Installed AND NOT REMOVE="ALL"</Custom>
     </InstallExecuteSequence>
 `;
   x = x.replace(/(\s*<Directory Id="TARGETDIR")/, (m) => actions + m);

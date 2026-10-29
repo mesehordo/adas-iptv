@@ -8,7 +8,7 @@ import { esc, toast, errText, bus } from './util.js';
 import { api } from './api.js';
 import { store, cleanProfile, validateImport } from './store.js';
 import { confirmDialog } from './components.js';
-import { attachDocs, stageDocs, dropDocs, dropUnreferenced } from './snapshot.js';
+import { attachDocs, stageDocs, dropDocs, dropUnreferenced, profileDocKeys } from './snapshot.js';
 import { v1BackupDocKeys } from './backup.js';
 
 import { _t } from './i18n.js';
@@ -109,6 +109,9 @@ async function mergeProfiles(data, source) {
     await dropDocs(staged.written);
     throw new Error(`${_t('A profilok nem menthetők – az átvétel elmaradt:')} ${err?.message || err}`);
   }
+  // (a frissített profilok korábbi saját dokumentumai – ha már egyik profil sem hivatkozik rájuk)
+  const keep = new Set(profileDocKeys(store.profiles));
+  await dropDocs(profileDocKeys(before.filter((p) => !store.profiles.includes(p))).filter((k) => !keep.has(k)));
   bus.emit('profile');
   toast(`${_t('{length} profil átvéve', { length: incoming.length })}`);
   return true;
