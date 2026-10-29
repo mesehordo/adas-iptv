@@ -68,11 +68,6 @@ const keyOf = (name, cc) => {
   return `${c}:${c === 'hu' ? k.replace(/^mr\d(?=[a-z]{4})/, '') : k}`;
 };
 const httpUrl = (u) => (/^https?:\/\/\S+$/i.test(String(u || '').trim()) ? String(u).trim() : '');
-// A podcastok nem rádióadók (saját Podcast oldaluk van): a Radio Browser és a listák podcast-tételei
-// (név, címke vagy hírfolyam-cím alapján) kimaradnak a Rádió oldalról.
-const PODCAST_RX = /\bpod-?casts?\b|\bpodkaszt/i;
-const FEED_RX = /\.(rss|xml)(\?|$)|\/(rss|feed)(\/|\?|$)/i;
-const isPodcast = (raw) => PODCAST_RX.test(String(raw.name || '')) || (raw.tags || []).some((t) => PODCAST_RX.test(String(t))) || FEED_RX.test(String(raw.url || ''));
 
 // Betöltési kör: a kényszerített újratöltés (forrás ki / be, saját lista) újat kezd – a korábbi kör késve
 // érkező eredménye már nem írhat az állapotba (adók, betöltött / folyamatban lévő tételek, hibák, esemény)
@@ -82,7 +77,7 @@ const live = (g) => g === gen;
 function add(raw, g = gen) {
   if (!live(g)) return null;
   const url = httpUrl(raw.url);
-  if (!url || !raw.name || isPodcast(raw)) return null;
+  if (!url || !raw.name) return null;
   const k = keyOf(raw.name, raw.country);
   const id = 'r:' + k;
   let st = radio.byId.get(id);

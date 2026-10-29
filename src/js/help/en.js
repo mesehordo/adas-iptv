@@ -1303,7 +1303,7 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
     title: 'Podcasts',
     keywords: 'podcast episode subscribe rss opml antennapod queue download speed silence chapter sleep chart',
     body: `
-<p>The <b>Podcast</b> menu item (the Radio page’s <i>Podcasts</i> tab leads here too) brings podcasts – with subscriptions, like a podcast app.</p>
+<p>The <b>Podcast</b> menu item brings podcasts – with subscriptions, like a podcast app.</p>
 <h2>Finding shows, subscribing</h2>
 <ul><li><b>Discover</b>: search by name (with the public Apple Podcasts search, fyyd as a fallback), the top chart of your country, or paste an <b>RSS address</b>.</li>
 <li><b>OPML</b>: bring your subscriptions from another app (AntennaPod, Pocket Casts…) or take them there (Discover, or Settings → Podcasts).</li>

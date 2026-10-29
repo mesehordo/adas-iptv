@@ -1303,7 +1303,7 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
     title: 'Podcastok',
     keywords: 'podcast epizód feliratkozás rss opml antennapod sor lejátszási sor letöltés sebesség csend fejezet alvás toplista',
     body: `
-<p>A menüsor <b>Podcast</b> pontja (a Rádió oldal <i>Podcastok</i> füle is ide visz) a podcastokat hozza – feliratkozással, mint egy podcast-alkalmazás.</p>
+<p>A menüsor <b>Podcast</b> pontja a podcastokat hozza – feliratkozással, mint egy podcast-alkalmazás.</p>
 <h2>Műsorok keresése, feliratkozás</h2>
 <ul><li><b>Felfedezés</b>: keresés név szerint (az Apple Podcasts nyilvános keresőjével, tartalékként az fyyd-vel), a beállított ország toplistája, vagy egy <b>RSS-cím</b> beírása.</li>
 <li><b>OPML</b>: más alkalmazásból (AntennaPod, Pocket Casts…) áthozhatod a feliratkozásaidat, és oda is viheted (Felfedezés, vagy Beállítások → Podcastok).</li>
