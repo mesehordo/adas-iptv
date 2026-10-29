@@ -550,6 +550,7 @@ const androidApi = {
   },
   scanFolder: (uri) => native('scanFolder', { uri }),
   readTextFile: (uri) => native('readDoc', { uri }),
+  resolveDocs: (base, rels) => native('resolveDocs', { base, rels }),
   sidecarSubs: (uri) => native('sidecarSubs', { uri }),
   sidecarImage: (uri) => native('sidecarImage', { uri }),
   onUpdateProgress(cb) {

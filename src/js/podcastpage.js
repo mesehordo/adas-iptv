@@ -495,11 +495,12 @@ document.addEventListener('click', async (e) => {
   } else if (a === 'opml-export') api.saveFile?.('adas-podcastok.opml', toOpml());
   else if (a === 'dl-folder') api.podFolder?.();
   else if (a === 'dl-del-played' || a === 'dl-del-all') {
+    const prof = store.profile; // (a jóváhagyott művelet ennek a profilnak a fájljaira szól, profilváltás után is)
     const list = downloadedList().filter((ep) => a === 'dl-del-all' || isPlayed(ep.key));
     const q = a === 'dl-del-all' ? _t('Törlöd mind a(z) {n} letöltött epizódot ({size})? Az epizódok a listákban maradnak, csak a fájl törlődik.', { n: list.length, size: fmtSize(downloadedSize(list)) }) : _t('Törlöd a(z) {n} meghallgatott epizód letöltött fájlját?', { n: list.length });
-    if (list.length && (await confirmDialog(q, { ok: _t('Törlés'), danger: true }))) {
+    if (list.length && (await confirmDialog(q, { ok: _t('Törlés'), danger: true })) && store.profile === prof) {
       let done = 0;
-      for (const ep of list) if (await deleteDownload(ep).catch(() => false)) done++;
+      for (const ep of list) if (await deleteDownload(ep, prof).catch(() => false)) done++;
       toast(done === list.length ? _t('{n} letöltött fájl törölve', { n: done }) : _t('{n} letöltött fájl törölve, {m} nem törölhető', { n: done, m: list.length - done }));
     }
   }

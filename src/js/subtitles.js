@@ -525,8 +525,8 @@ async function useResult(video, ch, res) {
   // Megjegyezzük ehhez a filmhez / részhez.
   const p = store.profile;
   p.vodSubs ||= {};
-  p.vodSubs[ch.vod.key] = { src: res.src || 'os', fileId: res.fileId, fe: res.fe, sdl: res.sdl, lang: res.lang, release: res.release };
   forgetManual(ch.vod.key);
+  p.vodSubs[ch.vod.key] = { src: res.src || 'os', fileId: res.fileId, fe: res.fe, sdl: res.sdl, lang: res.lang, release: res.release };
   store.save();
 }
 
@@ -534,8 +534,16 @@ async function useResult(video, ch, res) {
 // (J12) a kézzel választott felirat megmarad a filmhez (profilonként): a választás a profilban, a szöveg a
 // dokumentumtárban (nem a beállítások közt – egy felirat akár több száz kB)
 const manualKey = (key) => `subman:${store.profile?.id || ''}:${key}`;
-// (másik felirat választásakor a kézi felirat szövege sem marad meg feleslegesen)
-const forgetManual = (key) => api.docSet && key && Promise.resolve(api.docSet(manualKey(key), null)).catch(() => {});
+// (L02) mentésből / másik eszközről visszaállított bejegyzésnél a szöveg a bejegyzés „doc” mezője szerinti helyen van
+const manualRef = (key) => {
+  const d = store.profile?.vodSubs?.[key]?.doc;
+  return typeof d === 'string' && d.startsWith('subman:') ? d : manualKey(key);
+};
+// (másik felirat választásakor a kézi felirat szövege sem marad meg feleslegesen – a bejegyzés cseréje ELŐTT hívandó)
+const forgetManual = (key) => {
+  if (!api.docSet || !key) return;
+  for (const k of new Set([manualKey(key), manualRef(key)])) Promise.resolve(api.docSet(k, null)).catch(() => {});
+};
 async function rememberManual(ch, text, name) {
   if (!ch?.vod?.key || !text || !api.docSet) return;
   const p = store.profile;
@@ -551,6 +559,9 @@ async function rememberManual(ch, text, name) {
   // (az írás közben újabb választás, bezárás vagy profilváltás történt: nem írjuk felül)
   if (pick !== pickSeq || my !== session || store.profile !== p || player.channel !== ch) return;
   p.vodSubs ||= {};
+  // (a visszaállított, más helyen tárolt korábbi szöveg már nem kell)
+  const prev = manualRef(ch.vod.key);
+  if (prev !== key) Promise.resolve(api.docSet(prev, null)).catch(() => {});
   p.vodSubs[ch.vod.key] = { manual: String(name || _t('Saját felirat')).slice(0, 120) };
   store.save();
 }
@@ -705,7 +716,7 @@ player.subsHooks = {
       if (!live()) return;
       if (saved?.manual) {
         // (J12) a kézzel betöltött / behúzott felirat: a szövege a dokumentumtárban, a filmhez és a profilhoz kötve
-        const t = await api.docGet?.(manualKey(ch.vod.key)).catch(() => null);
+        const t = await api.docGet?.(manualRef(ch.vod.key)).catch(() => null);
         if (!live()) return;
         if (t?.text) return void applyText(video, t.text, saved.manual);
       } else if (saved?.sidecar) {
@@ -863,9 +874,9 @@ player.subsHooks = {
         } else if (a === 'off') {
           clearSubs(video);
           eng.setTextTrack('');
+          if (isVod) forgetManual(ch.vod.key);
           if (isVod && store.profile.vodSubs) delete store.profile.vodSubs[ch.vod.key];
           if (isVod) forgetSubText(ch.vod.key);
-          if (isVod) forgetManual(ch.vod.key);
           store.save();
           draw();
         } else if (a === 'embedded') {
@@ -898,8 +909,8 @@ player.subsHooks = {
           applyText(video, sc.text, sc.name);
           const p = store.profile;
           p.vodSubs ||= {};
-          p.vodSubs[ch.vod.key] = { sidecar: sc.name };
           forgetManual(ch.vod.key);
+          p.vodSubs[ch.vod.key] = { sidecar: sc.name };
           store.save();
           menu.hidden = true;
         } else if (a === 'pick') {

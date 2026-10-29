@@ -258,9 +258,13 @@ async function install(file) {
     shell.showItemInFolder(file);
     return 'shown';
   }
-  // MSI: a Windows Installer frissíti a meglévő telepítést (azonos UpgradeCode), az Adás közben bezárul
+  // MSI: a Windows Installer frissíti a meglévő telepítést (azonos UpgradeCode), az Adás közben bezárul. Kérdések
+  // nélkül fut (/passive: csak a folyamatjelző és – gépre telepítésnél – a Windows engedélykérése; a teljesen néma
+  // /qn ott el sem indulna), utána az Adás újraindul (sikertelen / megszakított frissítésnél a régi változat).
   if (process.platform === 'win32' && /\.msi$/i.test(file)) {
-    spawn('msiexec', ['/i', file], { detached: true, stdio: 'ignore' }).unref();
+    const q = (x) => '"' + String(x).replace(/"/g, '') + '"';
+    const cmd = `"msiexec /i ${q(file)} /passive /norestart & start "" ${q(process.execPath)}"`;
+    spawn(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', cmd], { detached: true, stdio: 'ignore', windowsHide: true, windowsVerbatimArguments: true }).unref();
     setTimeout(() => app.quit(), 400);
     return 'started';
   }

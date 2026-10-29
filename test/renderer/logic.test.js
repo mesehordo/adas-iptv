@@ -6,7 +6,7 @@ import { parseM3U, nameKey, recommendOrder } from '../../src/js/catalog.js';
 import { parseSubs } from '../../src/js/subtitles.js';
 import { bytesToText } from '../../src/js/unzip.js';
 import { validateImport, sanitizeSettings, cleanProfile } from '../../src/js/store.js';
-import { referencedDocKeys, dropUnreferenced } from '../../src/js/snapshot.js';
+import { referencedDocKeys, dropUnreferenced, attachDocs, stageDocs, dropDocs } from '../../src/js/snapshot.js';
 import { parsePack } from '../../src/js/packs.js';
 import { esc } from '../../src/js/util.js';
 import { api } from '../../src/js/api.js';
@@ -567,4 +567,30 @@ test('podcast: RSS (iTunes, fejezetek), időtartam, OPML oda-vissza', () => {
   assert.equal(_podTest.parseDur('45'), 45);
   assert.equal(_podTest.parseDur('10:05'), 605);
   assert.equal(_podTest.parseDur(''), 0);
+});
+
+test('podcast (K12): több, azonos névtérre mutató Atom-előtag; (K13) a kulcs műsoronként egyedi; (K09) importált jelző', () => {
+  const xml = '<a:feed xmlns:a="http://www.w3.org/2005/Atom" xmlns:b="http://www.w3.org/2005/Atom"><a:title>Műsor</a:title><b:entry><b:id>e</b:id><b:title>Rész</b:title><b:link rel="enclosure" href="https://p.hu/e.mp3" type="audio/mpeg"/></b:entry></a:feed>';
+  const f = _podTest.parseFeed(xml, 'https://p.hu/atom');
+  assert.equal(f.title, 'Műsor');
+  assert.deepEqual(f.eps.map((e) => [e.title, e.url]), [['Rész', 'https://p.hu/e.mp3']]);
+  // (a régi kulcsnál „…/Ab.xml” és „…/BA.xml” azonos GUID mellett ütközött)
+  assert.ok(_podTest.epKey('https://example.org/Ab.xml', 'g', '') !== _podTest.epKey('https://example.org/BA.xml', 'g', ''));
+  const d = _podTest.pod({ id: 'x', pod: { _ok: true, subs: 'hibás', queue: {} } });
+  assert.ok(Array.isArray(d.subs) && Array.isArray(d.queue));
+});
+
+test('mentés (L02): a kézi felirat szövege a pillanatképben, visszaállításkor új kulcsra, a profil arra mutat', async () => {
+  if (!api.docSet) return;
+  await api.docSet('subman:tp:film1', { text: 'kézi felirat' });
+  const data = await attachDocs({ settings: {}, profiles: [{ id: 'tp', name: 'T', vodSubs: { film1: { manual: 'B.srt' } } }] });
+  assert.equal(data.docs['subman:tp:film1'].text, 'kézi felirat');
+  const restored = { settings: {}, profiles: [{ id: 'masik', name: 'T', vodSubs: { film1: { ...data.profiles[0].vodSubs.film1 } } }], docs: data.docs };
+  // (a mentésben a profil más azonosítóval érkezik: a hivatkozás a bejegyzésben)
+  assert.equal(data.profiles[0].vodSubs.film1.doc, 'subman:tp:film1');
+  const { written } = await stageDocs(restored);
+  const ref = restored.profiles[0].vodSubs.film1.doc;
+  assert.ok(written.includes(ref) && ref !== 'subman:tp:film1');
+  assert.equal((await api.docGet(ref)).text, 'kézi felirat');
+  await dropDocs([...written, 'subman:tp:film1']);
 });

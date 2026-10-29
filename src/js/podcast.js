@@ -11,17 +11,20 @@ import { _t } from './i18n.js';
 const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
 // (a lista elemei: csak címmel / kulccsal rendelkező objektumok – sérült, kézzel szerkesztett mentésből is)
 const cleanList = (a, k) => (Array.isArray(a) ? a.filter((x) => isObj(x) && typeof x[k] === 'string' && x[k]) : []);
+// (a már rendbe tett adatok – a jelzés nem az adatokban van, így importált / kézzel szerkesztett mentés sem kerülheti meg)
+const checked = new WeakSet();
 /** A profil podcast-adatai (első használatkor jönnek létre; a hibás típusú mezők biztonságos alapértéket kapnak). */
 export function pod(p = store.profile) {
   if (!isObj(p.pod)) p.pod = {};
   const d = p.pod;
-  if (!d._ok) {
+  if (!checked.has(d)) {
     // (egyszer profilonként: az importált / visszaállított adatok szerkezetének rendbetétele)
     d.subs = cleanList(d.subs, 'url').filter((s) => /^https?:\/\//i.test(s.url)).map((s) => ({ ...s, set: isObj(s.set) ? s.set : {} }));
     for (const k of ['queue', 'inbox', 'hist', 'favs']) d[k] = cleanList(d[k], 'key');
     for (const k of ['eps', 'seen', 'stats', 'cfg']) if (!isObj(d[k])) d[k] = {};
     for (const [k, v] of Object.entries(d.eps)) if (!isObj(v)) delete d.eps[k];
-    Object.defineProperty(d, '_ok', { value: true, enumerable: false });
+    delete d._ok; // (a korábbi változat jelzése)
+    checked.add(d);
   }
   d.subs ||= []; // [{ url, title, author, image, added, set: { speed, skipIntro, skipOutro, notify, autoDl, keep } }]
   d.eps ||= {}; // epizódkulcs → { pos, dur, played, fav, dl: { path, url, size } }
@@ -46,7 +49,54 @@ function hash(s) {
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
   return (h >>> 0).toString(36);
 }
-export const epKey = (feedUrl, guid, url) => hash(feedUrl) + '.' + hash(guid || url || '');
+// (a régi kulcs: két rövid hash – két műsor azonos GUID-ú epizódjánál ütközhetett, pl. „…/Ab.xml” és „…/BA.xml”)
+const legacyKey = (feedUrl, guid, url) => hash(feedUrl) + '.' + hash(guid || url || '');
+// (K13) a folyam címe és az epizód azonosítója együtt, két független hash-sel és a hosszakkal: az ütközés gyakorlatilag kizárt
+const hash2 = (s) => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 0x01000193);
+  return (h >>> 0).toString(36);
+};
+export const epKey = (feedUrl, guid, url) => {
+  const id = String(feedUrl || '') + '\n' + String(guid || url || '');
+  return 'e' + hash(id) + hash2(id) + '.' + hash2(String(feedUrl || '')) + id.length.toString(36);
+};
+/**
+ * (K13) A régi kulccsal tárolt adatok (hol tartasz, meghallgatva, kedvenc, letöltés, sor, előzmények) átvitele az
+ * új kulcsra – profilonként, a folyam feldolgozásakor. Ha a régi kulcson két műsor is osztozott, az adat mindkettőnél
+ * megmarad (másolat), a sor / előzmények elemei pedig a saját műsoruk szerint kerülnek át.
+ */
+function migrateKeys(f) {
+  const pairs = f.eps.map((e) => [legacyKey(f.url, e.guid, e.url), e.key]).filter(([o, n]) => o !== n);
+  if (!pairs.length) return;
+  for (const p of store.profiles || []) {
+    if (!isObj(p?.pod)) continue;
+    const d = pod(p);
+    const own = new Set([f.url, ...d.subs.map((s) => s.url)]);
+    // (csak a ténylegesen meglévő régi kulcsok: az átvitel után a folyam további feldolgozása már olcsó)
+    const present = new Set(Object.keys(d.eps));
+    for (const k of ['queue', 'inbox', 'hist', 'favs']) for (const x of d[k]) present.add(x.key);
+    let changed = false;
+    for (const [o, n] of pairs) {
+      if (!present.has(o)) continue;
+      const st = Object.prototype.hasOwnProperty.call(d.eps, o) ? d.eps[o] : null;
+      const snaps = ['queue', 'inbox', 'hist', 'favs'].some((k) => d[k].some((x) => x.key === o && x.feed === f.url));
+      if (!st && !snaps) continue;
+      for (const k of ['queue', 'inbox', 'hist', 'favs']) for (const x of d[k]) if (x.key === o && x.feed === f.url) x.key = n;
+      if (st && !Object.prototype.hasOwnProperty.call(d.eps, n)) {
+        // (a régi kulcs csak akkor törlődik, ha más feliratkozott műsor nem osztozhatott rajta)
+        const shared = [...own].some((u) => u !== f.url && hash(u) === hash(f.url));
+        d.eps[n] = { ...st, ...(st.dl?.ep ? { dl: { ...st.dl, ep: { ...st.dl.ep, key: n } } } : {}) };
+        if (!shared) delete d.eps[o];
+      }
+      changed = true;
+    }
+    if (changed) {
+      savePod();
+      bus.emit('pod-queue');
+    }
+  }
+}
 /** Pillanatkép: ennyi kell a sorhoz / előzményekhez akkor is, ha a folyam még nem töltődött be. */
 export const snap = (ep) => ({ key: ep.key, feed: ep.feed, feedTitle: ep.feedTitle || '', title: ep.title, url: ep.url, type: ep.type || '', image: ep.image || '', dur: ep.dur || 0, pub: ep.pub || 0 });
 export const epState = (key) => pod().eps[key] || null;
@@ -196,14 +246,28 @@ const text = (el, ...names) => {
   return '';
 };
 const attr = (el, name, a) => el.getElementsByTagName(name)[0]?.getAttribute(a) || '';
+const ATOM = 'http://www.w3.org/2005/Atom';
+const nodes = (nl) => Array.from({ length: nl?.length || 0 }, (_, i) => nl.item(i));
+/**
+ * (K12) Névtér-előtaggal írt Atom-elemek (<atom:feed>, <b:entry> – bármilyen előtaggal, ha az Atom névterére
+ * mutat): a dokumentumban előtag nélküli Atom-elemre cseréljük őket, így a jelentésük (a névtér) szerint olvassuk.
+ */
+function unprefixAtom(doc) {
+  const walk = (el) => {
+    for (const c of nodes(el.childNodes)) if (c.nodeType === 1) walk(c);
+    if (el.namespaceURI !== ATOM || !el.prefix) return;
+    const n = doc.createElementNS(ATOM, el.localName);
+    for (const a of nodes(el.attributes)) n.setAttributeNS(a.namespaceURI, a.name, a.value);
+    while (el.firstChild) n.appendChild(el.firstChild);
+    el.parentNode.replaceChild(n, el);
+  };
+  if (doc.documentElement?.namespaceURI === ATOM) walk(doc.documentElement);
+}
 /** Egy RSS 2.0 / iTunes / podcast-névteres (vagy Atom) folyam feldolgozása. */
 export function parseFeed(xml, url) {
-  // (névtér-előtaggal írt Atom-folyam – pl. <atom:feed xmlns:atom="http://www.w3.org/2005/Atom"> –: az előtag
-  // jelentése ugyanaz, mint az alapértelmezett névtéré, ezért elhagyjuk, és a szokásos úton olvassuk)
-  const pre = /<([A-Za-z_][\w.-]*):feed\b[^>]*\bxmlns:\1\s*=\s*["']http:\/\/www\.w3\.org\/2005\/Atom["']/.exec(String(xml || ''));
-  if (pre) xml = String(xml).replace(new RegExp('<(/?)' + pre[1].replace(/[\\^$.*+?()[\]{}|-]/g, '\\$&') + ':', 'g'), '<$1');
   const doc = new DOMParser().parseFromString(xml, 'text/xml');
   if (doc.getElementsByTagName('parsererror').length) throw new Error(_t('A podcast-folyam nem olvasható (hibás XML).'));
+  unprefixAtom(doc);
   const ch = doc.getElementsByTagName('channel')[0] || doc.getElementsByTagName('feed')[0];
   if (!ch) throw new Error(_t('Ez a cím nem podcast-folyam.'));
   const atom = ch.tagName === 'feed';
@@ -258,7 +322,12 @@ export async function cachedFeed(url) {
   if (feeds.has(url)) return feeds.get(url);
   const c = await api.docGet?.(docKey(url)).catch(() => null);
   // (a rövid kulcs ütközhet: csak a ténylegesen ehhez a címhez tartozó folyam jó)
-  if (c?.eps && c.url === url) feeds.set(url, c);
+  if (c?.eps && c.url === url) {
+    // (a korábbi változat gyorsítótárában még a régi kulcsok: újraképezve, a tárolt adatok átvitelével)
+    for (const e of c.eps) if (e && typeof e === 'object') e.key = epKey(url, e.guid, e.url);
+    migrateKeys(c);
+    feeds.set(url, c);
+  }
   return feeds.get(url) || null;
 }
 /** A folyam letöltése (a gyorsítótár korától függően), az új epizódok felismerése. */
@@ -268,6 +337,7 @@ export async function refreshFeed(url, { force = false, profile = null } = {}) {
   const hours = prof ? (pod(prof).cfg.refreshHours ?? 6) : 6;
   const { text: xml } = await api.fetchText(url, { maxAgeHours: force ? 0 : hours, force });
   const f = parseFeed(xml, url);
+  migrateKeys(f);
   feeds.set(url, f);
   api.docSet?.(docKey(url), f).catch?.(() => {});
   const d = prof ? pod(prof) : null;
@@ -469,4 +539,4 @@ bus.on('pod-new', ({ feed, eps, profile }) => {
   eps.slice(0, 3).forEach((e) => downloadEp(e, prof).catch(() => {}));
 });
 
-export const _podTest = { parseFeed, parseDur, parseOpml, toOpml, epKey };
+export const _podTest = { parseFeed, parseDur, parseOpml, toOpml, epKey, pod };

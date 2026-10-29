@@ -208,13 +208,14 @@ class PodPlayer {
   ended() {
     const ep = this.ep;
     if (!ep) return;
+    // (K01) a következő a sorban elfoglalt hely szerint – még mielőtt a most véget ért kikerül a sorból
+    const next = this.queueAfter(ep.key);
     markPlayed(ep, true);
     if (podCfg().autoDelete && epState(ep.key)?.dl) deleteDownload(ep).catch(() => {});
     this.emit('ended');
     // (az „epizód végén” időzítő itt teljesül; a percre beállított határidő a következő epizódon is érvényes)
     const stopHere = this.sleepAt === -1;
     if (stopHere) this.sleepAt = 0;
-    const next = this.queueAfter(ep.key);
     if (!stopHere && podCfg().continuous && next) return void this.play(next);
     this.stop();
   }
@@ -346,7 +347,11 @@ export const podPlayer = new PodPlayer();
 window.__adasPod = (o) => {
   if (!podPlayer.ep || !o) return;
   if (o.gen != null && o.gen !== podPlayer.gen) return;
+  const ep = podPlayer.ep;
   if (typeof o.pos === 'number') podPlayer.tick(o.pos, o.dur || podPlayer.dur);
+  // (L01) a pozíció közben lezárhatta az epizódot (a záró rész átugrása) és elindíthatta a következőt: a jelzés
+  // további része a régi epizódé, az újra nem vonatkozik
+  if (podPlayer.ep !== ep) return;
   if (o.st === 'error' && podPlayer.nativeRetry(!!o.missing)) return;
   if (o.st === 'playing' || o.st === 'paused' || o.st === 'loading' || o.st === 'error') podPlayer.setState(o.st);
   if (o.st === 'ended') podPlayer.ended();

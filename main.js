@@ -1393,8 +1393,8 @@ ipcMain.handle('pod-download', async (_e, { url, feed, name, key, profile } = {}
 });
 ipcMain.handle('pod-delete', async (_e, p) => {
   if (!inPodDir(p)) return false;
-  await fs.promises.unlink(path.resolve(p)).catch(() => {});
-  return true;
+  // (csak a sikeres törlés vagy a már hiányzó fájl siker: zárolt / tiltott fájlnál a letöltés adata megmarad)
+  return fs.promises.unlink(path.resolve(p)).then(() => true, (e) => e.code === 'ENOENT');
 });
 ipcMain.handle('pod-folder', () => {
   fs.mkdirSync(podDir(), { recursive: true });

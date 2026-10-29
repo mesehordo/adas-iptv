@@ -15,6 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
@@ -147,6 +148,76 @@ final class Folders {
       }
     }
     for (String[] d : dirs) walk(ctx, tree, d[0], rel.isEmpty() ? d[1] : rel + "/" + d[1], depth + 1, out);
+  }
+
+  /**
+   * (J06) A lejátszólista relatív bejegyzéseinek (Film.mp4, ../Sorozat/1.mkv) feloldása a lista mellől, a
+   * dokumentumfa bejárásával: a szolgáltató azonosítója átlátszatlan is lehet (nem képezhető a fájlnévből), ezért a
+   * lista mappájából név szerint lépünk tovább. A kiválasztott mappán kívülre (.. a gyökér fölött) nem vezet.
+   * → bejegyzésenként a dokumentum címe, vagy "" (nem található).
+   */
+  static JSONArray resolve(Context ctx, String baseUri, JSONArray rels) throws Exception {
+    Uri base = Uri.parse(baseUri);
+    checkAllowed(ctx, base);
+    String auth = base.getAuthority();
+    String treeId = DocumentsContract.getTreeDocumentId(base);
+    Uri tree = DocumentsContract.buildTreeDocumentUri(auth, treeId);
+    String start = parentDoc(ctx, base, DocumentsContract.getDocumentId(base));
+    HashMap<String, HashMap<String, String>> lists = new HashMap<>(); // mappa → (név → azonosító)
+    JSONArray out = new JSONArray();
+    for (int i = 0; i < rels.length() && i < 20000; i++) {
+      String cur = start;
+      for (String seg : rels.optString(i).replace('\\', '/').split("/")) {
+        if (cur == null) break;
+        if (seg.isEmpty() || seg.equals(".")) continue;
+        if (seg.equals("..")) {
+          cur = cur.equals(treeId) ? null : parentDoc(ctx, DocumentsContract.buildDocumentUriUsingTree(tree, cur), cur);
+          continue;
+        }
+        HashMap<String, String> kids = lists.get(cur);
+        if (kids == null) lists.put(cur, kids = children(ctx, tree, cur));
+        String name = Uri.decode(seg);
+        String id = kids.get(name);
+        cur = id != null ? id : kids.get("\u0000" + name.toLowerCase(Locale.ROOT)); // (kis- és nagybetű nélkül is)
+      }
+      out.put(cur == null ? "" : DocumentsContract.buildDocumentUriUsingTree(tree, cur).toString());
+    }
+    return out;
+  }
+
+  /** A dokumentum szülőmappája: a bejáráskor látott adatból, a szolgáltatótól, végül az útvonalszerű azonosítóból. */
+  static String parentDoc(Context ctx, Uri u, String doc) {
+    String parent = parentOf.get(u.getAuthority() + "|" + doc);
+    if (parent != null) return parent;
+    if (android.os.Build.VERSION.SDK_INT >= 26) {
+      try {
+        DocumentsContract.Path p = DocumentsContract.findDocumentPath(ctx.getContentResolver(), u);
+        List<String> ids = p == null ? null : p.getPath();
+        if (ids != null && ids.size() >= 2) return ids.get(ids.size() - 2);
+      } catch (Exception ignored) {
+      }
+    }
+    int slash = doc.lastIndexOf('/');
+    int colon = doc.indexOf(':');
+    return slash >= 0 ? doc.substring(0, slash) : colon >= 0 && colon < doc.length() - 1 ? doc.substring(0, colon + 1) : null;
+  }
+
+  /** Egy mappa elemei: név → azonosító (és "\0" + kisbetűs név → azonosító). */
+  private static HashMap<String, String> children(Context ctx, Uri tree, String dir) {
+    HashMap<String, String> m = new HashMap<>();
+    String[] cols = {DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME};
+    try (Cursor c = ctx.getContentResolver().query(DocumentsContract.buildChildDocumentsUriUsingTree(tree, dir), cols, null, null, null)) {
+      while (c != null && c.moveToNext() && m.size() < 10000) {
+        String id = c.getString(0);
+        String name = c.getString(1);
+        if (id == null || name == null) continue;
+        remember(tree.getAuthority(), dir, id, name);
+        m.putIfAbsent(name, id);
+        m.putIfAbsent("\u0000" + name.toLowerCase(Locale.ROOT), id);
+      }
+    } catch (Exception ignored) {
+    }
+    return m;
   }
 
   /** Kis szöveges dokumentum (lejátszólista, felirat) – legfeljebb max bájt. */

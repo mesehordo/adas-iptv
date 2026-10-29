@@ -1977,11 +1977,24 @@ function resolveContent(rel, base) {
   return m[1] + encodeURIComponent(vol + parts.join('/'));
 }
 
-function resolveEntry(u, base) {
+const ABS_URL = /^[a-z][a-z0-9+.-]*:\/\//i;
+/**
+ * (J06) Androidos mappában a relatív bejegyzések címe a natív oldaltól (a dokumentumfa bejárásával – a szolgáltató
+ * azonosítója átlátszatlan is lehet); → bejegyzés → cím, vagy null (ekkor az útvonal-alapú képzés marad).
+ */
+async function contentRefs(entries, base) {
+  if (!String(base || '').startsWith('content:') || !api.resolveDocs) return null;
+  const rels = [...new Set(entries.flatMap((e) => [e.url, e.logo]).map((u) => String(u || '').trim()).filter((u) => u && !ABS_URL.test(u)))];
+  if (!rels.length) return null;
+  const got = await api.resolveDocs(base, rels).catch(() => null);
+  return Array.isArray(got) ? new Map(rels.map((r, i) => [r, got[i]]).filter(([, v]) => typeof v === 'string' && v)) : null;
+}
+
+function resolveEntry(u, base, refs = null) {
   const s = String(u || '').trim();
   if (!s) return s;
-  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) return s; // http://, file://, rtsp:// …
-  if (base.startsWith('content:')) return resolveContent(s, base);
+  if (ABS_URL.test(s)) return s; // http://, file://, rtsp:// …
+  if (base.startsWith('content:')) return refs?.get(s) || resolveContent(s, base);
   if (/^[a-zA-Z]:[\\/]/.test(s) || s.startsWith('\\\\')) return pathToUrl(s); // C:\…, \\NAS\…
   if (s.startsWith('/') && base.startsWith('file:')) return pathToUrl(s); // /volume1/… (Unix)
   try {
@@ -2078,10 +2091,11 @@ async function loadOwnList(pl, force = false) {
   // A lejátszólista maga egy videó (pl. HLS kimenet) → egyetlen film a fájl nevével.
   if (parsed.isStream) return [{ title: pl.name, name: pl.name, url: pl.base, logo: '', group: '', duration: 0, fileHint: '' }];
   const hint = cleanName(pl.name.replace(/[_]+/g, ' '));
+  const refs = pl.kind === 'folder' ? await contentRefs(parsed.entries, pl.base) : null;
   return parsed.entries.map((e) => ({
     ...e,
-    url: resolveEntry(e.url, pl.base),
-    logo: e.logo ? resolveEntry(e.logo, pl.base) : '',
+    url: resolveEntry(e.url, pl.base, refs),
+    logo: e.logo ? resolveEntry(e.logo, pl.base, refs) : '',
     group: e.group || pl.name, // csoport nélkül a lejátszólista neve (így soronként jelennek meg)
     fileHint: hint,
   }));
