@@ -66,10 +66,10 @@ npm run dist:linux:any
 npm run dist:mac:any
 ```
 
-- Linux: `dist/adas_<verzió>_amd64.deb` (telepítés: `sudo apt install ./adas_….deb`; a menüben megjelenik,
-  parancs: `adas`) és `dist/Adas-<verzió>-x86_64.AppImage` (egyetlen fájl: `chmod +x`, majd dupla kattintás;
-  FUSE nélküli rendszeren `./Adas-….AppImage --appimage-extract-and-run`).
-- macOS: `dist/Adás-<verzió>-mac-arm64.zip` (Apple Silicon) és `…-mac-x64.zip` (Intel). Nincs Apple-tanúsítvánnyal
+- Linux: `dist/ADAS_<verzió>_amd64.deb` (telepítés: `sudo apt install ./ADAS_….deb`; a menüben megjelenik,
+  parancs: `adas`) és `dist/ADAS-<verzió>-x86_64.AppImage` (egyetlen fájl: `chmod +x`, majd dupla kattintás;
+  FUSE nélküli rendszeren `./ADAS-….AppImage --appimage-extract-and-run`).
+- macOS: `dist/ADAS-<verzió>-mac-arm64.zip` (Apple Silicon) és `…-mac-x64.zip` (Intel). Nincs Apple-tanúsítvánnyal
   aláírva, ezért kicsomagolás és az Alkalmazások mappába húzás után első indítás előtt a Terminálban:
 
 ```bash
@@ -93,15 +93,15 @@ npm run android-deps
 npm run android
 ```
 
-Elkészíti a `dist-android/Adas-<verzió>.apk` (univerzális) csomagot: fut telefonon, tableten és
+Elkészíti a `dist-android/ADAS-<verzió>.apk` (univerzális) csomagot: fut telefonon, tableten és
 Android TV-n / Google TV-n is (Android 6.0 vagy újabb); tévén a Leanback indítóban jelenik meg,
 és a távirányítós (tévés) felület indul.
 
 Külön buildcél (a kiadás ezt a kettőt készíti, ugyanabból a commitból és verzióból):
 
 ```
-npm run android:mobile   # dist-android/Adas-<verzió>-android-mobile.apk – telefon / tablet, érintéses indító
-npm run android:tv       # dist-android/Adas-<verzió>-android-tv.apk – Android TV, tévés indító, távirányítós alapmód
+npm run android:mobile   # dist-android/ADAS-<verzió>-android-mobile.apk – telefon / tablet, érintéses indító
+npm run android:tv       # dist-android/ADAS-<verzió>-android-tv.apk – Android TV, tévés indító, távirányítós alapmód
 ```
 
 A két csomag csomagazonosítója és aláírása közös, így egymásra (és a régi univerzálisra) telepítve

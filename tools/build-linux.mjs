@@ -232,7 +232,7 @@ const icon = fs.readFileSync(path.join(root, 'assets', 'icon.png'));
     arEntry('control.tar.gz', zlib.gzipSync(ctl.buffer(), { level: 9 })),
     arEntry('data.tar.gz', zlib.gzipSync(data.buffer(), { level: 6 })),
   ]);
-  const file = path.join(out, `${BIN}_${VERSION}_amd64.deb`);
+  const file = path.join(out, `${PRODUCT}_${VERSION}_amd64.deb`); // ADAS_…_amd64.deb (a csomag neve: adas)
   fs.writeFileSync(file, deb);
   console.log('Kész:', path.relative(root, file), (deb.length / 1e6).toFixed(1), 'MB');
 }

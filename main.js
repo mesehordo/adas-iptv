@@ -1292,10 +1292,13 @@ const recDir = () => {
     const d = JSON.parse(fs.readFileSync(saved, 'utf8')).dir;
     if (typeof d === 'string' && path.isAbsolute(d)) return (recDirCache = d);
   } catch {}
-  const legacy = path.join(app.getPath('videos'), 'Adás felvételek');
+  // (az 1.34.0 előtti, ékezetes nevű mappák – magyar és honosított – maradnak, ha már léteznek)
+  const legacy = [path.join(app.getPath('videos'), 'Adás felvételek'), path.join(app.getPath('videos'), _t('Adás felvételek'))].find(
+    (d) => fs.existsSync(d),
+  );
   const hu = path.join(app.getPath('videos'), 'ADAS felvételek');
   const local = path.join(app.getPath('videos'), _t('ADAS felvételek'));
-  recDirCache = fs.existsSync(legacy) ? legacy : getLang() === 'hu' || fs.existsSync(hu) ? hu : local;
+  recDirCache = legacy || (getLang() === 'hu' || fs.existsSync(hu) ? hu : local);
   try {
     fs.writeFileSync(saved, JSON.stringify({ dir: recDirCache }));
   } catch {}
