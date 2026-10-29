@@ -22,6 +22,7 @@ export function facetPanel({ facets, items, state, onChange, onOpen = () => {} }
   const chips = html('<div class="fc-chips" hidden></div>');
   const more = new Set(); // (a „Továbbiak” gombbal kinyitott csoportok)
   const labels = new Map(); // facet id → (kulcs → felirat)
+  const shown = new Map(); // facet id → nyitva van-e most (a kirajzolt / utoljára látott állapot)
   let keys = []; // elemenként: csoportonként a kulcsok
   let list = [];
 
@@ -63,8 +64,9 @@ export function facetPanel({ facets, items, state, onChange, onOpen = () => {} }
     if (f.first) vals = [...vals.filter((k) => f.first.includes(k)), ...vals.filter((k) => !f.first.includes(k))];
     if (!f.order) vals = [...vals.filter((k) => s.includes(k)), ...vals.filter((k) => !s.includes(k))];
     const all = more.has(f.id) || vals.length <= SHOWN + 2;
-    const open = state.open[f.id] ?? f.open ?? false;
-    return `<details class="fc" data-fc="${esc(f.id)}" ${open || s.length ? 'open' : ''}>
+    const open = !!(state.open[f.id] ?? f.open ?? false) || s.length > 0;
+    shown.set(f.id, open);
+    return `<details class="fc" data-fc="${esc(f.id)}" ${open ? 'open' : ''}>
       <summary><span class="fc-title">${esc(f.title)}</span>${s.length ? `<span class="fc-badge">${s.length}</span>` : ''}</summary>
       ${vals.length > 12 ? `<input class="input fc-q" type="search" placeholder="${_t('Keresés…')}" aria-label="${esc(_t('Keresés: {name}', { name: f.title }))}" />` : ''}
       <div class="fc-opts">${vals
@@ -137,10 +139,10 @@ export function facetPanel({ facets, items, state, onChange, onOpen = () => {} }
   el.addEventListener('toggle', (e) => {
     const d = e.target.closest?.('[data-fc]');
     if (d !== e.target) return;
-    // (a kirajzoláskor nyitva létrejövő csoport is jelez – csak a valódi változás számít)
-    const f = facets.find((x) => x.id === d.dataset.fc);
-    const was = state.open[d.dataset.fc] ?? f?.open ?? false;
-    if (was === d.open || (d.open && sel(f || {}).length)) return;
+    // (a kirajzoláskor nyitva létrejövő csoport is jelez – csak a látott állapothoz képesti változás a felhasználóé,
+    // így a bepipált értékű csoport becsukása és újranyitása is mentődik)
+    if (shown.get(d.dataset.fc) === d.open) return;
+    shown.set(d.dataset.fc, d.open);
     state.open[d.dataset.fc] = d.open;
     onOpen(state);
   }, true);
