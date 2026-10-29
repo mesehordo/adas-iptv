@@ -37,6 +37,9 @@ module.exports = async function msiProjectCreated(projectFile) {
     <Property Id="SILENTUPDATE" Value="1" Secure="yes"/>
     <CustomAction Id="AdasSilentPref" Directory="TARGETDIR" Execute="deferred" Impersonate="yes" Return="ignore"
       ExeCommand="&quot;[SystemFolder]reg.exe&quot; add &quot;HKCU\\Software\\Adas\\Update&quot; /v Silent /t REG_SZ /d &quot;[SILENTUPDATE]|[Date] [Time]&quot; /f"/>
+    <!-- (gépre telepítésnél – ALLUSERS=1 – a gép minden felhasználójának: HKLM, rendszerjoggal; az Adás előbb a saját HKCU-t nézi) -->
+    <CustomAction Id="AdasSilentPrefAll" Directory="TARGETDIR" Execute="deferred" Impersonate="no" Return="ignore"
+      ExeCommand="&quot;[SystemFolder]reg.exe&quot; add &quot;HKLM\Software\Adas\Update&quot; /v Silent /t REG_SZ /d &quot;[SILENTUPDATE]|[Date] [Time]&quot; /f"/>
     <CustomAction Id="AdasCleanData" Directory="TARGETDIR" Execute="deferred" Impersonate="yes" Return="ignore"
       ExeCommand="&quot;[SystemFolder]cmd.exe&quot; /c if exist &quot;${DATA}&quot; rmdir /s /q &quot;${DATA}&quot;"/>
     <CustomAction Id="AdasAskClean" Script="jscript"><![CDATA[
@@ -51,6 +54,7 @@ module.exports = async function msiProjectCreated(projectFile) {
       <!-- (csak új telepítésnél, ha az Adatok oldal – rajta a választóval – megjelent; csendes frissítésnél, javításnál,
            eltávolításnál a korábbi választás marad) -->
       <Custom Action="AdasSilentPref" Before="InstallFinalize">ADASASKED AND NOT Installed AND NOT REMOVE="ALL"</Custom>
+      <Custom Action="AdasSilentPrefAll" Before="InstallFinalize">ADASASKED AND ALLUSERS=1 AND NOT Installed AND NOT REMOVE="ALL"</Custom>
     </InstallExecuteSequence>
 `;
   x = x.replace(/(\s*<Directory Id="TARGETDIR")/, (m) => actions + m);

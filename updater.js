@@ -259,19 +259,22 @@ function kind() {
 
 /**
  * A kérdések nélküli (csendes) telepítés beállítása: Windowson választható (Setup és MSI). Alapból: MSI-nél be (az MSI
- * telepítőjében választott érték – a HKCU\Software\Adas\Update „Silent” értéke, a telepítés idejével –, ennek híján be),
+ * telepítőjében választott érték – a HKCU\Software\Adas\Update „Silent” értéke, a telepítés idejével; gépre telepítésnél
+ * a többi felhasználónak a HKLM-ben ugyanez –, ennek híján be),
  * a Setupnál ki. → { kind, silentOk, silent, stamp } – a stamp változása jelzi, hogy a telepítőben újra választottak.
  */
 async function prefs() {
   const k = kind();
   const out = { kind: k, silentOk: k === 'msi' || k === 'setup', silent: k === 'msi', stamp: '' };
   if (k !== 'msi') return out;
-  const v = await new Promise((res) => {
-    require('child_process').execFile('reg', ['query', 'HKCU\\Software\\Adas\\Update', '/v', 'Silent'], { windowsHide: true, timeout: 5000 }, (err, stdout) => {
-      const m = !err && /Silent\s+REG_SZ\s+(.*)$/m.exec(String(stdout));
-      res(m ? m[1].trim() : null);
+  const query = (root) =>
+    new Promise((res) => {
+      require('child_process').execFile('reg', ['query', root + '\\Software\\Adas\\Update', '/v', 'Silent'], { windowsHide: true, timeout: 5000 }, (err, stdout) => {
+        const m = !err && /Silent\s+REG_SZ\s+(.*)$/m.exec(String(stdout));
+        res(m ? m[1].trim() : null);
+      });
     });
-  });
+  const v = (await query('HKCU')) ?? (await query('HKLM'));
   if (v != null) {
     const [val, ...rest] = v.split('|');
     out.silent = val === '1';
@@ -351,7 +354,14 @@ async function install(file, silent) {
     // AppImage-ből futva: a régi fájl helyére tesszük, és az új változattal újraindulunk.
     // (a futó AppImage útvonala a környezetből: csak létező, abszolút útvonalú .AppImage fájl – a héjnak argumentumként megy)
     const env = process.env.APPIMAGE || '';
-    const cur = path.isAbsolute(env) && !/[\0\n]/.test(env) && /\.appimage$/i.test(env) && fs.existsSync(env) && fs.statSync(env).isFile() ? path.resolve(env) : '';
+    const isFile = (f) => {
+      try {
+        return fs.statSync(f).isFile();
+      } catch {
+        return false;
+      }
+    };
+    const cur = path.isAbsolute(env) && !/[\0\n]/.test(env) && /\.appimage$/i.test(env) && isFile(env) ? path.resolve(env) : '';
     if (cur) {
       try {
         const tmp = cur + '.uj';

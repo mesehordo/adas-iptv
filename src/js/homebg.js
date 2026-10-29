@@ -21,6 +21,8 @@ export const homeBgOn = (p = store.profile) => !!p && BG_LAYOUTS.has(currentLayo
 const docKey = (p) => (typeof p.homeBgDoc === 'string' && p.homeBgDoc.startsWith('homebg:') ? p.homeBgDoc : `homebg:${p.id || ''}`);
 
 let seq = 0;
+// (profilonként a háttérválasztások sorszáma: a lassú feltöltés csak akkor állít „custom”-ot, ha közben nem választottak)
+const picks = new WeakMap();
 /** A háttér érvényesítése (body[data-hbg], --hbg) – profil-, elrendezés- és beállításváltáskor. */
 export async function applyHomeBg() {
   const my = ++seq;
@@ -72,6 +74,7 @@ export function renderHomeBg(box) {
     if (!b) return;
     e.stopPropagation();
     if (b.dataset.hbg === 'custom') return file.click();
+    picks.set(store.profile, (picks.get(store.profile) || 0) + 1);
     store.setProfileValue('homeBg', b.dataset.hbg || undefined);
     applyHomeBg();
     renderHomeBg(box);
@@ -80,13 +83,16 @@ export function renderHomeBg(box) {
     e.stopPropagation();
     const f = file.files[0];
     if (!f || !api.docSet) return;
+    const pick = picks.get(p) || 0;
     try {
       const data = await shrink(f);
       const key = `homebg:${p.id}`;
       await api.docSet(key, { text: data });
       p.homeBgDoc = key;
+      // (közben másik hátteret választottak: a kép eltárolva, de a választás marad)
+      if ((picks.get(p) || 0) !== pick) store.save();
       // (közben profilt válthattak: a választás a feltöltést indító profilé)
-      if (store.profile === p) store.setProfileValue('homeBg', 'custom');
+      else if (store.profile === p) store.setProfileValue('homeBg', 'custom');
       else {
         p.homeBg = 'custom';
         store.save();
