@@ -60,9 +60,39 @@ function stash(box, secs) {
   for (const s of secs) store.append(s.el);
 }
 
+// (a nem átrendezett oldalak: az elrendezés fejlécét kapják – így egy felületen belül minden fül egy családba tartozik)
+const FRAMED = new Set(['favorites', 'sport', 'guide', 'recordings', 'browse', 'countries', 'search']);
+// (a fülek ikonja a menüből – a Műsorújság, a Felvételek, a Böngészés és az Országok a TV része)
+const ROUTE_OF = { guide: 'tv', recordings: 'tv', browse: 'tv', countries: 'tv' };
+/** Az oldal fejléce az elrendezés módján (CSS: .frame-head, body[data-layout]). */
+function frame(view, name) {
+  const head = view.querySelector('.page > .page-head:not(.sub), .page-head:not(.sub)');
+  if (!head || head.closest('.frame-head')) return;
+  const svg = document.querySelector(`#nav .links a[data-route="${ROUTE_OF[name] || name}"] svg`)?.cloneNode(true);
+  svg?.removeAttribute('class'); // (a menüben a .nav-ico felülettől függően rejtett)
+  const ico = svg?.outerHTML || '';
+  const wrap = html(`<section class="frame-head" style="--h:${hashHue(name + 'frame')}"><span class="fh-ico" aria-hidden="true">${ico}</span></section>`);
+  head.before(wrap);
+  wrap.append(head);
+  view.querySelector('.page')?.classList.add('framed');
+}
+
+// (az oldal később újrarajzolhatja magát – pl. a Sport az adatok megérkezésekor –: a fejléc akkor is visszakerül)
+let frameObs = null;
+function keepFramed(view, name) {
+  frameObs?.disconnect();
+  frameObs = new MutationObserver(() => (document.body.dataset.route === name ? frame(view, name) : frameObs.disconnect()));
+  frameObs.observe(view, { childList: true, subtree: true });
+}
+
 /** Az oldal igazítása (az útvonal kirajzolása után). */
 export function adaptPage(view, name) {
   const id = currentLayout();
+  frameObs?.disconnect();
+  if (id !== 'classic' && FRAMED.has(name)) {
+    frame(view, name);
+    return void keepFramed(view, name);
+  }
   if (id === 'classic' || !PAGES.has(name)) return;
   // (a Részletes / Gyűjtemény TV oldala eleve saját nézet)
   if (name === 'tv' && (id === 'detail' || id === 'unified')) return;
@@ -70,8 +100,9 @@ export function adaptPage(view, name) {
   if (!box) return;
   const secs = sections(box);
   if (!secs.length) return;
-  // (a VOD és a Rádió böngészése néhány elrendezésben „áruházként”: a minta saját áruházának szerkezetével)
-  const store = name !== 'tv' && { detail: storeFeatured, focus: storeSide, wall: storeCollections, desk: storeDesk }[id];
+  // (a VOD és a Rádió böngészése néhány elrendezésben „áruházként”: a minta saját áruházának szerkezetével; az Asztal
+  // és a Csempefal TV oldala is – így ott minden fül ugyanúgy néz ki)
+  const store = (name !== 'tv' || id === 'desk' || id === 'wall') && { detail: storeFeatured, focus: storeSide, wall: storeCollections, desk: storeDesk }[id];
   box.classList.add('adapt', store ? 'adapt-store-' + id : 'adapt-' + id);
   if (store) return void store(view, box, secs);
   const fn = { cinema, showcase, shelf, library: null, tiles, detail, unified, wall: null, squares, ribbon, focus, desk: null }[id];

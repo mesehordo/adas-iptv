@@ -52,6 +52,17 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
+**Kontroller elrendezés, Főoldal egy képernyőn, háttérképek, rendezettebb beállítások, csendes frissítés (1.34.0)**
+- **Új elrendezés: Kontroller** – kanapéról, kontrollerrel (pl. egy játékgépre telepítve): középen nagy, oldalra lapozható részek, alattuk a kijelölt rész tartalma nagy csempéken, alul a kontroller gombjainak súgója (A / B / X / Y, LB / RB) – a többi oldalon is; a kijelölés messziről is jól látható keretet kap.
+- **A Főoldal egy képernyőn** minden elrendezésben (asztalon és fekvő kijelzőn): a kiemelt borító a kijelző magasságához igazodik, ami ezután sem fér ki, alulról elmarad (előbb a csatornasorok).
+- **A Főoldal háttérképe** a konzolos elrendezésekben (Négyzetek, Menüszalag, Fókusz, Kontroller): hat beépített kép vagy saját kép (kicsinyítve, a mentésbe is bekerül).
+- **Egy felületen belül egységes fülek**: a Sport, Kedvencek, Műsorújság, Felvételek, Böngészés, Országok és Keresés oldal is az elrendezés fejlécét kapja (borítós sáv, kerek ikonos cím vagy panel); az Asztal és a Csempefal TV oldala is a többi fül áruházas nézetét.
+- **Beállítások 8 csoportban** (Megjelenés és Főoldal · Lejátszás és feliratok · Tévé, műsorújság, sport · Filmek, rádió, podcast · Tartalom és gyerekek · Távirányító és billentyűk · Profilok, mentés, szinkron · Rendszer) a korábbi 18 helyett – a csoportlista kifér a képernyőre; asztalon és fekvő kijelzőn fülekkel (billentyűzettel, távirányítóval így a legkönnyebb), álló telefonon csempékkel. A régi hivatkozások a megfelelő részhez görgetnek.
+- **Frissítés kérdések nélkül** (Windows: Setup /S, MSI /passive, utána újraindul): kapcsolható; MSI-vel telepítve alapból be, az MSI telepítőjében már az első telepítéskor választható.
+- **AppImage-frissítés**: az újraindítás már nem áll le FUSE-hibával (a régi csatolásból futó újraindító helyett rendszerhéj indítja, tiszta környezettel; FUSE nélkül csatolás nélküli módban).
+- **A Windows-telepítő (Setup) monitoronkénti DPI-t kezel**: más nagyítású kijelzőre húzva is élesen rajzol.
+- **Hibajelentés (1.33.1) javításai**: Android saját mappák átlátszatlan azonosítóval; podcast-sor kézi léptetés után; névtér-előtagos Atom-folyamok; ütközésbiztos epizódkulcs; natív podcast-jelzés epizódváltáskor; kézi feliratok a mentésben; csoportos törlés profilváltáskor; asztali törlés hibajelzése.
+
 **Podcast-letöltés Androidon, letöltések törlése, kikapcsolható menüpontok, sport rádióban és podcastban (1.33.1)**
 - **Kikapcsolható menüpontok** (Beállítások → Megjelenés → Menüpontok): a Főoldal kivételével mind (TV, Rádió, Podcast, VOD, Sport, Kedvencek). A kikapcsolt rész nem töltődik be és nem frissül a háttérben (csatornalisták és műsorújság, VOD-listák, rádióadók, podcast-folyamok, sporteredmények) – kevesebb hálózat, memória, energia; a Főoldal hozzá tartozó csempéi sem látszanak, a címén egy gombbal visszakapcsolható.
 - **Sport oldal: rádió és podcast is** – a „Sport most” kártyán a tévés sportműsorok mellett sportrádiók és sportpodcastok, mindegyik jelölve (TV / Rádió / Podcast); a sportág-választó ezekre is szűr.

@@ -539,10 +539,16 @@ const manualRef = (key) => {
   const d = store.profile?.vodSubs?.[key]?.doc;
   return typeof d === 'string' && d.startsWith('subman:') ? d : manualKey(key);
 };
-// (másik felirat választásakor a kézi felirat szövege sem marad meg feleslegesen – a bejegyzés cseréje ELŐTT hívandó)
+/** Hivatkozik-e más kézi felirat-bejegyzés (bármelyik profilban) erre a dokumentumra – az a bejegyzés nem az (profil, film). */
+const docUsedElsewhere = (doc, prof, film) =>
+  (store.profiles || []).some((p) =>
+    Object.entries(p?.vodSubs || {}).some(([k, v]) => !(p === prof && k === film) && v?.manual && (v.doc === doc || (!v.doc && `subman:${p.id || ''}:${k}` === doc)))
+  );
+// (másik felirat választásakor a kézi felirat szövege sem marad meg feleslegesen – a bejegyzés cseréje ELŐTT hívandó;
+// a más bejegyzés által is hivatkozott dokumentum – pl. egy visszaállított mentésből – megmarad)
 const forgetManual = (key) => {
   if (!api.docSet || !key) return;
-  for (const k of new Set([manualKey(key), manualRef(key)])) Promise.resolve(api.docSet(k, null)).catch(() => {});
+  for (const k of new Set([manualKey(key), manualRef(key)])) if (!docUsedElsewhere(k, store.profile, key)) Promise.resolve(api.docSet(k, null)).catch(() => {});
 };
 async function rememberManual(ch, text, name) {
   if (!ch?.vod?.key || !text || !api.docSet) return;
@@ -561,7 +567,7 @@ async function rememberManual(ch, text, name) {
   p.vodSubs ||= {};
   // (a visszaállított, más helyen tárolt korábbi szöveg már nem kell)
   const prev = manualRef(ch.vod.key);
-  if (prev !== key) Promise.resolve(api.docSet(prev, null)).catch(() => {});
+  if (prev !== key && !docUsedElsewhere(prev, p, ch.vod.key)) Promise.resolve(api.docSet(prev, null)).catch(() => {});
   p.vodSubs[ch.vod.key] = { manual: String(name || _t('Saját felirat')).slice(0, 120) };
   store.save();
 }

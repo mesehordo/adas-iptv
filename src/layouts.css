@@ -1060,3 +1060,25 @@ body.playing #pad-hints { display: none !important; }
   .cs { --cw: 52vw; }
   .cs-item { width: 40vw; }
 }
+
+/* ====================================================================== Egységes oldalfejléc (pageadapt.js – frame)
+   A nem átrendezett oldalak (Sport, Kedvencek, Műsorújság, Felvételek, Böngészés, Országok, Keresés) fejléce az
+   elrendezés családjához igazodik: borítós felületeken sáv, a konzolosakon nagy, kerek ikonos cím, az oldalsávosakon panel. */
+.frame-head { position: relative; display: flex; align-items: center; gap: 16px; margin: 0 0 18px; }
+.frame-head .page-head { margin: 0; flex: 1 1 auto; min-width: 0; flex-wrap: wrap; }
+.fh-ico { display: none; flex: none; width: 54px; height: 54px; border-radius: 50%; align-items: center; justify-content: center; background: hsl(var(--h) 45% 28%); color: #fff; }
+.fh-ico svg { width: 26px; height: 26px; fill: currentColor; }
+/* borítós felületek (Mozi, Kirakat, Polc, Csempék, Asztal, Csempefal): a kiemelt sáv rövid változata */
+body:is([data-layout="cinema"], [data-layout="showcase"], [data-layout="shelf"], [data-layout="tiles"], [data-layout="desk"], [data-layout="wall"]) .frame-head {
+  margin: calc(-1 * var(--frame-top, 0px)) calc(-1 * var(--gutter)) 22px; padding: calc(88px + 3vh) var(--gutter) 3.2vh; min-height: 20vh; align-items: flex-end;
+  background: linear-gradient(0deg, var(--bg) 0%, transparent 70%), radial-gradient(ellipse 80% 120% at 20% 0%, hsl(var(--h) 55% 30% / 0.85), transparent 70%), var(--bg-2); }
+body:is([data-layout="cinema"], [data-layout="showcase"], [data-layout="shelf"], [data-layout="tiles"], [data-layout="desk"], [data-layout="wall"]) .frame-head h1 { font-size: clamp(2rem, 3.6vw, 3.4rem); }
+body:is([data-layout="cinema"], [data-layout="showcase"], [data-layout="shelf"], [data-layout="tiles"], [data-layout="desk"], [data-layout="wall"]) .page.framed { padding-top: 0; }
+/* konzolos felületek (Négyzetek, Menüszalag, Fókusz, Kontroller): kerek ikon, nagy cím */
+body:is([data-layout="squares"], [data-layout="ribbon"], [data-layout="focus"], [data-layout="console"]) .fh-ico { display: flex; }
+body:is([data-layout="squares"], [data-layout="ribbon"], [data-layout="focus"], [data-layout="console"]) .frame-head h1 { font-size: clamp(1.8rem, 3vw, 2.8rem); }
+body[data-layout="ribbon"] .frame-head { flex-direction: column; text-align: center; margin-top: 2vh; }
+body[data-layout="ribbon"] .frame-head .page-head { justify-content: center; }
+body[data-layout="focus"] .frame-head, body[data-layout="console"] .frame-head { padding: 14px 18px; border-radius: calc(var(--radius) + 6px); background: rgba(127, 127, 127, 0.1); border: 1px solid var(--line); }
+/* oldalsávos felületek (Könyvtár, Részletes, Gyűjtemény): panel a sáv mellett */
+body:is([data-layout="library"], [data-layout="detail"], [data-layout="unified"]) .frame-head { padding: 16px 20px; border-radius: var(--radius); background: var(--bg-2); border: 1px solid var(--line); }

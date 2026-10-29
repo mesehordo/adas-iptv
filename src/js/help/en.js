@@ -43,7 +43,7 @@ export const ARTICLES = [
 <li>Choose a profile (on the “Who’s watching?” screen), or create your own. ${t('profiles', 'Profiles')}</li>
 <li>Click a channel on the home page – it starts right away. ${t('playing', 'Playback')}</li>
 <li>Mark your favourites with the <b>+</b> button on the card. ${t('favorites', 'Favourites')}</li>
-<li>Choose an interface style under Settings → Appearance. ${t('themes', 'Styles')}</li>
+<li>Choose an interface style under Settings → Appearance & Home. ${t('themes', 'Styles')}</li>
 <li>If a channel is missing, add it as your own channel or your own list. ${t('custom-channels', 'Own channels')}</li>
 </ol>
 <div class="tip"><b>Tip:</b> help can be opened from anywhere with the <kbd>F1</kbd> or <kbd>?</kbd> key, or with the question-mark icon in the header – it always opens on the topic for the screen you’re using.</div>`,
@@ -139,9 +139,9 @@ ${go('#/settings', 'Open Settings')}`,
 </ul>
 <h2>What happens at start?</h2>
 <p>A channel can have several <b>stream sources</b> (different quality, region or server). The program starts with the one it judges best: it prefers one that worked before and better quality, and ranks geo-restricted or not 24/7 sources lower.</p>
-<p>If the source doesn’t start within 20 seconds, or stalls during playback, the program tries the next source by itself (“Trying another source 2/3…”). If there is still an untried source, it switches after 10 seconds on a stalled stream (otherwise it waits 30 seconds). This can be switched off: Settings → Playback → <i>Automatic backup source</i>.</p>
+<p>If the source doesn’t start within 20 seconds, or stalls during playback, the program tries the next source by itself (“Trying another source 2/3…”). If there is still an untried source, it switches after 10 seconds on a stalled stream (otherwise it waits 30 seconds). This can be switched off: Settings → Playback & subtitles → <i>Automatic backup source</i>.</p>
 <h2>Previous channel, volume per channel, subtitle style</h2>
-<p>The <kbd>R</kbd> key (or the ↺ button on the control bar, or the <i>Previous</i> button of the phone remote) switches back to the channel you watched before. Under Settings → Playback you can switch on <b>Volume per channel</b>: every channel remembers its own volume. The same place sets the subtitle size, colour (white, yellow, light blue) and background (dark band, shadow, none).</p>
+<p>The <kbd>R</kbd> key (or the ↺ button on the control bar, or the <i>Previous</i> button of the phone remote) switches back to the channel you watched before. Under Settings → Playback & subtitles you can switch on <b>Volume per channel</b>: every channel remembers its own volume. The same place sets the subtitle size, colour (white, yellow, light blue) and background (dark band, shadow, none).</p>
 <p>If none of the sources work, the <b>“This stream isn’t available right now”</b> window appears, where you can retry, move on to the next channel, or go back. ${t('trouble-playback', 'What can I do then?')}</p>`,
   },
   {
@@ -197,7 +197,7 @@ ${go('#/settings', 'Open Settings')}`,
 <p>The player’s ⚙ button (the yellow button on TV) opens a menu:</p>
 <ul>
 <li><b>Quality</b>: with <i>Automatic</i>, the player adapts the resolution to the bandwidth and the window size (in a small window or the mini player it doesn’t load Full HD). You can fix the best or a lower quality by hand (e.g. on slow mobile data). Many streams are only available in a single quality – the menu says so then.</li>
-<li><b>Maximum quality</b> (Settings → Playback): a permanent ceiling for every stream – 1080p, 720p, 480p or 360p (data saver). Less stalling and less data on a slow or mobile connection. Changing it during playback takes effect immediately.</li>
+<li><b>Maximum quality</b> (Settings → Playback & subtitles): a permanent ceiling for every stream – 1080p, 720p, 480p or 360p (data saver). Less stalling and less data on a slow or mobile connection. Changing it during playback takes effect immediately.</li>
 <li><b>Source</b>: all the channel’s stream sources with a status dot (green = worked, red = didn’t, grey = not checked). If one stalls, try another.</li>
 </ul>
 <p>Choose the audio track and subtitles in the <b>CC</b> button’s menu. ${t('audio-subs', 'Audio and subtitles')}</p>
@@ -220,7 +220,7 @@ ${go('#/settings', 'Open Settings')}`,
 <li>The <b>size</b> can be set everywhere; the <b>time offset</b> applies to external subtitles.</li>
 </ul>
 <h2>Favourite languages per profile</h2>
-<p>At the bottom of Settings → Subtitles and information → <b>Info and subtitles in your language</b> you can set <b>which audio track</b> (the stream’s default / your language / English) and <b>which embedded subtitles</b> (off / your language / English) your profile asks for. The player picks these automatically for every new stream and video, when available.</p>
+<p>At the bottom of Settings → Playback & subtitles → <b>Info and subtitles in your language</b> you can set <b>which audio track</b> (the stream’s default / your language / English) and <b>which embedded subtitles</b> (off / your language / English) your profile asks for. The player picks these automatically for every new stream and video, when available.</p>
 <div class="note">The desktop version can also switch audio tracks with the built-in player (MP4, MKV). On TV, audio track switching in the built-in player depends on the device; for HLS streams the hls.js player works everywhere.</div>
 ${go('#/settings?section=huinfo', 'Set favourite languages')}`,
   },
@@ -233,7 +233,7 @@ ${go('#/settings?section=huinfo', 'Set favourite languages')}`,
 <h2>Mini player (<kbd>N</kbd>, desktop version only)</h2>
 <p>The whole Adás window shrinks to 480×270 pixels, moves to the bottom-right corner of the screen and stays <b>always on top</b>. Only the picture and a few basic buttons show then. Double-click or <kbd>Esc</kbd>: back to normal size. Not available on TV.</p>
 <h2>The player buttons</h2>
-<p>The extra buttons on the control bar (record, 30 s back / forward, previous channel, favourite, details, audio and subtitles (CC), sleep timer, channel list, cast, mini player, full screen) can be hidden one by one: Settings → Playback → <b>Player buttons</b>. The keys work even when the button is hidden; pause, volume and the ⚙ menu are always shown.</p>`,
+<p>The extra buttons on the control bar (record, 30 s back / forward, previous channel, favourite, details, audio and subtitles (CC), sleep timer, channel list, cast, mini player, full screen) can be hidden one by one: Settings → Playback & subtitles → <b>Player buttons</b>. The keys work even when the button is hidden; pause, volume and the ⚙ menu are always shown.</p>`,
   },
   {
     id: 'sleep',
@@ -258,7 +258,7 @@ ${go('#/settings?section=huinfo', 'Set favourite languages')}`,
 <tr><td><b>dash.js</b></td><td>DASH (<code>.mpd</code>) streams.</td></tr>
 <tr><td><b>Native player (ExoPlayer)</b></td><td>On Android: used automatically for films (MKV, MP4, AVI – AC3 / DTS audio, embedded subtitles); with the <i>Native player (ExoPlayer) – also for live TV</i> engine, live channels and HLS / DASH films use it too. Live streams start at the live point and can only be rewound as far as the provider allows. If it fails, the app retries with the web player.</td></tr>
 </table>
-<p>Settings → Playback → <b>Playback engine</b>: <i>Automatic</i> (recommended), <i>Built-in player</i> or <i>hls.js</i>. If an HLS stream doesn’t start with one, try the other. On TV the program does this by itself: if the built-in player can’t cope, it tries the same source with hls.js too.</p>`,
+<p>Settings → Playback & subtitles → <b>Playback engine</b>: <i>Automatic</i> (recommended), <i>Built-in player</i> or <i>hls.js</i>. If an HLS stream doesn’t start with one, try the other. On TV the program does this by itself: if the built-in player can’t cope, it tries the same source with hls.js too.</p>`,
   },
 
   // ===================================================================== VOD
@@ -276,7 +276,7 @@ ${go('#/settings?section=huinfo', 'Set favourite languages')}`,
 <h2>The Online lists page</h2>
 <ul>
 <li><b>Continue</b>: the films and series you’ve started (the progress bar shows where you are).</li>
-<li><b>Series</b>, <b>Recommended films</b>, then the <b>unified genres</b> (the most popular first; by default the 12 most popular get a row, the rest can be switched on under Settings → VOD and media library → VOD lists → <i>VOD page rows</i>, and they can always be chosen in the filter), and finally one row per list. The genre names follow <b>AnimeAddicts’ genre list</b> (Action, Drama, Fantasy, Adventure, Crime, Mystery, Romance, Sci-fi, Thriller, Comedy…), extended with the <i>Documentary</i> and <i>Cult film</i> genres. The lists’ own groups – in any language, e.g. “Horror all night”, “Comedy”, “Vígjáték” – are mapped to these, so a genre appears only once. Mere characteristics (e.g. <i>Not for kids</i>, <i>Short episode(s)</i>, <i>CGI</i>) can be chosen in the filter but don’t get their own row. A title can appear in <b>several genres</b>: it gets the genre of each of its lists, files and groups (e.g. if it’s in both <code>action.m3u8</code> and <code>comedy.m3u8</code> of your own genre pack). In your own media library, playlists that can’t be tied to a genre (e.g. “Christmas”) stay as separate rows under their own name.</li>
+<li><b>Series</b>, <b>Recommended films</b>, then the <b>unified genres</b> (the most popular first; by default the 12 most popular get a row, the rest can be switched on under Settings → Movies, radio, podcasts → VOD lists → <i>VOD page rows</i>, and they can always be chosen in the filter), and finally one row per list. The genre names follow <b>AnimeAddicts’ genre list</b> (Action, Drama, Fantasy, Adventure, Crime, Mystery, Romance, Sci-fi, Thriller, Comedy…), extended with the <i>Documentary</i> and <i>Cult film</i> genres. The lists’ own groups – in any language, e.g. “Horror all night”, “Comedy”, “Vígjáték” – are mapped to these, so a genre appears only once. Mere characteristics (e.g. <i>Not for kids</i>, <i>Short episode(s)</i>, <i>CGI</i>) can be chosen in the filter but don’t get their own row. A title can appear in <b>several genres</b>: it gets the genre of each of its lists, files and groups (e.g. if it’s in both <code>action.m3u8</code> and <code>comedy.m3u8</code> of your own genre pack). In your own media library, playlists that can’t be tied to a genre (e.g. “Christmas”) stay as separate rows under their own name.</li>
 <li>With the <b>All films</b>, <b>All series</b> and <b>Search and filter</b> buttons you get a grid view filtered by type, group and year.</li>
 </ul>
 <p>The header search finds films and series too (under a separate “VOD – films and series” heading).</p>
@@ -312,14 +312,14 @@ ${go('#/vod', 'Open VOD')}`,
 <h2>Resuming</h2>
 <p>The program saves where you are every 5 seconds and on exit. Next time the <i>Continue</i> button starts from there; the <i>From the start</i> button from the beginning. Once you’ve watched 94% of the video, it counts as watched.</p>
 <h2>Next episode</h2>
-<p>For series, a <b>Next episode</b> prompt with an 8-second countdown appears at the end of an episode – <i>Play</i> starts it immediately, <i>Cancel</i> stops it. It can be switched off: Settings → VOD and media library → VOD lists → <i>Start the next episode automatically</i>.</p>
+<p>For series, a <b>Next episode</b> prompt with an 8-second countdown appears at the end of an episode – <i>Play</i> starts it immediately, <i>Cancel</i> stops it. It can be switched off: Settings → Movies, radio, podcasts → VOD lists → <i>Start the next episode automatically</i>.</p>
 <p>Here the sleep timer’s “At the end of the programme” setting means the end of the video.</p>
 <h2>Audio tracks and embedded subtitles (playback bridge)</h2>
 <p>On its own, the built-in player (the Chromium engine) can’t play <b>AC3 / E-AC3 / DTS / TrueHD</b> audio (it doesn’t even see these tracks), doesn’t show <b>subtitles embedded</b> in the file at all (MKV: ASS / SRT, MP4: mov_text), and can’t show the picture of some old video formats (XviD, WMV, 10-bit H.264) either.</p>
 <p>So the <b>desktop version</b> takes a quick look at the file’s tracks whenever a film / episode starts (built-in <b>FFmpeg</b>) and, if needed, plays it through the <b>playback bridge</b>: the picture stays unchanged, the audio is converted to AAC on the fly, and the embedded subtitles are put into the <b>CC</b> menu. That way every audio track can be chosen, seeking works (the bridge restarts from the chosen point), and the profile’s favourite audio and subtitle languages apply too. For subtitles the default is <i>The file’s default</i>: the subtitles marked as default in the file are shown, and without a mark – if the audio isn’t in your language – the subtitles in your language.</p>
-<p>The subtitle styling (ASS font, colours, positioning) becomes plain text. To switch it off: Settings → Playback → <i>Playback bridge (FFmpeg)</i>. The bridge only downloads the part being played (about 90 seconds ahead), not the whole file.</p>
+<p>The subtitle styling (ASS font, colours, positioning) becomes plain text. To switch it off: Settings → Playback & subtitles → <i>Playback bridge (FFmpeg)</i>. The bridge only downloads the part being played (about 90 seconds ahead), not the whole file.</p>
 <h2>Android and Android TV: native player</h2>
-<p>On Android, films and series episodes (MKV, MP4, AVI…) play with the built-in <b>native player</b> (ExoPlayer): the picture appears under the interface, the controls are the same. It handles <b>AC3 / E-AC3 / DTS / TrueHD</b> audio (with the FFmpeg decoder shipped with the program if the device can’t), subtitles embedded in the file (<b>ASS / SRT</b>, as plain text), and every audio track can be chosen in the <b>CC</b> menu. On a TV with a soundbar / amplifier the AC3 audio can also be passed through unchanged. If the native player can’t cope with a file, the program automatically tries the WebView’s own player. To switch it off: Settings → Playback → <i>Native player (ExoPlayer)</i>.</p>
+<p>On Android, films and series episodes (MKV, MP4, AVI…) play with the built-in <b>native player</b> (ExoPlayer): the picture appears under the interface, the controls are the same. It handles <b>AC3 / E-AC3 / DTS / TrueHD</b> audio (with the FFmpeg decoder shipped with the program if the device can’t), subtitles embedded in the file (<b>ASS / SRT</b>, as plain text), and every audio track can be chosen in the <b>CC</b> menu. On a TV with a soundbar / amplifier the AC3 audio can also be passed through unchanged. If the native player can’t cope with a file, the program automatically tries the WebView’s own player. To switch it off: Settings → Playback & subtitles → <i>Native player (ExoPlayer)</i>.</p>
 <h2>In an external player</h2>
 <p>If the bridge / native player is switched off or not available, the player notices when a file’s audio or picture doesn’t work and offers the <b>External player</b> button; the details page always has the <b>In an external player</b> button too.</p>
 <ul>
@@ -335,7 +335,7 @@ ${go('#/vod', 'Open VOD')}`,
     title: 'Film and series lists',
     keywords: 'film list series list add github repository m3u m3u8 zip several files genre public domain orphaned add-on pack adaspack',
     body: `
-<p>Films and series load from <b>separate lists</b>, like TV channels: Settings → VOD and media library → <b>VOD lists</b>.</p>
+<p>Films and series load from <b>separate lists</b>, like TV channels: Settings → Movies, radio, podcasts → <b>VOD lists</b>.</p>
 <h2>Built-in lists</h2>
 <table class="help-table">
 <tr><td><b>Orphaned Films</b></td><td>More than 1,300 public domain films grouped by theme, with cover images.</td></tr>
@@ -375,7 +375,7 @@ ${go('#/settings?section=vodlists', 'Manage lists')}`,
     body: `
 <p>The VOD <b>Own media library</b> tab shows your own films and series – for example from <code>.m3u</code> / <code>.m3u8</code> playlists generated automatically in a folder on your NAS. It works just like the online VOD lists: covers, details page, resume, next episode, information and subtitles in your language.</p>
 <h2>Adding a source</h2>
-<p>Settings → VOD and media library → <b>Own media library (NAS)</b>:</p>
+<p>Settings → Movies, radio, podcasts → <b>Own media library (NAS)</b>:</p>
 <table class="help-table">
 <tr><td><b>Choose folder…</b> / <b>Enter folder path</b><br><small>(desktop version)</small></td><td>The NAS’s shared folder, e.g. <code>\\\\NAS\\Media\\Lists</code>, a network drive (<code>Z:\\Lists</code>) or a mounted folder on Linux / macOS (<code>/mnt/nas/lists</code>, <code>/Volumes/Media</code>). The program also looks through subfolders (up to 4 levels deep).</td></tr>
 <tr><td><b>Network address (http)</b><br><small>(on every device, TV too)</small></td><td>If the NAS also makes the folder available via a web server (e.g. Synology Web Station, QNAP, an nginx / Apache directory listing): <code>http://192.168.1.10/lists/</code>. The program looks through the .m3u / .m3u8 links and subfolders (2 levels) found on the page. The address of a single list can be given too.</td></tr>
@@ -406,11 +406,11 @@ ${go('#/settings?section=ownlists', 'Set up own media library')}`,
     keywords: 'subtitle subtitles feliratok.eu opensubtitles subdl srt vtt language english time offset size api key season pack',
     body: `
 <p>For films and series you can load <b>subtitles in your language or in English</b> from the <b>OpenSubtitles</b> and <b>SubDL</b> collections, from <b>Feliratok.eu</b> (a Hungarian subtitle site with Hungarian and English subtitles), or from your own <code>.srt</code> / <code>.vtt</code> file.</p>
-<h2>Feliratok.eu – no setup needed</h2><p>Switched on by default: no account, no key, and no daily limit. For series it also extracts the episode’s subtitles from a season pack (ZIP); accents in old, non-UTF-8 subtitles are correct too. It offers Hungarian and English subtitles. Can be switched off: Settings → Subtitles and information → Info and subtitles in your language.</p><h2>SubDL (optional)</h2><p>More results with a free key: register on <b>subdl.com</b>, copy the API key from your profile, and enter it: Settings → Subtitles and information → <i>SubDL API key</i>. No password needed.</p><h2>OpenSubtitles (optional, set up once)</h2>
+<h2>Feliratok.eu – no setup needed</h2><p>Switched on by default: no account, no key, and no daily limit. For series it also extracts the episode’s subtitles from a season pack (ZIP); accents in old, non-UTF-8 subtitles are correct too. It offers Hungarian and English subtitles. Can be switched off: Settings → Playback & subtitles → Info and subtitles in your language.</p><h2>SubDL (optional)</h2><p>More results with a free key: register on <b>subdl.com</b>, copy the API key from your profile, and enter it: Settings → Playback & subtitles → <i>SubDL API key</i>. No password needed.</p><h2>OpenSubtitles (optional, set up once)</h2>
 <ol>
 <li>Register for free on <b>opensubtitles.com</b>.</li>
 <li>Logged in, find the <b>API consumers</b> section in your profile and create a new key (any name will do, e.g. “Adás”).</li>
-<li>In Adás: Settings → Subtitles and information → <b>Info and subtitles in your language</b> → enter the <b>API key</b>, your <b>username</b> and your <b>password</b>, then press <i>Test login</i>.</li>
+<li>In Adás: Settings → Playback & subtitles → <b>Info and subtitles in your language</b> → enter the <b>API key</b>, your <b>username</b> and your <b>password</b>, then press <i>Test login</i>.</li>
 </ol>
 <p>The API key is enough for searching; <b>downloading also needs login</b>. With a free account a limited number of subtitles can be downloaded per day (the program shows how many are left after each download); subtitles downloaded once are remembered and don’t use up the quota again.</p>
 <h2>Use during playback</h2>
@@ -452,7 +452,7 @@ ${go('#/settings?section=huinfo', 'Subtitle settings')}`,
 <tr><td><b>TMDB</b> (The Movie Database)</td><td>If you enter your own free API key (themoviedb.org → Settings → API), film and series data comes from here too: richer descriptions in your language and ratings.</td></tr>
 </table>
 <p>If a provider asks to slow down (too many requests), the program stops asking for a while and continues later. <b>AnimeAddicts</b> reviews are only available when logged in, so the program doesn’t read them.</p>
-<p>The data goes into the cache (for 30 days), so it appears instantly the second time. To switch it off: Settings → Subtitles and information → Info and subtitles in your language → <i>Download information and cover images</i>.</p>
+<p>The data goes into the cache (for 30 days), so it appears instantly the second time. To switch it off: Settings → Playback & subtitles → Info and subtitles in your language → <i>Download information and cover images</i>.</p>
 ${go('#/settings?section=huinfo', 'Settings')}`,
   },
   {
@@ -487,7 +487,7 @@ ${go('#/settings?section=huinfo', 'Settings')}`,
     body: `
 <p>The home page is an overview made of units (cards) that always <b>fits on one screen</b> on a desktop and on TV. On a phone (and on Android in portrait) the units are stacked and the page scrolls.</p>
 <h2>Customising</h2>
-<p>With the <b>Customise</b> button at the top right of the home page (or Settings → Home → <i>Customise home page</i>):</p>
+<p>With the <b>Customise</b> button at the top right of the home page (or Settings → Appearance & Home → <i>Customise home page</i>):</p>
 <ul>
 <li>the number of <b>columns</b> (1–5) and <b>rows</b> (1–4) of the grid,</li>
 <li>per unit: <b>order</b> (‹ ›, or drag with the mouse), <b>width</b> (↔) and <b>height</b> (↕) in cells, <b>hide</b> (×),</li>
@@ -497,9 +497,9 @@ ${go('#/settings?section=huinfo', 'Settings')}`,
 <div class="tip"><b>Size matters:</b> every unit adapts what and how much it shows to its size – for example the number of news items and programmes, the news image and lead, the number of days in the weekly forecast, the density of the hourly breakdown, the size and number of VOD posters, or the TV guide’s time window.</div>
 <h2>The units</h2>
 <table class="help-table">
-<tr><td><b>Weather</b></td><td>At the top today’s weather with the place name, below it today hour by hour (every two to three hours on a narrow card), at the bottom the weekly forecast. On a small card the weekly part, and even smaller the chart too, is dropped. Today’s part can look like: line chart, area + precipitation, bars, tiles or a single value. Place and look: Settings → <b>Home</b>. Source: Open-Meteo.</td></tr>
+<tr><td><b>Weather</b></td><td>At the top today’s weather with the place name, below it today hour by hour (every two to three hours on a narrow card), at the bottom the weekly forecast. On a small card the weekly part, and even smaller the chart too, is dropped. Today’s part can look like: line chart, area + precipitation, bars, tiles or a single value. Place and look: Settings → <b>Appearance & Home</b>. Source: Open-Meteo.</td></tr>
 <tr><td><b>On TV now</b></td><td>Your favourite channels’ programmes, similar to the TV guide’s timeline grid (a 1–5 hour time window depending on the width). What doesn’t fit is indicated by a “+N more” line.</td></tr>
-<tr><td><b>News</b></td><td>The latest news from the switched-on RSS / Atom sources – as many as fit (with a lead on a wide card). Clicking opens the news summary. Sources: Settings → <b>Home</b> → <i>News sources</i>. The default sources depend on the interface language. Not available in a kids profile.</td></tr>
+<tr><td><b>News</b></td><td>The latest news from the switched-on RSS / Atom sources – as many as fit (with a lead on a wide card). Clicking opens the news summary. Sources: Settings → <b>Appearance & Home</b> → <i>News sources</i>. The default sources depend on the interface language. Not available in a kids profile.</td></tr>
 <tr><td><b>Tonight on TV</b></td><td>One evening (after 7 pm) programme per favourite channel. Ask for a reminder with the bell button.</td></tr>
 <tr><td><b>Last watched channel</b></td><td>The last watched channel with the current and next programme (with the programme description on a larger card), resumed with one press.</td></tr>
 <tr><td><b>VOD – continue</b></td><td>The last 5 films / episodes watched, with poster and progress (as a list on a small card) – continues where you left off.</td></tr>
@@ -655,7 +655,7 @@ ${go('#/settings?section=dashboard', 'Home page settings')}`,
 <p>You can ask for a reminder for a future programme in the TV guide (click the programme → <b>🔔 Reminder</b>), on the channel’s details page (the 🔔 next to the programme) or from the search results.</p>
 <ul>
 <li><b>Every airing</b>: on the programme’s details page, the <b>↻ Every airing</b> button asks for a reminder for every airing of the programme on that channel (for series, news, regular shows). Endings like “– Episode 312” are ignored, and the airings of the next 7 days are added automatically.</li>
-<li><b>When does it go off?</b> Settings → Notifications → Reminders: at the start or 1–30 minutes before.</li>
+<li><b>When does it go off?</b> Settings → System → Reminders: at the start or 1–30 minutes before.</li>
 <li><b>Automatic switching</b>: when on, it switches to the channel when the programme starts (after an 8-second countdown that the <i>Stay</i> button stops), if Adás is open.</li>
 <li>The 🔔 icon in the header shows your reminders and “every airing” rules; you can delete them there too.</li>
 <li>Reminders are stored <b>per profile</b>, and move along with the profile.</li>
@@ -744,7 +744,7 @@ ${go('#/profiles', 'Manage profiles')}`,
 <h2>Order</h2>
 <p>On the <b>Favourites</b> page you can arrange the cards by dragging them with the mouse. The number in the top-left corner of a card is the <b>channel number</b>; type it during playback to switch there. ${t('channel-switching', 'Channel numbers')}</p>
 <h2>History</h2>
-<p>The last 30 channels watched show in the first row of the home page and at the bottom of the Favourites page. To delete: Favourites → <b>Clear history</b>. Settings → Playback → <i>Resume the last channel at startup</i>: the last watched channel starts automatically at launch.</p>`,
+<p>The last 30 channels watched show in the first row of the home page and at the bottom of the Favourites page. To delete: Favourites → <b>Clear history</b>. Settings → Playback & subtitles → <i>Resume the last channel at startup</i>: the last watched channel starts automatically at launch.</p>`,
   },
   {
     id: 'themes',
@@ -752,10 +752,10 @@ ${go('#/profiles', 'Manage profiles')}`,
     title: 'Interface styles',
     keywords: 'theme style look zen wabi sabi light dark neon manga comic console',
     body: `
-<p>The look of the interface can be chosen per profile: <b>Settings → Appearance → Interface style</b> (drop-down menu, or click the samples). The change takes effect immediately.</p>
+<p>The look of the interface can be chosen per profile: <b>Settings → Appearance & Home → Interface style</b> (drop-down menu, or click the samples). The change takes effect immediately.</p>
 <p>The style only gives the <b>look</b>; the <b>structure</b> – where the menu is, what’s on Home – comes from the <b>layout</b>, which you can choose independently (see below).</p>
 <h2>Layouts</h2>
-<p><b>Settings → Appearance → Interface layout</b> : per profile, click a sketch – there it applies immediately. It can also be chosen when editing a profile; there it takes effect after <b>Save</b> (closing discards it).</p>
+<p><b>Settings → Appearance & Home → Interface layout</b> : per profile, click a sketch – there it applies immediately. It can also be chosen when editing a profile; there it takes effect after <b>Save</b> (closing discards it).</p>
 <ul>
 <li><b>Classic</b> – top menu, customizable cards on Home (weather, news, TV listings).</li>
 <li><b>Cinema</b> – a large featured banner at the top of Home (your favourite or last watched channel, with live preview), channel rows below.</li>
@@ -772,13 +772,16 @@ ${go('#/profiles', 'Manage profiles')}`,
 <li><b>Ribbon</b> – sections run horizontally, their content vertically; with a remote: ← → section, ↑ ↓ item, OK open.</li>
 <li><b>Focus</b> – a function bar and a row of tiles; the selected one is larger, with its programme and buttons below.</li>
 <li><b>Desktop</b> – live tiles (clock, on now, tonight, weather, news) with the menu as a taskbar at the bottom.</li>
+<li><b>Controller</b> – for the sofa and a controller (e.g. installed on a gaming machine): large sections in the middle that you page through sideways, the selected section’s content on big tiles below, and a guide to the controller buttons at the bottom. ← → (left stick, D-pad) or LB / RB: section · ↓ ↑: content / sections · A: open · B: back · X: details · Y: search. The button guide also shows at the bottom of the other pages, and the selection gets a frame that is easy to see from a distance.</li>
 </ul>
-<p>Every layout has <b>its own menu</b> (top bar, centred capsule, left icon rail, upper-case tab bar, round icons, taskbar…), and <b>Home</b> shows your day in its style (weather, tonight, news, on now). The rows of the <b>TV, VOD and Radio</b> pages are rearranged the layout’s way too: featured banner, group tiles, list and details, filterable collection, ribbon, tiles; the Sport page’s cards take on the layout’s style.</p>
+<p>On desktops and landscape screens <b>Home</b> fits on <b>one screen</b> in every layout: the featured banner adapts to the screen height, and whatever still doesn’t fit is left off from the bottom (channel rows first – they are on the TV page). On a portrait phone Home still scrolls.</p>
+<p><b>Home background</b> (Settings → Appearance & Home → Appearance): in the console-style layouts (Squares, Ribbon, Focus, Controller) you can put one of six built-in pictures behind Home (Waves, Northern lights, Starry sky, Retro grid, Deep blue, Pastel) or load your own – it is scaled down, stored with the profile and included in backups and transfers between devices.</p>
+<p>Every layout has <b>its own menu</b> (top bar, centred capsule, left icon rail, upper-case tab bar, round icons, taskbar…), and <b>Home</b> shows your day in its style (weather, tonight, news, on now). The rows of the <b>TV, VOD, Radio and Podcast</b> pages are rearranged the layout’s way too: featured banner, group tiles, list and details, filterable collection, ribbon, tiles; the other pages (Sport, Favourites, TV guide, Recordings, Browse, Search) get the layout’s header (banner, round-icon title or panel) – so every tab within a layout belongs to the same family.</p>
 <p>The side menu and the taskbar appear on wide screens; in a narrow window and on phones the usual top / bottom menu stays. The Detailed and Collection layouts also replace the TV page with their own view.</p>
 <h2>Colour variants</h2>
 <p>Besides the original, most styles have <b>three colour variants</b> – each a palette picked to suit the style’s mood, with its own name (e.g. Neon City: <i>Synthwave</i>, <i>Acid green</i>, <i>Red neon</i>; Phosphor: the amber, cyan and plasma colours of old monitors; Deco: rose gold, emerald, silver). Choose one in the <i>Colour variant</i> row under the samples. A variant turns every coloured element of the style – highlights, buttons, borders, decorations – into the palette’s colours (in multi-coloured styles such as Neon City, Pow! and Kikagaku, each colour separately); the background brightness and the readability of text stay the same, and black, white and grey shades as well as status colours (working / error, recording, LIVE) are kept. For styles with a black-and-white highlight (e.g. Manga, Mu) the variant adds a coloured highlight; the Uchūreki variants are the exact palettes of different eras of the control interface. The labels on accent-coloured buttons and tabs follow the accent (dark on light accents, white on dark ones). The variant is remembered per style and per profile; the High contrast style has no variants, for accessibility.</p>
 <p>The style and colour variant can already be chosen when creating a profile (at the first start and under Manage profiles), and when editing a profile.</p>
-<p><b>Menu items</b> (Settings → Appearance): every menu item except Home – TV, Radio, Podcasts, VOD, Sport, Favourites – can be turned off. A part that is off isn’t loaded and isn’t refreshed in the background either (e.g. with TV off the channel lists and the TV guide, with VOD off the movie and series lists), so it uses less network, memory and power; its Home tiles are hidden too. If you open the address of a part that is off, a button turns it back on.</p>
+<p><b>Menu items</b> (Settings → Appearance & Home): every menu item except Home – TV, Radio, Podcasts, VOD, Sport, Favourites – can be turned off. A part that is off isn’t loaded and isn’t refreshed in the background either (e.g. with TV off the channel lists and the TV guide, with VOD off the movie and series lists), so it uses less network, memory and power; its Home tiles are hidden too. If you open the address of a part that is off, a button turns it back on.</p>
 <table class="help-table">
 <tr><th colspan="2">Dark styles</th></tr>
 <tr><td><b>Kurenai</b></td><td>(crimson) Evening cinema: black background, red highlights, cards that grow on hover.</td></tr>
@@ -816,7 +819,7 @@ ${go('#/profiles', 'Manage profiles')}`,
 <tr><td><b>Mu</b></td><td>(emptiness) An almost empty interface: just the content, lots of space, no frames, shadows or decoration.</td></tr>
 </table>
 <p>The home page units (tiles) also get a look matching the style (border, shadow, background, titles). The player stays dark in every style, so the picture looks its best.</p>
-<p><b>Custom theme</b>: by uploading a theme file or (on desktop) copying it into the theme folder – Settings → Appearance → <i>Custom themes</i>. ${t('custom-theme', 'Making a custom theme')}</p>
+<p><b>Custom theme</b>: by uploading a theme file or (on desktop) copying it into the theme folder – Settings → Appearance & Home → <i>Custom themes</i>. ${t('custom-theme', 'Making a custom theme')}</p>
 ${go('#/settings', 'Appearance settings')}`,
   },
   {
@@ -828,7 +831,7 @@ ${go('#/settings', 'Appearance settings')}`,
 <p>A theme is a single <b>JSON file</b> (<code>.adastheme</code> or <code>.json</code>) that defines the interface’s <b>look</b>: colours, fonts, background and decorative CSS. It <b>can’t change the layout</b> – Adás automatically filters out CSS that changes size, spacing, position or visibility, so a theme never breaks the interface apart. The full description (with a sample) is in the source code: <code>docs/TEMA-KESZITES.md</code> (in Hungarian).</p>
 <h2>Loading</h2>
 <ul>
-<li><b>Upload</b> (on every device): Settings → Appearance → <i>Custom themes</i> → <b>Upload theme file…</b> The theme goes into the settings (backup and sync carry it too).</li>
+<li><b>Upload</b> (on every device): Settings → Appearance & Home → <i>Custom themes</i> → <b>Upload theme file…</b> The theme goes into the settings (backup and sync carry it too).</li>
 <li><b>Theme folder</b> (desktop): the <code>themes</code> subfolder of the data folder (<b>Open theme folder</b>), or a folder of your own (<b>Other theme folder…</b>). Copied files are read at startup and with the <b>Rescan theme folder</b> button – handy for editing.</li>
 <li><b>Save a template from the current style</b>: a theme file filled in with the colours of the style in use – a good starting point.</li>
 </ul>
@@ -879,7 +882,7 @@ ${go('#/settings', 'Appearance settings')}`,
     title: 'Order of the TV and VOD page rows',
     keywords: 'order rows categories sort hide tv page vod genre drag',
     body: `
-<p>Settings → Appearance → <b>TV page rows</b>, and Settings → VOD and media library → VOD lists → <b>VOD page rows</b>. The list shows the rows in the order they appear. The setting applies <b>only to the current profile</b>. For VOD the rows are: Continue, Watchlist, Series, Recommended films, the unified genres (with at least 6 titles), one row per list, Other films.</p>
+<p>Settings → Appearance & Home → <b>TV page rows</b>, and Settings → Movies, radio, podcasts → VOD lists → <b>VOD page rows</b>. The list shows the rows in the order they appear. The setting applies <b>only to the current profile</b>. For VOD the rows are: Continue, Watchlist, Series, Recommended films, the unified genres (with at least 6 titles), one row per list, Other films.</p>
 <ul>
 <li><b>Move</b>: grab the row by the ⋮⋮ handle and drag it into place, or use the ⌃ / ⌄ buttons (with a remote too: stay on the button and press it several times).</li>
 <li><b>Hide</b>: the switch next to the row. A hidden row shows faded in the list but doesn’t appear on the page.</li>
@@ -926,7 +929,7 @@ ${go('#/settings', 'Open Settings')}`,
     keywords: 'backup restore copy export import cache clear move start over factory reset delete everything clean start',
     body: `
 <h2>Save to file</h2>
-<p>Settings → Profiles and backup → <b>Save to file</b>: writes the settings, all profiles with favourites, history, reminders, style and order, as well as your own lists and channels, into a <code>.json</code> file. That way you can take everything to another computer.</p>
+<p>Settings → Profiles, backup, sync → <b>Save to file</b>: writes the settings, all profiles with favourites, history, reminders, style and order, as well as your own lists and channels, into a <code>.json</code> file. That way you can take everything to another computer.</p>
 <h2>Restore</h2>
 <p><b>Restore from file</b>: the saved file overwrites the current settings and profiles (asks for confirmation), then the program restarts.</p>
 <p><b>Add profiles from file</b>: only takes over the backup’s profiles (with favourites, history, reminders, profile picture, PIN); the current settings, lists and other profiles stay, and an identical profile is updated. The same works over the network with the <b>Profiles only</b> switch under <i>Sync between devices</i>.</p>
@@ -943,7 +946,7 @@ ${go('#/settings', 'Open Settings')}`,
 <h2>Clear cache</h2>
 <p>Deletes the downloaded lists, TV guide and processed catalogue – everything is downloaded fresh at the next start. Useful if something got “stuck”. It doesn’t touch your settings and profiles.</p>
 <h2>Start over (everything back to defaults)</h2>
-<p>Settings → Profiles and backup → <b>Start over…</b>: <b>all of Adás’s data is deleted</b> – profiles, settings, favourites, your own lists and channels, history, reminders, your own themes, covers and the cache – and it starts as if you had just installed it (with the first-run screen, everything back to its original defaults). Starting with the system is turned off too.</p>
+<p>Settings → Profiles, backup, sync → <b>Start over…</b>: <b>all of Adás’s data is deleted</b> – profiles, settings, favourites, your own lists and channels, history, reminders, your own themes, covers and the cache – and it starts as if you had just installed it (with the first-run screen, everything back to its original defaults). Starting with the system is turned off too.</p>
 <ul>
 <li>If there is an adult PIN, it asks for it first (even from your own, unlocked profile), then for a confirmation.</li>
 <li>On a computer Adás restarts by itself. On Android the system deletes the app’s data and Adás closes – open it again.</li>
@@ -962,7 +965,7 @@ ${go('#/settings', 'Open Settings')}`,
     body: `
 <p>The program’s channels come from the <b>built-in lists</b>, <b>your own playlists</b> and <b>your own channels</b> added one by one.</p>
 <h2>Built-in lists</h2>
-<p>Settings → Channel lists → <b>Built-in lists</b>: each can be switched on and off with its own switch. Next to them you can see how many channels they give.</p>
+<p>Settings → TV, guide, sport → Channel lists → <b>Built-in lists</b>: each can be switched on and off with its own switch. Next to them you can see how many channels they give.</p>
 <table class="help-table">
 <tr><td><b>iptv-org</b></td><td>The largest community collection (about 10,000 channels), with detailed data (country, language, owner, website…). Its address can be changed with the <i>Address</i> button (e.g. a single country’s list).</td></tr>
 <tr><td><b>Free-TV</b></td><td>Hand-picked free channels by country.</td></tr>
@@ -975,11 +978,11 @@ ${go('#/settings', 'Open Settings')}`,
 <p>How merging works: first by the channel id (<code>tvg-id</code>), then by name and country, and finally – if unambiguous – by name alone. The per-country versions of Pluto TV, Samsung TV Plus and Plex (e.g. “48 Hours” USA / Canada / United Kingdom) merge into one channel. Channels with the same name but a different country that are really different (e.g. “ABC News” Australia and USA) stay separate.</p>
 <h2>Refreshing</h2>
 <ul>
-<li><b>Automatically</b>: lists loaded from a web address refresh <b>at an interval you can set per list</b> – the <i>Refresh</i> selector in the list’s row: every hour … every 48 hours (every 6 hours by default). The program also checks while running, but doesn’t reload a list during playback (it does afterwards). The channel data refreshes daily; at startup the program starts immediately with the saved list and, if it’s old, refreshes it in the background. The same goes for VOD lists: Settings → VOD and media library.</li>
-<li><b>Immediately</b>: profile menu (the profile picture in the header) → <b>Refresh channel list</b> – below it you can see when the last download was. Or: Settings → Channel lists → <b>Refresh all lists now</b>. Both reload everything bypassing the cache, together with the TV guide, and at the end show how many channels there are (and how many are new).</li>
+<li><b>Automatically</b>: lists loaded from a web address refresh <b>at an interval you can set per list</b> – the <i>Refresh</i> selector in the list’s row: every hour … every 48 hours (every 6 hours by default). The program also checks while running, but doesn’t reload a list during playback (it does afterwards). The channel data refreshes daily; at startup the program starts immediately with the saved list and, if it’s old, refreshes it in the background. The same goes for VOD lists: Settings → Movies, radio, podcasts.</li>
+<li><b>Immediately</b>: profile menu (the profile picture in the header) → <b>Refresh channel list</b> – below it you can see when the last download was. Or: Settings → TV, guide, sport → Channel lists → <b>Refresh all lists now</b>. Both reload everything bypassing the cache, together with the TV guide, and at the end show how many channels there are (and how many are new).</li>
 </ul>
 <h2>The iptv-org list address</h2>
-<p>Settings → Channel lists → iptv-org → <b>Address</b>: another M3U address can be given (e.g. a single country’s list: <code>https://iptv-org.github.io/iptv/countries/uk.m3u</code>). Left empty, it goes back to the full list.</p>
+<p>Settings → TV, guide, sport → Channel lists → iptv-org → <b>Address</b>: another M3U address can be given (e.g. a single country’s list: <code>https://iptv-org.github.io/iptv/countries/uk.m3u</code>). Left empty, it goes back to the full list.</p>
 <p>See also: ${t('custom-playlists', 'Adding your own playlist')} · ${t('custom-channels', 'Adding your own channel')}</p>
 ${go('#/settings?section=lists', 'Manage channel lists')}`,
   },
@@ -989,7 +992,7 @@ ${go('#/settings?section=lists', 'Manage channel lists')}`,
     title: 'Adding your own playlist',
     keywords: 'own list add m3u m3u8 url file paste suggested provider iptv',
     body: `
-<p>You can add any M3U / M3U8 playlist – for example one from your provider, a community collection or your own compilation. Settings → Channel lists → My playlists:</p>
+<p>You can add any M3U / M3U8 playlist – for example one from your provider, a community collection or your own compilation. Settings → TV, guide, sport → Channel lists → My playlists:</p>
 <table class="help-table">
 <tr><td><b>Add list from address</b></td><td>Enter the list’s <code>http(s)://</code> address. The program downloads it immediately, shows how many streams it contains, then asks for a name (with a suggestion).</td></tr>
 <tr><td><b>From file</b></td><td>One or more <code>.m3u</code> / <code>.m3u8</code> files, or a <b>ZIP</b> package (desktop and Android versions). Each file becomes a separate list that can be switched on and off.</td></tr>
@@ -1010,7 +1013,7 @@ ${go('#/settings?section=lists', 'Manage channel lists')}`,
     title: 'Adding your own channel',
     keywords: 'channel add own stream url custom stream try user-agent referer header',
     body: `
-<p>You can also add a single stream, without a list: profile menu → <b>Add channel</b>, or Settings → Channel lists → <b>Add channel</b>.</p>
+<p>You can also add a single stream, without a list: profile menu → <b>Add channel</b>, or Settings → TV, guide, sport → Channel lists → <b>Add channel</b>.</p>
 <h2>Fields</h2>
 <table class="help-table">
 <tr><td><b>Name</b> *</td><td>As it will appear in the interface.</td></tr>
@@ -1020,7 +1023,7 @@ ${go('#/settings?section=lists', 'Manage channel lists')}`,
 <tr><td><b>Advanced: User-Agent, Referer</b></td><td>Some servers only send a picture with a specific browser identifier or referring page. If you see something like that at the source (e.g. <code>#EXTVLCOPT:http-referrer=…</code>), enter it here.</td></tr>
 </table>
 <p>The <b>Try it</b> button starts the stream without saving – so you can check in advance whether it works. After <b>Save</b>, the channel appears in the <i>Own channels</i> row of the home page, in Browse and in search, can be marked as a favourite, and can get a channel number.</p>
-<p>Edit, play, delete: Settings → Channel lists → Own channels.</p>
+<p>Edit, play, delete: Settings → TV, guide, sport → Channel lists → Own channels.</p>
 <div class="note">On TV, the built-in player doesn’t always honour the User-Agent / Referer header.</div>
 ${go('#/settings?section=lists', 'Manage own channels')}`,
   },
@@ -1056,11 +1059,11 @@ https://…/sport/playlist.m3u8</pre>
     body: `
 <p>Some of the free lists’ streams stop now and then or for good. So Adás checks which ones work:</p>
 <ul>
-<li><b>Automatically</b>: it tries the sources of the channels shown on screen (at most four per channel) in the background, again every 12 hours. Can be switched off: Settings → Channel lists → Availability check.</li>
+<li><b>Automatically</b>: it tries the sources of the channels shown on screen (at most four per channel) in the background, again every 12 hours. Can be switched off: Settings → TV, guide, sport → Channel lists → Availability check.</li>
 <li><b>The way the player sees it</b>: it’s not enough that the server answers – the program also downloads the start of a real video segment through the playlist. So geo-restricted, expired or currently empty (not broadcasting) streams also get an <b>Offline</b> / <b>Off air</b> badge.</li>
 <li><b>During playback</b>: what starts is marked as working, what doesn’t as broken. The background check can’t overwrite a failed playback as “working” for 12 hours.</li>
 <li><b>Quick switching</b>: if a source doesn’t answer within 6 seconds, the player moves to the next; with several sources it tries the others in parallel meanwhile, and after 3 seconds switches to one that is surely live.</li>
-<li><b>Full check</b>: Settings → Channel lists → Availability check → <b>Check all streams</b> – tries all (more than ten thousand) sources in a few minutes; with a progress bar, can be stopped.</li>
+<li><b>Full check</b>: Settings → TV, guide, sport → Channel lists → Availability check → <b>Check all streams</b> – tries all (more than ten thousand) sources in a few minutes; with a progress bar, can be stopped.</li>
 <li><b>On the details page</b>: <i>Check sources</i> – all sources of that channel, immediately.</li>
 </ul>
 <p>With <b>Hide unavailable channels</b> (Settings → Content and kids → Content) switched on, channels found broken disappear from the lists. <b>Clear results</b> sets everything back to “not checked”.</p>
@@ -1089,8 +1092,8 @@ https://…/sport/playlist.m3u8</pre>
 <ul>
 <li><b>Notification while playing</b>: while something is playing (a channel, a film, a radio station – paused too), the notification shade and the lock screen show what is playing (on TV the channel and the programme on now, on radio the station and the track), with play / pause and stop buttons; headset and Bluetooth buttons work too. Tap it to bring Adás back. (From Android 13 it asks for notification permission at the first playback.)</li>
 <li><b>Radio always keeps playing</b> – when you lock the screen and when you switch to another app, like a music player.</li>
-<li><b>Video (TV, VOD)</b>: when you lock the screen, the sound always keeps playing. When you switch to another app, the setting decides: Settings → Playback → <i>Background playback (audio only)</i> on, the sound keeps playing; off (the default), the video stops.</li>
-<li><b>Mini player above other apps</b>: the player’s mini button puts the video into a small window (the system picture-in-picture mode – from Android 8, if the device supports it; if not, the button is hidden). Settings → Playback → <i>Small window when leaving</i>: while a video plays, pressing Home or switching apps moves it into the small window automatically. Closing the small window stops playback.</li>
+<li><b>Video (TV, VOD)</b>: when you lock the screen, the sound always keeps playing. When you switch to another app, the setting decides: Settings → Playback & subtitles → <i>Background playback (audio only)</i> on, the sound keeps playing; off (the default), the video stops.</li>
+<li><b>Mini player above other apps</b>: the player’s mini button puts the video into a small window (the system picture-in-picture mode – from Android 8, if the device supports it; if not, the button is hidden). Settings → Playback & subtitles → <i>Small window when leaving</i>: while a video plays, pressing Home or switching apps moves it into the small window automatically. Closing the small window stops playback.</li>
 </ul>
 <div class="note">Android also has casting (from a phone / tablet), night mode audio (with the native player, from Android 9) and built-in updates (${t('update', 'Updates')}). Settings can be synced with a code with the computer and other Android devices, in both directions (${t('transfer', 'Sync between devices')}), and the phone can be used as a remote (${t('remote', 'Remote from phone')}). New versions can also be downloaded and installed in the app – the settings are kept.</div>`,
   },
@@ -1164,7 +1167,7 @@ npx ares-launch --device tv hu.adas.tv</pre></li>
 <ol>
 <li>The <b>Retry</b> button – sometimes the server was just slow.</li>
 <li>Another <b>source</b>: during playback ⚙ → Source, or another ▶ on the details page. ${t('quality', 'Details')}</li>
-<li>Another <b>playback engine</b>: Settings → Playback → Playback engine (Built-in ↔ hls.js). ${t('engines', 'Details')}</li>
+<li>Another <b>playback engine</b>: Settings → Playback & subtitles → Playback engine (Built-in ↔ hls.js). ${t('engines', 'Details')}</li>
 <li><b>Geo-restriction</b> (🌐): some streams can only be watched from certain countries. ${t('geo', 'Details')}</li>
 <li><b>“Not 24/7”</b> badge: the channel only broadcasts at certain times.</li>
 <li>Refresh the channel list (profile menu → Refresh channel list) – iptv-org may have found a new address meanwhile.</li>
@@ -1247,8 +1250,8 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 <li>Check your internet connection, then press <b>Retry</b>.</li>
 <li>If the download fails, the program uses the previously downloaded (older) list, if there is one.</li>
 <li>The first start can take 20–40 seconds; later ones are fast thanks to the saved list.</li>
-<li>If you replaced the main list and it doesn’t work: Settings → Channel lists → <i>Default (iptv-org)</i>.</li>
-<li>In a strange, “stuck” state: Settings → Profiles and backup → <b>Clear cache</b>, then restart the program.</li>
+<li>If you replaced the main list and it doesn’t work: Settings → TV, guide, sport → Channel lists → <i>Default (iptv-org)</i>.</li>
+<li>In a strange, “stuck” state: Settings → Profiles, backup, sync → <b>Clear cache</b>, then restart the program.</li>
 </ul>`,
   },
   {
@@ -1318,7 +1321,7 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 <h2>The show page</h2>
 <p>Filters (unplayed, in progress, played, favourite, downloaded), search, sorting. <b>Show settings</b>: own speed, skipping the intro and outro (in seconds), volume boost, skip silence, notifications, automatic download of new episodes.</p>
 <h2>Playback</h2>
-<p>On the small player bar and in the full view: seeking, skipping back and forward (intervals in the settings), <b>speed</b> (0.75–3×), <b>sleep timer</b> (minutes or “at end of episode”), <b>chapters</b> (if the show provides them), show notes, next in queue. Adás remembers where you are and continues from there. On Android the native player plays, even with the screen off. The look follows the <b>player look</b> (Settings → Appearance).</p>
+<p>On the small player bar and in the full view: seeking, skipping back and forward (intervals in the settings), <b>speed</b> (0.75–3×), <b>sleep timer</b> (minutes or “at end of episode”), <b>chapters</b> (if the show provides them), show notes, next in queue. Adás remembers where you are and continues from there. On Android the native player plays, even with the screen off. The look follows the <b>player look</b> (Settings → Appearance & Home).</p>
 <div class="note">Shows available only on Spotify have no public RSS feed – they can’t be played in Adás.</div>`,
   },
   {
@@ -1409,7 +1412,7 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 <p><b>Night mode audio</b> softens the loud parts (music, explosions, ads) and boosts quiet dialogue – so it’s understandable at low volume and nobody wakes up.</p>
 <ul>
 <li>To switch it on during playback: <b>CC</b> button → <i>Audio and subtitles</i> → <i>Night mode audio</i>.</li>
-<li>You can make it the default per profile: Settings → Subtitles and information → Info and subtitles in your language → <i>Night mode audio</i>.</li>
+<li>You can make it the default per profile: Settings → Playback & subtitles → Info and subtitles in your language → <i>Night mode audio</i>.</li>
 </ul>
 <div class="note">Available in the desktop version and on Android (from Android 9, with the native player); not on LG TVs or in the browser.</div>`,
   },
@@ -1548,7 +1551,7 @@ ${go('#/settings?section=remote', 'Remote from phone')}`,
 <p>In the desktop version (Windows, Mac, Linux) live TV can be recorded – without re-encoding, in the original quality, into a <code>.ts</code> file, in the <b>Videos / Adás recordings</b> folder.</p>
 <ul>
 <li><b>Immediately</b>: during playback with the red <b>●</b> button on the control bar; press it again to stop. The button blinks meanwhile.</li>
-<li><b>Scheduled</b>: in the TV guide, <b>● Record</b> on a programme’s details page. The recording starts and stops with a <b>margin</b> – by default 3 minutes before and 10 minutes after the programme, because TV often runs late (Settings → Recordings). Adás must be running then (hidden in the tray is fine – Settings → Notifications → Run in the background); starting from the tray is accurate too.</li>
+<li><b>Scheduled</b>: in the TV guide, <b>● Record</b> on a programme’s details page. The recording starts and stops with a <b>margin</b> – by default 3 minutes before and 10 minutes after the programme, because TV often runs late (Settings → Recordings). Adás must be running then (hidden in the tray is fine – Settings → System → Run in the background); starting from the tray is accurate too.</li>
 <li>If the stream <b>drops</b> during recording (e.g. a stalling server), the recording continues by itself into the same file after a few seconds – at the end the “Recording finished” message says how many times it was interrupted.</li>
 </ul>
 <h2>Trimming</h2>
@@ -1570,8 +1573,8 @@ ${go('#/recordings', 'Recordings')}`,
     body: `
 <p>An add-on pack is <b>a playlist packed into one file</b>, with a name and description. It appears <b>among the built-in lists</b> (can be switched on and off), but doesn’t ship with the program – it only exists on the device you load it onto.</p>
 <table class="help-table">
-<tr><td><code>something_tv.adaspack</code></td><td><b>TV channels</b> – Settings → Channel lists → Built-in lists.</td></tr>
-<tr><td><code>something_vod.adaspack</code></td><td><b>Films, series</b> – Settings → VOD and media library → VOD lists → Built-in lists.</td></tr>
+<tr><td><code>something_tv.adaspack</code></td><td><b>TV channels</b> – Settings → TV, guide, sport → Channel lists → Built-in lists.</td></tr>
+<tr><td><code>something_vod.adaspack</code></td><td><b>Films, series</b> – Settings → Movies, radio, podcasts → VOD lists → Built-in lists.</td></tr>
 </table>
 <h2>Loading</h2>
 <ul>
@@ -1598,7 +1601,9 @@ ${go('#/recordings', 'Recordings')}`,
 <ul>
 <li><b>Check for updates at startup</b> (on by default): at every start it checks whether there’s a new version; if there is, you get a notification and can install it right away with the <i>Update</i> button. If you don’t want this, switch it off – then it only checks on request.</li>
 <li><b>Check for updates now</b>: an immediate check; for a new version the release notes and the <b>Download and install</b> button appear.</li>
-<li>Installation follows how the app was installed: installed with the installer (Setup), the new installer starts; installed with MSI, the new MSI (without questions, with just a progress bar; Adás then restarts); for the <b>portable</b> version you’ll find the downloaded file in the folder that opens (start it instead of the old one); on Linux the AppImage replaces itself (if its location is writable). <b>On macOS and on Linux installed from the DEB package</b> there is no self-install: the folder of the downloaded, verified file (DMG or DEB) opens – open it and install it the usual way (on a Mac, drag it into Applications).</li>
+<li><b>Install without questions</b> (Windows, Setup and MSI): when on, the update installs without the installer’s windows and questions – only a progress bar is shown (for a per-machine install Windows may ask for permission) – and Adás then restarts by itself. With MSI it is on by default; in the MSI installer it can already be chosen on the <i>Data</i> page at the first install, and later changed in Settings at any time.</li>
+<li>On Linux the AppImage restarts with the new version after an update; if the machine has no FUSE, it starts without mounting (by extracting the image).</li>
+<li>Installation follows how the app was installed: installed with the installer (Setup), the new installer starts; installed with MSI, the new MSI; for the <b>portable</b> version you’ll find the downloaded file in the folder that opens (start it instead of the old one); on Linux the AppImage replaces itself (if its location is writable). <b>On macOS and on Linux installed from the DEB package</b> there is no self-install: the folder of the downloaded, verified file (DMG or DEB) opens – open it and install it the usual way (on a Mac, drag it into Applications).</li>
 <li><b>Update source</b>: empty means the official releases. You can give your own GitHub repository (<code>owner/repo</code>, with a <code>SHA256SUMS.txt</code> in the release) or the address of a JSON file: <code>{ "version": "1.25.0", "url": "https://…/Adas-Setup-1.25.0.exe", "sha256": "…", "notes": "…" }</code>. Per platform: <code>"assets": { "win": "…", "mac": "…", "linux": "…", "android": "…", "androidtv": "…" }</code> and <code>"sha256": { "win": "…", … }</code> (on Android only this form). <code>sha256</code> is the file’s SHA-256 sum (64 hex digits, e.g. <code>sha256sum file</code>, on Windows <code>certutil -hashfile file SHA256</code>) – without it the new version is shown but can’t be downloaded in the app.</li>
 </ul>
 <div class="note">On <b>Android</b> you can update here too: <b>Download and install</b> downloads the new <code>.apk</code>, verifies it (the release checksum, the package name, its version and signature – a differently signed or older package is not installed), then Android asks you to confirm the installation. The first time, you need to allow Adás to install apps (the setting opens automatically). Profiles, lists and settings are kept. On a TV the TV build, on a phone the mobile build is downloaded if the release contains them separately.</div>
@@ -1643,7 +1648,7 @@ ${go('#/settings?section=update', 'Updates')}`,
 <tr><td><code>store.json</code></td><td>Profiles, settings, favourites, viewing history and resume points, reminders, scheduled recordings, viewing statistics, PINs.</td></tr>
 <tr><td><code>lists\\</code></td><td>The contents of lists added from files and add-on packs, the restore points, subtitles already downloaded.</td></tr>
 <tr><td><code>cache\\</code></td><td>Cache of the downloaded channel lists and the TV guide (can be deleted, it is downloaded again).</td></tr>
-<tr><td><code>covers\\</code></td><td>Cover and logo cache (can be emptied: Settings → VOD → Cover image store).</td></tr>
+<tr><td><code>covers\\</code></td><td>Cover and logo cache (can be emptied: Settings → Movies, radio, podcasts → Cover image store).</td></tr>
 <tr><td><code>packs\\</code>, <code>themes\\</code></td><td>Downloaded radio / list packs and your own styles.</td></tr>
 <tr><td><code>recdir.json</code>, <code>cast-pins.json</code></td><td>The recordings folder and the remembered identities of cast devices.</td></tr>
 </table>

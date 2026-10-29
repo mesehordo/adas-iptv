@@ -66,12 +66,18 @@ export const epKey = (feedUrl, guid, url) => {
  * új kulcsra – profilonként, a folyam feldolgozásakor. Ha a régi kulcson két műsor is osztozott, az adat mindkettőnél
  * megmarad (másolat), a sor / előzmények elemei pedig a saját műsoruk szerint kerülnek át.
  */
+// (folyamonként a már átnézett profiladatok – egy később érkező, pl. importált profil a következő olvasáskor sorra kerül)
+const migrated = new WeakMap(); // folyam → WeakSet(profil podcast-adatai)
 function migrateKeys(f) {
   const pairs = f.eps.map((e) => [legacyKey(f.url, e.guid, e.url), e.key]).filter(([o, n]) => o !== n);
   if (!pairs.length) return;
+  if (!migrated.has(f)) migrated.set(f, new WeakSet());
+  const done = migrated.get(f);
   for (const p of store.profiles || []) {
     if (!isObj(p?.pod)) continue;
     const d = pod(p);
+    if (done.has(d)) continue;
+    done.add(d);
     const own = new Set([f.url, ...d.subs.map((s) => s.url)]);
     // (csak a ténylegesen meglévő régi kulcsok: az átvitel után a folyam további feldolgozása már olcsó)
     const present = new Set(Object.keys(d.eps));
@@ -319,7 +325,11 @@ export function parseFeed(xml, url) {
 const docKey = (url) => 'pod2:' + hash(url) + hash(url.split('').reverse().join('')) + url.length.toString(36);
 /** A folyam a gyorsítótárból (azonnal), ha volt már letöltve. */
 export async function cachedFeed(url) {
-  if (feeds.has(url)) return feeds.get(url);
+  if (feeds.has(url)) {
+    // (közben érkezett profil – pl. csak profilos átvétel – régi kulcsai is átkerülnek)
+    migrateKeys(feeds.get(url));
+    return feeds.get(url);
+  }
   const c = await api.docGet?.(docKey(url)).catch(() => null);
   // (a rövid kulcs ütközhet: csak a ténylegesen ehhez a címhez tartozó folyam jó)
   if (c?.eps && c.url === url) {

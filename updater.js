@@ -312,14 +312,17 @@ async function install(file, silent) {
     return 'shown';
   }
   if (typeof silent !== 'boolean') silent = (await prefs()).silent;
-  const q = (x) => '"' + String(x).replace(/"/g, '') + '"';
   // MSI: a Windows Installer frissíti a meglévő telepítést (azonos UpgradeCode), az Adás közben bezárul. Csendesen:
   // /passive (csak a folyamatjelző és – gépre telepítésnél – a Windows engedélykérése; a teljesen néma /qn ott el sem
-  // indulna), utána az Adás újraindul (sikertelen / megszakított frissítésnél a régi változat).
+  // indulna), utána az Adás újraindul (sikertelen / megszakított frissítésnél a régi változat). A várakozást egy
+  // PowerShell-parancs végzi, kódolva (-EncodedCommand): az útvonalak szó szerint mennek át – a cmd.exe a %…%
+  // részeket környezeti változóként kibontaná –, és nem az Adás saját, a frissítés közben cserélt fájljából fut.
   if (process.platform === 'win32' && /\.msi$/i.test(file)) {
     if (silent) {
-      const cmd = `"msiexec /i ${q(file)} /passive /norestart & start "" ${q(process.execPath)}"`;
-      spawn(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', cmd], { detached: true, stdio: 'ignore', windowsHide: true, windowsVerbatimArguments: true }).unref();
+      const lit = (x) => "'" + String(x).replace(/'/g, "''") + "'";
+      const ps = `$f = ${lit(file)}; $e = ${lit(process.execPath)}; Start-Process -FilePath 'msiexec.exe' -ArgumentList ('/i "' + $f + '" /passive /norestart') -Wait; Start-Process -FilePath $e`;
+      const enc = Buffer.from(ps, 'utf16le').toString('base64');
+      spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-EncodedCommand', enc], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
     } else spawn('msiexec', ['/i', file], { detached: true, stdio: 'ignore' }).unref();
     setTimeout(() => app.quit(), 400);
     return 'started';
