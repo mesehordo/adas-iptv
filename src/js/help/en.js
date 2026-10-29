@@ -141,7 +141,7 @@ ${go('#/settings', 'Open Settings')}`,
 <p>A channel can have several <b>stream sources</b> (different quality, region or server). The program starts with the one it judges best: it prefers one that worked before and better quality, and ranks geo-restricted or not 24/7 sources lower.</p>
 <p>If the source doesn’t start within 20 seconds, or stalls during playback, the program tries the next source by itself (“Trying another source 2/3…”). If there is still an untried source, it switches after 10 seconds on a stalled stream (otherwise it waits 30 seconds). This can be switched off: Settings → Playback → <i>Automatic backup source</i>.</p>
 <h2>Previous channel, volume per channel, subtitle style</h2>
-<p>The <kbd>R</kbd> key (or the ↺ button on the control bar, or the <i>Previous</i> button of the phone remote) switches back to the channel you watched before. Under Settings → Playback you can switch on <b>Volume per channel</b>: every channel remembers its own volume. Subtitle size, colour (white, yellow, light blue) and background (dark band, shadow, none): Settings → Movies & subtitles → <i>Subtitle appearance</i>.</p>
+<p>The <kbd>R</kbd> key (or the ↺ button on the control bar, or the <i>Previous</i> button of the phone remote) switches back to the channel you watched before. Under Settings → Playback you can switch on <b>Volume per channel</b>: every channel remembers its own volume. Subtitle size, colour (white, yellow, light blue) and background (dark band, shadow, none): Settings → VODs & subtitles → <i>Subtitle appearance</i>.</p>
 <p>If none of the sources work, the <b>“This stream isn’t available right now”</b> window appears, where you can retry, move on to the next channel, or go back. ${t('trouble-playback', 'What can I do then?')}</p>`,
   },
   {
@@ -220,7 +220,7 @@ ${go('#/settings', 'Open Settings')}`,
 <li>The <b>size</b> can be set everywhere; the <b>time offset</b> applies to external subtitles.</li>
 </ul>
 <h2>Favourite languages per profile</h2>
-<p>At the bottom of Settings → Movies & subtitles → <b>Info and subtitles in your language</b> you can set <b>which audio track</b> (the stream’s default / your language / English) and <b>which embedded subtitles</b> (off / your language / English) your profile asks for. The player picks these automatically for every new stream and video, when available.</p>
+<p>At the bottom of Settings → VODs & subtitles → <b>Info and subtitles in your language</b> you can set <b>which audio track</b> (the stream’s default / your language / English) and <b>which embedded subtitles</b> (off / your language / English) your profile asks for. The player picks these automatically for every new stream and video, when available.</p>
 <div class="note">The desktop version can also switch audio tracks with the built-in player (MP4, MKV). On TV, audio track switching in the built-in player depends on the device; for HLS streams the hls.js player works everywhere.</div>
 ${go('#/settings?section=huinfo', 'Set favourite languages')}`,
   },
@@ -276,7 +276,7 @@ ${go('#/settings?section=huinfo', 'Set favourite languages')}`,
 <h2>The Online lists page</h2>
 <ul>
 <li><b>Continue</b>: the films and series you’ve started (the progress bar shows where you are).</li>
-<li><b>Series</b>, <b>Recommended films</b>, then the <b>unified genres</b> (the most popular first; by default the 12 most popular get a row, the rest can be switched on under Settings → Movies & subtitles → VOD lists → <i>VOD page rows</i>, and they can always be chosen in the filter), and finally one row per list. The genre names follow <b>AnimeAddicts’ genre list</b> (Action, Drama, Fantasy, Adventure, Crime, Mystery, Romance, Sci-fi, Thriller, Comedy…), extended with the <i>Documentary</i> and <i>Cult film</i> genres. The lists’ own groups – in any language, e.g. “Horror all night”, “Comedy”, “Vígjáték” – are mapped to these, so a genre appears only once. Mere characteristics (e.g. <i>Not for kids</i>, <i>Short episode(s)</i>, <i>CGI</i>) can be chosen in the filter but don’t get their own row. A title can appear in <b>several genres</b>: it gets the genre of each of its lists, files and groups (e.g. if it’s in both <code>action.m3u8</code> and <code>comedy.m3u8</code> of your own genre pack). In your own media library, playlists that can’t be tied to a genre (e.g. “Christmas”) stay as separate rows under their own name.</li>
+<li><b>Series</b>, <b>Recommended films</b>, then the <b>unified genres</b> (the most popular first; by default the 12 most popular get a row, the rest can be switched on under Settings → VODs & subtitles → VOD lists → <i>VOD page rows</i>, and they can always be chosen in the filter), and finally one row per list. The genre names follow <b>AnimeAddicts’ genre list</b> (Action, Drama, Fantasy, Adventure, Crime, Mystery, Romance, Sci-fi, Thriller, Comedy…), extended with the <i>Documentary</i> and <i>Cult film</i> genres. The lists’ own groups – in any language, e.g. “Horror all night”, “Comedy”, “Vígjáték” – are mapped to these, so a genre appears only once. Mere characteristics (e.g. <i>Not for kids</i>, <i>Short episode(s)</i>, <i>CGI</i>) can be chosen in the filter but don’t get their own row. A title can appear in <b>several genres</b>: it gets the genre of each of its lists, files and groups (e.g. if it’s in both <code>action.m3u8</code> and <code>comedy.m3u8</code> of your own genre pack). In your own media library, playlists that can’t be tied to a genre (e.g. “Christmas”) stay as separate rows under their own name.</li>
 <li>With the <b>All films</b>, <b>All series</b> and <b>Search and filter</b> buttons you get a grid view filtered by type, group and year.</li>
 </ul>
 <p>The header search finds films and series too (under a separate “VOD – films and series” heading).</p>
@@ -312,7 +312,7 @@ ${go('#/vod', 'Open VOD')}`,
 <h2>Resuming</h2>
 <p>The program saves where you are every 5 seconds and on exit. Next time the <i>Continue</i> button starts from there; the <i>From the start</i> button from the beginning. Once you’ve watched 94% of the video, it counts as watched.</p>
 <h2>Next episode</h2>
-<p>For series, a <b>Next episode</b> prompt with an 8-second countdown appears at the end of an episode – <i>Play</i> starts it immediately, <i>Cancel</i> stops it. It can be switched off: Settings → Movies & subtitles → VOD lists → <i>Start the next episode automatically</i>.</p>
+<p>For series, a <b>Next episode</b> prompt with an 8-second countdown appears at the end of an episode – <i>Play</i> starts it immediately, <i>Cancel</i> stops it. It can be switched off: Settings → VODs & subtitles → VOD lists → <i>Start the next episode automatically</i>.</p>
 <p>Here the sleep timer’s “At the end of the programme” setting means the end of the video.</p>
 <h2>Audio tracks and embedded subtitles (playback bridge)</h2>
 <p>On its own, the built-in player (the Chromium engine) can’t play <b>AC3 / E-AC3 / DTS / TrueHD</b> audio (it doesn’t even see these tracks), doesn’t show <b>subtitles embedded</b> in the file at all (MKV: ASS / SRT, MP4: mov_text), and can’t show the picture of some old video formats (XviD, WMV, 10-bit H.264) either.</p>
@@ -335,7 +335,7 @@ ${go('#/vod', 'Open VOD')}`,
     title: 'Film and series lists',
     keywords: 'film list series list add github repository m3u m3u8 zip several files genre public domain orphaned add-on pack adaspack',
     body: `
-<p>Films and series load from <b>separate lists</b>, like TV channels: Settings → Movies & subtitles → <b>VOD lists</b>.</p>
+<p>Films and series load from <b>separate lists</b>, like TV channels: Settings → VODs & subtitles → <b>VOD lists</b>.</p>
 <h2>Built-in lists</h2>
 <table class="help-table">
 <tr><td><b>Orphaned Films</b></td><td>More than 1,300 public domain films grouped by theme, with cover images.</td></tr>
@@ -375,7 +375,7 @@ ${go('#/settings?section=vodlists', 'Manage lists')}`,
     body: `
 <p>The VOD <b>Own media library</b> tab shows your own films and series – for example from <code>.m3u</code> / <code>.m3u8</code> playlists generated automatically in a folder on your NAS. It works just like the online VOD lists: covers, details page, resume, next episode, information and subtitles in your language.</p>
 <h2>Adding a source</h2>
-<p>Settings → Movies & subtitles → <b>Own media library (NAS)</b>:</p>
+<p>Settings → VODs & subtitles → <b>Own media library (NAS)</b>:</p>
 <table class="help-table">
 <tr><td><b>Choose folder…</b> / <b>Enter folder path</b><br><small>(desktop version)</small></td><td>The NAS’s shared folder, e.g. <code>\\\\NAS\\Media\\Lists</code>, a network drive (<code>Z:\\Lists</code>) or a mounted folder on Linux / macOS (<code>/mnt/nas/lists</code>, <code>/Volumes/Media</code>). The program also looks through subfolders (up to 4 levels deep).</td></tr>
 <tr><td><b>Network address (http)</b><br><small>(on every device, TV too)</small></td><td>If the NAS also makes the folder available via a web server (e.g. Synology Web Station, QNAP, an nginx / Apache directory listing): <code>http://192.168.1.10/lists/</code>. The program looks through the .m3u / .m3u8 links and subfolders (2 levels) found on the page. The address of a single list can be given too.</td></tr>
@@ -406,11 +406,11 @@ ${go('#/settings?section=ownlists', 'Set up own media library')}`,
     keywords: 'subtitle subtitles feliratok.eu opensubtitles subdl srt vtt language english time offset size api key season pack',
     body: `
 <p>For films and series you can load <b>subtitles in your language or in English</b> from the <b>OpenSubtitles</b> and <b>SubDL</b> collections, from <b>Feliratok.eu</b> (a Hungarian subtitle site with Hungarian and English subtitles), or from your own <code>.srt</code> / <code>.vtt</code> file.</p>
-<h2>Feliratok.eu – no setup needed</h2><p>Switched on by default: no account, no key, and no daily limit. For series it also extracts the episode’s subtitles from a season pack (ZIP); accents in old, non-UTF-8 subtitles are correct too. It offers Hungarian and English subtitles. Can be switched off: Settings → Movies & subtitles → Info and subtitles in your language.</p><h2>SubDL (optional)</h2><p>More results with a free key: register on <b>subdl.com</b>, copy the API key from your profile, and enter it: Settings → Movies & subtitles → <i>SubDL API key</i>. No password needed.</p><h2>OpenSubtitles (optional, set up once)</h2>
+<h2>Feliratok.eu – no setup needed</h2><p>Switched on by default: no account, no key, and no daily limit. For series it also extracts the episode’s subtitles from a season pack (ZIP); accents in old, non-UTF-8 subtitles are correct too. It offers Hungarian and English subtitles. Can be switched off: Settings → VODs & subtitles → Info and subtitles in your language.</p><h2>SubDL (optional)</h2><p>More results with a free key: register on <b>subdl.com</b>, copy the API key from your profile, and enter it: Settings → VODs & subtitles → <i>SubDL API key</i>. No password needed.</p><h2>OpenSubtitles (optional, set up once)</h2>
 <ol>
 <li>Register for free on <b>opensubtitles.com</b>.</li>
 <li>Logged in, find the <b>API consumers</b> section in your profile and create a new key (any name will do, e.g. “Adás”).</li>
-<li>In Adás: Settings → Movies & subtitles → <b>Info and subtitles in your language</b> → enter the <b>API key</b>, your <b>username</b> and your <b>password</b>, then press <i>Test login</i>.</li>
+<li>In Adás: Settings → VODs & subtitles → <b>Info and subtitles in your language</b> → enter the <b>API key</b>, your <b>username</b> and your <b>password</b>, then press <i>Test login</i>.</li>
 </ol>
 <p>The API key is enough for searching; <b>downloading also needs login</b>. With a free account a limited number of subtitles can be downloaded per day (the program shows how many are left after each download); subtitles downloaded once are remembered and don’t use up the quota again.</p>
 <h2>Use during playback</h2>
@@ -452,7 +452,7 @@ ${go('#/settings?section=huinfo', 'Subtitle settings')}`,
 <tr><td><b>TMDB</b> (The Movie Database)</td><td>If you enter your own free API key (themoviedb.org → Settings → API), film and series data comes from here too: richer descriptions in your language and ratings.</td></tr>
 </table>
 <p>If a provider asks to slow down (too many requests), the program stops asking for a while and continues later. <b>AnimeAddicts</b> reviews are only available when logged in, so the program doesn’t read them.</p>
-<p>The data goes into the cache (for 30 days), so it appears instantly the second time. To switch it off: Settings → Movies & subtitles → Info and subtitles in your language → <i>Download information and cover images</i>.</p>
+<p>The data goes into the cache (for 30 days), so it appears instantly the second time. To switch it off: Settings → VODs & subtitles → Info and subtitles in your language → <i>Download information and cover images</i>.</p>
 ${go('#/settings?section=huinfo', 'Settings')}`,
   },
   {
@@ -882,7 +882,7 @@ ${go('#/settings', 'Appearance settings')}`,
     title: 'Order of the TV and VOD page rows',
     keywords: 'order rows categories sort hide tv page vod genre drag',
     body: `
-<p>Settings → Appearance & Home → <b>TV page rows</b>, and Settings → Movies & subtitles → VOD lists → <b>VOD page rows</b>. The list shows the rows in the order they appear. The setting applies <b>only to the current profile</b>. For VOD the rows are: Continue, Watchlist, Series, Recommended films, the unified genres (with at least 6 titles), one row per list, Other films.</p>
+<p>Settings → Appearance & Home → <b>TV page rows</b>, and Settings → VODs & subtitles → VOD lists → <b>VOD page rows</b>. The list shows the rows in the order they appear. The setting applies <b>only to the current profile</b>. For VOD the rows are: Continue, Watchlist, Series, Recommended films, the unified genres (with at least 6 titles), one row per list, Other films.</p>
 <ul>
 <li><b>Move</b>: grab the row by the ⋮⋮ handle and drag it into place, or use the ⌃ / ⌄ buttons (with a remote too: stay on the button and press it several times).</li>
 <li><b>Hide</b>: the switch next to the row. A hidden row shows faded in the list but doesn’t appear on the page.</li>
@@ -907,7 +907,7 @@ ${go('#/settings', 'Appearance settings')}`,
 <tr><td><b>🎨 Appearance & Home</b></td><td>Language, interface style, custom themes, menu items; the Home page tiles, weather, news sources, background image, live preview. ${t('themes', 'Styles')} ${t('dashboard', 'Home page')}</td></tr>
 <tr><td><b>▶️ Playback</b></td><td>Backup source, maximum quality, volume, background playback, playback engine and playback bridge, player buttons. ${t('engines', 'Engines')}</td></tr>
 <tr><td><b>📺 TV & guide</b></td><td>Built-in and own playlists, own channels, availability check, recordings (desktop version), TV guide sources and refreshing. ${t('lists', 'Lists')} ${t('epg-sources', 'TV guide')}</td></tr>
-<tr><td><b>🎬 Movies & subtitles</b></td><td>Film and series lists, add-on packs, own (NAS) media library, VOD page rows; subtitle sources (Feliratok.eu, OpenSubtitles, SubDL), subtitle appearance, favourite audio track, descriptions and cover images in your language. ${t('vod-lists', 'VOD lists')} ${t('subtitles', 'Subtitles')}</td></tr>
+<tr><td><b>🎬 VODs & subtitles</b></td><td>Film and series lists, add-on packs, own (NAS) media library, VOD page rows; subtitle sources (Feliratok.eu, OpenSubtitles, SubDL), subtitle appearance, favourite audio track, descriptions and cover images in your language. ${t('vod-lists', 'VOD lists')} ${t('subtitles', 'Subtitles')}</td></tr>
 <tr><td><b>📻 Radio</b></td><td>The Radio page’s station lists and settings.</td></tr>
 <tr><td><b>🎙️ Podcasts</b></td><td>Checking for new episodes, speed, skips, continuous playback, downloaded episodes, moving subscriptions (OPML). ${t('podcast', 'Podcasts')}</td></tr>
 <tr><td><b>🏆 Sport</b></td><td>The Sport menu item and the Sports tracker: what you follow, following something new, time range, channel suggestion. ${t('sportwatch', 'Sports tracker')}</td></tr>
@@ -974,7 +974,7 @@ ${go('#/settings', 'Open Settings')}`,
 <p>How merging works: first by the channel id (<code>tvg-id</code>), then by name and country, and finally – if unambiguous – by name alone. The per-country versions of Pluto TV, Samsung TV Plus and Plex (e.g. “48 Hours” USA / Canada / United Kingdom) merge into one channel. Channels with the same name but a different country that are really different (e.g. “ABC News” Australia and USA) stay separate.</p>
 <h2>Refreshing</h2>
 <ul>
-<li><b>Automatically</b>: lists loaded from a web address refresh <b>at an interval you can set per list</b> – the <i>Refresh</i> selector in the list’s row: every hour … every 48 hours (every 6 hours by default). The program also checks while running, but doesn’t reload a list during playback (it does afterwards). The channel data refreshes daily; at startup the program starts immediately with the saved list and, if it’s old, refreshes it in the background. The same goes for VOD lists: Settings → Movies & subtitles.</li>
+<li><b>Automatically</b>: lists loaded from a web address refresh <b>at an interval you can set per list</b> – the <i>Refresh</i> selector in the list’s row: every hour … every 48 hours (every 6 hours by default). The program also checks while running, but doesn’t reload a list during playback (it does afterwards). The channel data refreshes daily; at startup the program starts immediately with the saved list and, if it’s old, refreshes it in the background. The same goes for VOD lists: Settings → VODs & subtitles.</li>
 <li><b>Immediately</b>: profile menu (the profile picture in the header) → <b>Refresh channel list</b> – below it you can see when the last download was. Or: Settings → TV & guide → Channel lists → <b>Refresh all lists now</b>. Both reload everything bypassing the cache, together with the TV guide, and at the end show how many channels there are (and how many are new).</li>
 </ul>
 <h2>The iptv-org list address</h2>
@@ -1407,7 +1407,7 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
 <p><b>Night mode audio</b> softens the loud parts (music, explosions, ads) and boosts quiet dialogue – so it’s understandable at low volume and nobody wakes up.</p>
 <ul>
 <li>To switch it on during playback: <b>CC</b> button → <i>Audio and subtitles</i> → <i>Night mode audio</i>.</li>
-<li>You can make it the default per profile: Settings → Movies & subtitles → Info and subtitles in your language → <i>Night mode audio</i>.</li>
+<li>You can make it the default per profile: Settings → VODs & subtitles → Info and subtitles in your language → <i>Night mode audio</i>.</li>
 </ul>
 <div class="note">Available in the desktop version and on Android (from Android 9, with the native player); not on LG TVs or in the browser.</div>`,
   },
@@ -1569,7 +1569,7 @@ ${go('#/recordings', 'Recordings')}`,
 <p>An add-on pack is <b>a playlist packed into one file</b>, with a name and description. It appears <b>among the built-in lists</b> (can be switched on and off), but doesn’t ship with the program – it only exists on the device you load it onto.</p>
 <table class="help-table">
 <tr><td><code>something_tv.adaspack</code></td><td><b>TV channels</b> – Settings → TV & guide → Channel lists → Built-in lists.</td></tr>
-<tr><td><code>something_vod.adaspack</code></td><td><b>Films, series</b> – Settings → Movies & subtitles → VOD lists → Built-in lists.</td></tr>
+<tr><td><code>something_vod.adaspack</code></td><td><b>Films, series</b> – Settings → VODs & subtitles → VOD lists → Built-in lists.</td></tr>
 </table>
 <h2>Loading</h2>
 <ul>
@@ -1643,7 +1643,7 @@ ${go('#/settings?section=update', 'Updates')}`,
 <tr><td><code>store.json</code></td><td>Profiles, settings, favourites, viewing history and resume points, reminders, scheduled recordings, viewing statistics, PINs.</td></tr>
 <tr><td><code>lists\\</code></td><td>The contents of lists added from files and add-on packs, the restore points, subtitles already downloaded.</td></tr>
 <tr><td><code>cache\\</code></td><td>Cache of the downloaded channel lists and the TV guide (can be deleted, it is downloaded again).</td></tr>
-<tr><td><code>covers\\</code></td><td>Cover and logo cache (can be emptied: Settings → Movies & subtitles → Cover image store).</td></tr>
+<tr><td><code>covers\\</code></td><td>Cover and logo cache (can be emptied: Settings → VODs & subtitles → Cover image store).</td></tr>
 <tr><td><code>packs\\</code>, <code>themes\\</code></td><td>Downloaded radio / list packs and your own styles.</td></tr>
 <tr><td><code>recdir.json</code>, <code>cast-pins.json</code></td><td>The recordings folder and the remembered identities of cast devices.</td></tr>
 </table>

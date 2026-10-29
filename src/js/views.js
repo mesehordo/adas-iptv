@@ -1150,7 +1150,7 @@ const SET_GROUPS = [
   ['look', '🎨', _t('Megjelenés és Főoldal'), _t('A felület stílusa, témák, nyelv és menüpontok; a Főoldal csempéi (időjárás, hírek, műsor) és az élő előnézet.')],
   ['play', '▶️', _t('Lejátszás'), _t('Hogyan induljanak és szóljanak az adások: tartalék forrás, minőség, lejátszómotor, háttérlejátszás és a lejátszó gombjai.')],
   ['tv', '📺', _t('TV és műsorújság'), _t('A tévécsatornák listái és elérhetősége, a műsorújság forrásai és a felvételek.')],
-  ['vod', '🎬', _t('Filmek és feliratok'), _t('Film- és sorozatlisták, saját médiatár. Feliratforrások, a feliratok kinézete, magyar leírások és borítók.')],
+  ['vod', '🎬', _t('VOD-ok és feliratok'), _t('Film- és sorozatlisták, saját médiatár. Feliratforrások, a feliratok kinézete, magyar leírások és borítók.')],
   ['radio', '📻', _t('Rádió'), _t('A Rádió oldal állomáslistái és beállításai.')],
   ['podcast', '🎙️', _t('Podcast'), _t('Az epizódok frissítése és lejátszása, a letöltött epizódok és a feliratkozások átvitele.')],
   ['sport', '🏆', _t('Sport'), _t('A Sportfigyelő: mit követsz (bajnokság, csapat, sportág a tévében, naptár), és a Sport oldal beállításai.')],

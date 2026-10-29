@@ -141,7 +141,7 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
 <p>Egy csatornának több <b>adásforrása</b> is lehet (különböző minőség, régió vagy szerver). A program a legjobbnak ítélt forrással kezd: előnyben részesíti a korábban működőt, a jobb minőségűt, és hátrébb sorolja a földrajzilag korlátozottat vagy nem 0–24 órásat.</p>
 <p>Ha a forrás 20 másodpercen belül nem indul el, vagy lejátszás közben megakad, a program magától a következő forrással próbálkozik („Másik forrás kipróbálása 2/3…”). Ha van még kipróbálatlan forrás, egy megakadt adásnál már 10 másodperc után vált (különben 30 másodpercig vár). Ez kikapcsolható: Beállítások → Lejátszás → <i>Automatikus tartalék forrás</i>.</p>
 <h2>Előző csatorna, csatornánkénti hangerő, feliratstílus</h2>
-<p>Az <kbd>R</kbd> billentyű (vagy a vezérlősáv ↺ gombja, a telefonos távirányító <i>Előző</i> gombja) visszavált az előzőleg nézett csatornára. A Beállítások → Lejátszás alatt bekapcsolható a <b>Hangerő csatornánként</b>: minden csatorna megjegyzi a saját hangerejét. A feliratok mérete, színe (fehér, sárga, világoskék) és háttere (sötét sáv, árnyék, nincs): Beállítások → Filmek és feliratok → <i>A feliratok kinézete</i>.</p>
+<p>Az <kbd>R</kbd> billentyű (vagy a vezérlősáv ↺ gombja, a telefonos távirányító <i>Előző</i> gombja) visszavált az előzőleg nézett csatornára. A Beállítások → Lejátszás alatt bekapcsolható a <b>Hangerő csatornánként</b>: minden csatorna megjegyzi a saját hangerejét. A feliratok mérete, színe (fehér, sárga, világoskék) és háttere (sötét sáv, árnyék, nincs): Beállítások → VOD-ok és feliratok → <i>A feliratok kinézete</i>.</p>
 <p>Ha egyik forrás sem működik, megjelenik a <b>„Ez az adás most nem érhető el”</b> ablak, ahonnan újrapróbálhatod, továbbléphetsz a következő csatornára, vagy visszaléphetsz. ${t('trouble-playback', 'Mit tehetek ilyenkor?')}</p>`,
   },
   {
@@ -220,7 +220,7 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
 <li>A <b>méret</b> mindenhol állítható; az <b>időeltolás</b> a külső feliratokra vonatkozik.</li>
 </ul>
 <h2>Kedvenc nyelvek profilonként</h2>
-<p>Beállítások → Filmek és feliratok → <b>Magyar információk és feliratok</b> alján megadhatod, hogy a profilod <b>melyik hangsávot</b> (az adás alapértelmezése / magyar / angol) és <b>melyik beágyazott feliratot</b> (kikapcsolva / magyar / angol) kérje. A lejátszó minden új adásnál és videónál magától ezt választja, ha elérhető.</p>
+<p>Beállítások → VOD-ok és feliratok → <b>Magyar információk és feliratok</b> alján megadhatod, hogy a profilod <b>melyik hangsávot</b> (az adás alapértelmezése / magyar / angol) és <b>melyik beágyazott feliratot</b> (kikapcsolva / magyar / angol) kérje. A lejátszó minden új adásnál és videónál magától ezt választja, ha elérhető.</p>
 <div class="note">Az asztali változat a beépített lejátszóval (MP4, MKV) is tud hangsávot váltani. Tévén a beépített lejátszó hangsávváltása a készüléktől függ; HLS-adásoknál a hls.js lejátszó mindenhol működik.</div>
 ${go('#/settings?section=huinfo', 'Kedvenc nyelvek beállítása')}`,
   },
@@ -276,7 +276,7 @@ ${go('#/settings?section=huinfo', 'Kedvenc nyelvek beállítása')}`,
 <h2>Az Online listák oldal</h2>
 <ul>
 <li><b>Folytatás</b>: az elkezdett filmek és sorozatok (a haladásjelző csík mutatja, hol tartasz).</li>
-<li><b>Sorozatok</b>, <b>Ajánlott filmek</b>, majd az <b>egységes műfajok</b> (a legnépszerűbb elöl; alapból a 12 legnépszerűbb kap sort, a többit a Beállítások → Filmek és feliratok → VOD-listák → <i>A VOD oldal sorai</i> alatt kapcsolhatod be, a szűrőben pedig mindig választható), végül listánként egy sor. A műfajnevek az <b>AnimeAddicts műfajlistáját</b> követik (Akció, Dráma, Fantasy, Kaland, Krimi, Misztikus, Romantikus, Sci-fi, Thriller, Vígjáték…), kiegészítve a <i>Dokumentum</i> és a <i>Kultfilm</i> műfajjal. A listák saját csoportjait – magyarul vagy angolul, pl. „Horror all night”, „Comedy”, „Vígjáték” – a program ezekre fordítja le, így egy műfaj csak egyszer szerepel. A puszta jellemzők (pl. <i>Nem gyerekeknek</i>, <i>Rövid rész(ek)</i>, <i>Cgi</i>) a szűrőben választhatók, de nem kapnak külön sort. Egy cím <b>több műfajban</b> is megjelenhet: minden listájának, fájljának és csoportjának műfaját megkapja (pl. ha egy saját műfaji csomagban az <code>akció.m3u8</code>-ban és a <code>vígjáték.m3u8</code>-ban is benne van). A saját médiatárban a műfajhoz nem köthető lejátszólisták (pl. „Karácsony”) saját nevükkel külön sorként maradnak.</li>
+<li><b>Sorozatok</b>, <b>Ajánlott filmek</b>, majd az <b>egységes műfajok</b> (a legnépszerűbb elöl; alapból a 12 legnépszerűbb kap sort, a többit a Beállítások → VOD-ok és feliratok → VOD-listák → <i>A VOD oldal sorai</i> alatt kapcsolhatod be, a szűrőben pedig mindig választható), végül listánként egy sor. A műfajnevek az <b>AnimeAddicts műfajlistáját</b> követik (Akció, Dráma, Fantasy, Kaland, Krimi, Misztikus, Romantikus, Sci-fi, Thriller, Vígjáték…), kiegészítve a <i>Dokumentum</i> és a <i>Kultfilm</i> műfajjal. A listák saját csoportjait – magyarul vagy angolul, pl. „Horror all night”, „Comedy”, „Vígjáték” – a program ezekre fordítja le, így egy műfaj csak egyszer szerepel. A puszta jellemzők (pl. <i>Nem gyerekeknek</i>, <i>Rövid rész(ek)</i>, <i>Cgi</i>) a szűrőben választhatók, de nem kapnak külön sort. Egy cím <b>több műfajban</b> is megjelenhet: minden listájának, fájljának és csoportjának műfaját megkapja (pl. ha egy saját műfaji csomagban az <code>akció.m3u8</code>-ban és a <code>vígjáték.m3u8</code>-ban is benne van). A saját médiatárban a műfajhoz nem köthető lejátszólisták (pl. „Karácsony”) saját nevükkel külön sorként maradnak.</li>
 <li>Az <b>Összes film</b>, <b>Összes sorozat</b> és <b>Keresés és szűrés</b> gombbal rácsnézetben, típus, csoport és év szerint szűrhetsz.</li>
 </ul>
 <p>A fejléc keresője is talál filmeket és sorozatokat (külön „VOD – filmek és sorozatok” cím alatt).</p>
@@ -312,7 +312,7 @@ ${go('#/vod', 'A VOD megnyitása')}`,
 <h2>Folytatás</h2>
 <p>A program 5 másodpercenként és kilépéskor menti, hol tartasz. Legközelebb a <i>Folytatás</i> gomb onnan indítja; az <i>Előről</i> gombbal az elejéről. Ha a videó 94%-át megnézted, megnézettnek számít.</p>
 <h2>Következő rész</h2>
-<p>Sorozatnál a rész végén megjelenik a <b>Következő rész</b> ajánló 8 másodperces visszaszámlálással – <i>Lejátszás</i> azonnal indítja, <i>Mégse</i> leállítja. Kikapcsolható: Beállítások → Filmek és feliratok → VOD-listák → <i>A következő rész automatikus indítása</i>.</p>
+<p>Sorozatnál a rész végén megjelenik a <b>Következő rész</b> ajánló 8 másodperces visszaszámlálással – <i>Lejátszás</i> azonnal indítja, <i>Mégse</i> leállítja. Kikapcsolható: Beállítások → VOD-ok és feliratok → VOD-listák → <i>A következő rész automatikus indítása</i>.</p>
 <p>Az elalvási időzítő „A műsor végén” beállítása itt a videó végét jelenti.</p>
 <h2>Hangsávok és beágyazott feliratok (lejátszási híd)</h2>
 <p>A beépített lejátszó (a Chromium motorja) magában nem tudja az <b>AC3 / E-AC3 / DTS / TrueHD</b> hangot (ezeket a sávokat nem is látja), a fájlba <b>ágyazott feliratokat</b> (MKV: ASS / SRT, MP4: mov_text) egyáltalán nem jeleníti meg, és néhány régi videóformátum (XviD, WMV, 10 bites H.264) képét sem.</p>
@@ -335,7 +335,7 @@ ${go('#/vod', 'A VOD megnyitása')}`,
     title: 'Film- és sorozatlisták',
     keywords: 'film lista sorozat lista hozzáadás github tárhely m3u m3u8 zip több fájl műfaj közkincs orphaned kiegészítő csomag adaspack',
     body: `
-<p>A filmek és sorozatok <b>külön listákból</b> töltődnek, mint a tévécsatornák: Beállítások → Filmek és feliratok → <b>VOD-listák</b>.</p>
+<p>A filmek és sorozatok <b>külön listákból</b> töltődnek, mint a tévécsatornák: Beállítások → VOD-ok és feliratok → <b>VOD-listák</b>.</p>
 <h2>Beépített listák</h2>
 <table class="help-table">
 <tr><td><b>Orphaned Films</b></td><td>Több mint 1300 közkincs (public domain) film témák szerint csoportosítva, borítóképekkel.</td></tr>
@@ -375,7 +375,7 @@ ${go('#/settings?section=vodlists', 'Listák kezelése')}`,
     body: `
 <p>A VOD <b>Saját médiatár</b> fülén a saját filmjeid és sorozataid jelennek meg – például a NAS egy mappájában automatikusan keletkező <code>.m3u</code> / <code>.m3u8</code> lejátszólistákból. Ugyanúgy működik, mint az online VOD-listák: borítók, adatlap, folytatás, következő rész, magyar információk és feliratok.</p>
 <h2>Forrás megadása</h2>
-<p>Beállítások → Filmek és feliratok → <b>Saját médiatár (NAS)</b>:</p>
+<p>Beállítások → VOD-ok és feliratok → <b>Saját médiatár (NAS)</b>:</p>
 <table class="help-table">
 <tr><td><b>Mappa kiválasztása…</b> / <b>Mappa útvonalának megadása</b><br><small>(asztali változat)</small></td><td>A NAS megosztott mappája, pl. <code>\\\\NAS\\Media\\Listak</code>, egy hálózati meghajtó (<code>Z:\\Listak</code>) vagy Linuxon / macOS-en csatolt mappa (<code>/mnt/nas/listak</code>, <code>/Volumes/Media</code>). A program az almappákat is átnézi (4 szint mélységig).</td></tr>
 <tr><td><b>Hálózati cím (http)</b><br><small>(minden eszközön, tévén is)</small></td><td>Ha a NAS webszerveren is elérhetővé teszi a mappát (pl. Synology Web Station, QNAP, nginx / Apache könyvtárlista): <code>http://192.168.1.10/listak/</code>. A program a lapon talált .m3u / .m3u8 hivatkozásokat és az almappákat (2 szint) nézi át. Egyetlen lista címe is megadható.</td></tr>
@@ -406,11 +406,11 @@ ${go('#/settings?section=ownlists', 'Saját médiatár beállítása')}`,
     keywords: 'felirat subtitle feliratok.eu feliratok eu opensubtitles subdl srt vtt magyar angol időeltolás méret api kulcs évadcsomag',
     body: `
 <p>Filmekhez és sorozatokhoz <b>magyar vagy angol feliratot</b> tölthetsz be a <b>Feliratok.eu</b> (magyar feliratoldal) és az <b>OpenSubtitles</b> gyűjteményéből, vagy egy saját <code>.srt</code> / <code>.vtt</code> fájlból.</p>
-<h2>Feliratok.eu – beállítás nélkül</h2><p>Alapból be van kapcsolva: nem kell fiók, kulcs, és nincs napi korlát. Sorozatoknál a rész feliratát az évadcsomagból (ZIP) is kiveszi; a régi, nem UTF-8 kódolású magyar feliratok ékezetei is helyesek. Kikapcsolható: Beállítások → Filmek és feliratok → Magyar információk és feliratok.</p><h2>SubDL (nem kötelező)</h2><p>További találatok ingyenes kulccsal: regisztrálj a <b>subdl.com</b> oldalon, a profilodban másold ki az API-kulcsot, és add meg: Beállítások → Filmek és feliratok → <i>SubDL API-kulcs</i>. Jelszó nem kell.</p><h2>OpenSubtitles (nem kötelező, egyszer kell beállítani)</h2>
+<h2>Feliratok.eu – beállítás nélkül</h2><p>Alapból be van kapcsolva: nem kell fiók, kulcs, és nincs napi korlát. Sorozatoknál a rész feliratát az évadcsomagból (ZIP) is kiveszi; a régi, nem UTF-8 kódolású magyar feliratok ékezetei is helyesek. Kikapcsolható: Beállítások → VOD-ok és feliratok → Magyar információk és feliratok.</p><h2>SubDL (nem kötelező)</h2><p>További találatok ingyenes kulccsal: regisztrálj a <b>subdl.com</b> oldalon, a profilodban másold ki az API-kulcsot, és add meg: Beállítások → VOD-ok és feliratok → <i>SubDL API-kulcs</i>. Jelszó nem kell.</p><h2>OpenSubtitles (nem kötelező, egyszer kell beállítani)</h2>
 <ol>
 <li>Regisztrálj ingyenesen az <b>opensubtitles.com</b> oldalon.</li>
 <li>Bejelentkezve a profilodban keresd meg az <b>API consumers</b> részt, és hozz létre egy új kulcsot (bármilyen név jó, pl. „Adás”).</li>
-<li>Az Adásban: Beállítások → Filmek és feliratok → <b>Magyar információk és feliratok</b> → add meg az <b>API-kulcsot</b>, a <b>felhasználóneved</b> és a <b>jelszavad</b>, majd nyomd meg a <i>Bejelentkezés kipróbálása</i> gombot.</li>
+<li>Az Adásban: Beállítások → VOD-ok és feliratok → <b>Magyar információk és feliratok</b> → add meg az <b>API-kulcsot</b>, a <b>felhasználóneved</b> és a <b>jelszavad</b>, majd nyomd meg a <i>Bejelentkezés kipróbálása</i> gombot.</li>
 </ol>
 <p>A kereséshez elég az API-kulcs, a <b>letöltéshez bejelentkezés</b> is kell. Ingyenes fiókkal naponta korlátozott számú felirat tölthető le (a program minden letöltés után kiírja, mennyi maradt); egyszer letöltött feliratot a program megjegyez, az újra nem fogyaszt keretet.</p>
 <h2>Használat lejátszás közben</h2>
@@ -452,7 +452,7 @@ ${go('#/settings?section=huinfo', 'Felirat-beállítások')}`,
 <tr><td><b>TMDB</b> (The Movie Database)</td><td>Ha megadod a saját ingyenes API-kulcsodat (themoviedb.org → Beállítások → API), a filmek és sorozatok adatai innen is jönnek: gazdagabb magyar leírások és értékelések.</td></tr>
 </table>
 <p>Ha egy szolgáltató lassításra kér (túl sok kérés), a program egy ideig nem kérdezi, és később folytatja. Az <b>AnimeAddicts</b> ismertetői csak bejelentkezve érhetők el, ezért azokat a program nem olvassa be.</p>
-<p>Az adatok a gyorsítótárba kerülnek (30 napig), így másodszorra azonnal megjelennek. Kikapcsolás: Beállítások → Filmek és feliratok → Magyar információk és feliratok → <i>Magyar információk letöltése</i>.</p>
+<p>Az adatok a gyorsítótárba kerülnek (30 napig), így másodszorra azonnal megjelennek. Kikapcsolás: Beállítások → VOD-ok és feliratok → Magyar információk és feliratok → <i>Magyar információk letöltése</i>.</p>
 ${go('#/settings?section=huinfo', 'Beállítások')}`,
   },
   {
@@ -882,7 +882,7 @@ ${go('#/settings', 'Megjelenés beállítása')}`,
     title: 'A TV és a VOD oldal sorainak sorrendje',
     keywords: 'sorrend sorok kategóriák rendezés elrejtés tv oldal vod műfaj húzás',
     body: `
-<p>Beállítások → Megjelenés és Főoldal → <b>A TV oldal sorai</b>, illetve Beállítások → Filmek és feliratok → VOD-listák → <b>A VOD oldal sorai</b>. A lista a sorokat abban a sorrendben mutatja, ahogy megjelennek. A beállítás <b>csak az aktuális profilra</b> vonatkozik. A VOD-nál a sorok: Folytatás, Megnézendő, Sorozatok, Ajánlott filmek, az egységes műfajok (legalább 6 címmel), listánként egy sor, Egyéb filmek.</p>
+<p>Beállítások → Megjelenés és Főoldal → <b>A TV oldal sorai</b>, illetve Beállítások → VOD-ok és feliratok → VOD-listák → <b>A VOD oldal sorai</b>. A lista a sorokat abban a sorrendben mutatja, ahogy megjelennek. A beállítás <b>csak az aktuális profilra</b> vonatkozik. A VOD-nál a sorok: Folytatás, Megnézendő, Sorozatok, Ajánlott filmek, az egységes műfajok (legalább 6 címmel), listánként egy sor, Egyéb filmek.</p>
 <ul>
 <li><b>Áthelyezés</b>: fogd meg a sort a ⋮⋮ jelnél és húzd a helyére, vagy használd a ⌃ / ⌄ gombokat (távirányítóval is: a gombon maradva többször megnyomható).</li>
 <li><b>Elrejtés</b>: a sor melletti kapcsoló. Az elrejtett sor halványan látszik a listában, de a főoldalon nem jelenik meg.</li>
@@ -907,7 +907,7 @@ ${go('#/settings', 'Megjelenés beállítása')}`,
 <tr><td><b>🎨 Megjelenés és Főoldal</b></td><td>Nyelv, felületstílus, saját témák, menüpontok; a Főoldal csempéi, időjárás, hírforrások, háttérkép, élő előnézet. ${t('themes', 'Stílusok')} ${t('dashboard', 'Főoldal')}</td></tr>
 <tr><td><b>▶️ Lejátszás</b></td><td>Tartalék forrás, legnagyobb minőség, hangerő, háttérlejátszás, lejátszómotor és lejátszási híd, a lejátszó gombjai. ${t('engines', 'Motorok')}</td></tr>
 <tr><td><b>📺 TV és műsorújság</b></td><td>Beépített és saját lejátszólisták, saját csatornák, elérhetőség-ellenőrzés, a felvételek (asztali változat), a műsorújság forrásai és frissítése. ${t('lists', 'Listák')} ${t('epg-sources', 'Műsorújság')}</td></tr>
-<tr><td><b>🎬 Filmek és feliratok</b></td><td>Film- és sorozatlisták, kiegészítő csomagok, saját (NAS-) médiatár, a VOD oldal sorai; feliratforrások (Feliratok.eu, OpenSubtitles, SubDL), a feliratok kinézete, kedvenc hangsáv, magyar leírások és borítóképek. ${t('vod-lists', 'VOD-listák')} ${t('subtitles', 'Feliratok')}</td></tr>
+<tr><td><b>🎬 VOD-ok és feliratok</b></td><td>Film- és sorozatlisták, kiegészítő csomagok, saját (NAS-) médiatár, a VOD oldal sorai; feliratforrások (Feliratok.eu, OpenSubtitles, SubDL), a feliratok kinézete, kedvenc hangsáv, magyar leírások és borítóképek. ${t('vod-lists', 'VOD-listák')} ${t('subtitles', 'Feliratok')}</td></tr>
 <tr><td><b>📻 Rádió</b></td><td>A Rádió oldal állomáslistái és beállításai.</td></tr>
 <tr><td><b>🎙️ Podcast</b></td><td>Új epizódok keresése, sebesség, ugrások, folyamatos lejátszás, a letöltött epizódok, a feliratkozások átvitele (OPML). ${t('podcast', 'Podcast')}</td></tr>
 <tr><td><b>🏆 Sport</b></td><td>A Sport menüpont és a Sportfigyelő: mit követsz, új követés, időszak, csatornaajánlás. ${t('sportwatch', 'Sportfigyelő')}</td></tr>
@@ -974,7 +974,7 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
 <p>Az összevonás menete: először a csatorna azonosítója (<code>tvg-id</code>) alapján, majd név és ország, végül – ha egyértelmű – csak név alapján. A Pluto TV, Samsung TV Plus és Plex országonkénti változatai (pl. „48 Hours” USA / Kanada / Egyesült Királyság) egy csatornává olvadnak. Az eltérő országú, azonos nevű, de valójában különböző csatornák (pl. „ABC News” Ausztrália és USA) külön maradnak.</p>
 <h2>Frissítés</h2>
 <ul>
-<li><b>Automatikusan</b>: a webcímről töltött listák <b>listánként beállítható gyakorisággal</b> frissülnek – a lista sorában a <i>Frissítés</i> választó: óránként … 48 óránként (alapból 6 óránként). A program futás közben is figyeli, de lejátszás közben nem tölti újra a listát (utána igen). A csatornaadatok naponta frissülnek; induláskor a program az elmentett listával azonnal elindul, és ha az régi, a háttérben frissíti. Ugyanez a VOD-listáknál: Beállítások → Filmek és feliratok.</li>
+<li><b>Automatikusan</b>: a webcímről töltött listák <b>listánként beállítható gyakorisággal</b> frissülnek – a lista sorában a <i>Frissítés</i> választó: óránként … 48 óránként (alapból 6 óránként). A program futás közben is figyeli, de lejátszás közben nem tölti újra a listát (utána igen). A csatornaadatok naponta frissülnek; induláskor a program az elmentett listával azonnal elindul, és ha az régi, a háttérben frissíti. Ugyanez a VOD-listáknál: Beállítások → VOD-ok és feliratok.</li>
 <li><b>Azonnal</b>: profilmenü (a fejléc profilképe) → <b>Csatornalista frissítése</b> – alatta látszik, mikor volt az utolsó letöltés. Vagy: Beállítások → TV és műsorújság → Csatornalisták → <b>Minden lista frissítése most</b>. Mindkettő a gyorsítótár megkerülésével mindent újratölt, a műsorújsággal együtt, és a végén kiírja, hány csatorna lett (és hány új).</li>
 </ul>
 <h2>Az iptv-org lista címe</h2>
@@ -1407,7 +1407,7 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
 <p>Az <b>éjszakai hang</b> letompítja a hangos részeket (zene, robbanás, reklám), és kiemeli a halk párbeszédet – hogy halkan is érthető legyen, és ne ébredjen fel senki.</p>
 <ul>
 <li>Bekapcsolás lejátszás közben: <b>CC</b> gomb → <i>Hang és felirat</i> → <i>Éjszakai hang</i>.</li>
-<li>Profilonként alapértelmezetté teheted: Beállítások → Filmek és feliratok → Magyar információk és feliratok → <i>Éjszakai hang</i>.</li>
+<li>Profilonként alapértelmezetté teheted: Beállítások → VOD-ok és feliratok → Magyar információk és feliratok → <i>Éjszakai hang</i>.</li>
 </ul>
 <div class="note">Az asztali változatban, valamint Androidon (Android 9-től, a natív lejátszóval) érhető el; LG tévén és böngészőben nem.</div>`,
   },
@@ -1569,7 +1569,7 @@ ${go('#/recordings', 'Felvételek')}`,
 <p>A kiegészítő csomag egy <b>lejátszólista egy fájlba csomagolva</b>, névvel és leírással. A <b>beépített listák között</b> jelenik meg (ki-be kapcsolható), de a programmal nem érkezik – csak azon az eszközön lesz meg, ahová betöltöd.</p>
 <table class="help-table">
 <tr><td><code>valami_tv.adaspack</code></td><td><b>Tévécsatornák</b> – Beállítások → TV és műsorújság → Csatornalisták → Beépített listák.</td></tr>
-<tr><td><code>valami_vod.adaspack</code></td><td><b>Filmek, sorozatok</b> – Beállítások → Filmek és feliratok → VOD-listák → Beépített listák.</td></tr>
+<tr><td><code>valami_vod.adaspack</code></td><td><b>Filmek, sorozatok</b> – Beállítások → VOD-ok és feliratok → VOD-listák → Beépített listák.</td></tr>
 </table>
 <h2>Betöltés</h2>
 <ul>
@@ -1643,7 +1643,7 @@ ${go('#/settings?section=update', 'Frissítések')}`,
 <tr><td><code>store.json</code></td><td>Profilok, beállítások, kedvencek, nézési előzmények és folytatási pontok, emlékeztetők, ütemezett felvételek, nézési statisztika, PIN-kódok.</td></tr>
 <tr><td><code>lists\\</code></td><td>A fájlból felvett listák és kiegészítő csomagok tartalma, a mentési pontok, a már letöltött feliratok.</td></tr>
 <tr><td><code>cache\\</code></td><td>A letöltött csatornalisták és a műsorújság gyorsítótára (törölhető, újra letöltődik).</td></tr>
-<tr><td><code>covers\\</code></td><td>Borító- és logó-gyorsítótár (üríthető: Beállítások → Filmek és feliratok → Borítóképek tára).</td></tr>
+<tr><td><code>covers\\</code></td><td>Borító- és logó-gyorsítótár (üríthető: Beállítások → VOD-ok és feliratok → Borítóképek tára).</td></tr>
 <tr><td><code>packs\\</code>, <code>themes\\</code></td><td>Letöltött rádió- / listacsomagok és saját stílusok.</td></tr>
 <tr><td><code>recdir.json</code>, <code>cast-pins.json</code></td><td>A felvételek mappája, ill. a kivetítő eszközök megjegyzett azonosítói.</td></tr>
 </table>

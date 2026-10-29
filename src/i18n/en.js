@@ -2861,7 +2861,7 @@ export default {
  "Hogyan induljanak és szóljanak az adások: tartalék forrás, minőség, lejátszómotor, háttérlejátszás és a lejátszó gombjai.": "How streams start and sound: backup source, quality, playback engine, background playback and the player’s buttons.",
  "TV és műsorújság": "TV & guide",
  "A tévécsatornák listái és elérhetősége, a műsorújság forrásai és a felvételek.": "TV channel lists and availability, the programme guide’s sources and recordings.",
- "Filmek és feliratok": "Movies & subtitles",
+ "VOD-ok és feliratok": "VODs & subtitles",
  "Film- és sorozatlisták, saját médiatár. Feliratforrások, a feliratok kinézete, magyar leírások és borítók.": "Movie and series lists, your own media library. Subtitle sources, subtitle appearance, descriptions and covers in your language.",
  "A Rádió oldal állomáslistái és beállításai.": "The Radio page’s station lists and settings.",
  "Az epizódok frissítése és lejátszása, a letöltött epizódok és a feliratkozások átvitele.": "Refreshing and playing episodes, downloaded episodes and moving your subscriptions.",
