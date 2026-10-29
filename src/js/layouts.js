@@ -5,9 +5,11 @@ import { esc, html, hashHue, fmtTime, bus, debounce, seededShuffle, norm } from 
 import { api } from './api.js';
 import { store } from './store.js';
 import { epg } from './epg.js';
-import { catalog, visible, getChannels, countryName, countryFlag, categoryName, channelStatus, homeRank, rankScore, byAvailability, activeLists, MINE, KIDS_CATEGORIES, recommendOrder } from './catalog.js';
+import { catalog, visible, getChannels, countryName, countryFlag, categoryName, channelStatus, geoState, qualityBadge, homeRank, rankScore, byAvailability, activeLists, MINE, KIDS_CATEGORIES, recommendOrder } from './catalog.js';
 import { ICON, logoHtml, openInfo, openProgram, gridEl, rowEl, emptyState, avatarHtml, tvTabs } from './components.js';
 import { health } from './health.js';
+import { facetPanel } from './facets.js';
+import { isKidsChannel } from './kids.js';
 import { player, startPreview, stopPreview } from './player.js';
 import { renderDashboard, unitCardHtml, activateUnits, homeNews, openNews, tonightPrograms } from './dashboard.js';
 import { radioMenuOn } from './radiopage.js';
@@ -554,10 +556,42 @@ function renderDetail(view, params, home = false) {
 // ---------------------------------------------------------------------------
 // 7. Gyűjtemény: minden forrás egy helyen, szűrőkkel, rács- vagy listanézettel
 // ---------------------------------------------------------------------------
-// (a „csak a működők” szűrő csak akkor értelmes, ha van ellenőrzési adat – mint a Böngészésnél)
+// (az elérhetőség-szűrő csak akkor értelmes, ha van ellenőrzési adat – mint a Felfedezésnél)
 const healthKnown = () => !!(health.available || Object.keys(store.health || {}).length);
-const uniState = () => ({ lists: null, cats: [], country: '', working: false, favs: false, view: 'grid', sort: 'rec', q: '', ...(store.profile?.uni || {}) });
+// (a régi mentett szűrők – forrás, kategóriák, ország, csak működők, csak kedvencek – a pipás szűrőkbe kerülnek)
+const uniState = () => {
+  const u = { view: 'grid', sort: 'rec', q: '', ...(store.profile?.uni || {}) };
+  if (!u.f) {
+    const sel = {};
+    if (u.lists?.length) sel.src = u.lists;
+    if (u.cats?.length) sel.cat = u.cats;
+    if (u.country) sel.cc = [u.country];
+    if (u.favs) sel.more = ['fav'];
+    if (u.working) sel.av = ['ok'];
+    u.f = { sel, open: {} };
+  }
+  for (const k of ['lists', 'cats', 'country', 'working', 'favs']) delete u[k];
+  return u;
+};
 const saveUni = (u) => store.setProfileValue('uni', { ...u, q: '' });
+/** A Gyűjtemény TV-s szűrőcsoportjai. */
+function tvFacets(lists) {
+  const listName = new Map(lists.map((l) => [l.id, l.name]));
+  const AV = { ok: _t('Működik'), bad: _t('Nem működik'), unknown: _t('Még nem ellenőrzött'), geo: _t('Földrajzi korlát – innen nem nézhető'), geomaybe: _t('Földrajzi korlát lehet') };
+  const Q = { '4K': '4K', FHD: 'Full HD', HD: 'HD', SD: _t('SD / ismeretlen') };
+  const MORE = { fav: _t('Kedvenc'), epg: _t('Van műsorújság'), multi: _t('Több forrásból'), kids: _t('Gyerekeknek'), part: _t('Nem egész nap sugároz') };
+  return [
+    { id: 'src', title: _t('Források'), keys: (c) => c.lists || [], label: (k) => listName.get(k) || k, open: true },
+    { id: 'cat', title: _t('Téma'), keys: (c) => c.categories, label: categoryName, open: true },
+    { id: 'cc', title: _t('Ország'), keys: (c) => [c.country], label: (k) => `${countryFlag(k)} ${countryName(k) || k}`.trim(), first: [store.settings.homeCountry], open: true },
+    { id: 'lang', title: _t('Nyelv'), keys: (c) => c.languages || [], label: (k) => catalog.languages.get(k)?.name || k },
+    { id: 'av', title: _t('Elérhetőség'), order: Object.keys(AV), label: (k) => AV[k],
+      keys: (c) => [healthKnown() ? channelStatus(c) : 'unknown', { sure: 'geo', maybe: 'geomaybe' }[geoState(c)]] },
+    { id: 'q', title: _t('Minőség'), order: Object.keys(Q), label: (k) => Q[k], keys: (c) => [qualityBadge(c) || 'SD'] },
+    { id: 'more', title: _t('Egyéb'), all: true, order: Object.keys(MORE), label: (k) => MORE[k],
+      keys: (c) => [store.profile.favorites.includes(c.id) && 'fav', epg.has(c.id) && 'epg', (c.lists || []).length > 1 && 'multi', isKidsChannel(c) && 'kids', c.streams.length && c.streams.every((s) => s.notAlways) && 'part'].filter(Boolean) },
+  ];
+}
 function uniRow(ch) {
   const now = epg.now(ch.id);
   return `<button class="uni-row" data-id="${esc(ch.id)}" data-lplay="${esc(ch.id)}">${logoHtml(ch)}<span class="uni-name"><b>${esc(ch.name)}</b><small>${metaLine(ch)}</small></span>
@@ -569,26 +603,9 @@ function renderUnified(view) {
   const vis = visible();
   const u = uniState();
   const lists = [...(vis.some((c) => c.lists?.includes(MINE)) ? [{ id: MINE, name: _t('Saját csatornák') }] : []), ...activeLists()];
-  const catCount = new Map();
-  const ccCount = new Map();
-  for (const c of vis) {
-    for (const k of new Set(c.categories)) catCount.set(k, (catCount.get(k) || 0) + 1);
-    if (c.country) ccCount.set(c.country, (ccCount.get(c.country) || 0) + 1);
-  }
-  const cats = [...catCount].sort((a, b) => b[1] - a[1]).slice(0, 24);
-  const ccs = [...ccCount].sort((a, b) => (b[0] === store.settings.homeCountry) - (a[0] === store.settings.homeCountry) || b[1] - a[1]).slice(0, 60);
-  const listOn = (id) => !u.lists || u.lists.includes(id);
   view.innerHTML = `<div class="uni">
     <aside class="uni-side">
-      <details class="uni-filters" ${matchMedia('(max-width: 700px)').matches ? '' : 'open'}><summary>${_t('Szűrők')}</summary>
-      <h4>${_t('Források')}</h4>${lists.map((l) => `<label class="uni-check"><input type="checkbox" data-u-list="${esc(l.id)}" ${listOn(l.id) ? 'checked' : ''} /> <span>${esc(l.name)}</span></label>`).join('')}
-      <h4>${_t('Ország')}</h4><select class="input" data-u-country><option value="">${_t('Mind')}</option>${ccs.map(([cc, n]) => `<option value="${esc(cc)}" ${u.country === cc ? 'selected' : ''}>${esc(countryName(cc) || cc)} (${n})</option>`).join('')}</select>
-      <h4>${_t('Kategóriák')}</h4><div class="uni-cats">${cats.map(([k, n]) => `<button class="chip ${u.cats.includes(k) ? 'on' : ''}" data-u-cat="${esc(k)}" aria-pressed="${u.cats.includes(k)}">${esc(categoryName(k))} <small>${n}</small></button>`).join('')}</div>
-      <h4>${_t('Egyéb')}</h4>
-      ${healthKnown() ? `<label class="uni-check"><input type="checkbox" data-u-flag="working" ${u.working ? 'checked' : ''} /> <span>${_t('Csak a működők')}</span></label>` : ''}
-      <label class="uni-check"><input type="checkbox" data-u-flag="favs" ${u.favs ? 'checked' : ''} /> <span>${_t('Csak a kedvencek')}</span></label>
-      <button class="btn small" data-u-reset>${_t('Szűrők törlése')}</button>
-      </details>
+      <details class="uni-filters" ${matchMedia('(max-width: 700px)').matches ? '' : 'open'}><summary>${_t('Szűrők')}</summary></details>
     </aside>
     <section class="uni-main"><div class="uni-tabs">${tvTabs('tv')}</div>
       <div class="uni-bar"><input class="input uni-q" type="search" placeholder="${_t('Keresés a gyűjteményben…')}" aria-label="${_t('Keresés a gyűjteményben')}" value="${esc(u.q)}" />
@@ -599,19 +616,17 @@ function renderUnified(view) {
     </section>
   </div>`;
   const results = view.querySelector('.uni-results');
+  const panel = facetPanel({ facets: tvFacets(lists), items: vis, state: u.f, onChange: () => changed() });
+  view.querySelector('.uni-filters').append(panel.el);
+  view.querySelector('.uni-bar').after(panel.chips);
+  // (ellenőrzés, kedvenc, műsorújság után a darabszámok frissülnek – a rács nem ugrik el)
+  const offs = ['health', 'favorites', 'epg'].map((ev) =>
+    bus.on(ev, debounce(() => (results.isConnected ? panel.setItems(vis) : offs.forEach((off) => off())), 1500))
+  );
   const draw = () => {
     const t = norm(u.q.trim());
-    const favSet = new Set(store.profile.favorites);
     const watched = store.profile?.stats?.ch || {};
-    let list = vis.filter(
-      (c) =>
-        (!u.lists || (c.lists || []).some((id) => u.lists.includes(id))) &&
-        (!u.country || c.country === u.country) &&
-        (!u.cats.length || u.cats.some((k) => c.categories.includes(k))) &&
-        (!u.working || !healthKnown() || channelStatus(c) === 'ok') &&
-        (!u.favs || favSet.has(c.id)) &&
-        (!t || norm(c.name).includes(t))
-    );
+    let list = panel.filter().filter((c) => !t || norm(c.name).includes(t));
     if (u.sort === 'name') list.sort((a, b) => a.name.localeCompare(b.name));
     else if (u.sort === 'watched') list.sort((a, b) => (watched[b.id] || 0) - (watched[a.id] || 0) || homeRank(b) - homeRank(a));
     else list = byAvailability(list.sort((a, b) => homeRank(b) - homeRank(a) || rankScore(b) - rankScore(a)));
@@ -637,37 +652,19 @@ function renderUnified(view) {
     saveUni(u);
     draw();
   };
-  view.querySelector('.uni').addEventListener('change', (e) => {
-    const el = e.target;
-    if (el.dataset.uList !== undefined) {
-      const on = [...view.querySelectorAll('[data-u-list]')].filter((x) => x.checked).map((x) => x.dataset.uList);
-      u.lists = on.length === lists.length ? null : on;
-    } else if (el.dataset.uCountry !== undefined) u.country = el.value;
-    else if (el.dataset.uFlag) u[el.dataset.uFlag] = el.checked;
-    else if (el.dataset.uSort !== undefined) u.sort = el.value;
-    else return;
+  view.querySelector('[data-u-sort]').addEventListener('change', (e) => {
+    u.sort = e.target.value;
     changed();
   });
-  view.querySelector('.uni').addEventListener('click', (e) => {
-    const cat = e.target.closest('[data-u-cat]');
+  view.querySelector('.uni-bar').addEventListener('click', (e) => {
     const vw = e.target.closest('[data-u-view]');
-    if (cat) {
-      const k = cat.dataset.uCat;
-      u.cats = u.cats.includes(k) ? u.cats.filter((x) => x !== k) : [...u.cats, k];
-      cat.classList.toggle('on', u.cats.includes(k));
-      cat.setAttribute('aria-pressed', u.cats.includes(k));
-      changed();
-    } else if (vw) {
-      u.view = vw.dataset.uView;
-      view.querySelectorAll('[data-u-view]').forEach((b) => {
-        b.classList.toggle('on', b === vw);
-        b.setAttribute('aria-pressed', b === vw);
-      });
-      changed();
-    } else if (e.target.closest('[data-u-reset]')) {
-      store.setProfileValue('uni', { view: u.view, sort: u.sort });
-      renderUnified(view);
-    }
+    if (!vw) return;
+    u.view = vw.dataset.uView;
+    view.querySelectorAll('[data-u-view]').forEach((b) => {
+      b.classList.toggle('on', b === vw);
+      b.setAttribute('aria-pressed', b === vw);
+    });
+    changed();
   });
   view.querySelector('.uni-q').addEventListener('input', debounce((e) => {
     u.q = e.target.value;
@@ -709,7 +706,7 @@ function renderUnifiedHome(view) {
     const cat = e.target.closest('[data-uh-cat]');
     if (!src && !cat) return;
     const u = uniState();
-    store.setProfileValue('uni', { ...u, q: '', lists: src ? [src.dataset.uhList] : null, cats: cat ? [cat.dataset.uhCat] : [], country: '', favs: false });
+    store.setProfileValue('uni', { ...u, q: '', f: { open: u.f.open, sel: src ? { src: [src.dataset.uhList] } : { cat: [cat.dataset.uhCat] } } });
     location.hash = '#/tv';
   });
   activateUnits(page);
@@ -837,14 +834,14 @@ function ribbonCats() {
   const onAir = recommendOrder([...vis].filter((c) => epg.now(c.id)?.cur));
   const rf = radioMenuOn() ? radioFavs() : [];
   const cats = [
-    menuOn('tv') && { id: 'favs', label: _t('Kedvencek'), ico: navIcon('favorites'), items: favs.length ? favs.map(chItem) : [link('#/tv', _t('Csatornák böngészése'), _t('A csatornák kártyáján a + gombbal jelölhetsz kedvencet.'), navIcon('tv'))] },
+    menuOn('tv') && { id: 'favs', label: _t('Kedvencek'), ico: navIcon('favorites'), items: favs.length ? favs.map(chItem) : [link('#/tv', _t('Csatornák felfedezése'), _t('A csatornák kártyáján a + gombbal jelölhetsz kedvencet.'), navIcon('tv'))] },
     menuOn('tv') && { id: 'now', label: _t('Most a tévében'), ico: GUIDE_ICO, items: onAir.slice(0, 80).map(chItem) },
     menuOn('tv') && recent.length && { id: 'recent', label: _t('Legutóbb nézett'), ico: HISTORY_ICO, items: recent.map(chItem) },
     menuOn('tv') && { id: 'tonight', label: _t('Ma este'), ico: GUIDE_ICO, items: tonightPrograms(12).map(({ ch, p: pr }) => ({ kind: 'prog', ch, pr, title: pr.title, sub: `${fmtTime(pr.start)} · ${ch.name}` })) },
     // (a hírek a háttérben töltődnek – renderRibbon)
     !p.kids && { id: 'news', label: _t('Hírek'), ico: NEWS_ICO, items: [] },
-    menuOn('tv') && { id: 'tv', label: _t('TV'), ico: navIcon('tv'), items: [link('#/tv', _t('Csatornák'), _t('A csatornák sorai')), link('#/guide', _t('Műsorújság')), link('#/browse', _t('Böngészés')), link('#/countries', _t('Országok')), link('#/recordings', _t('Felvételek'))] },
-    radioMenuOn() && { id: 'radio', label: _t('Rádió'), ico: navIcon('radio'), items: [...rf.map((st, i) => ({ kind: 'radio', i, title: st.name, sub: [countryName(st.country), st.codec].filter(Boolean).join(' · '), st })), link('#/radio', _t('Rádiók')), link('#/radio?tab=guide', _t('Rádió-műsorújság')), link('#/radio?tab=browse', _t('Böngészés'))] },
+    menuOn('tv') && { id: 'tv', label: _t('TV'), ico: navIcon('tv'), items: [link('#/tv', _t('Csatornák'), _t('A csatornák sorai')), link('#/guide', _t('Műsorújság')), link('#/browse', _t('Felfedezés')), link('#/countries', _t('Országok')), link('#/recordings', _t('Felvételek'))] },
+    radioMenuOn() && { id: 'radio', label: _t('Rádió'), ico: navIcon('radio'), items: [...rf.map((st, i) => ({ kind: 'radio', i, title: st.name, sub: [countryName(st.country), st.codec].filter(Boolean).join(' · '), st })), link('#/radio', _t('Rádiók')), link('#/radio?tab=guide', _t('Rádió-műsorújság')), link('#/radio?tab=browse', _t('Felfedezés'))] },
     menuOn('vod') && { id: 'vod', label: _t('Videotár'), ico: navIcon('vod'), items: [link('#/vod', _t('Online listák')), link('#/own', _t('Saját médiatár'))] },
     sportMenuOn() && { id: 'sport', label: _t('Sport'), ico: navIcon('sport'), items: [link('#/sport', _t('Sport'), _t('Élő eredmények, menetrend, tabella'))] },
     { id: 'settings', label: _t('Beállítások'), ico: navIcon('settings'), items: [link('#/settings', _t('Beállítások')), link('#/settings?section=appearance', _t('Megjelenés')), link('#/profiles', _t('Profilok kezelése')), link('#/help', _t('Súgó'))] },

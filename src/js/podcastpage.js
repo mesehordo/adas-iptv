@@ -2,15 +2,16 @@
 // előzmények, kedvencek, felfedezés, statisztika, beállítások), a műsor oldala, az epizód adatlapja, a kis
 // lejátszósáv és a teljes képernyős „Most szól” nézet. Az adatok a podcast.js-ben, a lejátszás a podplayer.js-ben.
 import { menuOn } from './menus.js';
-import { esc, html, bus, debounce, toast, hashHue } from './util.js';
+import { esc, html, bus, debounce, toast, hashHue, norm as normText } from './util.js';
 import { api } from './api.js';
 import { store } from './store.js';
 import { ICON, openModal, confirmDialog, emptyState } from './components.js';
 import {
   pod, podCfg, savePod, feeds, cachedFeed, refreshFeed, refreshAll, initPodcasts, subscribe, unsubscribe, isSubscribed, subOf, setSubOpt,
   epState, isPlayed, progressOf, markPlayed, toggleFav, enqueue, dequeue, moveInQueue, inQueue, clearInbox, searchPodcasts, topPodcasts,
-  importOpml, toOpml, canDownload, downloadEp, deleteDownload, isDownloading, downloadedList, downloadedSize, findEp,
+  importOpml, toOpml, canDownload, downloadEp, deleteDownload, isDownloading, downloadedList, downloadedSize, findEp, POD_GENRES, POD_COUNTRIES,
 } from './podcast.js';
+import { countryName, countryFlag } from './catalog.js';
 import { podPlayer, RATES } from './podplayer.js';
 import { radioPlayer, audioFxAvailable } from './radioplayer.js';
 import { player } from './player.js';
@@ -54,7 +55,7 @@ const skipIco = (n, back) => `<span class="pskip">${back ? '↺' : '↻'}<small>
 // Kártyák és epizódsorok
 // ---------------------------------------------------------------------------
 /** Epizódkártya (sorokban – az elrendezések is ezeket rendezik át). */
-function epCardHtml(ep) {
+export function epCardHtml(ep) {
   const pr = progressOf(ep.key);
   const st = epState(ep.key);
   return `<div class="card pcard" tabindex="0" data-pkey="${esc(ep.key)}">
@@ -173,6 +174,14 @@ const refreshRows = debounce(() => {
 }, 150);
 for (const ev of ['pod-state', 'pod-queue', 'pod-dl']) bus.on(ev, refreshRows);
 for (const ev of ['pod-subs', 'pod-refreshed']) bus.on(ev, rerender);
+// (a Kedvencek oldalon a feliratkozások része is frissül)
+bus.on('pod-subs', debounce(() => {
+  const old = document.querySelector('#view .fav-pod');
+  if (!old || old.contains(document.activeElement)) return;
+  const fresh = podFavsSection();
+  if (fresh) old.replaceWith(fresh);
+  else old.remove();
+}, 120));
 bus.on('pod-feed', (url) => here() && (lastParams?.get('feed') === url || !lastParams?.get('feed')) && rerender());
 bus.on('pod-player', (k) => (k === 'start' || k === 'stop' || k === 'state') && refreshRows());
 
@@ -285,42 +294,132 @@ function tabDownloads(view) {
 function tabHist(view) {
   listPage(view, 'hist', _t('Előzmények'), pod().hist, { empty: _t('Még nem hallgattál podcastot.'), tools: pod().hist.length ? `<button class="btn small" data-pt="hist-clear">${_t('Előzmények törlése')}</button>` : '' });
 }
-/** A Kedvencek oldal podcast-része: a kedvenc epizódok (ha van ilyen). */
+/** A Kedvencek oldal podcast-része: a feliratkozott műsorok és a kedvenc epizódok (ha van ilyen). */
 export function podFavsSection() {
-  const list = store.profile ? pod().favs : [];
-  if (!list.length) return null;
-  return html(`<div class="fav-pod"><div class="page-head sub"><h2>${_t('Podcast-epizódok')}</h2><span class="muted">${_t('{n} epizód', { n: list.length })}</span></div>
-    <div class="pep-list">${list.slice(0, 300).map((ep) => epRowHtml(ep)).join('')}</div></div>`);
+  if (!store.profile) return null;
+  const d = pod();
+  const subs = d.subs.slice().sort((a, b) => (a.title || '').localeCompare(b.title || '', LOCALE));
+  const list = d.favs;
+  if (!subs.length && !list.length) return null;
+  return html(`<div class="fav-pod">
+    ${subs.length ? `<div class="page-head sub"><h2>${_t('Podcast-feliratkozások')}</h2><span class="muted">${_t('{n} műsor', { n: subs.length })}</span><a class="btn small" href="#/podcast?tab=subs">${_t('Kezelés')}</a></div>
+      <div class="grid pod-grid">${subs.map((s) => showCardHtml({ ...s, ...(feeds.get(s.url)?.image ? { image: feeds.get(s.url).image } : null) })).join('')}</div>` : ''}
+    ${list.length ? `<div class="page-head sub"><h2>${_t('Kedvenc podcast-epizódok')}</h2><span class="muted">${_t('{n} epizód', { n: list.length })}</span></div>
+      <div class="pep-list">${list.slice(0, 300).map((ep) => epRowHtml(ep)).join('')}</div>` : ''}</div>`);
 }
 
-function tabDiscover(view, params) {
-  const q = params.get('q') || '';
-  view.innerHTML = `<div class="page pod-page">${tabsHtml('discover')}
-    <div class="page-head"><h1>${_t('Felfedezés')}</h1></div>
-    <form class="pod-search" data-pt-form="search"><input class="input" name="q" type="search" value="${esc(q)}" placeholder="${_t('Műsor keresése név szerint, vagy egy RSS-cím…')}" aria-label="${_t('Podcast keresése')}" /><button class="btn primary" type="submit">${_t('Keresés')}</button></form>
-    <div class="pod-results"></div>
-    <div class="pod-import"><span class="muted">${_t('Feliratkozások áthozása másik alkalmazásból:')}</span> <label class="btn small">${_t('OPML-fájl betöltése…')}<input type="file" accept=".opml,.xml,text/xml,text/x-opml" data-pt-file="opml" hidden /></label></div>
-    <h2 class="row-title">${_t('Toplista')}</h2><div class="grid pod-grid pod-top"><div class="spinner small"></div></div></div>`;
-  const res = view.querySelector('.pod-results');
-  if (q)
-    (res.innerHTML = '<div class="spinner small"></div>'),
-      searchPodcasts(q)
-        .then((list) => {
-          list.forEach((s) => searchCache.set(s.url, s));
-          if (!res.isConnected) return;
-          res.innerHTML = list.length ? `<h2 class="row-title">${_t('Találatok')}</h2><div class="grid pod-grid">${list.map(showCardHtml).join('')}</div>` : `<p class="muted">${_t('Nincs találat.')}</p>`;
-        })
-        .catch(() => res.isConnected && (res.innerHTML = `<p class="warn">${_t('A keresés most nem érhető el.')}</p>`));
-  topPodcasts(50)
+// ---------------------------------------------------------------------------
+// Keresés (a fő Keresés oldal Podcastok része): a feliratkozások és epizódjaik helyben, a katalógus online
+// ---------------------------------------------------------------------------
+const podTokens = (q) => normText(q).split(/\s+/).filter(Boolean);
+const hit = (tokens, ...parts) => {
+  const t = normText(parts.filter(Boolean).join(' '));
+  return tokens.every((x) => t.includes(x));
+};
+/** Helyi találatok: feliratkozott műsorok és az epizódjaik (cím, szerző, műsor neve). */
+function podLocalHits(q) {
+  const tokens = podTokens(q);
+  if (!tokens.length || !store.profile) return { shows: [], eps: [] };
+  const d = pod();
+  const shows = d.subs.filter((s) => hit(tokens, s.title, s.author));
+  const eps = d.subs
+    .flatMap((s) => feeds.get(s.url)?.eps || [])
+    .filter((ep) => hit(tokens, ep.title, ep.feedTitle))
+    .sort((a, b) => (b.pub || 0) - (a.pub || 0));
+  return { shows, eps };
+}
+/** A helyi podcast-találatok száma (a Keresés oldal fülén; az online találatok később jönnek). */
+export function podSearchCount(q) {
+  if (!podMenuOn()) return 0;
+  const { shows, eps } = podLocalHits(q);
+  return shows.length + eps.length;
+}
+/** A Keresés oldal Podcastok része (null, ha a Podcast menüpont ki van kapcsolva). */
+export function podSearchSection(q, { limit = 18 } = {}) {
+  if (!podMenuOn() || !podTokens(q).length) return null;
+  const { shows, eps } = podLocalHits(q);
+  const el = html(`<section class="sc-pod"><h2 class="section-title">${_t('Podcastok')} <a class="btn small" href="#/podcast?tab=discover&amp;q=${encodeURIComponent(q)}">${_t('Továbbiak a Felfedezésben ›')}</a></h2>
+    ${shows.length ? `<h3 class="row-title">${_t('Feliratkozásaid')}</h3><div class="grid pod-grid">${shows.slice(0, limit).map(showCardHtml).join('')}</div>` : ''}
+    ${eps.length ? `<h3 class="row-title">${_t('Epizódok a feliratkozásaidból')}</h3><div class="pep-list">${eps.slice(0, limit).map((ep) => epRowHtml(ep)).join('')}</div>` : ''}
+    <div class="sc-pod-online"><div class="spinner small"></div></div></section>`);
+  const box = el.querySelector('.sc-pod-online');
+  const subbed = new Set(shows.map((s) => s.url));
+  searchPodcasts(q)
     .then((list) => {
+      if (!box.isConnected) return;
+      list = list.filter((s) => !s.direct && !subbed.has(s.url));
       list.forEach((s) => searchCache.set(s.url, s));
-      const box = view.querySelector('.pod-top');
-      if (box) box.innerHTML = list.map(showCardHtml).join('') || `<p class="muted">${_t('A toplista most nem érhető el.')}</p>`;
+      // (a Keresés oldal Podcast fülén az online találatok is számítanak)
+      const n = document.querySelector('.search-tabs [data-st="pod"] .muted');
+      if (n) n.textContent = String(shows.length + eps.length + list.length);
+      box.innerHTML = list.length ? `<h3 class="row-title">${_t('Műsorok a podcast-katalógusból')}</h3><div class="grid pod-grid">${list.slice(0, limit).map(showCardHtml).join('')}</div>` : shows.length || eps.length ? '' : `<p class="muted">${_t('Nincs podcast-találat.')}</p>`;
     })
-    .catch(() => {
-      const box = view.querySelector('.pod-top');
-      if (box) box.innerHTML = `<p class="muted">${_t('A toplista most nem érhető el.')}</p>`;
-    });
+    .catch(() => box.isConnected && (box.innerHTML = ''));
+  return el;
+}
+
+// Felfedezés – a TV Felfedezés mintájára: kereső és szűrők (téma, ország), szűrő nélkül téma- és országcsempék,
+// alattuk a toplista; témára / országra szűrve annak toplistája, kereséskor a találatok (a téma szerint szűkítve).
+const genreName = (id) => POD_GENRES.find(([g]) => g === id)?.[1] || '';
+const podCountries = () => {
+  const home = (store.settings.homeCountry || 'HU').toUpperCase();
+  return [home, ...POD_COUNTRIES.filter((c) => c !== home)];
+};
+const GENRE_ICO = { 1489: '📰', 1324: '🏛️', 1303: '😄', 1488: '🔎', 1487: '📜', 1533: '🔬', 1318: '💻', 1321: '💼', 1304: '🎓', 1512: '🏃', 1545: '⚽', 1309: '🎬', 1310: '🎵', 1301: '🎨', 1483: '📖', 1502: '🎲', 1305: '🧸', 1314: '🕊️', 1511: '🗳️' };
+function tabDiscover(view, params) {
+  const home = (store.settings.homeCountry || 'HU').toUpperCase();
+  const f = { q: params.get('q') || '', g: params.get('g') || '', c: (params.get('c') || '').toUpperCase() };
+  if (f.g && !genreName(f.g)) f.g = '';
+  if (f.c && !/^[A-Z]{2}$/.test(f.c)) f.c = '';
+  const cc = f.c || home;
+  const any = f.q || f.g || f.c;
+  const opts = (items, sel, all) => `<option value="">${esc(all)}</option>` + items.map(([v, l]) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(l)}</option>`).join('');
+  const title = [f.g && genreName(f.g), f.c && countryName(f.c), f.q && `„${f.q}”`].filter(Boolean).join(' · ') || _t('Felfedezés');
+  view.innerHTML = `<div class="page pod-page pod-discover">${tabsHtml('discover')}
+    <div class="page-head"><h1>${esc(title)}</h1><span class="muted pod-disc-n"></span></div>
+    <form class="filters pod-filters">
+      <input class="input" name="q" type="search" value="${esc(f.q)}" placeholder="${_t('Műsor keresése név szerint, vagy egy RSS-cím…')}" aria-label="${_t('Podcast keresése')}" />
+      <select name="g" aria-label="${_t('Téma')}">${opts(POD_GENRES.slice().sort((a, b) => a[1].localeCompare(b[1], LOCALE)), f.g, _t('Minden téma'))}</select>
+      <select name="c" aria-label="${_t('Ország')}">${opts(podCountries().map((c) => [c, `${countryFlag(c)} ${countryName(c) || c}`.trim()]), f.c, _t('Ország: {name}', { name: countryName(home) || home }))}</select>
+      ${any ? `<a class="btn small" href="#/podcast?tab=discover">${_t('Szűrők törlése')}</a>` : ''}
+    </form>
+    <div class="pod-disc-extra"></div>
+    <div class="pod-results"><div class="spinner small"></div></div>
+    <div class="pod-import"><span class="muted">${_t('Feliratkozások áthozása másik alkalmazásból:')}</span> <label class="btn small">${_t('OPML-fájl betöltése…')}<input type="file" accept=".opml,.xml,text/xml,text/x-opml" data-pt-file="opml" hidden /></label></div></div>`;
+  const form = view.querySelector('.pod-filters');
+  const apply = (replace) => {
+    // (RSS-cím: egyenesen a műsor oldala)
+    if (/^https?:\/\//i.test(form.q.value.trim())) return void (location.hash = '#/podcast?feed=' + encodeURIComponent(form.q.value.trim()));
+    const q = new URLSearchParams({ tab: 'discover' });
+    for (const [k, v] of new FormData(form)) if (String(v).trim()) q.set(k, String(v).trim());
+    const h = '#/podcast?' + q;
+    if (replace) location.replace(h);
+    else location.hash = h;
+  };
+  form.onchange = (e) => e.target.name !== 'q' && apply(false);
+  form.onsubmit = (e) => (e.preventDefault(), apply(false));
+  if (!any) {
+    view.querySelector('.pod-disc-extra').append(
+      html(`<section class="row"><h2 class="row-title">${_t('Témák')}</h2><div class="row-wrap"><div class="row-track tiles">${POD_GENRES.map(([id, name]) => `<a class="tile cat" href="#/podcast?tab=discover&amp;g=${id}" style="--h:${hashHue(id + 'pod')}"><span class="flag">${GENRE_ICO[id] || '🎙️'}</span><b>${esc(name)}</b></a>`).join('')}</div></div></section>`),
+      html(`<section class="row"><h2 class="row-title">${_t('Országok toplistái')}</h2><div class="row-wrap"><div class="row-track tiles">${podCountries().map((c) => `<a class="tile" href="#/podcast?tab=discover&amp;c=${c}" style="--h:${hashHue(c)}"><span class="flag">${countryFlag(c) || `<span class="cc">${esc(c)}</span>`}</span><b>${esc(countryName(c) || c)}</b></a>`).join('')}</div></div></section>`)
+    );
+  }
+  const res = view.querySelector('.pod-results');
+  const show = (list, head) => {
+    if (!res.isConnected) return;
+    list.forEach((s) => searchCache.set(s.url, s));
+    view.querySelector('.pod-disc-n').textContent = _t('{n} műsor', { n: list.length });
+    res.innerHTML = list.length ? `<h2 class="row-title">${esc(head)}</h2><div class="grid pod-grid">${list.map(showCardHtml).join('')}</div>` : `<p class="muted">${_t('Nincs találat.')}</p>`;
+  };
+  const fail = (msg) => res.isConnected && (res.innerHTML = `<p class="warn">${esc(msg)}</p>`);
+  if (f.q)
+    searchPodcasts(f.q, { cc })
+      .then((list) => show(f.g ? list.filter((s) => s.genreId === f.g) : list, _t('Találatok')))
+      .catch(() => fail(_t('A keresés most nem érhető el.')));
+  else
+    topPodcasts(f.g ? 100 : 50, { genre: f.g, cc })
+      .then((list) => show(list, f.g ? _t('Toplista – {name}', { name: genreName(f.g) }) : _t('Toplista – {name}', { name: countryName(cc) || cc })))
+      .catch(() => fail(_t('A toplista most nem érhető el.')));
 }
 
 function tabStats(view) {

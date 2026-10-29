@@ -1,5 +1,5 @@
 // A Rádió oldal (menüsor: TV után): sorok a TV oldal mintájára (legutóbb hallgatott, kedvencek, a hazai
-// adók, műfajok, a világ legnépszerűbbjei, országok), böngészés szűrőkkel és kereséssel, műfaj- és
+// adók, műfajok, a világ legnépszerűbbjei, országok), felfedezés szűrőkkel és kereséssel, műfaj- és
 // országoldalak. Mindenhol az elérhető adók állnak elöl. A lejátszás a radioui.js mini-lejátszójában szól.
 // A menüpont kikapcsolható: Beállítások → Rádió.
 import { menuOn } from './menus.js';
@@ -32,7 +32,7 @@ const GENRE_ICON = { pop: '🎤', rock: '🎸', news: '📰', classical: '🎻',
 // a kártyák listái (az indított adóhoz: előző / következő adó ugyanabból a sorból)
 const lists = new Map();
 let listSeq = 0;
-const registerList = (list) => {
+export const registerList = (list) => {
   const id = 'rl' + ++listSeq;
   lists.set(id, list);
   if (lists.size > 60) lists.delete(lists.keys().next().value);
@@ -129,7 +129,7 @@ export function stationRowEl(title, list, { href = '', limit = 60 } = {}) {
 function tileRowEl(title, tiles, href = '', count = 0) {
   return arrows(rowWrap(title, href, count, tiles.join(''), 'tile-row'));
 }
-// (a tévés böngészés csempéi: .tile / .tile.cat)
+// (a tévés felfedezés csempéi: .tile / .tile.cat)
 const genreTile = (id) =>
   `<a class="tile cat" href="#/radio?g=${id}" style="--h:${hashHue(id + 'genre')}"><span class="flag">${GENRE_ICON[id] || '♪'}</span><b>${esc(genreName(id))}</b></a>`;
 const countryTile = (cc, count) =>
@@ -671,7 +671,7 @@ async function renderCountry(view, cc) {
   }
 }
 
-// --- Böngészés: keresés (helyben és a Radio Browserben), szűrők
+// --- Felfedezés: keresés (helyben és a Radio Browserben), szűrők
 const QUALITY = [
   ['', _t('Bármilyen minőség')],
   ['128', _t('Legalább 128 kbps')],

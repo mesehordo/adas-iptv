@@ -727,16 +727,16 @@ export function openProgram(ch, p) {
   });
 }
 
-/** A TV oldal fülei: csatornák, műsorújság, böngészés (csak élő adások) és (asztali változatban) a tévéfelvételek. */
+/** A TV oldal fülei: csatornák, műsorújság, felfedezés (csak élő adások) és (asztali változatban) a tévéfelvételek. */
 export function tvTabs(cur) {
   const tab = (id, href, label) => `<a class="tab ${cur === id ? 'active' : ''}" href="${href}">${label}</a>`;
-  return `<div class="tabs vod-tabs tv-tabs">${tab('tv', '#/tv', _t('Csatornák'))}${tab('guide', '#/guide', _t('Műsorújság'))}${tab('browse', '#/browse', _t('Böngészés'))}${api.recStart ? tab('rec', '#/recordings', _t('Felvételek')) : ''}</div>`;
+  return `<div class="tabs vod-tabs tv-tabs">${tab('tv', '#/tv', _t('Csatornák'))}${tab('guide', '#/guide', _t('Műsorújság'))}${tab('browse', '#/browse', _t('Felfedezés'))}${api.recStart ? tab('rec', '#/recordings', _t('Felvételek')) : ''}</div>`;
 }
 
-/** A Rádió oldal fülei: adók, műsorújság, böngészés és (asztali változatban) a rádiófelvételek. */
+/** A Rádió oldal fülei: adók, műsorújság, felfedezés és (asztali változatban) a rádiófelvételek. */
 export function radioTabs(cur) {
   const tab = (id, href, label) => `<a class="tab ${cur === id ? 'active' : ''}" href="${href}">${label}</a>`;
-  return `<div class="tabs vod-tabs radio-tabs">${tab('home', '#/radio', _t('Rádiók'))}${tab('guide', '#/radio?tab=guide', _t('Műsorújság@@rádió'))}${tab('browse', '#/radio?tab=browse', _t('Böngészés'))}${api.recStart ? tab('rec', '#/recordings?kind=radio', _t('Felvételek')) : ''}</div>`;
+  return `<div class="tabs vod-tabs radio-tabs">${tab('home', '#/radio', _t('Rádiók'))}${tab('guide', '#/radio?tab=guide', _t('Műsorújság@@rádió'))}${tab('browse', '#/radio?tab=browse', _t('Felfedezés'))}${api.recStart ? tab('rec', '#/recordings?kind=radio', _t('Felvételek')) : ''}</div>`;
 }
 
 /**

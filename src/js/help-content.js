@@ -5,7 +5,7 @@ export const HELP_CATEGORIES = [
   { id: 'start', title: 'Első lépések' },
   { id: 'watch', title: 'Nézés és lejátszás' },
   { id: 'vod', title: 'VOD (filmek és sorozatok)' },
-  { id: 'find', title: 'Keresés és böngészés' },
+  { id: 'find', title: 'Keresés és felfedezés' },
   { id: 'guide', title: 'Műsorújság és emlékeztetők' },
   { id: 'personal', title: 'Személyre szabás' },
   { id: 'lists', title: 'Csatornalisták' },
@@ -29,9 +29,9 @@ export const ARTICLES = [
 <h2>A felület részei</h2>
 <table class="help-table">
 <tr><td><b>Főoldal</b></td><td>Áttekintő: időjárás, a kedvenc csatornák műsora, hírek, ma esti műsorok, TV- és VOD-folytatás. ${t('dashboard', 'Részletek')}</td></tr>
-<tr><td><b>TV</b></td><td>Négy fül: Csatornák, Műsorújság, Böngészés és (asztali gépen) Felvételek. A Csatornák fülön a legutóbb nézettek, a kedvencek, a most futó műsorok és kategóriánkénti sorok. ${t('home', 'Részletek')}</td></tr>
+<tr><td><b>TV</b></td><td>Négy fül: Csatornák, Műsorújság, Felfedezés és (asztali gépen) Felvételek. A Csatornák fülön a legutóbb nézettek, a kedvencek, a most futó műsorok és kategóriánkénti sorok. ${t('home', 'Részletek')}</td></tr>
 <tr><td><b>Műsorújság</b> (a TV alatt)</td><td>Idővonalas rács: mi megy most és később az egyes csatornákon. ${t('guide-grid', 'Részletek')}</td></tr>
-<tr><td><b>Böngészés</b> (a TV alatt)</td><td>Az összes tévécsatorna kategória, ország, nyelv és minőség szerint szűrve. ${t('browse', 'Részletek')}</td></tr>
+<tr><td><b>Felfedezés</b> (a TV alatt)</td><td>Az összes tévécsatorna kategória, ország, nyelv és minőség szerint szűrve. ${t('browse', 'Részletek')}</td></tr>
 <tr><td><b>VOD</b></td><td>Filmek és sorozatok: online listák és a saját médiatár, egységes műfajok szerint rendezett sorokkal. ${t('vod-lists', 'Részletek')}</td></tr>
 <tr><td><b>Kedvencek</b></td><td>A megjelölt csatornáid – a sorrendjük adja a csatornaszámokat –, alattuk a kedvenc filmjeid és sorozataid (adatlap → ☆ Kedvenc). ${t('favorites', 'Részletek')}</td></tr>
 <tr><td><b>Keresés</b> (nagyító)</td><td>Csatornák, műsorok, filmek / sorozatok és rádióadók keresése. ${t('search', 'Részletek')}</td></tr>
@@ -268,7 +268,7 @@ ${go('#/settings?section=huinfo', 'Kedvenc nyelvek beállítása')}`,
     title: 'VOD – filmek és sorozatok',
     keywords: 'film sorozat vod mozi epizód rész évad folytatás közkincs saját médiatár nas online listák csatorna szétválogatás',
     body: `
-<p>Az élő tévécsatornák mellett az Adás <b>filmeket és sorozatokat</b> (VOD – video on demand) is lejátszik. Ezek nem csatornák, hanem önálló videók – bármikor elindíthatók, tekerhetők, és onnan folytathatók, ahol abbahagytad. A menüben a <b>VOD</b> a tévés részek (Főoldal, Műsorújság, Böngészés, Kedvencek) után, külön áll.</p>
+<p>Az élő tévécsatornák mellett az Adás <b>filmeket és sorozatokat</b> (VOD – video on demand) is lejátszik. Ezek nem csatornák, hanem önálló videók – bármikor elindíthatók, tekerhetők, és onnan folytathatók, ahol abbahagytad. A menüben a <b>VOD</b> a tévés részek (Főoldal, Műsorújság, Felfedezés, Kedvencek) után, külön áll.</p>
 <h2>Két rész: online listák és saját médiatár</h2>
 <p>A VOD oldal tetején két fül van: <b>Online listák</b> (a beépített és a felvett film- / sorozatlisták) és <b>Saját médiatár</b> (a NAS / a gép mappáiban talált lejátszólisták).</p>
 <h2>Csatorna vagy VOD?</h2>
@@ -478,7 +478,7 @@ ${go('#/settings?section=huinfo', 'Beállítások')}`,
 <div class="tip">Saját lista készítésekor így nevezd el a bejegyzéseket: <code>#EXTINF:-1 tvg-logo="borító.jpg" group-title="Vígjáték",Film címe (1999)</code>, illetve sorozatnál <code>…,Sorozat címe S01E01 Az első rész címe</code>.</div>`,
   },
 
-  // ===================================================================== Keresés és böngészés
+  // ===================================================================== Keresés és felfedezés
   {
     id: 'dashboard',
     cat: 'find',
@@ -536,7 +536,7 @@ ${go('#/settings?section=dashboard', 'A főoldal beállításai')}`,
     keywords: 'tv oldal csatornák felvételek fül sorok',
     body: `
 <h2>Fülek</h2>
-<p>A <b>TV</b> oldal (a menüben a Főoldal után) a csatornáké. A tetején négy fül van: <b>Csatornák</b>, <b>Műsorújság</b>, <b>Böngészés</b> (csak élő tévéadások, szűrőkkel) és – az asztali változatban – <b>Felvételek</b> (a saját tévéfelvételeid). ${t('recording', 'A felvételekről')}</p>
+<p>A <b>TV</b> oldal (a menüben a Főoldal után) a csatornáké. A tetején négy fül van: <b>Csatornák</b>, <b>Műsorújság</b>, <b>Felfedezés</b> (csak élő tévéadások, szűrőkkel) és – az asztali változatban – <b>Felvételek</b> (a saját tévéfelvételeid). ${t('recording', 'A felvételekről')}</p>
 <h2>Sorok</h2>
 <p>A Csatornák fülön vízszintesen görgethető sorok: Legutóbb nézett, Kedvenceid, Most a tévében, a hazai ország csatornái, saját listáid, a kategóriák (Hírek, Sport, Filmek…) és az országok csempéi. A sorok <b>sorrendje és láthatósága profilonként beállítható</b>. ${t('home-rows', 'Hogyan?')}</p>
 <h2>A sor összes eleme egy oldalon</h2>
@@ -589,10 +589,10 @@ ${go('#/settings?section=dashboard', 'A főoldal beállításai')}`,
   {
     id: 'browse',
     cat: 'find',
-    title: 'Böngészés és szűrők',
-    keywords: 'böngészés szűrő kategória ország nyelv minőség állapot rendezés',
+    title: 'Felfedezés és szűrők',
+    keywords: 'felfedezés szűrő kategória ország nyelv minőség állapot rendezés',
     body: `
-<p>A <b>Böngészés</b> oldal az összes (a profilod számára látható) csatornát mutatja. Szűrők nélkül felül a kategóriák és az országok csempéi segítenek.</p>
+<p>A <b>Felfedezés</b> oldal az összes (a profilod számára látható) csatornát mutatja. Szűrők nélkül felül a kategóriák és az országok csempéi segítenek.</p>
 <table class="help-table">
 <tr><td><b>Keresés</b></td><td>Szöveg a csatorna nevében, más nevében, országában, kategóriájában – a többi szűrővel <b>együtt</b> érvényes (pl. „otthon” + Magyarország + magyar). A fejléc keresőjének találati oldaláról a <i>Szűrés ország, nyelv, kategória szerint</i> gombbal ide jutsz a keresett szöveggel.</td></tr>
 <tr><td><b>Kategória</b></td><td>Hírek, Sport, Filmek, Gyerek, Zene… (zárójelben a csatornák száma).</td></tr>
@@ -717,7 +717,7 @@ ${go('#/profiles', 'Profilok kezelése')}`,
     keywords: 'gyerek gyerekprofil felnőtt szűrés 18 nsfw szülői',
     body: `
 <h2>Gyerekprofil</h2>
-<p>A profil szerkesztésekor kapcsold be a <b>Gyerekprofil</b> kapcsolót. Ilyenkor alapból csak a <b>gyerektartalom</b> jelenik meg – a főoldalon, a TV és a VOD oldalon, a böngészésben, a keresésben és a műsorújságban is. A gyerekprofilban a hírek kártyája sem látszik.</p>
+<p>A profil szerkesztésekor kapcsold be a <b>Gyerekprofil</b> kapcsolót. Ilyenkor alapból csak a <b>gyerektartalom</b> jelenik meg – a főoldalon, a TV és a VOD oldalon, a felfedezésben, a keresésben és a műsorújságban is. A gyerekprofilban a hírek kártyája sem látszik.</p>
 <h2>Mi számít gyerektartalomnak?</h2>
 <p>Alapból a <b>Gyerek, Animáció, Családi és Oktatás</b> kategóriájú csatornák, illetve a gyerek-, családi és animációs csoportú / műfajú filmek és sorozatok (a felnőtt műfajok soha). Ez <b>minden profilban közös</b> jelölés, és kézzel is állítható: a csatorna és a film / sorozat <b>adatlapján</b> a <b>Gyerektartalom</b> gombbal (felnőtt profilban), vagy a Beállítások → Tartalom és gyerekek → <b>Gyerekprofilok – mit nézhetnek?</b> listában.</p>
 <h2>Mit nézhet a gyerekprofil?</h2>
@@ -764,7 +764,7 @@ ${go('#/profiles', 'Profilok kezelése')}`,
 <li><b>Könyvtár</b> – oldalsó menü a gyűjteményeiddel és kedvenceiddel, alul rögzített rádiósáv.</li>
 <li><b>Csempék</b> – kiemelt borító és nagy témakör-csempék (hírek, gyerek, sport, film…).</li>
 <li><b>Részletes</b> – balra a csatornalista (szűrővel), jobbra a kiválasztott csatorna adatlapja a mai műsorral és a nézési idővel. Kattintás: kijelölés, második kattintás / OK: lejátszás.</li>
-<li><b>Gyűjtemény</b> – minden forrás egy helyen, szűrőkkel (forrás, ország, kategória, csak működők / kedvencek), rács- vagy listanézettel; a szűrők megmaradnak.</li>
+<li><b>Gyűjtemény</b> – minden forrás egy helyen, oldalt <b>pipálható szűrőkkel</b>, rács- vagy listanézettel. A szűrőcsoportok lenyithatók, mellettük a darabszám; egy csoporton belül bármelyik bepipált érték elég, a csoportok együtt szűkítenek, a bepipáltak a találatok fölött címkeként látszanak (× = törlés). TV: forrás, téma, ország, nyelv, elérhetőség (működik, földrajzi korlát…), minőség, egyéb (kedvenc, van műsorújság, gyerekeknek…). Rádió: téma, ország, elérhetőség, címkék, hangminőség, formátum, forrás. VOD: típus, műfaj, nyelv és felirat (a forrás jelölése szerint), évtized, lista, állapot. Podcast: a feliratkozásaid epizódjai műsor, állapot, megjelenés, hossz szerint. A szűrők profilonként megmaradnak.</li>
 </ul>
 <ul>
 <li><b>Csempefal</b> – nagy „Folytatás” csempe, a rögzített kedvencek rácsa, mellette útmutató a most futó műsorokkal.</li>
@@ -776,7 +776,7 @@ ${go('#/profiles', 'Profilok kezelése')}`,
 </ul>
 <p>A <b>Főoldal</b> asztalon és fekvő kijelzőn minden elrendezésben <b>egy képernyőre</b> fér: a kiemelt borító a kijelző magasságához igazodik, és ami ezután sem fér ki, az alulról elmarad (előbb a csatornasorok – ezek a TV oldalon megvannak). Álló telefonon a Főoldal görgethető marad.</p>
 <p><b>A Főoldal háttérképe</b> (Beállítások → Megjelenés és Főoldal → Megjelenés): a konzolos elrendezésekben (Négyzetek, Menüszalag, Fókusz, Kontroller) a Főoldal mögé hat beépített kép közül választhatsz (Hullámok, Sarki fény, Csillagos ég, Retró rács, Mélykék, Pasztell), vagy saját képet tölthetsz be – kicsinyítve, a profilon tárolódik, és a mentésbe, az eszközök közti átvitelbe is bekerül.</p>
-<p>Minden elrendezésnek <b>saját menüje</b> van (felső sáv, középre zárt kapszula, bal oldali ikonsáv, nagybetűs fülsáv, kerek ikonok, tálca…), és a <b>Főoldal</b> is a stílusában mutatja a napot (időjárás, ma este, hírek, most a tévében). A <b>TV, VOD, Rádió és Podcast</b> oldal sorai is az elrendezés módján rendeződnek: kiemelt borító, csoportcsempék, lista és adatlap, szűrős gyűjtemény, menüszalag, csempék; a többi oldal (Sport, Kedvencek, Műsorújság, Felvételek, Böngészés, Keresés) az elrendezés fejlécét kapja (borítós sáv, kerek ikonos cím vagy panel) – így egy felületen belül minden fül egy családba tartozik.</p>
+<p>Minden elrendezésnek <b>saját menüje</b> van (felső sáv, középre zárt kapszula, bal oldali ikonsáv, nagybetűs fülsáv, kerek ikonok, tálca…), és a <b>Főoldal</b> is a stílusában mutatja a napot (időjárás, ma este, hírek, most a tévében). A <b>TV, VOD, Rádió és Podcast</b> oldal sorai is az elrendezés módján rendeződnek: kiemelt borító, csoportcsempék, lista és adatlap, szűrős gyűjtemény, menüszalag, csempék; a többi oldal (Sport, Kedvencek, Műsorújság, Felvételek, Felfedezés, Keresés) az elrendezés fejlécét kapja (borítós sáv, kerek ikonos cím vagy panel) – így egy felületen belül minden fül egy családba tartozik.</p>
 <p>Az oldalsó menü és a tálca széles képernyőn látszik; keskeny ablakban és telefonon a szokásos felső / alsó menü marad. A Részletes és a Gyűjtemény elrendezés a TV oldalt is a saját nézetére cseréli.</p>
 <h2>Színváltozatok</h2>
 <p>A legtöbb stílusnak az eredeti mellett <b>három színváltozata</b> is van – mindegyik a stílus hangulatához válogatott paletta, saját névvel (pl. Neon City: <i>Szintihullám</i>, <i>Savas zöld</i>, <i>Vörös neon</i>; Phosphor: a régi monitorok borostyán, cián és plazma színei; Deco: rózsaarany, smaragd, ezüst). A minták alatt, a <i>Színváltozat</i> sorban választható. A változat a stílus minden színes elemét – kiemelés, gombok, keretek, díszítések – a paletta színeire fordítja (a több színű stílusoknál, pl. Neon City, Pow!, Kikagaku, mindegyik színt külön); a háttér világossága és a szöveg olvashatósága nem változik, és a fekete, fehér, szürke árnyalatok, valamint az állapotjelzések (működik / hiba, felvétel, ÉLŐ) is maradnak. Fekete-fehér kiemelésű stílusnál (pl. Manga, Mu) a változat színes kiemelőt ad; az Uchūreki változatai a kezelőfelület különböző korszakainak pontos palettái. A kiemelőszínű gombok, fülek felirata a kiemelőhöz igazodik (világoson sötét, sötéten fehér). A változat stílusonként és profilonként megmarad; a Kontraszt stílusnak – akadálymentességi okból – nincs változata.</p>
@@ -1000,7 +1000,7 @@ ${go('#/settings?section=lists', 'Csatornalisták kezelése')}`,
 <li><b>Átnevezés</b>, <b>Cím</b> módosítása, <b>Törlés</b>.</li>
 <li>A sor mellett látszik a csatornák száma, letöltési hiba esetén a hibaüzenet.</li>
 </ul>
-<p>A saját listák csatornái a főoldalon a lista nevével külön sorban (a <i>Saját listák</i> helyén), a Böngészésben és a keresésben is megjelennek. A lista <code>group-title</code> (vagy <code>#EXTGRP</code>) mezője alapján kategóriába – magyar csoportnevek is: <i>Hírek, Sport, Mese, Film, Zene, Dokumentum…</i> –, a <code>tvg-id</code> alapján műsorújsághoz is rendelődnek. Az országot a <code>tvg-country</code>, az ország nevű csoport (pl. „Magyar”), a <code>tvg-id</code> végződése (<code>.hu</code>) vagy a név előtagja (<code>HU:</code>, <code>|HU|</code>, <code>[HUN]</code>) adja; a nyelvet a <code>tvg-language</code>. Így a magyar csatornák a saját listákban is elöl állnak. A cím utáni Kodi-stílusú fejlécek (<code>…/index.m3u8|User-Agent=…&amp;Referer=…</code>) is működnek. ${t('m3u-format', 'Az M3U formátum')}</p>
+<p>A saját listák csatornái a főoldalon a lista nevével külön sorban (a <i>Saját listák</i> helyén), a Felfedezésben és a keresésben is megjelennek. A lista <code>group-title</code> (vagy <code>#EXTGRP</code>) mezője alapján kategóriába – magyar csoportnevek is: <i>Hírek, Sport, Mese, Film, Zene, Dokumentum…</i> –, a <code>tvg-id</code> alapján műsorújsághoz is rendelődnek. Az országot a <code>tvg-country</code>, az ország nevű csoport (pl. „Magyar”), a <code>tvg-id</code> végződése (<code>.hu</code>) vagy a név előtagja (<code>HU:</code>, <code>|HU|</code>, <code>[HUN]</code>) adja; a nyelvet a <code>tvg-language</code>. Így a magyar csatornák a saját listákban is elöl állnak. A cím utáni Kodi-stílusú fejlécek (<code>…/index.m3u8|User-Agent=…&amp;Referer=…</code>) is működnek. ${t('m3u-format', 'Az M3U formátum')}</p>
 <div class="warn">Csak olyan listát használj, amelynek tartalmát jogszerűen nézheted.</div>`,
   },
   {
@@ -1018,7 +1018,7 @@ ${go('#/settings?section=lists', 'Csatornalisták kezelése')}`,
 <tr><td><b>Kategória</b>, <b>Ország</b></td><td>Ezek alapján kerül a megfelelő sorokba és szűrőkbe.</td></tr>
 <tr><td><b>Haladó: User-Agent, Referer</b></td><td>Egyes szerverek csak bizonyos böngészőazonosítóval vagy hivatkozó oldallal adnak képet. Ha a forrásnál ilyet látsz (pl. <code>#EXTVLCOPT:http-referrer=…</code>), itt add meg.</td></tr>
 </table>
-<p>A <b>Kipróbálás</b> gomb mentés nélkül elindítja az adást – így előre ellenőrizheted, hogy működik-e. A <b>Mentés</b> után a csatorna a főoldal <i>Saját csatornák</i> sorában, a Böngészésben és a keresésben is megjelenik, kedvencnek jelölhető, és csatornaszámot kaphat.</p>
+<p>A <b>Kipróbálás</b> gomb mentés nélkül elindítja az adást – így előre ellenőrizheted, hogy működik-e. A <b>Mentés</b> után a csatorna a főoldal <i>Saját csatornák</i> sorában, a Felfedezésben és a keresésben is megjelenik, kedvencnek jelölhető, és csatornaszámot kaphat.</p>
 <p>Szerkesztés, lejátszás, törlés: Beállítások → TV és műsorújság → Csatornalisták → Saját csatornák.</p>
 <div class="note">Tévén a User-Agent / Referer fejlécet a beépített lejátszó nem mindig veszi figyelembe.</div>
 ${go('#/settings?section=lists', 'Saját csatornák kezelése')}`,
@@ -1183,7 +1183,7 @@ npx ares-launch --device tv hu.adas.tv</pre></li>
 <tr><td><b>🌐</b> (kis jel a kártya sarkában, „Földrajzilag korlátozott lehet”)</td><td>A lista szerint a csatorna minden forrása korlátozott, de innen még nem próbáltuk. Sok ilyen adás mégis működik – ha egyszer elindult, a jel eltűnik.</td></tr>
 </table>
 <p>Ha egy korlátozott adást indítasz, a lejátszó ezt külön kiírja (nem csak annyit, hogy „nem érhető el”). Más országban, vagy egy ottani VPN-nel működhet.</p>
-<p><b>Szűrés:</b> a Böngészés oldalon a <i>Földrajzi korlát</i> választóval elrejtheted a korlátozottakat, vagy csak azokat mutathatod.</p>
+<p><b>Szűrés:</b> a Felfedezés oldalon a <i>Földrajzi korlát</i> választóval elrejtheted a korlátozottakat, vagy csak azokat mutathatod.</p>
 <div class="note">A 403-as választ néha nem az ország, hanem más ok (pl. lejárt hozzáférés) váltja ki – ilyenkor is a „földrajzi korlát” jelzés jelenik meg, mert kívülről a kettő nem különböztethető meg.</div>
 ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
   },
@@ -1305,7 +1305,7 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
     body: `
 <p>A menüsor <b>Podcast</b> pontja a podcastokat hozza – feliratkozással, mint egy podcast-alkalmazás.</p>
 <h2>Műsorok keresése, feliratkozás</h2>
-<ul><li><b>Felfedezés</b>: keresés név szerint (az Apple Podcasts nyilvános keresőjével, tartalékként az fyyd-vel), a beállított ország toplistája, vagy egy <b>RSS-cím</b> beírása.</li>
+<ul><li><b>Felfedezés</b> – mint a TV Felfedezése: keresés név szerint (az Apple Podcasts nyilvános keresőjével, tartalékként az fyyd-vel) vagy egy <b>RSS-cím</b> beírása, szűrés <b>téma</b> (hírek, humor, valós bűnügyek, történelem…) és <b>ország</b> szerint; szűrő nélkül téma- és országcsempék, alattuk a beállított ország toplistája. A podcastokat a fő <b>Keresés</b> is megtalálja (a feliratkozásaid, az epizódjaik és a katalógus), a feliratkozásaid és a kedvenc epizódjaid a <b>Kedvencek</b> oldalon is ott vannak.</li>
 <li><b>OPML</b>: más alkalmazásból (AntennaPod, Pocket Casts…) áthozhatod a feliratkozásaidat, és oda is viheted (Felfedezés, vagy Beállítások → Podcastok).</li>
 <li>A feliratkozások <b>profilonként</b> vannak; a beállítások mentésével és a szinkronnal másik eszközre is átkerülnek.</li></ul>
 <h2>Fülek</h2>
@@ -1326,7 +1326,7 @@ ${go('#/browse?geo=hide', 'Csatornák földrajzi korlát nélkül')}`,
     title: 'Rádió',
     keywords: 'rádió radio adó állomás zene most szól műsor dal szám borító előadó hangszínszabályzó eq hangerő kiegyenlítés térhatás retro átúsztatás vizualizáció spektrum vu mérő elalvás időzítő radio browser verified iprd m3u rádiólista csomag',
     body: `
-<p>A menüsor <b>Rádió</b> pontja (a TV után) élő rádióadókat hoz a világból. Az oldal a TV oldal mintájára sorokból áll: <i>Legutóbb hallgatott</i>, <i>Kedvenc rádiók</i>, a hazai ország adói, a <i>Műfajok</i> csempéi, a hazai adók a legnagyobb műfajokban, <i>Népszerű a világban</i> és az <i>Országok</i>. A <b>Böngészés</b> fülön kereshetsz (név, műfaj, ország), és szűrhetsz ország, műfaj, minőség (kbps) és működés szerint; a választott ország összes adója és a műfaj világszerte népszerű adói ilyenkor betöltődnek. Mindenhol a működő adók állnak elöl.</p>
+<p>A menüsor <b>Rádió</b> pontja (a TV után) élő rádióadókat hoz a világból. Az oldal a TV oldal mintájára sorokból áll: <i>Legutóbb hallgatott</i>, <i>Kedvenc rádiók</i>, a hazai ország adói, a <i>Műfajok</i> csempéi, a hazai adók a legnagyobb műfajokban, <i>Népszerű a világban</i> és az <i>Országok</i>. A <b>Felfedezés</b> fülön kereshetsz (név, műfaj, ország), és szűrhetsz ország, műfaj, minőség (kbps) és működés szerint; a választott ország összes adója és a műfaj világszerte népszerű adói ilyenkor betöltődnek. Mindenhol a működő adók állnak elöl.</p>
 <table class="help-table">
 <tr><td><b>Lejátszás</b></td><td>Kattintás vagy OK egy adó kártyáján. Alul megjelenik a <b>mini-lejátszó</b>: adó, most szóló szám, kis spektrum, előző / szünet / következő adó, kedvenc, hangerő. A ⌃ gomb (vagy a mini-lejátszó bal oldala) a <b>Most szól</b> nézetet nyitja.</td></tr>
 <tr><td><b>Adatlap</b></td><td>Mint a tévécsatornáknál: a kártya ⓘ gombja, a jobb klikk, az <kbd>I</kbd> vagy hosszan nyomott OK. Benne a most futó műsor, a napi műsor (ahol van műsorújság) felvétel-ütemezéssel, az adó adatai (ország, műfaj, formátum, forrásadatbázis, népszerűség) és az adáscímek – bármelyik külön is indítható.</td></tr>
@@ -1512,7 +1512,7 @@ ${go('#/settings?section=transfer', 'Szinkronizálás eszközök között')}`,
 <tr><td><b>🎮 Vezérlő</b></td><td><b>Érintőpad</b>, két módban (fölötte váltható, a telefon megjegyzi): <b>🖱 Egér</b> – húzással egy egérkurzort mozgatsz a gép / tévé képernyőjén (lassú mozdulat = pontos, gyors = nagy ugrás), koppintás = kattintás, <b>két ujjal húzva görgetés</b> (a kurzor alatti sorban vízszintesen is), a kurzor alatti elem ki is jelölődik; <b>✥ Nyilak</b> – húzásra a kijelölés lép (mint a nyilak), koppintás = OK. Mindkettőben: hosszan nyomva = Vissza. A kijelölés kerete távirányítós használatkor mindig látszik. Alatta: Vissza, Főoldal, Adatlap; tekerés (±10 / ±30 mp – élő adásnál időcsúsztatás); szünet; CH ▲ / ▼, Előző csatorna, némítás, <b>hangerő-csúszka</b>; Felirat, Minőség, Csatornalista, Teljes képernyő; nyilak és csatornaszám.</td></tr>
 <tr><td><b>📺 Csatornák</b></td><td><b>Kereső</b> az összes csatorna között (gépelés közben szűr, a most futó műsort is mutatja), a kedvenceid és a legutóbb nézett csatornák – egy érintéssel indulnak.</td></tr>
 <tr><td><b>📻 Rádió</b></td><td>A most szóló adó és szám; előző / szünet / következő adó, kedvenc, felvétel, saját hangerő, a <i>Most szól</i> nézet, a hangkép váltása, elalvás-időzítő (15 / 30 / 60 / 90 perc), kikapcsolás; adókereső (a helyi és az online adatbázisban), kedvenc és legutóbb hallgatott rádiók – egy érintéssel indulnak. Rádiózás közben a Vezérlő fül szünet, CH és hangerő gombja is a rádióra hat. (Gyerekprofilban nincs.)</td></tr>
-<tr><td><b>☰ Továbbiak</b></td><td>Ugrás bármelyik oldalra (TV, Műsorújság, Kedvencek, VOD, Felvételek, Böngészés, Súgó); <b>szöveg küldése</b> (a telefon billentyűzetével a kijelölt mezőbe gépel, vagy keresést indít); Adás adatai, elalvási időzítő.</td></tr>
+<tr><td><b>☰ Továbbiak</b></td><td>Ugrás bármelyik oldalra (TV, Műsorújság, Kedvencek, VOD, Felvételek, Felfedezés, Súgó); <b>szöveg küldése</b> (a telefon billentyűzetével a kijelölt mezőbe gépel, vagy keresést indít); Adás adatai, elalvási időzítő.</td></tr>
 </table>
 <h2>Ha a telefon nem kapcsolódik</h2>
 <p>Ha a telefon böngészője azt írja, hogy <i>„a kapcsolódás sikertelen”</i> (vagy sokáig tölt, majd hibát ad), a telefon el sem éri a gépet. Sorban nézd meg:</p>
@@ -1651,7 +1651,7 @@ ${go('#/settings?section=update', 'Frissítések')}`,
 <h2>Android (telefon, táblagép, Android TV)</h2>
 <p>Az alkalmazás saját, más alkalmazások számára elérhetetlen tárhelyén (<code>/data/data/hu.adas.tv</code>): a profilok, beállítások, listák és mentési pontok a beépített böngészőmotor adatbázisában, az emlékeztetők, a nyelv és a kivetítő eszközök a rendszer beállítástárában, a borítók a <code>covers</code> mappában. Felvétel Androidon nincs. Az alkalmazás eltávolítása vagy a Beállítások → Alkalmazások → Adás → <b>Adatok törlése</b> mindezt törli.</p>
 <h2>Böngésző és webOS tévé</h2>
-<p>A böngésző (ill. a tévé alkalmazásának) saját tárhelyén: IndexedDB és localStorage. A böngészési adatok törlése ezeket is törli.</p>
+<p>A böngésző (ill. a tévé alkalmazásának) saját tárhelyén: IndexedDB és localStorage. A felfedezési adatok törlése ezeket is törli.</p>
 <div class="note">Gépek és eszközök közötti költöztetéshez, ill. biztonsági mentéshez a beépített exportot és mentési pontokat használd – a mappák kézi másolása is működik asztali gépen, de csak kikapcsolt Adás mellett. ${t('backup', 'Mentés és költöztetés')} · ${t('privacy', 'Adatvédelem')}</div>`,
   },
   {

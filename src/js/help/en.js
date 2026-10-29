@@ -764,7 +764,7 @@ ${go('#/profiles', 'Manage profiles')}`,
 <li><b>Library</b> – a side menu with your collections and favourites, and a fixed radio bar at the bottom.</li>
 <li><b>Tiles</b> – a featured banner and large topic tiles (news, kids, sport, movies…).</li>
 <li><b>Detailed</b> – the channel list on the left (with a filter), the selected channel’s details on the right with today’s schedule and your watch time. Click: select, second click / OK: play.</li>
-<li><b>Collection</b> – every source in one place with filters (source, country, category, working / favourites only), grid or list view; the filters are remembered.</li>
+<li><b>Collection</b> – every source in one place with <b>tick-box filters</b> on the side, grid or list view. The filter groups fold open and show counts; within a group any ticked value is enough, groups narrow down together, and the ticked values show above the results as tags (× = remove). TV: source, topic, country, language, availability (working, geo-blocked…), quality, other (favourite, has a guide, for kids…). Radio: topic, country, availability, tags, audio quality, format, source. VOD: type, genre, language and subtitles (as marked by the source), decade, list, state. Podcast: the episodes of your subscriptions by show, state, release date, length. The filters are remembered per profile.</li>
 </ul>
 <ul>
 <li><b>Tile wall</b> – a large “Continue” tile, a grid of pinned favourites and a guide to what’s on now.</li>
@@ -1305,7 +1305,7 @@ ${go('#/browse?geo=hide', 'Channels without geo-restriction')}`,
     body: `
 <p>The <b>Podcast</b> menu item brings podcasts – with subscriptions, like a podcast app.</p>
 <h2>Finding shows, subscribing</h2>
-<ul><li><b>Discover</b>: search by name (with the public Apple Podcasts search, fyyd as a fallback), the top chart of your country, or paste an <b>RSS address</b>.</li>
+<ul><li><b>Discover</b> – like the TV Discover page: search by name (with the public Apple Podcasts search, fyyd as a fallback) or paste an <b>RSS address</b>, filter by <b>topic</b> (news, comedy, true crime, history…) and <b>country</b>; without filters, topic and country tiles with your country’s top chart below. The main <b>Search</b> finds podcasts too (your subscriptions, their episodes and the catalogue), and your subscriptions and favourite episodes are on the <b>Favourites</b> page as well.</li>
 <li><b>OPML</b>: bring your subscriptions from another app (AntennaPod, Pocket Casts…) or take them there (Discover, or Settings → Podcasts).</li>
 <li>Subscriptions are <b>per profile</b>; they also carry over to another device with settings backups and sync.</li></ul>
 <h2>Tabs</h2>

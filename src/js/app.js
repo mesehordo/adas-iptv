@@ -172,7 +172,7 @@ function route({ keepScroll = false } = {}) {
   const sameRoute = full === currentRoute;
   const y = window.scrollY;
   currentRoute = full;
-  // A „Saját” médiatár a VOD része; az országok oldala a Böngészésé
+  // A „Saját” médiatár a VOD része; az országok oldala a Felfedezésé
   const navRoute = (name === 'recordings' && params.get('kind') === 'radio' ? 'radio' : { own: 'vod', recordings: 'tv', guide: 'tv', browse: 'tv', countries: 'tv' }[name]) || name;
   $$('.links a', nav).forEach((a) => a.classList.toggle('active', a.dataset.route === navRoute));
   document.body.dataset.route = name;
@@ -180,7 +180,7 @@ function route({ keepScroll = false } = {}) {
     searchInput.value = '';
     $('#search-box').classList.remove('open');
   }
-  // (B02) Gépelés közben (pl. a Böngészés vagy a VOD szűrőjének keresőmezőjében) a nézet újrarajzolódik:
+  // (B02) Gépelés közben (pl. a Felfedezés vagy a VOD szűrőjének keresőmezőjében) a nézet újrarajzolódik:
   // az új mező kapja vissza a fókuszt, a kurzort és a pontos szöveget (a címsorban a végéről levágott szóköz
   // nélkül). Tévén is – ott eddig elveszett a fókusz, és minden karakter után újra ki kellett választani.
   const ae = document.activeElement;
@@ -264,7 +264,7 @@ bus.on('settings', (k) => {
   if (started && parseHash().name === id) route({ keepScroll: true });
 });
 bus.on('profile', applyMenus);
-// betöltött adók: a rádió főoldala újrarajzolódik (a böngészés és a keresés mezői nem)
+// betöltött adók: a rádió főoldala újrarajzolódik (a felfedezés és a keresés mezői nem)
 bus.on('radio', debounce(() => {
   const { name, params } = parseHash();
   if (name === 'radio' && params.get('tab') !== 'browse' && !player.active && radio.ready) route({ keepScroll: true });

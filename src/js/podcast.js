@@ -422,16 +422,28 @@ export function findEp(key) {
 // Keresés, toplista
 // ---------------------------------------------------------------------------
 const country = () => (store.settings.homeCountry || 'HU').toLowerCase();
-/** Keresés a podcast-katalógusokban (Apple Podcasts nyilvános keresője, tartalékként fyyd). */
-export async function searchPodcasts(q) {
+/** Az Apple Podcasts fő témakörei (azonosító → név); a toplisták témánként is lekérhetők. */
+export const POD_GENRES = [
+  ['1489', _t('Hírek')], ['1324', _t('Társadalom és kultúra')], ['1303', _t('Humor')], ['1488', _t('Valós bűnügyek')], ['1487', _t('Történelem')],
+  ['1533', _t('Tudomány')], ['1318', _t('Technológia')], ['1321', _t('Üzlet')], ['1304', _t('Oktatás')], ['1512', _t('Egészség és fitnesz')],
+  ['1545', _t('Sport')], ['1309', _t('TV és film')], ['1310', _t('Zene')], ['1301', _t('Művészetek')], ['1483', _t('Fikció')], ['1502', _t('Szabadidő')],
+  ['1305', _t('Gyerekek és család')], ['1314', _t('Vallás és spiritualitás')], ['1511', _t('Közélet és politika')],
+];
+/** A podcast-toplisták országai (Apple-áruházak; a beállított ország mindig elöl). */
+export const POD_COUNTRIES = ['HU', 'US', 'GB', 'DE', 'AT', 'CH', 'RO', 'SK', 'RS', 'HR', 'SI', 'UA', 'PL', 'CZ', 'FR', 'IT', 'ES', 'NL', 'SE', 'IE', 'CA', 'AU'];
+// (az Apple témakör-azonosítói közül az első, amelyik a fő témák között van)
+const genreIdOf = (ids) => (ids || []).map(String).find((g) => POD_GENRES.some(([id]) => id === g)) || '';
+const fromItunes = (r) => ({ title: r.collectionName || r.trackName, author: r.artistName || '', image: r.artworkUrl600 || r.artworkUrl100 || '', url: r.feedUrl, genre: r.primaryGenreName || '', genreId: genreIdOf(r.genreIds), count: r.trackCount || 0 });
+/** Keresés a podcast-katalógusokban (Apple Podcasts nyilvános keresője, tartalékként fyyd); cc: ország (alapból a beállított). */
+export async function searchPodcasts(q, { cc = country() } = {}) {
   const term = String(q || '').trim();
   if (!term) return [];
   // RSS-cím közvetlenül
   if (/^https?:\/\//i.test(term)) return [{ title: term, author: '', image: '', url: term, direct: true }];
   try {
-    const { text: t } = await api.fetchText(`https://itunes.apple.com/search?media=podcast&limit=40&country=${country()}&term=${encodeURIComponent(term)}`, { maxAgeHours: 6 });
+    const { text: t } = await api.fetchText(`https://itunes.apple.com/search?media=podcast&limit=40&country=${encodeURIComponent(cc.toLowerCase())}&term=${encodeURIComponent(term)}`, { maxAgeHours: 6 });
     const j = JSON.parse(t);
-    const out = (j.results || []).filter((r) => r.feedUrl).map((r) => ({ title: r.collectionName || r.trackName, author: r.artistName || '', image: r.artworkUrl600 || r.artworkUrl100 || '', url: r.feedUrl, genre: r.primaryGenreName || '', count: r.trackCount || 0 }));
+    const out = (j.results || []).filter((r) => r.feedUrl).map(fromItunes);
     if (out.length) return out;
   } catch {}
   try {
@@ -442,18 +454,29 @@ export async function searchPodcasts(q) {
     return [];
   }
 }
-/** A beállított ország podcast-toplistája (Apple), a műsorok RSS-címével. */
-export async function topPodcasts(n = 50) {
-  const cc = country();
-  const { text: t } = await api.fetchText(`https://rss.marketingtools.apple.com/api/v2/${cc}/podcasts/top/${n}/podcasts.json`, { maxAgeHours: 24 });
-  const res = JSON.parse(t)?.feed?.results || [];
+/** Podcast-toplista (Apple) a műsorok RSS-címével: alapból a beállított országé, genre: témakör-azonosító (POD_GENRES). */
+export async function topPodcasts(n = 50, { genre = '', cc = country() } = {}) {
+  cc = String(cc).toLowerCase();
+  if (!/^[a-z]{2}$/.test(cc)) return [];
+  let res;
+  if (genre) {
+    // (a témánkénti toplista csak a régebbi iTunes-hírfolyamban érhető el)
+    if (!/^\d+$/.test(genre)) return [];
+    const { text: t } = await api.fetchText(`https://itunes.apple.com/${cc}/rss/toppodcasts/limit=${n}/genre=${genre}/json`, { maxAgeHours: 24 });
+    const e = JSON.parse(t)?.feed?.entry || [];
+    res = (Array.isArray(e) ? e : [e]).map((x) => ({ id: x.id?.attributes?.['im:id'], name: x['im:name']?.label || '', artistName: x['im:artist']?.label || '', artworkUrl100: x['im:image']?.at(-1)?.label || '' }));
+  } else {
+    const { text: t } = await api.fetchText(`https://rss.marketingtools.apple.com/api/v2/${cc}/podcasts/top/${n}/podcasts.json`, { maxAgeHours: 24 });
+    res = JSON.parse(t)?.feed?.results || [];
+  }
+  res = res.filter((r) => /^\d+$/.test(String(r.id || '')));
   if (!res.length) return [];
   const { text: l } = await api.fetchText(`https://itunes.apple.com/lookup?country=${cc}&id=${res.map((r) => r.id).join(',')}`, { maxAgeHours: 24 });
   const by = new Map((JSON.parse(l).results || []).map((r) => [String(r.collectionId), r]));
   return res
     .map((r) => {
       const x = by.get(String(r.id));
-      return x?.feedUrl ? { title: r.name, author: r.artistName || '', image: (r.artworkUrl100 || '').replace('100x100', '400x400'), url: x.feedUrl, genre: x.primaryGenreName || '' } : null;
+      return x?.feedUrl ? { ...fromItunes(x), title: r.name || x.collectionName, image: x.artworkUrl600 || (r.artworkUrl100 || '').replace(/\d+x\d+(bb)?/, '400x400bb'), cc: cc.toUpperCase() } : null;
     })
     .filter(Boolean);
 }

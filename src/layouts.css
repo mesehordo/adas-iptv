@@ -1083,3 +1083,27 @@ body[data-layout="focus"] .frame-head, body[data-layout="console"] .frame-head {
 /* oldalsávos felületek (Könyvtár, Részletes, Gyűjtemény): panel a sáv mellett */
 body:is([data-layout="library"], [data-layout="detail"], [data-layout="unified"]) .frame-head { padding: 16px 20px; border-radius: var(--radius); background: var(--bg-2); border: 1px solid var(--line); }
 body:has(#profiles:not([hidden])) #pad-hints { display: none !important; } /* (a profilválasztón nincs gombsúgó) */
+
+/* Gyűjtemény: pipálható szűrőcsoportok (facets.js) */
+.fc { border-bottom: 1px solid var(--line); padding: 4px 0; }
+.fc > summary { display: flex; align-items: center; gap: 8px; padding: 8px 2px; cursor: pointer; list-style: none; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.fc > summary::-webkit-details-marker { display: none; }
+.fc > summary::after { content: '›'; margin-left: auto; font-size: 1.1rem; transition: transform 0.15s; }
+.fc[open] > summary::after { transform: rotate(90deg); }
+.fc > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.fc-title { overflow-wrap: anywhere; }
+.fc-badge { min-width: 18px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--on-accent, #fff); font-size: 0.72rem; text-align: center; letter-spacing: 0; }
+.fc-q { width: 100%; margin: 2px 0 6px; padding: 6px 10px; font-size: 0.85rem; }
+.fc-opts { display: flex; flex-direction: column; padding-bottom: 6px; }
+.fc-opt { padding: 3px 0; }
+.fc-opt[hidden] { display: none; }
+.fc-opt span { flex: 1; min-width: 0; }
+.fc-opt .fc-n { color: var(--muted); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.fc-opt input { accent-color: var(--accent); flex: none; }
+.fc-more { margin: 0 0 8px; }
+.fc-panel > .fc-reset { margin-top: 14px; }
+.fc-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -8px 0 16px; }
+.fc-chips[hidden] { display: none; }
+.fc-chip { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent, #fff); font: inherit; font-size: 0.8rem; cursor: pointer; }
+.fc-chip small { opacity: 0.8; }
+.uni-col .uni-results .grid { margin: 0; }

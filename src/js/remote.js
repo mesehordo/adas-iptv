@@ -77,7 +77,7 @@ ${pinOn ? '' : `<p class="muted">${_t('A PIN-es belépés ki van kapcsolva (a QR
  <div class="seg" id="padMode"><button data-pm="mouse">${_t('🖱 Egér')}</button><button data-pm="arrows">${_t('✥ Nyilak')}</button></div>
  <div class="pad" id="pad"><div class="hint" id="padHint"></div><div class="dot" id="dot"></div></div>
  <div class="row r3"><button data-c="key" data-a="Escape">${_t('↩ Vissza')}</button><button data-c="nav" data-a="home">${_t('⌂ Főoldal')}</button><button data-c="menu" data-a="info">${_t('ⓘ Adatlap')}</button></div>
- <div class="row r4"><button data-c="nav" data-a="tv" class="sm">${_t('📺 TV')}</button><button data-c="nav" data-a="guide" class="sm">${_t('🗓 Műsorújság')}</button><button data-c="nav" data-a="browse" class="sm">${_t('⌕ Böngészés')}</button><button data-c="nav" data-a="vod" class="sm">${_t('🎬 VOD')}</button></div>
+ <div class="row r4"><button data-c="nav" data-a="tv" class="sm">${_t('📺 TV')}</button><button data-c="nav" data-a="guide" class="sm">${_t('🗓 Műsorújság')}</button><button data-c="nav" data-a="browse" class="sm">${_t('⌕ Felfedezés')}</button><button data-c="nav" data-a="vod" class="sm">${_t('🎬 VOD')}</button></div>
  <div class="row r5"><button data-c="seek" data-a="-30" class="sm">−30″</button><button data-c="seek" data-a="-10" class="sm">−10″</button><button data-c="toggle" class="ok">⏯</button><button data-c="seek" data-a="10" class="sm">+10″</button><button data-c="seek" data-a="30" class="sm">+30″</button></div>
  <div class="row r4"><button data-c="chup">CH ▲</button><button data-c="chdown">CH ▼</button><button data-c="recall" class="sm">${_t('↺ Előző')}</button><button data-c="mute" id="muteBtn">🔇</button></div>
  <div class="vol"><span>🔈</span><input type="range" id="vol" min="0" max="1" step="0.02" aria-label="${_t('Hangerő')}"><span>🔊</span></div>
@@ -111,7 +111,7 @@ ${pinOn ? '' : `<p class="muted">${_t('A PIN-es belépés ki van kapcsolva (a QR
  <h2>${_t('Ugrás')}</h2>
  <div class="row r3"><button data-c="nav" data-a="home" class="sm">${_t('⌂ Főoldal')}</button><button data-c="nav" data-a="tv" class="sm">${_t('📺 TV')}</button><button data-c="nav" data-a="guide" class="sm">${_t('☰ Műsorújság')}</button>
  <button data-c="nav" data-a="favorites" class="sm">${_t('★ Kedvencek')}</button><button data-c="nav" data-a="vod" class="sm">${_t('🎬 VOD')}</button><button data-c="nav" data-a="recordings" class="sm">${_t('● Felvételek')}</button>
- <button data-c="nav" data-a="browse" class="sm">${_t('⌕ Böngészés')}</button><button data-c="nav" data-a="radio" class="sm rnav">${_t('📻 Rádió')}</button><button data-c="nav" data-a="radio-guide" class="sm rnav">${_t('📻 Rádió-műsor')}</button>
+ <button data-c="nav" data-a="browse" class="sm">${_t('⌕ Felfedezés')}</button><button data-c="nav" data-a="radio" class="sm rnav">${_t('📻 Rádió')}</button><button data-c="nav" data-a="radio-guide" class="sm rnav">${_t('📻 Rádió-műsor')}</button>
  <button data-c="nav" data-a="sport" class="sm">${_t('⚽ Sport')}</button><button data-c="nav" data-a="podcast" class="sm">${_t('🎙 Podcast')}</button><button data-c="nav" data-a="help" class="sm">${_t('? Súgó')}</button><button data-c="menu" data-a="close" class="sm">${_t('✕ Lejátszó bezárása')}</button></div>
  <h2>${_t('Szöveg küldése')}</h2>
  <input class="q" id="txt" type="text" placeholder="${_t('Keresés az Adásban / gépelés a kijelölt mezőbe')}" autocomplete="off">

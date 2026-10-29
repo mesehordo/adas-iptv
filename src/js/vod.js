@@ -1,5 +1,5 @@
 // Filmek és sorozatok (VOD): M3U / M3U8 listákból (akár egész GitHub-tárhelyből) betöltött
-// filmek és sorozatok felismerése, böngészése, adatlapja, lejátszása folytatással.
+// filmek és sorozatok felismerése, felfedezése, adatlapja, lejátszása folytatással.
 import { menuOn } from './menus.js';
 import { $, $$, esc, html, norm, hashHue, toast, bus, debounce, seededShuffle, errText, fmtNum } from './util.js';
 import { api, coverSrc, IS_TV, IS_ANDROID } from './api.js';
@@ -1275,7 +1275,7 @@ export function homeContinueRow() {
  * Borító nélküli kártyák kiegészítése a magyar információk forrásából (Wikidata-plakát vagy TMDB),
  * egyesével a háttérben – a saját (NAS) listákban jellemzően nincs borítókép.
  */
-function fillPosters(root) {
+export function fillPosters(root) {
   if (store.settings.huInfo === false) return;
   fillTitles(root);
   const ids = [...new Set([...root.querySelectorAll('.vcard')].map((c) => c.dataset.vid))]
@@ -1446,15 +1446,17 @@ function progressiveGrid(grid, list) {
 }
 
 /** A VOD két része: az online listák és a saját (NAS) médiatár – fülekkel váltható. */
-export function vodTabs(lib) {
-  const tab = (l, href, label) => `<a class="tab ${lib === l ? 'active' : ''}" href="${href}">${label}</a>`;
-  return `<div class="tabs vod-tabs">${tab(vod, '#/vod', _t('Online listák'))}${tab(own, '#/own', _t('Saját médiatár'))}</div>`;
+/** A VOD fülei; disc: a Felfedezés (keresés, szűrők, műfajcsempék) látszik. */
+export function vodTabs(lib, disc = false) {
+  const tab = (on, href, label) => `<a class="tab ${on ? 'active' : ''}" href="${href}">${label}</a>`;
+  return `<div class="tabs vod-tabs">${tab(lib === vod && !disc, '#/vod', _t('Online listák'))}${tab(lib === own && !disc, '#/own', _t('Saját médiatár'))}${tab(disc, `${lib.route}?type=all`, _t('Felfedezés'))}</div>`;
 }
 
 export function renderVod(view, params, lib = vod) {
   renderVodPage(view, params, lib);
   const target = view.querySelector('.vod-quick') || view.querySelector('.page');
-  target?.insertAdjacentHTML('afterbegin', vodTabs(lib));
+  const disc = ['q', 'group', 'type', 'list'].some((k) => params.get(k));
+  target?.insertAdjacentHTML('afterbegin', vodTabs(lib, disc));
 }
 
 function renderVodPage(view, params, lib) {
@@ -1523,7 +1525,14 @@ function renderVodPage(view, params, lib) {
     } else if (sort === 'year') list = huFirst(list.slice().sort((a, b) => (b.year || 0) - (a.year || 0)));
     else if (sort === 'title') list = huFirst(list.slice().sort((a, b) => a.title.localeCompare(b.title, LOCALE)));
     const opt = (v, l, cur) => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(l)}</option>`;
-    const heading = [contMode && _t('Folytatás'), wlMode && _t('Megnézendő'), listName, group].filter(Boolean).join(' · ') || (type === 'series' ? _t('Sorozatok') : type === 'movie' ? _t('Filmek') : q ? `${_t('Keresés: „{q}”', { q })}` : lib.title);
+    const heading = [contMode && _t('Folytatás'), wlMode && _t('Megnézendő'), listName, group].filter(Boolean).join(' · ') || (type === 'series' ? _t('Sorozatok') : type === 'movie' ? _t('Filmek') : q ? `${_t('Keresés: „{q}”', { q })}` : `${_t('Felfedezés')} – ${lib.title}`);
+    // (szűrő nélkül, mint a TV Felfedezésénél: a műfajok csempéi a rács fölött)
+    const tiles = !q && !group && !listName && !contMode && !wlMode && groups.length
+      ? `<section class="row"><h2 class="row-title">${isOwn ? _t('Lejátszólisták és csoportok') : _t('Műfajok')}</h2><div class="row-wrap"><div class="row-track tiles">${groups
+          .slice(0, 40)
+          .map((g) => `<a class="tile cat" href="${R}?group=${encodeURIComponent(g.name)}" style="--h:${hashHue(g.name + 'vod')}"><b>${esc(genreLabel(g.name))}</b><small>${_t('{length} cím', { length: g.count })}</small></a>`)
+          .join('')}</div></div></section>`
+      : '';
     view.innerHTML = `<div class="page">
       <div class="page-head"><h1>${esc(heading)}</h1>
         <span class="muted">${_t('{length} cím', { length: list.length })}</span></div>
@@ -1536,6 +1545,7 @@ function renderVodPage(view, params, lib) {
         <select name="sort">${opt('title', _t('Cím szerint'), sort)}${opt('year', _t('Legújabb elöl'), sort)}</select>
         <a class="btn small" href="${R}">${_t('Vissza a kezdőlapra')}</a>
       </form>
+      ${tiles}
       <div class="vgrid">${list.slice(0, VGRID_CHUNK).map(vcardHtml).join('') || `<p class="empty">${_t('Nincs találat.')}</p>`}</div>
     </div>`;
     // Az összes tétel egy oldalon: a többi görgetés közben töltődik be.
@@ -1572,7 +1582,7 @@ function renderVodPage(view, params, lib) {
     <div class="vod-quick">
       ${movies.length ? `<a class="btn small" href="${R}?type=movie">${_t('Összes film ({length})', { length: movies.length })}</a>` : ''}
       ${series.length ? `<a class="btn small" href="${R}?type=series">${_t('Összes sorozat ({length})', { length: series.length })}</a>` : ''}
-      <a class="btn small" href="${R}?type=all">${_t('Keresés és szűrés')}</a>
+      <a class="btn small" href="${R}?type=all">${_t('Felfedezés')}</a>
       <a class="btn small" href="#/settings?section=${lib.settingsSection}">${_t('Listák kezelése')}</a>
       ${isOwn ? `<button class="btn small" data-rescan>${_t('{refresh} Újraolvasás', { refresh: ICON.refresh })}</button>` : ''}
     </div></div>`);
