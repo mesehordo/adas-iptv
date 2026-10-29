@@ -16,6 +16,7 @@ import {
 import { player, stopPreview, PLAYER_BUTTONS } from './player.js';
 import { THEMES, currentTheme, currentVariant, applyTheme, profileRows, defaultRows, rowLabel } from './themes.js';
 import { LAYOUTS, currentLayout, layoutPickerHtml, pickLayoutIn, PLAYER_SKINS, layoutSkin, currentSkin } from './layoutdefs.js';
+import { renderHomeBg } from './homebg.js';
 import { renderLists } from './lists.js';
 import { renderVodLists, renderOwnLists, searchVod, vcardHtml, vod, vodFavItems, loadVod } from './vod.js';
 import { renderHuSettings } from './subtitles.js';
@@ -1144,49 +1145,49 @@ export function renderSettings(view) {
 // ---------------------------------------------------------------------------
 // [azonosító, ikon, név, rövid (legfeljebb kétmondatos) leírás: mit talál itt a felhasználó]
 const SET_GROUPS = [
-  ['look', '🎨', _t('Megjelenés'), _t('A felület stílusa, a saját témák és a TV oldal sorainak sorrendje. Itt adhatod meg azt is, mennyire legyenek kiemelve az elemek.')],
-  ['home', '🏠', _t('Főoldal'), _t('A Főoldal csempéi: melyik látsszon, mekkora legyen, és mit mutasson. Itt állíthatod be az időjárás városát és a hírforrásokat is.')],
-  ['play', '▶️', _t('Lejátszás@@beállítás'), _t('Hogyan induljanak és szóljanak az adások: tartalék forrás, minőség, lejátszómotor, hangerő. Itt választhatod ki azt is, mely gombok látszanak a lejátszóban.')],
-  ['subs', '💬', _t('Feliratok és információk'), _t('Feliratforrások (Feliratok.eu, OpenSubtitles, SubDL), a felirat nyelve és kinézete, a kedvenc hangsáv. A filmek és sorozatok magyar leírásai és borítóképei is innen jönnek.')],
-  ['rec', '⏺', _t('Felvételek'), _t('Hová kerüljenek a felvételek, és mennyivel előbb kezdődjenek, illetve később érjenek véget a műsornál. Itt látod a legutóbbi felvételeidet is.')],
-  ['tvlists', '📺', _t('Csatornalisták'), _t('A tévécsatornák forrásai: beépített és saját lejátszólisták, saját csatornák. Itt ellenőrizheted azt is, mely adások élnek.')],
-  ['vod', '🎬', _t('VOD és médiatár'), _t('Film- és sorozatlisták, kiegészítő csomagok és a saját (NAS-) médiatár mappái. Itt rendezheted a VOD oldal sorait is.')],
-  ['epg', '🗓️', _t('Műsorújság'), _t('A műsorújság forrásai és a frissítésük gyakorisága. Itt látod azt is, melyik forrás hány csatornát fed le.')],
-  ['radio', '📻', _t('Rádió'), _t('A Rádió oldal forrásai (Radio Browser, Verified Radio Streams, IPRD), saját rádiólisták és -csomagok, a hangzás. Itt kapcsolhatod ki a Rádió menüpontot is.')],
-  ['podcast', '🎙️', _t('Podcastok'), _t('Új epizódok keresése, lejátszás (sebesség, ugrások, csend átugrása), letöltések és a feliratkozások átvitele (OPML). Itt kapcsolhatod ki a Podcast menüpontot is.')],
-  ['sport', '🏆', _t('Sport'), _t('A Sport oldal és a Sportfigyelő: milyen bajnokságokat, csapatokat, sportágakat követsz. Itt kapcsolhatod ki a Sport menüpontot is.')],
+  ['look', '🎨', _t('Megjelenés és Főoldal'), _t('A felület stílusa, témák, nyelv és menüpontok; a Főoldal csempéi (időjárás, hírek, műsor) és az élő előnézet.')],
+  ['play', '▶️', _t('Lejátszás és feliratok'), _t('Hogyan induljanak és szóljanak az adások: minőség, lejátszómotor, a lejátszó gombjai. Feliratforrások, a feliratok kinézete, magyar leírások és borítók.')],
+  ['tv', '📺', _t('Tévé, műsorújság, sport'), _t('A tévécsatornák forrásai és elérhetősége, a műsorújság, a felvételek és a Sportfigyelő.')],
+  ['media', '🎬', _t('Filmek, rádió, podcast'), _t('Film- és sorozatlisták, saját médiatár, a Rádió és a Podcast oldal forrásai és beállításai.')],
   ['kids', '👪', _t('Tartalom és gyerekek'), _t('A hazai ország, a felnőtt tartalom és a nyelvek. Itt állíthatod be, mit nézhetnek a gyerekprofilok.')],
-  ['notify', '🔔', _t('Értesítések'), _t('Emlékeztetők a kedvenc műsoraidra, automatikus átkapcsolás. Itt dől el az is, hogy az Adás a háttérben fusson-e.')],
-  ['remote', '📱', _t('Távirányító és billentyűk'), _t('A telefon távirányítóként (QR-kóddal csatlakozik). Itt találod a billentyűzet és a tévé-távirányító gombjait is.')],
-  ['sync', '🔄', _t('Szinkron eszközök között'), _t('Beállítások, profilok és listák átvitele egy másik eszközre a helyi hálózaton, egy 12 jegyű kóddal.')],
-  ['data', '💾', _t('Profilok és mentés'), _t('A profilok kezelése, mentés fájlba és visszaállítás. Itt vannak az automatikus napi mentések is.')],
-  ['update', '⬆️', _t('Frissítés'), _t('Új verzió keresése és telepítése a GitHubról. Itt kapcsolhatod ki azt is, hogy induláskor keressen frissítést.')],
-  ['about', 'ℹ️', _t('Névjegy'), _t('A verzió, az adatmappa helye és az adatforrások.')],
+  ['remote', '🎮', _t('Távirányító és billentyűk'), _t('A telefon távirányítóként, a kontroller, a gombkiosztás és a billentyűparancsok.')],
+  ['data', '💾', _t('Profilok, mentés, szinkron'), _t('A profilok kezelése, mentés fájlba, a napi mentési pontok és az átvitel egy másik eszközre.')],
+  ['system', '⚙️', _t('Rendszer'), _t('Emlékeztetők és értesítések, háttérben futás, frissítések és a névjegy.')],
 ];
+// (a részek saját, finomabb csoportja → a fenti nyolc; a régi „?g=…” hivatkozások is ide vezetnek, a részhez görgetve)
+const GROUP_OF = { look: 'look', home: 'look', play: 'play', subs: 'play', tvlists: 'tv', epg: 'tv', rec: 'tv', sport: 'tv', vod: 'media', radio: 'media', podcast: 'media', kids: 'kids', remote: 'remote', data: 'data', sync: 'data', notify: 'system', update: 'system', about: 'system' };
+// (fülek: asztalon és fekvő kijelzőn – billentyűzettel, távirányítóval így a legkönnyebb; álló, keskeny kijelzőn csempék)
+const narrowPortrait = () => !!window.matchMedia?.('(max-width: 700px) and (orientation: portrait)').matches;
 let refocusSetTab = false;
 /** A beállítások csoportnavigációja (csempék / fülek), kereső, kártyás elrendezés. */
 function settingsNav(view) {
   const nav = $('.set-nav', view);
   const params = new URLSearchParams(location.hash.split('?')[1] || '');
-  // Androidon csak csempék: a fülsor a keskeny képernyőn kilógott, görgetni kellett
-  const mode = IS_ANDROID || store.settings.settingsView === 'tiles' ? 'tiles' : 'tabs';
+  // álló, keskeny kijelzőn csak csempék (a fülsor ott kilógott, görgetni kellett); máshol a választás szerint
+  const mode = narrowPortrait() || store.settings.settingsView === 'tiles' ? 'tiles' : 'tabs';
   const sections = [...view.querySelectorAll('.set-section[data-g]')].filter((s) => !s.hasAttribute('data-off'));
+  for (const s of sections) {
+    s.dataset.sub ||= s.dataset.g;
+    s.dataset.g = GROUP_OF[s.dataset.sub] || s.dataset.sub;
+  }
   const groups = SET_GROUPS.filter(([id]) => sections.some((s) => s.dataset.g === id));
   const label = Object.fromEntries(groups.map(([id, ico, name]) => [id, `${ico} ${name}`]));
   for (const s of sections) s.dataset.glabel = label[s.dataset.g] || '';
   view.querySelectorAll('.set-section[data-off]').forEach((s) => (s.hidden = true));
   // #/settings?section=lists → a rész csoportja, és odagörgetünk
   const sec = params.get('section');
-  const secEl = sec && $(`#${CSS.escape(sec)}`, view);
-  let g = params.get('g') || secEl?.dataset.g || '';
+  const sub = params.get('g') || '';
+  // (régi csoportnév – pl. ?g=podcast –: az új csoport, és a hozzá tartozó első részhez görgetünk)
+  const secEl = (sec && $(`#${CSS.escape(sec)}`, view)) || (sub && !SET_GROUPS.some(([id]) => id === sub) ? sections.find((s) => s.dataset.sub === sub) : null);
+  let g = GROUP_OF[sub] || sub || secEl?.dataset.g || '';
   if (!groups.some(([id]) => id === g)) g = mode === 'tabs' ? groups[0]?.[0] : '';
   const hub = mode === 'tiles' && !g;
   const go = (id, replace) => {
     const h = '#/settings' + (id ? '?g=' + id : '');
     replace ? location.replace(h) : (location.hash = h);
   };
-  // Nézetváltó a fejlécben (Androidon nincs)
-  if (!IS_ANDROID) $('.set-head', view).insertAdjacentHTML(
+  // Nézetváltó a fejlécben (álló, keskeny kijelzőn nincs)
+  if (!narrowPortrait()) $('.set-head', view).insertAdjacentHTML(
     'beforeend',
     `<div class="seg set-view" role="group" aria-label="${_t('Elrendezés')}"><button class="tab ${mode === 'tiles' ? 'active' : ''}" data-sv="tiles" title="${_t('Csempés kezdőlap')}">${_t('▦ Csempék')}</button><button class="tab ${mode === 'tabs' ? 'active' : ''}" data-sv="tabs" title="${_t('Fülek')}">${_t('☰ Fülek')}</button></div>`
   );
@@ -1285,10 +1286,12 @@ function renderAppearance(box) {
     ${layoutPickerHtml(currentLayout())}
     <label class="setting"><span>${_t('<b>A lejátszó kinézete</b>')}<small>${_t('A videó- és a rádiólejátszó kezelőfelülete (a kis rádiósáv is). Alapból az elrendezéshez illő.')}</small></span>
       <select data-pskin-select></select></label>
+    <div class="hbg-box"></div>
     <h3>${_t('A TV oldal sorai')}</h3>
     <p class="muted">${_t('Húzással vagy a nyilakkal rendezheted, a kapcsolóval elrejtheted a sorokat.')}</p>
     <div class="tv-rows"></div>`;
   renderThemeTools(box.querySelector('.ct-box'), () => renderAppearance(box));
+  renderHomeBg(box.querySelector('.hbg-box'));
 
   rowOrderEditor(box.querySelector('.tv-rows'), {
     rows: profileRows(),
@@ -1342,6 +1345,7 @@ function renderAppearance(box) {
     box.querySelector('.lay-desc').textContent = LAYOUTS[id].desc;
     drawPair();
     drawSkins();
+    renderHomeBg(box.querySelector('.hbg-box'));
   };
   box.onchange = (e) => {
     if (e.target.matches('[data-pskin-select]')) {

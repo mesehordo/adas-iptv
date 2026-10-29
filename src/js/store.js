@@ -337,6 +337,9 @@ export function cleanProfile(p) {
   if (p.vodProgress != null)
     p.vodProgress = objMap(p.vodProgress, (x) => (obj(x) ? { ...x, p: num(x.p), d: num(x.d), t: num(x.t), done: !!x.done, ...(x.last != null ? { last: str(x.last, 500) } : {}) } : null));
   if (p.vodSubs != null) p.vodSubs = objMap(p.vodSubs, (x) => (obj(x) ? x : null));
+  // (a Főoldal háttérképe: beépített azonosító vagy „custom” – a saját kép a dokumentumtárban, homebg.js)
+  if (p.homeBg != null && !(typeof p.homeBg === 'string' && /^[a-z]{1,20}$/.test(p.homeBg))) delete p.homeBg;
+  if (p.homeBgDoc != null && !(typeof p.homeBgDoc === 'string' && /^homebg:[^\n]{1,200}$/.test(p.homeBgDoc))) delete p.homeBgDoc;
   if (p.seriesReminders != null)
     p.seriesReminders = (Array.isArray(p.seriesReminders) ? p.seriesReminders : []).filter((x) => obj(x) && typeof x.channelId === 'string' && typeof x.key === 'string').slice(0, 500);
   for (const k of ['rows', 'vodRows'])

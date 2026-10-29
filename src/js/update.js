@@ -47,10 +47,13 @@ async function downloadAndInstall(info, out) {
       if (r === 'permission') toast(_t('Engedélyezd az Adásnak az alkalmazások telepítését a megnyíló beállításban, majd nyomd meg újra a Telepítés gombot.'), { timeout: 12000 });
       return;
     }
+    const silent = await silentPref();
     const msg = info.portable
       ? _t('A letöltés kész. A hordozható változatnál az új fájlt a megnyíló mappában találod – azt indítsd el a régi helyett.')
-      : _t('A letöltés kész. Elindítod most a telepítőt? Az Adás bezárul, és a telepítés után újraindítható.');
-    if (await confirmDialog(msg, { ok: info.portable ? _t('Mappa megnyitása') : _t('Telepítés most'), cancel: _t('Később') })) await api.updateInstall(file);
+      : silent
+        ? _t('A letöltés kész. Telepíted most? Az Adás bezárul, a frissítés kérdések nélkül települ, majd az Adás újraindul.')
+        : _t('A letöltés kész. Elindítod most a telepítőt? Az Adás bezárul, és a telepítés után újraindítható.');
+    if (await confirmDialog(msg, { ok: info.portable ? _t('Mappa megnyitása') : _t('Telepítés most'), cancel: _t('Később') })) await api.updateInstall(file, silent);
   } catch (err) {
     toast(`${_t('A letöltés nem sikerült:')} ` + errText(err));
   } finally {
@@ -65,6 +68,27 @@ function resultHtml(info) {
     ${info.asset ? `<div class="progress"><i style="width:0%"></i></div>` : ''}
     <div class="inline"><button class="btn primary" data-up="install">${info.asset ? (info.portable ? _t('Letöltés') : _t('Letöltés és telepítés')) : _t('Letöltési oldal megnyitása')}</button>
     ${info.page ? `<button class="btn" data-up="page">${_t('Kiadási megjegyzések')}</button>` : ''}</div>`;
+}
+
+/**
+ * Kérdések nélküli telepítés (Windows: Setup és MSI). A beállítás (updateSilent) dönt; amíg nincs megadva, a telepítés
+ * módjához tartozó alapérték (MSI: be – vagy amit az MSI telepítőjében választottak –, Setup: ki). Ha az MSI telepítőjében
+ * közben újra választottak (más a telepítés ideje), az az érvényes. → true / false / null (itt nem választható)
+ */
+let prefsCache = null;
+async function updatePrefs() {
+  prefsCache ||= Promise.resolve(api.updatePrefs?.()).catch(() => null);
+  return prefsCache;
+}
+async function silentPref() {
+  const p = await updatePrefs();
+  if (!p?.silentOk) return null;
+  const s = store.settings;
+  if (p.stamp && p.stamp !== s.updateSilentStamp) {
+    store.set('updateSilentStamp', p.stamp);
+    store.set('updateSilent', p.silent);
+  }
+  return typeof s.updateSilent === 'boolean' ? s.updateSilent : !!p.silent;
 }
 
 /** A hivatalos kiadások (GitHub Releases) – ha a mező üres, innen frissül. */
@@ -83,13 +107,22 @@ export function renderUpdate(box) {
       <input class="input" data-up-src value="${esc(s.updateSource || '')}" placeholder="${DEFAULT_SOURCE}" autocomplete="off" /></label>
     <label class="setting"><span>${_t('<b>Frissítés keresése induláskor</b>')}<small>${_t('Minden indításkor megnézi a GitHubon, van-e új verzió; ha van, értesítést kapsz, és egy kattintással telepítheted. Kikapcsolva csak a lenti gombbal keres.')}</small></span>
       <input type="checkbox" class="switch" data-up-auto ${s.updateAuto !== false ? 'checked' : ''} /></label>
+    <label class="setting" data-up-silent-row hidden><span>${_t('<b>Telepítés kérdések nélkül</b>')}<small>${_t('A frissítés a telepítő ablakai és kérdései nélkül települ (csak egy folyamatjelző látszik; gépre telepítésnél a Windows engedélyt kérhet), utána az Adás újraindul. Kikapcsolva a szokásos telepítő indul.')}</small></span>
+      <input type="checkbox" class="switch" data-up-silent /></label>
     <div class="inline"><button class="btn primary" data-up="check">${_t('Frissítés keresése most')}</button><span class="muted small up-status"></span></div>
     <div class="up-result"></div>`;
   const out = box.querySelector('.up-result');
+  silentPref().then((v) => {
+    const row = box.querySelector('[data-up-silent-row]');
+    if (!row || v === null) return;
+    row.hidden = false;
+    row.querySelector('[data-up-silent]').checked = v;
+  });
   box.onchange = (e) => {
     e.stopPropagation();
     if (e.target.matches('[data-up-src]')) store.set('updateSource', e.target.value.trim());
     if (e.target.matches('[data-up-auto]')) store.set('updateAuto', e.target.checked);
+    if (e.target.matches('[data-up-silent]')) store.set('updateSilent', e.target.checked);
   };
   box.onclick = async (e) => {
     const a = e.target.closest('[data-up]')?.dataset.up;

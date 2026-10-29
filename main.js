@@ -1440,7 +1440,8 @@ ipcMain.handle('update-check', (_e, source) => updater.check(source));
 ipcMain.handle('update-download', (_e, asset) =>
   updater.download(asset, (p) => win && !win.isDestroyed() && win.webContents.send('update-progress', p))
 );
-ipcMain.handle('update-install', (_e, file) => updater.install(file));
+ipcMain.handle('update-install', (_e, file, silent) => updater.install(file, typeof silent === 'boolean' ? silent : undefined));
+ipcMain.handle('update-prefs', () => updater.prefs());
 
 // ---------------------------------------------------------------------------
 app.userAgentFallback = CHROME_UA;

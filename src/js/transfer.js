@@ -91,8 +91,8 @@ async function mergeProfiles(data, source) {
     { ok: _t('Átvétel') }
   );
   if (!ok) return false;
-  // (L02) a profilok kézi feliratainak szövege (új kulcsokra – a beállítások listái itt nem változnak)
-  const subDocs = Object.fromEntries(Object.entries(data.docs || {}).filter(([k]) => k.startsWith('subman:')));
+  // (L02) a profilok saját dokumentumai – kézi feliratok, háttérkép – (új kulcsokra; a beállítások listái itt nem változnak)
+  const subDocs = Object.fromEntries(Object.entries(data.docs || {}).filter(([k]) => /^(subman|homebg):/.test(k)));
   const staged = await stageDocs({ docs: subDocs, settings: {}, profiles: incoming });
   // (H23) sikert csak a tartós mentés után jelez; ha az írás nem sikerül, a korábbi profilok visszaállnak
   const before = store.profiles.slice();

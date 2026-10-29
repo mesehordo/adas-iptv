@@ -67,6 +67,10 @@ export const LAYOUTS = {
     theme: 'holo', // ajánlott téma-pár
     desc: _t('Fókusz: felül funkciósáv, alatta egy sor csempe – a kijelölt nagyobb, alatta a műsora és a gombjai, a háttérben a csatorna.'),
   },
+  console: {
+    label: _t('Kontroller'),
+    desc: _t('Kontroller: középen nagy, oldalra lapozható részek (kedvencek, most a tévében, rádió, videotár…), alattuk a kijelölt rész tartalma nagy csempéken, alul a kontroller gombjainak súgója. Kanapéról, kontrollerrel – pl. egy játékgépre telepítve – a legkényelmesebb.'),
+  },
   desk: {
     label: _t('Asztal'),
     theme: 'shiro', // ajánlott téma-pár
@@ -88,7 +92,7 @@ export const PLAYER_SKINS = {
 };
 // (a korábbi kinézetek: a hozzájuk legközelebbi)
 const SKIN_ALIAS = { cinema: 'classic', capsule: 'glass', app: 'bar', window: 'bar', pill: 'round' };
-const LAYOUT_SKIN = { classic: 'classic', cinema: 'classic', showcase: 'glass', shelf: 'glass', library: 'bar', tiles: 'round', detail: 'bar', unified: 'bar', wall: 'round', squares: 'round', ribbon: 'minimal', focus: 'glass', desk: 'bar' };
+const LAYOUT_SKIN = { classic: 'classic', cinema: 'classic', showcase: 'glass', shelf: 'glass', library: 'bar', tiles: 'round', detail: 'bar', unified: 'bar', wall: 'round', squares: 'round', ribbon: 'minimal', focus: 'glass', desk: 'bar', console: 'round' };
 /** Az elrendezéshez illő lejátszó-kinézet. */
 export const layoutSkin = (id = currentLayout()) => LAYOUT_SKIN[id] || 'classic';
 /** A használt lejátszó-kinézet: a profil saját választása, vagy az elrendezéshez illő. */
@@ -124,4 +128,6 @@ export function applyLayout() {
   document.body.dataset.layout = id;
   document.body.classList.toggle('side-nav', !!LAYOUTS[id].side);
   document.body.dataset.pskin = currentSkin();
+  // (a Főoldal háttérképe az elrendezéstől függ – homebg.js)
+  document.dispatchEvent(new Event('adas-layout'));
 }

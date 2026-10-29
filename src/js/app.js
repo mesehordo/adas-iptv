@@ -1,5 +1,7 @@
 // Alkalmazás: indítás, útvonalak, fejléc, keresés, profilmenü, emlékeztetők, billentyű- és távirányítós navigáció.
 import { $, $$, esc, html, fmtTime, debounce, toast, bus, dayLabel, dayStart } from './util.js';
+import { fitHome } from './homefit.js';
+import './homebg.js'; // (a Főoldal háttérképe – az elrendezés váltásakor magától érvényesül)
 import { api, IS_TV } from './api.js';
 import { store } from './store.js';
 import { catalog, loadCatalog, catalogRefreshDue, reloadLists } from './catalog.js';
@@ -192,6 +194,8 @@ function route({ keepScroll = false } = {}) {
   fn(view, params);
   // (a TV, VOD, Rádió oldal kártyái az elrendezés módján rendeződnek át)
   adaptPage(view, name);
+  // (a Főoldal egy képernyőn – asztalon és fekvő kijelzőn)
+  fitHome(view, name);
   if (cardKeep && !view.contains(document.activeElement)) {
     const all = view.querySelectorAll(cardKeep.sel);
     (all[cardKeep.n] || all[0])?.focus({ preventScroll: true });

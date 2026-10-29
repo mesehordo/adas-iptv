@@ -26,7 +26,7 @@ export function layoutRoute(name) {
     return {
       classic: renderDashboard, cinema: renderCinema, showcase: renderShowcase, shelf: renderShelf, library: renderLibraryHome, tiles: renderTiles,
       detail: (v) => renderDetail(v, null, true), unified: renderUnifiedHome,
-      wall: renderWall, squares: renderSquares, ribbon: renderRibbon, focus: renderFocus, desk: renderDesk,
+      wall: renderWall, squares: renderSquares, ribbon: renderRibbon, focus: renderFocus, desk: renderDesk, console: renderConsole,
     }[id];
   }
   if (name === 'tv' && (id === 'detail' || id === 'unified')) return id === 'detail' ? renderDetail : renderUnified;
@@ -938,6 +938,142 @@ function renderRibbon(view) {
   });
   drawCat();
   // hírek: betöltés után a kategória feltöltése (ha nincs bekapcsolt forrás vagy hiba, a kategória eltűnik)
+  const ni = cats.findIndex((c) => c.id === 'news');
+  if (ni >= 0) {
+    homeNews()
+      .catch(() => [])
+      .then((list) => {
+        if (!el.isConnected) return;
+        cats[ni].items = list.map((n) => ({ kind: 'news', n, title: n.title, sub: n.source }));
+        if (!cats[ni].items.length) cats[ni].items = [{ kind: 'link', href: '#/settings?section=dashboard', title: _t('Hírforrások beállítása'), sub: _t('A hírek most nem érhetők el.') }];
+        if (ci === ni) drawCat(box.contains(document.activeElement));
+      });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Kontroller: középen nagy, lapozható részek (a Menüszalag részei), alattuk a kijelölt rész tartalma nagy
+// csempéken, alul a kontroller gombjainak súgója. ← → (bal kar, D-pad, LB / RB): rész · ↓ ↑: tartalom / részek ·
+// A: megnyitás · B: vissza · Y: keresés.
+// ---------------------------------------------------------------------------
+const consoleState = { cat: 'favs', idx: {} };
+// (a többi oldalon a képernyő alján – CSS: csak a Kontroller elrendezésben látszik)
+if (!document.getElementById('pad-hints')) document.body.append(Object.assign(document.createElement('div'), { id: 'pad-hints', ariaHidden: 'true' }));
+/** A kontroller gombjainak súgója (a Kontroller elrendezés minden oldalán, alul). */
+export const padHintsHtml = () =>
+  `<span><i class="pad-b a">A</i>${_t('Megnyitás')}</span><span><i class="pad-b b">B</i>${_t('Vissza')}</span><span><i class="pad-b x">X</i>${_t('Adatok')}</span><span><i class="pad-b y">Y</i>${_t('Keresés')}</span><span><i class="pad-b lb">LB</i><i class="pad-b lb">RB</i>${_t('Lapozás')}</span>`;
+function renderConsole(view) {
+  const { cats, rf } = ribbonCats();
+  document.getElementById('pad-hints').innerHTML = padHintsHtml();
+  let ci = Math.max(0, cats.findIndex((c) => c.id === consoleState.cat));
+  const p = store.profile;
+  view.innerHTML = `<section class="cs">
+    <div class="cs-top">${avatarHtml(p, 'cs-av')}<b>${esc(p.name)}</b><span class="cs-clock">${clockText()}</span></div>
+    <div class="cs-car" role="tablist" aria-label="${_t('Részek')}">${cats.map((c, i) => `<button class="cs-sys" role="tab" data-ci="${i}" aria-selected="false" style="--h:${hashHue(c.id + 'sys')}"><span class="cs-ico">${c.ico}</span><b>${esc(c.label)}</b></button>`).join('')}</div>
+    <div class="cs-info"><h1></h1><p class="muted"></p></div>
+    <div class="cs-items" role="list"></div>
+    <footer class="cs-hints" aria-hidden="true">${padHintsHtml()}</footer>
+  </section>`;
+  const el = view.querySelector('.cs');
+  every(el, 20e3, () => (el.querySelector('.cs-clock').textContent = clockText()));
+  const car = el.querySelector('.cs-car');
+  const box = el.querySelector('.cs-items');
+  const items = () => cats[ci].items;
+  const curIdx = () => Math.max(0, Math.min(consoleState.idx[cats[ci].id] || 0, items().length - 1));
+  const itemHtml = (it, i) => {
+    const art = it.kind === 'ch' || it.kind === 'prog' ? logoHtml(it.ch) : it.kind === 'news' ? (it.n.img ? `<img class="logo cover" src="${esc(it.n.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : NEWS_ICO) : it.kind === 'radio' ? (it.st.logo ? `<img class="logo" src="${esc(it.st.logo)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : navIcon('radio')) : it.ico || cats[ci].ico;
+    const hue = hashHue(it.ch?.name || it.st?.name || it.title || '');
+    return `<button class="cs-item" role="listitem" data-ii="${i}" ${it.kind === 'ch' ? `data-id="${esc(it.id)}"` : ''} style="--h:${hue}"><span class="cs-art">${art}</span><span class="cs-cap"><b>${esc(it.title)}</b>${it.sub ? `<small>${esc(it.sub)}</small>` : ''}</span></button>`;
+  };
+  const info = (ii) => {
+    const it = items()[ii];
+    el.querySelector('.cs-info h1').textContent = it?.title || cats[ci].label;
+    el.querySelector('.cs-info p').textContent = it?.sub || '';
+  };
+  const mark = (ii, focus = false) => {
+    consoleState.idx[cats[ci].id] = ii;
+    box.querySelectorAll('.cs-item').forEach((b, n) => b.classList.toggle('sel', n === ii));
+    const b = box.children[ii];
+    b?.scrollIntoView({ block: 'nearest', inline: 'center' });
+    if (focus) b?.focus({ preventScroll: true });
+    info(ii);
+  };
+  const drawCat = (focusItem = false) => {
+    consoleState.cat = cats[ci].id;
+    el.style.setProperty('--i', ci);
+    car.querySelectorAll('.cs-sys').forEach((b, n) => {
+      b.classList.toggle('sel', n === ci);
+      b.setAttribute('aria-selected', n === ci);
+    });
+    car.children[ci]?.scrollIntoView({ block: 'nearest', inline: 'center' });
+    box.innerHTML = items().map(itemHtml).join('');
+    box.scrollLeft = 0;
+    mark(curIdx(), focusItem);
+  };
+  const open = (ii) => {
+    const it = items()[ii];
+    if (!it) return;
+    if (it.kind === 'ch') player.play(it.ch);
+    else if (it.kind === 'prog') openProgram(it.ch, it.pr);
+    else if (it.kind === 'news') openNews(it.n);
+    else if (it.kind === 'radio') radioPlayer.play(it.st, rf);
+    else location.hash = it.href;
+  };
+  const step = (d, focusCat) => {
+    const n = ci + d;
+    if (n < 0 || n >= cats.length) return false;
+    ci = n;
+    drawCat(!focusCat);
+    if (focusCat) car.children[ci].focus({ preventScroll: true });
+    return true;
+  };
+  car.addEventListener('click', (e) => {
+    const b = e.target.closest('.cs-sys');
+    if (!b) return;
+    ci = Number(b.dataset.ci);
+    drawCat();
+  });
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('.cs-item');
+    if (!b) return;
+    mark(Number(b.dataset.ii));
+    open(Number(b.dataset.ii));
+  });
+  box.addEventListener('focusin', (e) => {
+    const b = e.target.closest('.cs-item');
+    if (b) mark(Number(b.dataset.ii));
+  });
+  el.addEventListener('keydown', (e) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const onItem = e.target.closest?.('.cs-item');
+    const onCat = e.target.closest?.('.cs-sys');
+    let handled = true;
+    // (LB / RB – a kontroller vállgombjai – bárhonnan lapoznak a részek között)
+    if (e.key === 'ChannelUp' || e.key === 'ChannelDown') handled = step(e.key === 'ChannelUp' ? 1 : -1, !onItem) || true;
+    else if (!onItem && !onCat) handled = false;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const d = e.key === 'ArrowLeft' ? -1 : 1;
+      if (onCat) handled = step(d, true);
+      else {
+        const n = curIdx() + d;
+        if (n >= 0 && n < items().length) mark(n, true);
+      }
+    } else if (e.key === 'ArrowDown') {
+      if (onCat) mark(curIdx(), true);
+      else handled = false;
+    } else if (e.key === 'ArrowUp') {
+      if (onItem) car.children[ci].focus({ preventScroll: true });
+      else handled = false; // (a kijelölés a felső sávra lép tovább)
+    } else if (e.key === 'Enter' && onItem) open(Number(onItem.dataset.ii));
+    else handled = false;
+    if (handled) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  });
+  drawCat();
+  // (indításkor a kijelölt rész kapja a fókuszt – a kontroller rögtön ott kezd)
+  requestAnimationFrame(() => !view.contains(document.activeElement) && car.children[ci]?.focus({ preventScroll: true }));
   const ni = cats.findIndex((c) => c.id === 'news');
   if (ni >= 0) {
     homeNews()

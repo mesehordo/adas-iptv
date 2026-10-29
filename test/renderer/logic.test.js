@@ -517,11 +517,11 @@ test('elrendezések: alapérték, ismeretlen név, választó', () => {
   assert.equal(currentLayout({ layout: 'nincs-ilyen' }), 'classic');
   assert.equal(currentLayout({ layout: 'detail' }), 'detail');
   const ids = Object.keys(LAYOUTS);
-  assert.equal(ids.length, 13);
+  assert.equal(ids.length, 14);
   for (const id of ids) assert.ok(LAYOUTS[id].label && LAYOUTS[id].desc, id);
   const box = document.createElement('div');
   box.innerHTML = layoutPickerHtml('shelf');
-  assert.equal(box.querySelectorAll('[data-layout-pick]').length, 13);
+  assert.equal(box.querySelectorAll('[data-layout-pick]').length, 14);
   assert.equal(box.querySelector('.sel').dataset.layoutPick, 'shelf');
   assert.equal(pickLayoutIn(box, box.querySelector('[data-layout-pick="unified"] b')), 'unified');
   assert.equal(box.querySelector('.sel').dataset.layoutPick, 'unified');

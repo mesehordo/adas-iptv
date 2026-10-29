@@ -3,6 +3,11 @@
 ;  - eltávolításkor: az adatok törlése is (kérdésre)
 ; Csendes futásnál (/S – pl. az automatikus frissítés) nem kérdez, és nem töröl semmit.
 
+; Monitoronkénti DPI: más nagyítású kijelzőre húzva (vagy a nagyítás menet közbeni váltásakor) a telepítő ablaka
+; élesen újraméreteződik – a DPI-t nem kezelő program képét a Windows csak elmosódottan nagyította / kicsinyítette.
+ManifestDPIAware true
+ManifestDPIAwareness "PerMonitorV2,System"
+
 !macro customInit
   SetShellVarContext current
   IfFileExists "$APPDATA\${PRODUCT_NAME}\*.*" 0 adas_init_done

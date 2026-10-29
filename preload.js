@@ -107,6 +107,7 @@ contextBridge.exposeInMainWorld('api', {
   onRemoteCmd: (cb) => ipcRenderer.on('remote-cmd', (_e, x) => cb(x)),
   updateCheck: (source) => ipcRenderer.invoke('update-check', source),
   updateDownload: (asset) => ipcRenderer.invoke('update-download', asset),
-  updateInstall: (file) => ipcRenderer.invoke('update-install', file),
+  updateInstall: (file, silent) => ipcRenderer.invoke('update-install', file, silent),
+  updatePrefs: () => ipcRenderer.invoke('update-prefs'),
   onUpdateProgress: (cb) => ipcRenderer.on('update-progress', (_e, p) => cb(p)),
 });

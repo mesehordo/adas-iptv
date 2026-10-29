@@ -124,4 +124,6 @@ export async function buildWebBundle(appDir, { flagScript }) {
   // Beépített (a programmal szállított) VOD-listák
   if (fs.existsSync(r('src/lists'))) for (const f of fs.readdirSync(r('src/lists'))) copy(r('src/lists', f), path.join(appDir, 'lists', f));
   if (fs.existsSync(r('src/data'))) for (const f of fs.readdirSync(r('src/data'))) copy(r('src/data', f), path.join(appDir, 'data', f));
+  // a Főoldal alap háttérképei (konzolos elrendezések)
+  if (fs.existsSync(r('src/bg'))) for (const f of fs.readdirSync(r('src/bg'))) copy(r('src/bg', f), path.join(appDir, 'bg', f));
 }
