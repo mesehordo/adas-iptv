@@ -616,17 +616,28 @@ function renderUnified(view) {
     </section>
   </div>`;
   const results = view.querySelector('.uni-results');
-  const panel = facetPanel({ facets: tvFacets(lists), items: vis, state: u.f, onChange: () => changed() });
+  const panel = facetPanel({ facets: tvFacets(lists), items: vis, state: u.f, onChange: () => changed(), onOpen: () => saveUni(u) });
   view.querySelector('.uni-filters').append(panel.el);
   view.querySelector('.uni-bar').after(panel.chips);
-  // (ellenőrzés, kedvenc, műsorújság után a darabszámok frissülnek – a rács nem ugrik el)
+  // (ellenőrzés, kedvenc, műsorújság után a darabszámok frissülnek; a rács csak akkor rajzolódik újra, ha a
+  // szűrt találatok köre megváltozott – így nem ugrik el)
+  const matching = () => {
+    const t = norm(u.q.trim());
+    return panel.filter().filter((c) => !t || norm(c.name).includes(t));
+  };
+  const sig = (list) => list.map((c) => c.id).sort().join('\n');
+  let shown = '';
   const offs = ['health', 'favorites', 'epg'].map((ev) =>
-    bus.on(ev, debounce(() => (results.isConnected ? panel.setItems(vis) : offs.forEach((off) => off())), 1500))
+    bus.on(ev, debounce(() => {
+      if (!results.isConnected) return offs.forEach((off) => off());
+      panel.setItems(vis);
+      if (sig(matching()) !== shown) draw();
+    }, 1500))
   );
   const draw = () => {
-    const t = norm(u.q.trim());
     const watched = store.profile?.stats?.ch || {};
-    let list = panel.filter().filter((c) => !t || norm(c.name).includes(t));
+    let list = matching();
+    shown = sig(list);
     if (u.sort === 'name') list.sort((a, b) => a.name.localeCompare(b.name));
     else if (u.sort === 'watched') list.sort((a, b) => (watched[b.id] || 0) - (watched[a.id] || 0) || homeRank(b) - homeRank(a));
     else list = byAvailability(list.sort((a, b) => homeRank(b) - homeRank(a) || rankScore(b) - rankScore(a)));

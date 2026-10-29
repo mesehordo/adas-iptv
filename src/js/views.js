@@ -26,7 +26,7 @@ import { renderDashSettings } from './dashboard.js';
 import { renderSportSettings } from './sports.js';
 import { radioFavsSection, radioSearchSection, radioSearchCount, startRadioSearch } from './radiopage.js';
 import { renderRadioSettings } from './radiosettings.js';
-import { MENU_ITEMS } from './menus.js';
+import { MENU_ITEMS, menuOn } from './menus.js';
 import { renderPodcastSettings, podFavsSection, podSearchSection, podSearchCount } from './podcastpage.js';
 import { requireAdult, requireAdultAlways, hasPin, choosePin, setPin } from './pin.js';
 import { renderTransfer, importData, attachDocs, stageDocs, dropDocs } from './transfer.js';
@@ -497,7 +497,8 @@ export function renderSearch(view, params) {
   // Szűrő: minden találat, vagy csak egy fajta (ott a teljes lista)
   const counts = { tv: chans.length, prog: progs.length, vod: vodHits.length, radio: radioSearchCount(q), pod: podSearchCount(q) };
   let only = params.get('t') || '';
-  if (!(only in counts)) only = '';
+  // (kikapcsolt Podcast menüpontnál nincs Podcast fül)
+  if (!(only in counts) || (only === 'pod' && !menuOn('podcast'))) only = '';
   const show = (k) => !only || only === k;
   const radioBox = show('radio') ? radioSearchSection(q, { limit: only ? 120 : 18 }) : null;
   const podBox = show('pod') ? podSearchSection(q, { limit: only ? 120 : 18 }) : null;
@@ -507,7 +508,7 @@ export function renderSearch(view, params) {
     `<button class="tab ${only === k ? 'active' : ''}" data-st="${k}" ${k && k !== 'pod' && !counts[k] ? 'disabled' : ''}>${label}${k ? ` <span class="muted">${counts[k]}</span>` : ''}</button>`;
   const allLink = (n, href) => (only || n <= 18 ? '' : `<a class="btn small" href="${href}">${_t('Összes ({length})', { length: n })}</a>`);
   view.innerHTML = `<div class="page search-page">
-    <div class="page-head"><h1>${_t('Találatok: „{esc}”', { esc: esc(q) })}</h1><span class="muted">${_t('{n} találat', { n: total })}</span></div>
+    <div class="page-head"><h1>${_t('Találatok: „{esc}”', { esc: esc(q) })}</h1><span class="muted sc-total" data-base="${total - counts.pod}">${_t('{n} találat', { n: total })}</span></div>
     <div class="tabs search-tabs">${tab('', _t('Mind'))}${tab('tv', _t('TV-csatornák'))}${tab('prog', _t('Műsorok'))}${tab('vod', _t('VOD'))}${tab('radio', _t('Rádió'))}${podBox || only === 'pod' ? tab('pod', _t('Podcast')) : ''}</div>
     ${show('tv') && chans.length ? `<section class="sc-tv"><h2 class="section-title">${_t('TV-csatornák')} <a class="btn small" href="#/browse?q=${encodeURIComponent(q)}">${_t('Szűrés ország, nyelv, kategória szerint ›')}</a></h2><div class="sc-chans"></div></section>` : ''}
     ${show('prog') && progs.length ? `<section class="sc-prog"><h2 class="section-title">${_t('Műsorok')}</h2><div class="prog-results"></div></section>` : ''}

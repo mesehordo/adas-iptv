@@ -1527,8 +1527,12 @@ function renderVodPage(view, params, lib) {
     const opt = (v, l, cur) => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(l)}</option>`;
     const heading = [contMode && _t('Folytatás'), wlMode && _t('Megnézendő'), listName, group].filter(Boolean).join(' · ') || (type === 'series' ? _t('Sorozatok') : type === 'movie' ? _t('Filmek') : q ? `${_t('Keresés: „{q}”', { q })}` : `${_t('Felfedezés')} – ${lib.title}`);
     // (szűrő nélkül, mint a TV Felfedezésénél: a műfajok csempéi a rács fölött)
-    const tiles = !q && !group && !listName && !contMode && !wlMode && groups.length
-      ? `<section class="row"><h2 class="row-title">${isOwn ? _t('Lejátszólisták és csoportok') : _t('Műfajok')}</h2><div class="row-wrap"><div class="row-track tiles">${groups
+    // (a csempék darabszáma a választott típus – film / sorozat – szerint)
+    const tileCount = new Map();
+    for (const x of list) for (const n of catsOf(x)) tileCount.set(n, (tileCount.get(n) || 0) + 1);
+    const tileGroups = groups.filter((g) => tileCount.has(g.name)).map((g) => ({ name: g.name, count: tileCount.get(g.name) }));
+    const tiles = !q && !group && !listName && !contMode && !wlMode && tileGroups.length
+      ? `<section class="row"><h2 class="row-title">${isOwn ? _t('Lejátszólisták és csoportok') : _t('Műfajok')}</h2><div class="row-wrap"><div class="row-track tiles">${tileGroups
           .slice(0, 40)
           .map((g) => `<a class="tile cat" href="${R}?group=${encodeURIComponent(g.name)}" style="--h:${hashHue(g.name + 'vod')}"><b>${esc(genreLabel(g.name))}</b><small>${_t('{length} cím', { length: g.count })}</small></a>`)
           .join('')}</div></div></section>`

@@ -2948,5 +2948,6 @@ export default {
  "Felfedezés csoport szerint": "Discover by group",
  "⌕ Felfedezés": "⌕ Discover",
  "Csatornák felfedezése": "Discover channels",
- "Lejátszólisták és csoportok": "Playlists and groups"
+ "Lejátszólisták és csoportok": "Playlists and groups",
+ "Kiváló (256 kbps vagy több)": "Excellent (256 kbps or more)"
 };

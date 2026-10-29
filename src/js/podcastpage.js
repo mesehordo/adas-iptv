@@ -352,6 +352,8 @@ export function podSearchSection(q, { limit = 18 } = {}) {
       // (a Keresés oldal Podcast fülén az online találatok is számítanak)
       const n = document.querySelector('.search-tabs [data-st="pod"] .muted');
       if (n) n.textContent = String(shows.length + eps.length + list.length);
+      const total = document.querySelector('.search-page .sc-total');
+      if (total) total.textContent = _t('{n} találat', { n: Number(total.dataset.base || 0) + shows.length + eps.length + list.length });
       box.innerHTML = list.length ? `<h3 class="row-title">${_t('Műsorok a podcast-katalógusból')}</h3><div class="grid pod-grid">${list.slice(0, limit).map(showCardHtml).join('')}</div>` : shows.length || eps.length ? '' : `<p class="muted">${_t('Nincs podcast-találat.')}</p>`;
     })
     .catch(() => box.isConnected && (box.innerHTML = ''));
@@ -363,7 +365,8 @@ export function podSearchSection(q, { limit = 18 } = {}) {
 const genreName = (id) => POD_GENRES.find(([g]) => g === id)?.[1] || '';
 const podCountries = () => {
   const home = (store.settings.homeCountry || 'HU').toUpperCase();
-  return [home, ...POD_COUNTRIES.filter((c) => c !== home)];
+  // (csak kétbetűs országkód kerülhet a címekbe)
+  return /^[A-Z]{2}$/.test(home) ? [home, ...POD_COUNTRIES.filter((c) => c !== home)] : POD_COUNTRIES;
 };
 const GENRE_ICO = { 1489: '📰', 1324: '🏛️', 1303: '😄', 1488: '🔎', 1487: '📜', 1533: '🔬', 1318: '💻', 1321: '💼', 1304: '🎓', 1512: '🏃', 1545: '⚽', 1309: '🎬', 1310: '🎵', 1301: '🎨', 1483: '📖', 1502: '🎲', 1305: '🧸', 1314: '🕊️', 1511: '🗳️' };
 function tabDiscover(view, params) {
@@ -401,7 +404,7 @@ function tabDiscover(view, params) {
   if (!any) {
     view.querySelector('.pod-disc-extra').append(
       html(`<section class="row"><h2 class="row-title">${_t('Témák')}</h2><div class="row-wrap"><div class="row-track tiles">${POD_GENRES.map(([id, name]) => `<a class="tile cat" href="#/podcast?tab=discover&amp;g=${id}" style="--h:${hashHue(id + 'pod')}"><span class="flag">${GENRE_ICO[id] || '🎙️'}</span><b>${esc(name)}</b></a>`).join('')}</div></div></section>`),
-      html(`<section class="row"><h2 class="row-title">${_t('Országok toplistái')}</h2><div class="row-wrap"><div class="row-track tiles">${podCountries().map((c) => `<a class="tile" href="#/podcast?tab=discover&amp;c=${c}" style="--h:${hashHue(c)}"><span class="flag">${countryFlag(c) || `<span class="cc">${esc(c)}</span>`}</span><b>${esc(countryName(c) || c)}</b></a>`).join('')}</div></div></section>`)
+      html(`<section class="row"><h2 class="row-title">${_t('Országok toplistái')}</h2><div class="row-wrap"><div class="row-track tiles">${podCountries().map((c) => `<a class="tile" href="#/podcast?tab=discover&amp;c=${encodeURIComponent(c)}" style="--h:${hashHue(c)}"><span class="flag">${countryFlag(c) || `<span class="cc">${esc(c)}</span>`}</span><b>${esc(countryName(c) || c)}</b></a>`).join('')}</div></div></section>`)
     );
   }
   const res = view.querySelector('.pod-results');

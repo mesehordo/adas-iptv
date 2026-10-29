@@ -13,8 +13,9 @@ const SHOWN = 8; // (csoportonként ennyi érték látszik a „Továbbiak” el
  *   all?: bool (ÉS a csoporton belül), open?: bool (alapból nyitva) }]
  * state: { sel: { [id]: string[] }, open: { [id]: bool } } – a hívó menti (pl. profilba)
  * onChange(state): a szűrés változott (a hívó újraszámolja a találatokat a filter()-rel)
+ * onOpen(state): a felhasználó kinyitott / becsukott egy csoportot (a hívó mentheti)
  */
-export function facetPanel({ facets, items, state, onChange }) {
+export function facetPanel({ facets, items, state, onChange, onOpen = () => {} }) {
   state.sel ||= {};
   state.open ||= {};
   const el = html('<div class="fc-panel"></div>');
@@ -135,7 +136,13 @@ export function facetPanel({ facets, items, state, onChange }) {
   el.addEventListener('input', (e) => e.target.classList.contains('fc-q') && filterOpts(e.target));
   el.addEventListener('toggle', (e) => {
     const d = e.target.closest?.('[data-fc]');
-    if (d === e.target) state.open[d.dataset.fc] = d.open;
+    if (d !== e.target) return;
+    // (a kirajzoláskor nyitva létrejövő csoport is jelez – csak a valódi változás számít)
+    const f = facets.find((x) => x.id === d.dataset.fc);
+    const was = state.open[d.dataset.fc] ?? f?.open ?? false;
+    if (was === d.open || (d.open && sel(f || {}).length)) return;
+    state.open[d.dataset.fc] = d.open;
+    onOpen(state);
   }, true);
   el.addEventListener('click', (e) => {
     if (e.target.closest('.fc-reset')) return reset();

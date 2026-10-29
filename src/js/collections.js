@@ -19,7 +19,7 @@ const RADIO_SOURCES = { rb: 'Radio Browser', verified: 'Verified Radio Streams',
 
 function radioCollection() {
   const AV = { ok: _t('Szól'), bad: _t('Most nem szól'), unknown: _t('Még nem ellenőrzött'), geo: _t('Földrajzi korlát – innen nem hallgatható'), geomaybe: _t('Földrajzi korlát lehet') };
-  const Q = { hi: _t('Kiváló (256 kbps felett)'), mid: _t('Jó (128–255 kbps)'), low: _t('Gyengébb (128 kbps alatt)'), unk: _t('Ismeretlen') };
+  const Q = { hi: _t('Kiváló (256 kbps vagy több)'), mid: _t('Jó (128–255 kbps)'), low: _t('Gyengébb (128 kbps alatt)'), unk: _t('Ismeretlen') };
   const MORE = { fav: _t('Kedvenc'), epg: _t('Van műsorújság') };
   const avOf = (st) => {
     const a = radioAvailability(st);
@@ -161,13 +161,20 @@ export function renderCollection(box, name, col) {
       <span class="muted uni-count"></span></div><div class="uni-results"></div></section></div>`);
   const results = ui.querySelector('.uni-results');
   let items = col.items();
-  const panel = facetPanel({ facets: col.facets(), items, state: st, onChange: () => (save(), draw()) });
+  const panel = facetPanel({ facets: col.facets(), items, state: st, onChange: () => (save(), draw()), onOpen: save });
   ui.querySelector('.uni-filters').append(panel.el);
   ui.querySelector('.uni-bar').after(panel.chips);
   let io = null;
-  function draw() {
+  let shown = '';
+  // (a sorrend nem számít: az ellenőrzés közben átrendeződő lista ne rajzolja újra a rácsot)
+  const sig = (list) => list.map((x) => x.id || x.key).sort().join('\n');
+  const current = () => {
     const t = norm(ui.querySelector('.uni-q').value.trim());
-    const list = panel.filter().filter((x) => !t || col.text(x).includes(t));
+    return panel.filter().filter((x) => !t || col.text(x).includes(t));
+  };
+  function draw() {
+    const list = current();
+    shown = sig(list);
     ui.querySelector('.uni-count').textContent = col.noun(list.length);
     io?.disconnect();
     results.innerHTML = '';
@@ -196,10 +203,12 @@ export function renderCollection(box, name, col) {
       if (!ui.isConnected) return offs.forEach((off) => off?.());
       items = col.items();
       panel.setItems(items);
+      // (a rács csak akkor rajzolódik újra, ha a szűrt találatok köre megváltozott)
+      if (sig(current()) !== shown) draw();
     }, 1500))
   );
   // (az oldal fülei – ha a sorok dobozában vannak – fölötte maradnak)
-  const tabs = [...box.children].filter((c) => c.matches('.tv-head, .tabs, .vod-tabs, .radio-tabs')).pop();
+  const tabs = [...box.children].filter((c) => c.matches('.tv-head, .tabs, .vod-tabs, .radio-tabs, .vod-quick')).pop();
   if (tabs) tabs.after(ui);
   else box.prepend(ui);
   draw();
