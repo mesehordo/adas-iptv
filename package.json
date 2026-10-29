@@ -1,10 +1,10 @@
 {
   "name": "adas",
-  "productName": "Adás",
+  "productName": "ADAS",
   "version": "1.34.0",
   "description": "Élő TV lejátszó az iptv-org nyilvános csatornalistájához, streaming-szolgáltatás stílusú felülettel.",
   "main": "main.js",
-  "author": "Adás",
+  "author": "ADAS",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
@@ -38,7 +38,7 @@
   },
   "build": {
     "appId": "hu.adas.tv",
-    "productName": "Adás",
+    "productName": "ADAS",
     "afterPack": "build/mac-adhoc.js",
     "files": [
       "main.js",
@@ -84,7 +84,7 @@
         }
       ],
       "category": "public.app-category.entertainment",
-      "artifactName": "Adas-${version}-mac-${arch}.${ext}",
+      "artifactName": "ADAS-${version}-mac-${arch}.${ext}",
       "extraResources": [
         {
           "from": "vendor/ffmpeg/darwin-${arch}",
@@ -106,38 +106,38 @@
         }
       ],
       "icon": "assets/icon.png",
-      "maintainer": "Adás <noreply@example.com>",
+      "maintainer": "ADAS <noreply@example.com>",
       "synopsis": "Élő TV lejátszó",
       "desktop": {
         "entry": {
-          "Name": "Adás",
+          "Name": "ADAS",
           "Comment": "Élő TV lejátszó",
           "Keywords": "tv;iptv;élő;televízió;műsor;"
         }
       }
     },
     "nsis": {
-      "artifactName": "Adas-Setup-${version}.${ext}",
+      "artifactName": "ADAS-Setup-${version}.${ext}",
       "include": "build/installer.nsh"
     },
     "portable": {
-      "artifactName": "Adas-${version}-portable.${ext}"
+      "artifactName": "ADAS-${version}-portable.${ext}"
     },
     "msi": {
-      "artifactName": "Adas-${version}.${ext}",
+      "artifactName": "ADAS-${version}.${ext}",
       "oneClick": false,
       "runAfterFinish": false,
       "additionalLightArgs": ["-cultures:hu-HU"]
     },
     "msiProjectCreated": "build/msi-hook.js",
     "dmg": {
-      "artifactName": "Adas-${version}-mac-${arch}.${ext}"
+      "artifactName": "ADAS-${version}-mac-${arch}.${ext}"
     },
     "deb": {
-      "artifactName": "adas_${version}_${arch}.${ext}"
+      "artifactName": "ADAS_${version}_${arch}.${ext}"
     },
     "appImage": {
-      "artifactName": "Adas-${version}-${arch}.${ext}",
+      "artifactName": "ADAS-${version}-${arch}.${ext}",
       "executableArgs": [
         "--no-sandbox"
       ]

@@ -492,7 +492,7 @@ document.addEventListener('click', async (e) => {
   } else if (a === 'hist-clear' && (await confirmDialog(_t('Törlöd az előzményeket? (A hol tartasz-adatok megmaradnak.)'), { ok: _t('Törlés'), danger: true }))) {
     d.hist = [];
     savePod();
-  } else if (a === 'opml-export') api.saveFile?.('adas-podcastok.opml', toOpml());
+  } else if (a === 'opml-export') api.saveFile?.('ADAS-podcastok.opml', toOpml());
   else if (a === 'dl-folder') api.podFolder?.();
   else if (a === 'dl-del-played' || a === 'dl-del-all') {
     const prof = store.profile; // (a jóváhagyott művelet ennek a profilnak a fájljaira szól, profilváltás után is)

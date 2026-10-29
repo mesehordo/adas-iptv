@@ -933,8 +933,8 @@ ${go('#/settings', 'Beállítások megnyitása')}`,
 <p>Igen: minden változat (Windows, Mac, Linux, LG tévé, Android, böngésző) ugyanazt a formátumot használja, ezért a mentés bármelyik eszközön betölthető. Ahol nincs fájlválasztó (LG tévé), ott webcímről tölthető be; Android TV-n a kódos szinkron is működik (<i>Szinkronizálás eszközök között</i>).</p>
 <table class="help-table">
 <tr><th>Változat</th><th>Hol vannak az adatok?</th></tr>
-<tr><td>Windows</td><td><code>%APPDATA%\\Adás\\store.json</code> (a telepített és a hordozható változat is ide ment)</td></tr>
-<tr><td>macOS / Linux</td><td><code>~/Library/Application Support/Adás/store.json</code> / <code>~/.config/Adás/store.json</code></td></tr>
+<tr><td>Windows</td><td><code>%APPDATA%\\ADAS\\store.json</code> (a telepített és a hordozható változat is ide ment)</td></tr>
+<tr><td>macOS / Linux</td><td><code>~/Library/Application Support/ADAS/store.json</code> / <code>~/.config/ADAS/store.json</code></td></tr>
 <tr><td>Android, Android TV</td><td>Az alkalmazás saját, védett tárhelyén (kívülről nem elérhető; az alkalmazás törlésével elvész – előtte mentsd ki)</td></tr>
 <tr><td>LG tévé</td><td>Az alkalmazás saját tárhelyén (az alkalmazás törlésével elvész)</td></tr>
 <tr><td>Böngésző</td><td>A böngésző helyi tárolójában, címenként külön</td></tr>
@@ -1543,7 +1543,7 @@ ${go('#/settings?section=remote', 'Távirányító telefonról')}`,
     title: 'Felvétel',
     keywords: 'felvétel rögzítés felvenni mentés ütemezés videó ts vágás ráhagyás eleje vége reklám reklámblokk kivágás',
     body: `
-<p>Az asztali változatban (Windows, Mac, Linux) az élő adás felvehető – újrakódolás nélkül, eredeti minőségben, <code>.ts</code> fájlba, a <b>Videók / Adás felvételek</b> mappába.</p>
+<p>Az asztali változatban (Windows, Mac, Linux) az élő adás felvehető – újrakódolás nélkül, eredeti minőségben, <code>.ts</code> fájlba, a <b>Videók / ADAS felvételek</b> mappába.</p>
 <ul>
 <li><b>Azonnal</b>: lejátszás közben a vezérlősáv piros <b>●</b> gombjával; újra megnyomva leáll. Közben a gomb villog.</li>
 <li><b>Ütemezve</b>: a műsorújságban egy műsor adatlapján <b>● Felvétel</b>. A felvétel <b>ráhagyással</b> indul és áll le – alapból 3 perccel a műsor előtt és 10 perccel utána, mert a tévé gyakran csúszik (Beállítások → Felvételek). Az Adásnak ekkor futnia kell (a tálcára rejtve is jó – Beállítások → Rendszer → Futás a háttérben); az indítás a tálcán is pontos.</li>
@@ -1616,9 +1616,9 @@ ${go('#/settings?section=update', 'Frissítések')}`,
 <li>Nincs fiók, nincs regisztráció, nincs követés; a program nem gyűjt és nem küld statisztikát a használatodról. Egy kivétel van: a Radio Browser adatbázisból indított adónál – mint minden erre épülő rádiólejátszó – egy „kattintás” jelzés megy a Radio Browser szerverére (csak az adó azonosítója, ebből számolja az adók népszerűségét); a Beállítások → <i>Rádió</i> alatt a forrás kikapcsolható.</li>
 <li>Minden beállítás, profil és a letöltött listák <b>helyben</b> tárolódnak:
   <ul>
-  <li>Windows: <code>%APPDATA%\\Adás</code></li>
-  <li>macOS: <code>~/Library/Application Support/Adás</code></li>
-  <li>Linux: <code>~/.config/Adás</code></li>
+  <li>Windows: <code>%APPDATA%\\ADAS</code></li>
+  <li>macOS: <code>~/Library/Application Support/ADAS</code></li>
+  <li>Linux: <code>~/.config/ADAS</code></li>
   <li>Tévén és Androidon: az alkalmazás saját tárhelyén.</li>
   </ul> ${t('data-locations', 'Pontos helyek (felvételek is)')} · ${t('backup', 'Mentés és költöztetés')}</li>
 <li>A program a következő szerverekhez kapcsolódik: az iptv-org (csatornalista és adatok), a bekapcsolt műsorújság-források, a saját listáid címei, a csatornák logóit tároló szerverek, a bekapcsolt szolgáltatások (rádió-adatbázisok és a szám adatai, időjárás, hírek, árfolyam, sport, feliratok, borítók és filmadatok, frissítések keresése), és lejátszáskor maguk az adások szerverei. Ezek – mint minden weboldal – láthatják az IP-címedet.</li>
@@ -1635,8 +1635,8 @@ ${go('#/settings?section=update', 'Frissítések')}`,
 <p>Minden adat <b>helyben</b>, a saját eszközödön van – kiadásonként más helyen.</p>
 <h2>Asztali gép (Windows, macOS, Linux)</h2>
 <table class="help-table">
-<tr><td><b>Adatmappa</b></td><td>Windows: <code>%APPDATA%\\Adás</code><br>macOS: <code>~/Library/Application Support/Adás</code><br>Linux: <code>~/.config/Adás</code> (ill. <code>$XDG_CONFIG_HOME/Adás</code>)</td></tr>
-<tr><td><b>Felvételek</b></td><td>A Videók mappa <code>Adás felvételek</code> almappája – Windows: <code>%USERPROFILE%\\Videos\\Adás felvételek</code>, macOS: <code>~/Movies/Adás felvételek</code>, Linux: <code>~/Videos/Adás felvételek</code> (ill. az <code>XDG_VIDEOS_DIR</code> szerinti mappa). Ha az Adást először más nyelven használtad, a mappa neve annak a nyelvnek megfelelő (pl. angolul <code>Adás recordings</code>). A vágás előtti eredetik a rejtett <code>.eredeti</code> almappában vannak. A mappa a TV → Felvételek fülön a <b>Mappa megnyitása</b> gombbal nyílik meg.</td></tr>
+<tr><td><b>Adatmappa</b></td><td>Windows: <code>%APPDATA%\\ADAS</code><br>macOS: <code>~/Library/Application Support/ADAS</code><br>Linux: <code>~/.config/ADAS</code> (ill. <code>$XDG_CONFIG_HOME/Adás</code>)</td></tr>
+<tr><td><b>Felvételek</b></td><td>A Videók mappa <code>ADAS felvételek</code> almappája – Windows: <code>%USERPROFILE%\\Videos\\ADAS felvételek</code>, macOS: <code>~/Movies/ADAS felvételek</code>, Linux: <code>~/Videos/ADAS felvételek</code> (ill. az <code>XDG_VIDEOS_DIR</code> szerinti mappa). Ha az Adást először más nyelven használtad, a mappa neve annak a nyelvnek megfelelő (pl. angolul <code>ADAS recordings</code>). A vágás előtti eredetik a rejtett <code>.eredeti</code> almappában vannak. A mappa a TV → Felvételek fülön a <b>Mappa megnyitása</b> gombbal nyílik meg.</td></tr>
 </table>
 <p>Az adatmappa tartalma:</p>
 <table class="help-table">

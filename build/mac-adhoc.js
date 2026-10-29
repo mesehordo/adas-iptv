@@ -7,6 +7,10 @@
 // Belülről kifelé: a beágyazott futtatható fájlok (ffmpeg), a frameworkök és a Helper-alkalmazások, végül maga az
 // alkalmazás. Hardened runtime nélkül – így az Electronnak nem kell külön jogosultság (JIT). A végén ellenőrzés:
 // érvénytelen aláírásnál a build elbukik (ne kerülhessen ki indíthatatlan csomag).
+//
+// A csomag neve ASCII (ADAS.app – productName): az Electron a segédfolyamat indításakor a futtatandó fájl valódi
+// útvonalát (realpath) betűre összeveti a csomagból számolttal. Ékezetes névnél (az 1.34.0 előtti Adás.app) a kettő
+// más Unicode-formában (NFC / NFD) áll, és az Electron induláskor leáll (EXC_BREAKPOINT a GPU-folyamat indításakor).
 'use strict';
 const { execFileSync } = require('child_process');
 const fs = require('fs');
@@ -52,6 +56,13 @@ module.exports = async function afterPack(context) {
   const app = path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`);
   const contents = path.join(app, 'Contents');
   const frameworks = path.join(contents, 'Frameworks');
+
+  // 0. a nevek: ASCII csomag és segédprogramok (ékezetes névvel nem indul – lásd fent)
+  const bundleName = path.basename(app, '.app');
+  if (!/^[\x20-\x7e]+$/.test(bundleName)) throw new Error(`mac-adhoc: a csomag neve nem ASCII (${bundleName}) – productName`);
+  for (const e of fs.existsSync(frameworks) ? fs.readdirSync(frameworks) : [])
+    if (!/^[\x20-\x7e]+$/.test(e)) throw new Error(`mac-adhoc: nem ASCII név a Frameworks mappában: ${e}`);
+  if (!fs.existsSync(path.join(frameworks, `${bundleName} Helper.app`))) throw new Error(`mac-adhoc: hiányzik a segédprogram: ${bundleName} Helper.app`);
 
   // 1. a Resources alatti futtatható fájlok (ffmpeg)
   for (const f of looseBinaries(path.join(contents, 'Resources'))) sign(f);

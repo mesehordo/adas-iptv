@@ -10,18 +10,25 @@ ManifestDPIAwareness "PerMonitorV2,System"
 
 !macro customInit
   SetShellVarContext current
+  ; (a korábbi, ékezetes nevű adatmappa is – az Adás az első indításkor átnevezi ADAS-ra)
+  IfFileExists "$APPDATA\Adás\*.*" adas_init_ask 0
   IfFileExists "$APPDATA\${PRODUCT_NAME}\*.*" 0 adas_init_done
+  adas_init_ask:
     MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "Ezen a gépen már vannak Adás-adatok (beállítások, profilok, listák, kedvencek).$\r$\n$\r$\nTiszta telepítés: törlődjenek ezek az adatok?$\r$\n(Nem = a mostani adatok megmaradnak.)$\r$\n$\r$\nAdás data already exists on this computer. Clean install – delete it?" /SD IDNO IDNO adas_init_done
       RMDir /r "$APPDATA\${PRODUCT_NAME}"
+      RMDir /r "$APPDATA\Adás"
   adas_init_done:
 !macroend
 
 !macro customUnInstall
   ${ifNot} ${isUpdated}
     SetShellVarContext current
+    IfFileExists "$APPDATA\Adás\*.*" adas_un_ask 0
     IfFileExists "$APPDATA\${PRODUCT_NAME}\*.*" 0 adas_un_done
+    adas_un_ask:
       MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "Az Adás adatai (beállítások, profilok, listák, kedvencek, felvételek listája) is törlődjenek?$\r$\n(Nem = megmaradnak egy későbbi telepítéshez.)$\r$\n$\r$\nAlso delete Adás data (settings, profiles, lists)?" /SD IDNO IDNO adas_un_done
         RMDir /r "$APPDATA\${PRODUCT_NAME}"
+        RMDir /r "$APPDATA\Adás"
     adas_un_done:
   ${endIf}
 !macroend

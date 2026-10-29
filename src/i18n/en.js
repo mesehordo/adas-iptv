@@ -630,6 +630,7 @@ export default {
  "A téma-mappa nem olvasható: {message}": "The theme folder can’t be read: {message}",
  "Nincs megnyitható cím.": "No address to open.",
  "Adás felvételek": "Adás recordings",
+ "ADAS felvételek": "ADAS recordings",
  "Érvénytelen fájl": "Invalid file",
  "a fájl nem elemezhető": "the file can’t be analysed",
  "Az FFmpeg nem található": "FFmpeg not found",

@@ -1081,7 +1081,7 @@ export function renderSettings(view) {
       // (a mai nap helyi idő szerint – a toISOString éjfél után még az előző napot adta)
       const d = new Date();
       const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const ok = await api.saveFile(`adas-mentes-${day}.json`, JSON.stringify(data, null, 2));
+      const ok = await api.saveFile(`ADAS-mentes-${day}.json`, JSON.stringify(data, null, 2));
       if (ok) toast(_t('Mentés elkészült'));
     } else if (act === 'import') {
       const f = await api.openFile([{ name: _t('Adás mentés'), extensions: ['json'] }]);

@@ -73,7 +73,7 @@ npm run dist:mac:any
   aláírva, ezért kicsomagolás és az Alkalmazások mappába húzás után első indítás előtt a Terminálban:
 
 ```bash
-xattr -cr /Applications/Adás.app && codesign --force --deep --sign - /Applications/Adás.app
+xattr -cr /Applications/ADAS.app && codesign --force --deep --sign - /Applications/ADAS.app
 ```
 
 ## LG webOS TV (szünetel)
@@ -190,4 +190,4 @@ tools/build-webos.mjs A TV-s csomag összeállítása (.ipk)
 ```
 
 Az adatok (beállítások, gyorsítótár) az Electron felhasználói adatmappájában vannak
-(Windows: `%APPDATA%\Adás`, Linux: `~/.config/Adás`, macOS: `~/Library/Application Support/Adás`).
+(Windows: `%APPDATA%\ADAS`, Linux: `~/.config/ADAS`, macOS: `~/Library/Application Support/ADAS`).

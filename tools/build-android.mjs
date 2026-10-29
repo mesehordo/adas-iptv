@@ -179,7 +179,7 @@ if (!fs.existsSync(ks)) {
   fs.writeFileSync(passFile, pass, { mode: 0o600 });
   run(jbin('keytool'), [
     '-genkeypair', '-keystore', ks, '-storepass:env', 'ADAS_KS_PASS', '-keypass:env', 'ADAS_KS_PASS', '-alias', 'adas',
-    '-keyalg', 'RSA', '-keysize', '3072', '-validity', '10000', '-dname', 'CN=Adás, O=Adás, C=HU',
+    '-keyalg', 'RSA', '-keysize', '3072', '-validity', '10000', '-dname', 'CN=ADAS, O=ADAS, C=HU',
   ], signEnv(pass));
   console.log('  Új aláírókulcs: android/keystore (őrizd meg!)');
 }
@@ -188,7 +188,7 @@ try {
   fs.chmodSync(passFile, 0o600);
 } catch {}
 const pass = fs.readFileSync(passFile, 'utf8').trim();
-const apk = path.join(out, TARGET === 'universal' ? `Adas-${pkg.version}.apk` : `Adas-${pkg.version}-android-${TARGET}.apk`);
+const apk = path.join(out, TARGET === 'universal' ? `ADAS-${pkg.version}.apk` : `ADAS-${pkg.version}-android-${TARGET}.apk`);
 run(exe(BT, 'apksigner'), ['sign', '--ks', ks, '--ks-pass', 'env:ADAS_KS_PASS', '--key-pass', 'env:ADAS_KS_PASS', '--ks-key-alias', 'adas', '--out', apk, aligned], signEnv(pass));
 run(exe(BT, 'apksigner'), ['verify', '--min-sdk-version', String(MIN_SDK), apk]);
 fs.rmSync(apk + '.idsig', { force: true });

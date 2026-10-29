@@ -15,7 +15,7 @@ Adás-témát. A téma egyetlen **JSON-fájl** (`.adastheme` vagy `.json` kiterj
 | Hogyan | Hol | Megjegyzés |
 |---|---|---|
 | **Feltöltés** | Beállítások → Megjelenés → *Saját témák* → **Téma-fájl feltöltése…** | Minden változatban (Windows, Mac, Linux, Android, Android TV). A téma a beállításokba kerül, így a mentés és az eszközök közötti szinkron is viszi. |
-| **Téma-mappa** | Asztali változat: alapból az adatmappa `themes` almappája (Windows: `%APPDATA%\Adás\themes`, Linux: `~/.config/Adás/themes`, Mac: `~/Library/Application Support/Adás/themes`). Másik mappa: **Másik téma-mappa…** | A bemásolt `.adastheme` / `.json` fájlokat az Adás indításkor és a **Téma-mappa újraolvasása** gombra beolvassa. Szerkesztés közben ez a kényelmes: ments, majd *Újraolvasás*. Azonos `id` esetén a mappában lévő változat az érvényes. |
+| **Téma-mappa** | Asztali változat: alapból az adatmappa `themes` almappája (Windows: `%APPDATA%\ADAS\themes`, Linux: `~/.config/ADAS/themes`, Mac: `~/Library/Application Support/ADAS/themes`). Másik mappa: **Másik téma-mappa…** | A bemásolt `.adastheme` / `.json` fájlokat az Adás indításkor és a **Téma-mappa újraolvasása** gombra beolvassa. Szerkesztés közben ez a kényelmes: ments, majd *Újraolvasás*. Azonos `id` esetén a mappában lévő változat az érvényes. |
 
 Választás: Beállítások → Megjelenés → stílusválasztó (a saját témák a lista végén), vagy a *Saját témák*
 listában a **Használom** gomb. A stílus profilonként választható.

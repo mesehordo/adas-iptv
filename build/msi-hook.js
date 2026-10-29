@@ -5,11 +5,13 @@
 //  - Eltávolításkor (az MSI újbóli indítása → Eltávolítás): ugyanez az oldal – „Az adatok is törlődjenek”.
 //  - Eltávolításkor a Windows Beállítások / Programok felől (ott nincs MSI-ablak): Igen / Nem kérdés.
 //  - Frissítéskor (nagy verzióváltás – a régi változat eltávolítása) és csendes futásnál nem kérdez, nem töröl.
-// A törlés a felhasználó nevében fut (nem rendszerjoggal), csak a saját %APPDATA%\Adás mappáját érinti.
+// A törlés a felhasználó nevében fut (nem rendszerjoggal), csak a saját %APPDATA%\ADAS (és a korábbi, ékezetes
+// %APPDATA%\Adás) mappáját érinti.
 'use strict';
 const fs = require('fs');
 
-const DATA = '[AppDataFolder]Adás';
+const DATA = '[AppDataFolder]ADAS';
+const DATA_OLD = '[AppDataFolder]Adás'; // (az 1.34.0 előtti név – az Adás első indításkor átnevezi)
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 const TEXT = {
@@ -39,9 +41,9 @@ module.exports = async function msiProjectCreated(projectFile) {
       ExeCommand="&quot;[SystemFolder]reg.exe&quot; add &quot;HKCU\\Software\\Adas\\Update&quot; /v Silent /t REG_SZ /d &quot;[SILENTUPDATE]|[Date] [Time]&quot; /f"/>
     <!-- (gépre telepítésnél – ALLUSERS=1 – a gép minden felhasználójának: HKLM, rendszerjoggal; az Adás előbb a saját HKCU-t nézi) -->
     <CustomAction Id="AdasSilentPrefAll" Directory="TARGETDIR" Execute="deferred" Impersonate="no" Return="ignore"
-      ExeCommand="&quot;[SystemFolder]reg.exe&quot; add &quot;HKLM\Software\Adas\Update&quot; /v Silent /t REG_SZ /d &quot;[SILENTUPDATE]|[Date] [Time]&quot; /f"/>
+      ExeCommand="&quot;[SystemFolder]reg.exe&quot; add &quot;HKLM\\Software\\Adas\\Update&quot; /v Silent /t REG_SZ /d &quot;[SILENTUPDATE]|[Date] [Time]&quot; /f"/>
     <CustomAction Id="AdasCleanData" Directory="TARGETDIR" Execute="deferred" Impersonate="yes" Return="ignore"
-      ExeCommand="&quot;[SystemFolder]cmd.exe&quot; /c if exist &quot;${DATA}&quot; rmdir /s /q &quot;${DATA}&quot;"/>
+      ExeCommand="&quot;[SystemFolder]cmd.exe&quot; /c (if exist &quot;${DATA}&quot; rmdir /s /q &quot;${DATA}&quot;) &amp; (if exist &quot;${DATA_OLD}&quot; rmdir /s /q &quot;${DATA_OLD}&quot;)"/>
     <CustomAction Id="AdasAskClean" Script="jscript"><![CDATA[
       var r = Session.Installer.CreateRecord(0);
       r.StringData(0) = "${TEXT.ask}";

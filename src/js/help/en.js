@@ -933,8 +933,8 @@ ${go('#/settings', 'Open Settings')}`,
 <p>Yes: every version (Windows, Mac, Linux, LG TV, Android, browser) uses the same format, so a backup can be loaded on any device. Where there is no file picker (LG TV), load it from a web address; on Android TV syncing with a code also works (<i>Sync between devices</i>).</p>
 <table class="help-table">
 <tr><th>Version</th><th>Where is the data?</th></tr>
-<tr><td>Windows</td><td><code>%APPDATA%\\Adás\\store.json</code> (both the installed and the portable version save here)</td></tr>
-<tr><td>macOS / Linux</td><td><code>~/Library/Application Support/Adás/store.json</code> / <code>~/.config/Adás/store.json</code></td></tr>
+<tr><td>Windows</td><td><code>%APPDATA%\\ADAS\\store.json</code> (both the installed and the portable version save here)</td></tr>
+<tr><td>macOS / Linux</td><td><code>~/Library/Application Support/ADAS/store.json</code> / <code>~/.config/ADAS/store.json</code></td></tr>
 <tr><td>Android, Android TV</td><td>In the app’s own protected storage (not accessible from outside; lost if the app is uninstalled – back it up first)</td></tr>
 <tr><td>LG TV</td><td>In the app’s own storage (lost if the app is uninstalled)</td></tr>
 <tr><td>Browser</td><td>In the browser’s local storage, separately per address</td></tr>
@@ -1616,9 +1616,9 @@ ${go('#/settings?section=update', 'Updates')}`,
 <li>No account, no registration, no tracking; the program doesn’t collect or send statistics about your usage. There is one exception: for a station started from the Radio Browser database – like every player built on it – a “click” signal goes to the Radio Browser server (only the station’s ID; it counts the stations’ popularity from this); the source can be switched off under Settings → <i>Radio</i>.</li>
 <li>All settings, profiles and downloaded lists are stored <b>locally</b>:
   <ul>
-  <li>Windows: <code>%APPDATA%\\Adás</code></li>
-  <li>macOS: <code>~/Library/Application Support/Adás</code></li>
-  <li>Linux: <code>~/.config/Adás</code></li>
+  <li>Windows: <code>%APPDATA%\\ADAS</code></li>
+  <li>macOS: <code>~/Library/Application Support/ADAS</code></li>
+  <li>Linux: <code>~/.config/ADAS</code></li>
   <li>On TV and Android: in the app’s own storage.</li>
   </ul> ${t('data-locations', 'Exact locations (recordings too)')} · ${t('backup', 'Backup and moving')}</li>
 <li>The program connects to the following servers: iptv-org (channel list and data), the switched-on TV guide sources, the addresses of your own lists, the servers hosting the channel logos, the switched-on services (radio databases and track data, weather, news, exchange rates, sports, subtitles, covers and film data, update checks), and during playback the streams’ own servers. Like any website, these may see your IP address.</li>
@@ -1635,8 +1635,8 @@ ${go('#/settings?section=update', 'Updates')}`,
 <p>All data is stored <b>locally</b> on your own device – in a different place for each edition.</p>
 <h2>Desktop (Windows, macOS, Linux)</h2>
 <table class="help-table">
-<tr><td><b>Data folder</b></td><td>Windows: <code>%APPDATA%\\Adás</code><br>macOS: <code>~/Library/Application Support/Adás</code><br>Linux: <code>~/.config/Adás</code> (or <code>$XDG_CONFIG_HOME/Adás</code>)</td></tr>
-<tr><td><b>Recordings</b></td><td>The <code>Adás recordings</code> subfolder of your Videos folder – Windows: <code>%USERPROFILE%\\Videos\\Adás recordings</code>, macOS: <code>~/Movies/Adás recordings</code>, Linux: <code>~/Videos/Adás recordings</code> (or the folder set by <code>XDG_VIDEOS_DIR</code>). If the app was first used in Hungarian, the folder is called <code>Adás felvételek</code>. Originals kept before trimming are in the hidden <code>.eredeti</code> subfolder. Open the folder with <b>Open folder</b> on the TV → Recordings tab.</td></tr>
+<tr><td><b>Data folder</b></td><td>Windows: <code>%APPDATA%\\ADAS</code><br>macOS: <code>~/Library/Application Support/ADAS</code><br>Linux: <code>~/.config/ADAS</code> (or <code>$XDG_CONFIG_HOME/Adás</code>)</td></tr>
+<tr><td><b>Recordings</b></td><td>The <code>ADAS recordings</code> subfolder of your Videos folder – Windows: <code>%USERPROFILE%\\Videos\\ADAS recordings</code>, macOS: <code>~/Movies/Adás recordings</code>, Linux: <code>~/Videos/Adás recordings</code> (or the folder set by <code>XDG_VIDEOS_DIR</code>). If the app was first used in Hungarian, the folder is called <code>ADAS felvételek</code>. Originals kept before trimming are in the hidden <code>.eredeti</code> subfolder. Open the folder with <b>Open folder</b> on the TV → Recordings tab.</td></tr>
 </table>
 <p>What the data folder contains:</p>
 <table class="help-table">
