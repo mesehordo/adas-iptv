@@ -23,12 +23,11 @@ import { renderHuSettings } from './subtitles.js';
 import { exoAvailable } from './exo.js';
 import { renderKidsSettings } from './kidsui.js';
 import { renderDashSettings } from './dashboard.js';
-import { watchList } from './sports.js';
+import { renderSportSettings } from './sports.js';
 import { radioFavsSection, radioSearchSection, radioSearchCount, startRadioSearch } from './radiopage.js';
 import { renderRadioSettings } from './radiosettings.js';
 import { MENU_ITEMS } from './menus.js';
 import { renderPodcastSettings, podFavsSection } from './podcastpage.js';
-const sportWatchCount = () => watchList().filter((w) => w.on !== false).length;
 import { requireAdult, requireAdultAlways, hasPin, choosePin, setPin } from './pin.js';
 import { renderTransfer, importData, attachDocs, stageDocs, dropDocs } from './transfer.js';
 import { dropUnreferenced } from './snapshot.js';
@@ -899,9 +898,11 @@ export function renderSettings(view) {
 
     <section class="set-section" id="sport" data-g="sport"><h2>${_t('Sport')} <button class="help-link" data-help="sport-page" title="${_t('Súgó')}">?</button></h2>
       ${toggle('sportMenu', _t('Sport menüpont'), _t('A menüsoron a TV és a VOD mellett: élő eredmények, a tévében most futó sportműsorok, menetrend, eredmények és tabella a követett tételekből. Gyerekprofilban nem látszik.'))}
-      <div class="setting"><span>${_t('<b>Sportfigyelő</b>')}<small>${_t('Mit követsz: bajnokságok, csapatok, sportágak a tévében, versenynaptárak – és a forrásokhoz tartozó beállítások (időszak, csatornaajánlás, TheSportsDB-kulcs). Jelenleg: {n} követett tétel.', { n: sportWatchCount() })}</small></span>
-        <a class="btn small" href="#sportwatch">${_t('Sportfigyelő megnyitása')}</a></div>
+      <div id="sport-opts"></div>
     </section>
+    <!-- (a Sportfigyelő: sports.js – renderSportSettings) -->
+    <section class="set-section" id="sportwatch" data-g="sport"></section>
+    <section class="set-section sw-add" id="sportadd" data-g="sport"></section>
 
     <section class="set-section" id="radio-settings" data-g="radio"></section>
 
@@ -993,6 +994,7 @@ export function renderSettings(view) {
   renderKidsSettings($('#kidsallow', view));
   renderDashSettings($('#dashboard', view));
   renderRadioSettings($('#radio-settings', view));
+  renderSportSettings(view);
   renderPodcastSettings($('#podcast-settings', view));
   renderRecordings($('#recordings', view));
   renderRemoteSettings($('#remote', view));
@@ -1146,16 +1148,20 @@ export function renderSettings(view) {
 // [azonosító, ikon, név, rövid (legfeljebb kétmondatos) leírás: mit talál itt a felhasználó]
 const SET_GROUPS = [
   ['look', '🎨', _t('Megjelenés és Főoldal'), _t('A felület stílusa, témák, nyelv és menüpontok; a Főoldal csempéi (időjárás, hírek, műsor) és az élő előnézet.')],
-  ['play', '▶️', _t('Lejátszás és feliratok'), _t('Hogyan induljanak és szóljanak az adások: minőség, lejátszómotor, a lejátszó gombjai. Feliratforrások, a feliratok kinézete, magyar leírások és borítók.')],
-  ['tv', '📺', _t('Tévé, műsorújság, sport'), _t('A tévécsatornák forrásai és elérhetősége, a műsorújság, a felvételek és a Sportfigyelő.')],
-  ['media', '🎬', _t('Filmek, rádió, podcast'), _t('Film- és sorozatlisták, saját médiatár, a Rádió és a Podcast oldal forrásai és beállításai.')],
+  ['play', '▶️', _t('Lejátszás'), _t('Hogyan induljanak és szóljanak az adások: tartalék forrás, minőség, lejátszómotor, háttérlejátszás és a lejátszó gombjai.')],
+  ['tv', '📺', _t('TV és műsorújság'), _t('A tévécsatornák listái és elérhetősége, a műsorújság forrásai és a felvételek.')],
+  ['vod', '🎬', _t('Filmek és feliratok'), _t('Film- és sorozatlisták, saját médiatár. Feliratforrások, a feliratok kinézete, magyar leírások és borítók.')],
+  ['radio', '📻', _t('Rádió'), _t('A Rádió oldal állomáslistái és beállításai.')],
+  ['podcast', '🎙️', _t('Podcast'), _t('Az epizódok frissítése és lejátszása, a letöltött epizódok és a feliratkozások átvitele.')],
+  ['sport', '🏆', _t('Sport'), _t('A Sportfigyelő: mit követsz (bajnokság, csapat, sportág a tévében, naptár), és a Sport oldal beállításai.')],
   ['kids', '👪', _t('Tartalom és gyerekek'), _t('A hazai ország, a felnőtt tartalom és a nyelvek. Itt állíthatod be, mit nézhetnek a gyerekprofilok.')],
   ['remote', '🎮', _t('Távirányító és billentyűk'), _t('A telefon távirányítóként, a kontroller, a gombkiosztás és a billentyűparancsok.')],
   ['data', '💾', _t('Profilok, mentés, szinkron'), _t('A profilok kezelése, mentés fájlba, a napi mentési pontok és az átvitel egy másik eszközre.')],
   ['system', '⚙️', _t('Rendszer'), _t('Emlékeztetők és értesítések, háttérben futás, frissítések és a névjegy.')],
 ];
 // (a részek saját, finomabb csoportja → a fenti nyolc; a régi „?g=…” hivatkozások is ide vezetnek, a részhez görgetve)
-const GROUP_OF = { look: 'look', home: 'look', play: 'play', subs: 'play', tvlists: 'tv', epg: 'tv', rec: 'tv', sport: 'tv', vod: 'media', radio: 'media', podcast: 'media', kids: 'kids', remote: 'remote', data: 'data', sync: 'data', notify: 'system', update: 'system', about: 'system' };
+// (a régi „media” csoport hivatkozása a Filmekhez visz)
+const GROUP_OF = { look: 'look', home: 'look', play: 'play', subs: 'vod', tvlists: 'tv', epg: 'tv', rec: 'tv', sport: 'sport', vod: 'vod', media: 'vod', radio: 'radio', podcast: 'podcast', kids: 'kids', remote: 'remote', data: 'data', sync: 'data', notify: 'system', update: 'system', about: 'system' };
 // (fülek: asztalon és fekvő kijelzőn – billentyűzettel, távirányítóval így a legkönnyebb; álló, keskeny kijelzőn csempék)
 const narrowPortrait = () => !!window.matchMedia?.('(max-width: 700px) and (orientation: portrait)').matches;
 let refocusSetTab = false;
