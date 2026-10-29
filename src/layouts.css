@@ -1082,3 +1082,4 @@ body[data-layout="ribbon"] .frame-head .page-head { justify-content: center; }
 body[data-layout="focus"] .frame-head, body[data-layout="console"] .frame-head { padding: 14px 18px; border-radius: calc(var(--radius) + 6px); background: rgba(127, 127, 127, 0.1); border: 1px solid var(--line); }
 /* oldalsávos felületek (Könyvtár, Részletes, Gyűjtemény): panel a sáv mellett */
 body:is([data-layout="library"], [data-layout="detail"], [data-layout="unified"]) .frame-head { padding: 16px 20px; border-radius: var(--radius); background: var(--bg-2); border: 1px solid var(--line); }
+body:has(#profiles:not([hidden])) #pad-hints { display: none !important; } /* (a profilválasztón nincs gombsúgó) */
