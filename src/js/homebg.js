@@ -23,6 +23,8 @@ const docKey = (p) => (typeof p.homeBgDoc === 'string' && p.homeBgDoc.startsWith
 let seq = 0;
 // (profilonként a háttérválasztások sorszáma: a lassú feltöltés csak akkor állít „custom”-ot, ha közben nem választottak)
 const picks = new WeakMap();
+// (profilonként a saját kép feltöltéseinek sorszáma: a később befejeződő régebbi feltöltés nem írja felül az újabbat)
+const uploads = new WeakMap();
 /** A háttér érvényesítése (body[data-hbg], --hbg) – profil-, elrendezés- és beállításváltáskor. */
 export async function applyHomeBg() {
   const my = ++seq;
@@ -84,9 +86,13 @@ export function renderHomeBg(box) {
     const f = file.files[0];
     if (!f || !api.docSet) return;
     const pick = picks.get(p) || 0;
+    const up = (uploads.get(p) || 0) + 1;
+    uploads.set(p, up);
     try {
       const data = await shrink(f);
       const key = `homebg:${p.id}`;
+      // (közben újabb képet választottak: a régebbi nem írja felül)
+      if (uploads.get(p) !== up) return;
       await api.docSet(key, { text: data });
       p.homeBgDoc = key;
       // (közben másik hátteret választottak: a kép eltárolva, de a választás marad)
