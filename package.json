@@ -49,6 +49,7 @@
       "i18n-main.js",
       "covers.js",
       "icy.js",
+      "stdio-guard.js",
       "src/**/*",
       "assets/**/*"
     ],
