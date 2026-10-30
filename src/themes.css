@@ -322,6 +322,10 @@ body[data-tone="light"] {
 :where(body[data-tone="dark"]:not([data-theme="contrast"])) .btn.outline { border-color: var(--line); color: var(--muted); }
 :where(body[data-tone="dark"]:not([data-theme="contrast"])) .btn.outline:hover { border-color: var(--accent); color: var(--text-strong); }
 :where(body:not([data-theme="contrast"])) .btn.on { box-shadow: inset 0 0 0 2px var(--accent); }
+/* (a veszélyes művelet – pl. törlés – gombja minden stílusban piros marad: a saját gombhátteret adó stílusok – pl. Holo,
+   Dennō – általános .btn / .btn:hover szabálya különben felülírná; ezért erősebb szelektorral) */
+body[data-theme] .btn.danger { background: #a3262a; color: #fff; border-color: #a3262a; }
+body[data-theme] .btn.danger:hover, body[data-theme] .btn.danger:focus-visible { background: #c62f33; color: #fff; border-color: #c62f33; }
 
 /* fülek: a téma alapszínén, a kiválasztott a kiemelőszínnel */
 :where(body:not([data-theme="contrast"])) .tab { border-radius: var(--radius); color: var(--muted); background: var(--bg-3); }
