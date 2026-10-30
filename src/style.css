@@ -492,6 +492,9 @@ select { cursor: pointer; }
 [data-preview="mu"] { background: #fafafa; } [data-preview="mu"] i { background: #e6e6e6; } [data-preview="mu"] i:first-child { background: #111; } [data-preview="mu"] span { color: #111; text-shadow: none; }
 [data-preview="holo"] { background: #050b14; } [data-preview="holo"] i { background: #0d1b2c; border: 1px solid #17406a; } [data-preview="holo"] i:first-child { background: #35d3ff; } [data-preview="holo"] span { color: #35d3ff; }
 [data-preview="stardate"] { background: #000; } [data-preview="stardate"] i { background: #cc99cc; } [data-preview="stardate"] i:first-child { background: #ff9900; } [data-preview="stardate"] span { color: #ff9900; }
+[data-preview="onkai"] { background: linear-gradient(135deg, #0f3d3a, #0a1416 60%, #2a1026); } [data-preview="onkai"] i { background: #ff5aa8; border-radius: 6px; } [data-preview="onkai"] i:first-child { background: #39c5bb; } [data-preview="onkai"] span { color: #7fe3dc; }
+[data-preview="roji"] { background: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1.4px) 0 0 / 6px 6px, #0e0e0e; } [data-preview="roji"] i { background: #b6ff3b; border-radius: 2px; } [data-preview="roji"] i:first-child { background: repeating-linear-gradient(-45deg, #ffd400 0 5px, #0e0e0e 5px 10px); } [data-preview="roji"] span { color: #ffd400; font-style: italic; }
+[data-preview="denno"] { background: linear-gradient(180deg, #06241f, #04100f); } [data-preview="denno"] i { background: #0b221f; border: 1px solid #1a4740; border-radius: 0; } [data-preview="denno"] i:first-child { background: #3cffb0; } [data-preview="denno"] span { color: #3cffb0; letter-spacing: 0.12em; }
 
 /* főoldali sorok sorrendje */
 .row-order { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-width: 620px; }

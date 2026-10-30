@@ -59,6 +59,28 @@ function parseColor(s) {
 }
 const fmt = ([r, g, b, a]) => (a >= 1 ? '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('') : `rgba(${r}, ${g}, ${b}, ${+a.toFixed(3)})`);
 const COLOR_RX = /#[0-9a-fA-F]{3,8}\b|rgba?\([^()]*\)|hsla?\([^()]*\)/g;
+// (az SVG-adatcímekben – url("data:image/svg+xml,…") – a hex színek %23-mal kódolva: ezek is a változatot követik)
+const ENC_HEX_RX = /%23([0-9a-fA-F]{6}|[0-9a-fA-F]{3})(?![0-9a-fA-F])/g;
+const hasColor = (val) => {
+  const yes = COLOR_RX.test(val) || ENC_HEX_RX.test(val);
+  COLOR_RX.lastIndex = 0;
+  ENC_HEX_RX.lastIndex = 0;
+  return yes;
+};
+/** Egy érték színei átszínezve (only: csak a feltételnek megfelelők); a kódolt hex szín kódolva marad. */
+function recolorValue(val, v, only) {
+  const nv = val
+    .replace(COLOR_RX, (c) => (!only || only(c) ? variantColor(c, v) : c))
+    .replace(ENC_HEX_RX, (m, hex) => {
+      const c = '#' + hex;
+      if (only && !only(c)) return m;
+      const r = variantColor(c, v);
+      return /^#[0-9a-f]{6}$/i.test(r) ? '%23' + r.slice(1) : m;
+    });
+  COLOR_RX.lastIndex = 0;
+  ENC_HEX_RX.lastIndex = 0;
+  return nv;
+}
 /** Egy szín árnyalatának elforgatása (a szürke árnyalatok és a nagyon halvány színek maradnak). */
 export function rotateColor(css, deg) {
   const c = parseColor(css);
@@ -397,6 +419,27 @@ export const THEME_VARIANTS = {
     // vészhelyzet: vörös sávok
     L('redalert', () => _t('Vörös riadó'), ['#ff3300', '#ff6644', '#cc6666', '#e98181', '#ff9988', '#ffccbb', '#ff6644', '#e98181']),
   ],
+  // Onkai: a türkiz–rózsaszín páros más színpadi fénypárokban
+  onkai: [
+    V('citrus', () => _t('Citrus'), [[188, 100], [355, 55]]),
+    V('sakura', () => _t('Cseresznyevirág'), [[188, 350], [355, 300]]),
+    V('ocean', () => _t('Mélytenger'), [[188, 245], [355, 200]]),
+    V('mint', () => _t('Menta'), [[188, 150], [355, 100]], { chroma: 0.9 }),
+  ],
+  // Roji: a figyelmeztető sárga / savas zöld / matricarózsaszín hármas más utcai színekben
+  roji: [
+    V('neon', () => _t('Neonéjszaka'), [[94, 350], [129, 200], [8, 94]]),
+    V('acid', () => _t('Savas'), [[94, 129], [129, 94], [8, 300]]),
+    V('electric', () => _t('Villanykék'), [[94, 220], [129, 160], [8, 320]]),
+    V('rust', () => _t('Rozsda'), [[94, 55], [129, 95], [8, 25]], { chroma: 0.85 }),
+  ],
+  // Dennō: a hálózati felület más üzemmódszínei
+  denno: [
+    V('ice', () => _t('Hideg cián'), [[160, 220], [221, 260]]),
+    V('amber', () => _t('Borostyán'), [[160, 75], [221, 45]]),
+    V('violet', () => _t('Ibolya háló'), [[160, 295], [221, 330]]),
+    V('alert', () => _t('Riasztás'), [[160, 25], [221, 355]]),
+  ],
 };
 
 // ---------------------------------------------------------------- a szabályok átszínezése
@@ -429,11 +472,9 @@ function recolorRule(rule, selector, v, only = null) {
   for (let i = 0; i < st.length; i++) {
     const prop = st[i];
     const val = st.getPropertyValue(prop);
-    if (!COLOR_RX.test(val)) continue;
-    COLOR_RX.lastIndex = 0;
+    if (!hasColor(val)) continue;
     if (KEEP_PROPS.test(prop)) continue;
-    const nv = val.replace(COLOR_RX, (c) => (!only || only(c) ? variantColor(c, v) : c));
-    COLOR_RX.lastIndex = 0;
+    const nv = recolorValue(val, v, only);
     if (nv !== val) {
       changed = true;
       decls.push(`${prop}: ${nv}${st.getPropertyPriority(prop) ? ' !important' : ''}`);
@@ -491,10 +532,8 @@ function recolorInPlace(style, v, only) {
     const prop = style[i];
     if (KEEP_PROPS.test(prop)) continue;
     const val = style.getPropertyValue(prop);
-    if (!COLOR_RX.test(val)) continue;
-    COLOR_RX.lastIndex = 0;
-    const nv = val.replace(COLOR_RX, (c) => (!only || only(c) ? variantColor(c, v) : c));
-    COLOR_RX.lastIndex = 0;
+    if (!hasColor(val)) continue;
+    const nv = recolorValue(val, v, only);
     if (nv === val) continue;
     const prio = style.getPropertyPriority(prop);
     saved.push({ style, prop, value: val, prio });

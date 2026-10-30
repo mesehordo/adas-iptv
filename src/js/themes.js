@@ -161,6 +161,18 @@ export const THEMES = {
     label: 'Uchūreki',
     desc: _t('Uchūreki (csillagidő): egy csillaghajó parancsnoki hídjának kezelőfelülete – fekete alap, lekerekített végű narancs, levendula és barack színsávok, keskeny, nagybetűs feliratok.'),
   },
+  onkai: {
+    label: 'Onkai',
+    desc: _t('Onkai (hangskála): egy digitális énekhang ritmusjátékainak hangulata – mélytürkiz alap, türkiz és rózsaszín fények, kottavonalak és hangjegyek, hangszínszabályzó-sávok, ütemre lüktető kártyák.'),
+  },
+  roji: {
+    label: 'Roji',
+    desc: _t('Roji (sikátor): éjszakai városi utca – fekete beton, figyelmeztető sárga, savas zöld és matricarózsaszín, csíkos kordonszalag, raszterpöttyök, ferde vastag betűk, felragasztott matricakártyák.'),
+  },
+  denno: {
+    label: 'Dennō',
+    desc: _t('Dennō (elektronikus agy): egy kiberváros hálózati felülete – zöldes-fekete alap, zöld adatfény és hideg cián, áramköri vezetékek, célzókeret-sarkok, ritkított feliratok, villogó kurzor.'),
+  },
 };
 
 // ---------------------------------------------------------------- színváltozatok (themevariants.js)

@@ -443,3 +443,13 @@ test('Mastodon-bejegyzés: angolul, a Flathub-adatok kiadási pontjaiból, legfe
   assert.throws(() => build('README.md'), /docs\/mastodon/);
   assert.throws(() => build('docs/mastodon/../../README.md'), /docs\/mastodon/);
 });
+
+test('stdio-guard: a lezárt kimeneti csőbe naplózás (EPIPE) nem dönti le a folyamatot', async () => {
+  const script = `require(${JSON.stringify(path.join(__dirname, '..', 'stdio-guard.js'))}).guardStdio();
+    setTimeout(() => { for (let i = 0; i < 300; i++) console.error('sor ' + i + ' ' + 'x'.repeat(300)); setTimeout(() => process.exit(0), 300); }, 400);`;
+  const { spawn } = require('child_process');
+  const c = spawn(process.execPath, ['-e', script], { stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' } });
+  c.stderr.destroy(); // (a cső olvasó vége azonnal zárva – Linuxon ez EPIPE-et ad a gyereknek)
+  const code = await new Promise((r) => c.on('exit', (cd) => r(cd)));
+  assert.equal(code, 0);
+});

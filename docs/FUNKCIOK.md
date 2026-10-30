@@ -44,6 +44,9 @@ A stílusok:
 | Yume *(világos)* | (álom) Pasztell kawaii: rózsaszín, levendula és menta, pöttyös háttér, kerek buborékkártyák, szívecskék és csillámok. |
 | Yami | Keserédes gótikus lolita: fekete–levendula alap, élénk rózsaszín, krémszín csipkefodrok, masnik, kameés keretek, fekete-fehér sakktábla, masnis kis koponyák és denevérek, kézírásos címek. |
 | Uchūreki (csillagidő) | Egy csillaghajó parancsnoki hídjának kezelőfelülete: fekete alap, lekerekített végű narancs, levendula és barack sávok, keskeny nagybetűk. |
+| Onkai | (hangskála) Egy digitális énekhang ritmusjátékainak hangulata: mélytürkiz alap, türkiz és rózsaszín fények, kottavonalak és hangjegyek, hangszínszabályzó-sávok, ütemre lüktető kártyák. |
+| Roji | (sikátor) Éjszakai városi utca: fekete beton, figyelmeztető sárga, savas zöld és matricarózsaszín, csíkos kordonszalag, raszterpöttyök, ferde vastag betűk, felragasztott matricakártyák. |
+| Dennō | (elektronikus agy) Egy kiberváros hálózati felülete: zöldes-fekete alap, zöld adatfény és hideg cián, áramköri vezetékek, célzókeret-sarkok, villogó kurzor. |
 
 Ugyanitt profilonként **sorrendbe állíthatók és elrejthetők a főoldal sorai** (húzással vagy a nyilakkal,
 távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben, hazai csatornák, kategóriák, országok.
@@ -51,6 +54,15 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 ## Funkciók verziónként
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
+
+**Új felületstílusok, vezérlők a téma színeivel, Flatpak (1.35.0)**
+- **Onkai** (hangskála): egy digitális énekhang ritmusjátékainak hangulata – türkiz és rózsaszín fények, kottavonalak, hangjegyek, ütemre lüktető kártyák.
+- **Roji** (sikátor): éjszakai városi utca – figyelmeztető sárga, savas zöld, kordonszalag, raszterpöttyök, ferde matricakártyák.
+- **Dennō** (elektronikus agy): kiberváros hálózati felülete – zöld adatfény, hideg cián, áramköri vezetékek, célzókeret-sarkok.
+- Mindháromnak négy színváltozata van.
+- **A vezérlők a téma színeit és betűit követik** minden stílusban: gombok, fülek, beviteli mezők, legördülők, kapcsolók és jelölőnégyzetek (a kiválasztott fül és a bekapcsolt kapcsoló a kiemelőszínnel, mindig olvasható felirattal; ahol a menü saját betűt használ, a fülek is).
+- **Flatpak-csomag** a Flathubhoz előkészítve; Flatpakban a beépített frissítő kikapcsol (ott a Flathub frissít).
+- Biztonsági frissítések: Electron 44.9.3 és a fejlesztői függőségek.
 
 **Kontroller elrendezés, Főoldal egy képernyőn, háttérképek, rendezettebb beállítások, csendes frissítés (1.34.0)**
 - **Új elrendezés: Kontroller** – kanapéról, kontrollerrel (pl. egy játékgépre telepítve): középen nagy, oldalra lapozható részek, alattuk a kijelölt rész tartalma nagy csempéken, alul a kontroller gombjainak súgója (A / B / X / Y, LB / RB) – a többi oldalon is; a kijelölés messziről is jól látható keretet kap.
