@@ -25,8 +25,9 @@ modules:
   - name: adas
     buildsystem: simple
     build-commands:
-      - ar x adas.deb data.tar.gz
-      - tar -xzf data.tar.gz ./opt/ADAS ./usr/share/icons/hicolor/512x512/apps/adas.png
+      # (a kiadás .deb-je data.tar.xz – a tar a tömörítést magától felismeri)
+      - ar x adas.deb
+      - tar -xf data.tar.* ./opt/ADAS ./usr/share/icons/hicolor/512x512/apps/adas.png
       - cp -a opt/ADAS /app/adas
       # (a Chromium homokozóját Flatpakban a zypak adja; a SUID-segédre nincs szükség)
       - rm -f /app/adas/chrome-sandbox
