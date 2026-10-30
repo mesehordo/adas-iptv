@@ -2960,5 +2960,6 @@ export default {
  "Villanykék": "Electric blue",
  "Hideg cián": "Cold cyan",
  "Ibolya háló": "Violet net",
- "Riasztás": "Alert"
+ "Riasztás": "Alert",
+ "A Flathubról telepített Adást a Flathub frissíti (a Szoftverközpontban vagy a „flatpak update” paranccsal).": "Adás installed from Flathub is updated by Flathub (in your software centre or with the “flatpak update” command)."
 };

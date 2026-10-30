@@ -153,6 +153,8 @@ const verified = new Set();
 /** → { current, latest, newer, notes, page, asset: { name, url, size } | null } */
 async function check(source) {
   offered = null; // egy sikertelen ellenőrzés után a korábbi ajánlat se maradjon letölthető
+  // (Flatpak: a csomagot a Flathub frissíti – a homokozóból a saját telepítés nem is írhatná felül)
+  if (process.env.FLATPAK_ID) throw new Error(_t('A Flathubról telepített Adást a Flathub frissíti (a Szoftverközpontban vagy a „flatpak update” paranccsal).'));
   source = String(source || '').trim();
   if (!source) throw new Error(_t('Nincs beállítva frissítési forrás.'));
   const current = app.getVersion();

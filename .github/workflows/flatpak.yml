@@ -1,0 +1,62 @@
+# A Flatpak-csomag (flatpak/) próbafordítása és a Flathub szabályainak ellenőrzése (flatpak-builder-lint),
+# a Flathubra küldés előtt és a csomag módosításakor. Az elkészült .flatpak letölthető próbára.
+name: Flatpak
+
+on:
+  pull_request:
+    paths: ['flatpak/**', '.github/workflows/flatpak.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flatpak-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Flatpak (fordítás és ellenőrzés)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Eszközök
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q flatpak flatpak-builder ostree xvfb
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install -y --user --noninteractive flathub org.flatpak.Builder
+      - name: A leírófájl ellenőrzése
+        run: flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest flatpak/io.github.mesehordo.adas-iptv.yml
+      - name: Fordítás
+        run: |
+          # (a gépre telepített flatpak-builderrel – a homokozós org.flatpak.Builder nem látja a felhasználói telepítést;
+          # a Flathub-ellenőrzés marad az org.flatpak.Builderé)
+          # (a képernyőképeket a Flathub a saját tükrére teszi – a csomagellenőrzés ezt várja, ezért itt is úgy készül)
+          flatpak-builder --user --install-deps-from=flathub --disable-rofiles-fuse --force-clean \
+            --mirror-screenshots-url=https://dl.flathub.org/media/ --repo=repo --install build flatpak/io.github.mesehordo.adas-iptv.yml
+          mkdir -p build/files/share/app-info/media
+          ostree commit --repo=repo --canonical-permissions --branch=screenshots/$(uname -m) build/files/share/app-info/media
+      - name: A kész csomag ellenőrzése
+        # (a képernyőképek és az ikon tükrözését csak a Flathub fordítógépe végzi el teljesen – ezt a két hibát itt
+        # kivételként kezeljük: flatpak/lint-exceptions.json; a Flathubra ez a fájl nem kerül fel)
+        run: flatpak run --command=flatpak-builder-lint org.flatpak.Builder --exceptions --user-exceptions flatpak/lint-exceptions.json repo repo
+      - name: Indítási próba
+        run: |
+          # (25 másodpercig futnia kell összeomlás nélkül; a timeout 124-es kilépése a jó eset; a zypak munkamenet-buszt kér)
+          set +e
+          xvfb-run -a dbus-run-session -- timeout 25 flatpak run --user io.github.mesehordo.adas-iptv > run.log 2>&1
+          rc=$?
+          tail -n 40 run.log
+          if [ "$rc" -ne 124 ]; then echo "::error::Az Adás $rc kóddal kilépett 25 másodpercen belül."; exit 1; fi
+      - name: Csomag (.flatpak)
+        run: flatpak build-bundle repo ADAS.flatpak io.github.mesehordo.adas-iptv --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: adas-flatpak
+          path: ADAS.flatpak
+          if-no-files-found: error
+          retention-days: 7

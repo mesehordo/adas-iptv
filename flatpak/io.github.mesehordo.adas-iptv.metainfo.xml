@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.mesehordo.adas-iptv</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+
+  <name>Adás</name>
+  <summary>Watch live TV, radio and podcasts from public lists</summary>
+  <summary xml:lang="hu">Élő TV, rádió és podcastok nyilvános listákból</summary>
+
+  <developer id="io.github.mesehordo">
+    <name>mesehordo</name>
+  </developer>
+
+  <description>
+    <p>
+      Adás is a player for free, publicly available live TV channels, radio stations and podcasts,
+      with a streaming-service style interface. It uses the public iptv-org channel list by default,
+      and you can add your own M3U playlists too.
+    </p>
+    <p xml:lang="hu">
+      Az Adás ingyenes, nyilvánosan elérhető élő TV-csatornák, rádióadók és podcastok lejátszója,
+      streaming-szolgáltatás stílusú felülettel. Alapból az iptv-org nyilvános csatornalistáját használja,
+      de saját M3U-listákat is hozzáadhatsz.
+    </p>
+    <ul>
+      <li>Live TV with a timeline programme guide, favourites and recently watched channels</li>
+      <li xml:lang="hu">Élő TV idővonalas műsorújsággal, kedvencekkel és a legutóbb nézett csatornákkal</li>
+      <li>Radio stations and podcasts with subscriptions and a play queue</li>
+      <li xml:lang="hu">Rádióadók és podcastok feliratkozással és lejátszási sorral</li>
+      <li>Collection view with tick-box filters by country, topic, language, availability and quality</li>
+      <li xml:lang="hu">Gyűjtemény nézet pipálható szűrőkkel: ország, téma, nyelv, elérhetőség és minőség szerint</li>
+      <li>Profiles, including a kids profile with allowed channels</li>
+      <li xml:lang="hu">Profilok, köztük gyerekprofil az engedélyezett csatornákkal</li>
+      <li>Several layouts and themes, also usable with a remote control or a game controller</li>
+      <li xml:lang="hu">Többféle elrendezés és téma, távirányítóval vagy kontrollerrel is</li>
+      <li>Recording, casting to Chromecast and DLNA devices</li>
+      <li xml:lang="hu">Felvétel, küldés Chromecast- és DLNA-eszközökre</li>
+    </ul>
+    <p>
+      Adás does not provide any content itself: it only plays streams from the lists you choose.
+    </p>
+    <p xml:lang="hu">
+      Az Adás maga nem szolgáltat tartalmat: csak a választott listák adásait játssza le.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">io.github.mesehordo.adas-iptv.desktop</launchable>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Home screen with what is on now and tonight</caption>
+      <image>https://raw.githubusercontent.com/mesehordo/adas-iptv/v1.34.0/site/img/home.jpg</image>
+    </screenshot>
+    <screenshot>
+      <caption>Timeline TV guide</caption>
+      <image>https://raw.githubusercontent.com/mesehordo/adas-iptv/v1.34.0/site/img/guide.jpg</image>
+    </screenshot>
+    <screenshot>
+      <caption>TV page with recently watched channels and favourites</caption>
+      <image>https://raw.githubusercontent.com/mesehordo/adas-iptv/v1.34.0/site/img/tv.jpg</image>
+    </screenshot>
+    <screenshot>
+      <caption>Radio stations and genres</caption>
+      <image>https://raw.githubusercontent.com/mesehordo/adas-iptv/v1.34.0/site/img/radio.jpg</image>
+    </screenshot>
+    <screenshot>
+      <caption>Podcasts with continue listening, the play queue and subscriptions</caption>
+      <image>https://raw.githubusercontent.com/mesehordo/adas-iptv/v1.34.0/site/img/podcast.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The Controller layout for the big screen</caption>
+      <image>https://raw.githubusercontent.com/mesehordo/adas-iptv/v1.34.0/site/img/layout-console.jpg</image>
+    </screenshot>
+  </screenshots>
+
+  <url type="homepage">https://mesehordo.github.io/adas-iptv/</url>
+  <url type="bugtracker">https://github.com/mesehordo/adas-iptv/issues</url>
+  <url type="vcs-browser">https://github.com/mesehordo/adas-iptv</url>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#f2f2f2</color>
+    <color type="primary" scheme_preference="dark">#141414</color>
+  </branding>
+
+  <content_rating type="oars-1.1" />
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+    <control>gamepad</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+
+  <categories>
+    <category>AudioVideo</category>
+    <category>Video</category>
+    <category>Player</category>
+    <category>TV</category>
+  </categories>
+  <keywords>
+    <keyword>tv</keyword>
+    <keyword>iptv</keyword>
+    <keyword>radio</keyword>
+    <keyword>podcast</keyword>
+    <keyword>epg</keyword>
+  </keywords>
+
+  <releases>
+    <release version="1.34.0" date="2026-10-30">
+      <url type="details">https://github.com/mesehordo/adas-iptv/releases/tag/v1.34.0</url>
+      <description>
+        <ul>
+          <li>Collection view with tick-box filters for TV, radio, VOD and podcasts</li>
+          <li>Discover pages everywhere, including VOD and podcasts</li>
+          <li>Podcasts in Search and in Favourites</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+</component>
