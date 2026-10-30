@@ -415,3 +415,31 @@ test('media.freeBytes: a szabad hely szám (lekérdezhetetlen helyen végtelen)'
   assert.ok(freeBytes(os.tmpdir()) > 0);
   assert.equal(freeBytes(path.join(os.tmpdir(), 'nincs-ilyen-mappa-' + Date.now())), Infinity);
 });
+
+test('Mastodon-bejegyzés: angolul, a Flathub-adatok kiadási pontjaiból, legfeljebb 500 karakter; egyedi bejegyzés csak a docs/mastodon mappából', async () => {
+  const { releaseNotes, compose, build, lenOf } = await import('../tools/mastodon-post.mjs');
+  const xml = `<releases><release version="2.0.0" date="2026-01-01"><description><ul><li>One &amp; two</li>
+    <li xml:lang="hu">Egy</li><li>Three</li></ul></description></release><release version="1.9.0"><description><ul><li>Old</li></ul></description></release></releases>`;
+  assert.deepEqual(releaseNotes(xml, '2.0.0'), ['One & two', 'Three']);
+  assert.equal(releaseNotes(xml, '2.0.1'), null);
+  const t = compose('2.0.0', releaseNotes(xml, '2.0.0'));
+  assert.match(t, /^Adás 2\.0\.0 is out!\n\n• One & two\n• Three\n/);
+  assert.match(t, /releases\/tag\/v2\.0\.0/);
+  assert.match(t, /#OpenSource/);
+  // (túl hosszú pontok: a végéről maradnak el, a poszt belefér)
+  const long = compose('2.0.0', Array.from({ length: 6 }, (_, i) => `${i} ` + 'x'.repeat(90)));
+  assert.ok(lenOf(long) <= 500);
+  assert.match(long, /• 0 /);
+  assert.doesNotMatch(long, /• 5 /);
+  // (a valódi adatok: az 1.34.0 kiadás és a bemutatkozó bejegyzés belefér; más mappából nem posztol)
+  assert.ok(lenOf(build('1.34.0').status) <= 500);
+  const intro = build('docs/mastodon/intro.txt');
+  assert.ok(intro.status.startsWith('Meet Adás') && lenOf(intro.status) <= 500);
+  // (jelölés a ponton belül: sima szöveg; csak magyar ponttal a kiadás üres – a build ezt elutasítja; az emoji egy karakter)
+  assert.deepEqual(releaseNotes('<release version="3.0.0"><ul><li>A <em>b</em> &lt;c&gt;</li></ul></release>', '3.0.0'), ['A b c']);
+  assert.deepEqual(releaseNotes('<release version="3.0.0"><ul><li xml:lang="hu">Csak magyar</li></ul></release>', '3.0.0'), []);
+  assert.equal(lenOf('📺'), 1);
+  assert.equal(lenOf('see https://example.com/very/long/path'), 4 + 23);
+  assert.throws(() => build('README.md'), /docs\/mastodon/);
+  assert.throws(() => build('docs/mastodon/../../README.md'), /docs\/mastodon/);
+});
