@@ -444,14 +444,25 @@ test('Mastodon-bejegyzés: angolul, a Flathub-adatok kiadási pontjaiból, legfe
   assert.throws(() => build('docs/mastodon/../../README.md'), /docs\/mastodon/);
 });
 
-test('stdio-guard: a lezárt kimeneti csőbe naplózás (EPIPE) nem dönti le a folyamatot', async () => {
-  const script = `require(${JSON.stringify(path.join(__dirname, '..', 'stdio-guard.js'))}).guardStdio();
-    setTimeout(() => { for (let i = 0; i < 300; i++) console.error('sor ' + i + ' ' + 'x'.repeat(300)); setTimeout(() => process.exit(0), 300); }, 400);`;
+// (egy gyerekfolyamat a védelemmel: a megadott kimenet csöve zárva; → a kilépési kód)
+async function guardedChild(body, closed) {
   const { spawn } = require('child_process');
-  const c = spawn(process.execPath, ['-e', script], { stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' } });
-  c.stderr.destroy(); // (a cső olvasó vége azonnal zárva – Linuxon ez EPIPE-et ad a gyereknek)
-  const code = await new Promise((r) => c.on('exit', (cd) => r(cd)));
-  assert.equal(code, 0);
+  const script = `require(${JSON.stringify(path.join(__dirname, '..', 'stdio-guard.js'))}).guardStdio();\n${body}`;
+  const stdio = ['ignore', closed === 'stdout' ? 'pipe' : 'ignore', closed === 'stderr' ? 'pipe' : 'ignore'];
+  const c = spawn(process.execPath, ['-e', script], { stdio, env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' } });
+  c[closed]?.destroy(); // (a cső olvasó vége azonnal zárva – Linuxon ez EPIPE-et ad a gyereknek)
+  return new Promise((r) => c.on('exit', (cd) => r(cd)));
+}
+const floodLog = (fn) => `setTimeout(() => { for (let i = 0; i < 300; i++) ${fn}('sor ' + i + ' ' + 'x'.repeat(300)); setTimeout(() => process.exit(0), 300); }, 400);`;
+
+test('stdio-guard: a lezárt kimeneti csőbe naplózás (EPIPE) nem dönti le a folyamatot – stderr és stdout', async () => {
+  assert.equal(await guardedChild(floodLog('console.error'), 'stderr'), 0);
+  assert.equal(await guardedChild(floodLog('console.log'), 'stdout'), 0);
+});
+
+test('stdio-guard: a nem EPIPE kimeneti hiba továbbdobódik (nem nyeli el)', async () => {
+  const body = "process.stderr.emit('error', Object.assign(new Error('nincs hely'), { code: 'ENOSPC' })); setTimeout(() => process.exit(0), 300);";
+  assert.notEqual(await guardedChild(body, null), 0);
 });
 
 test('DLNA: a cím átvétele után a vevő átmeneti állapotát (TRANSITIONING) és a 701-es Play-hibát kivárja; más hiba hiba marad', async (t) => {
