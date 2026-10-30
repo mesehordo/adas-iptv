@@ -17,10 +17,16 @@ finish-args:
   - --device=dri
   # a felvételek alapmappája (Videók); a többi fájl a rendszer fájlválasztóján (portálon) át
   - --filesystem=xdg-videos
+  # a saját médiatár beírt mappái a szokásos csatolási helyeken (külső lemez, NAS) – csak olvasásra; máshol lévő
+  # mappához: flatpak override --user --filesystem=/út/vonal:ro io.github.mesehordo.adas-iptv
+  - --filesystem=/media:ro
+  - --filesystem=/mnt:ro
+  - --filesystem=/run/media:ro
   # értesítések és tálcaikon
   - --talk-name=org.freedesktop.Notifications
   - --talk-name=org.kde.StatusNotifierWatcher
-  # (a beépített frissítő Flatpakban ki van kapcsolva – a FLATPAK_ID alapján)
+  # (a beépített frissítőt az Adás Flatpakban kikapcsolja – a FLATPAK_ID alapján – az 1.34.0 utáni kiadásoktól;
+  # a Flathubra küldés előtt a forrást erre a kiadásra kell állítani)
 modules:
   - name: adas
     buildsystem: simple

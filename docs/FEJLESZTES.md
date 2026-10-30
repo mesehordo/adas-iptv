@@ -85,6 +85,12 @@ Flathub frissítőrobotja (`x-checker-data`) magától nyit PR-t a Flathub-táro
 A próbafordítást és a Flathub-ellenőrzést (`flatpak-builder-lint`) a *Flatpak* munkafolyamat végzi (a `flatpak/` változásakor, vagy kézzel);
 az elkészült `ADAS.flatpak` letölthető, és `flatpak install --user ADAS.flatpak` paranccsal kipróbálható.
 
+- **A frissítő tiltása** az 1.34.0 utáni kiadásokban van benne: a Flathubra küldés előtt a leírófájl `.deb`-forrását (`url`, `sha256`)
+  a következő kiadásra kell állítani (az 1.34.0-s csomagban a beépített frissítő még jelezne).
+- **Fájlok Flatpakban:** a Videók mappa írható (felvételek), a `/media`, `/mnt` és `/run/media` alatti mappák (külső lemez, NAS) olvashatók;
+  a fájl- és mappaválasztó (portál) bármit megnyit. Máshol lévő, kézzel beírt mappához:
+  `flatpak override --user --filesystem=/út/vonal:ro io.github.mesehordo.adas-iptv`.
+
 ## LG webOS TV (szünetel)
 
 A webOS-változat fejlesztése és csomagolása 1.14-től szünetel (a `webos/` mappa és a `tools/build-webos.mjs`
