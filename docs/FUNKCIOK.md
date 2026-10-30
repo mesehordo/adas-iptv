@@ -55,11 +55,14 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
-**Új felületstílusok (következő kiadás)**
+**Új felületstílusok, vezérlők a téma színeivel, Flatpak (1.35.0)**
 - **Onkai** (hangskála): egy digitális énekhang ritmusjátékainak hangulata – türkiz és rózsaszín fények, kottavonalak, hangjegyek, ütemre lüktető kártyák.
 - **Roji** (sikátor): éjszakai városi utca – figyelmeztető sárga, savas zöld, kordonszalag, raszterpöttyök, ferde matricakártyák.
 - **Dennō** (elektronikus agy): kiberváros hálózati felülete – zöld adatfény, hideg cián, áramköri vezetékek, célzókeret-sarkok.
 - Mindháromnak négy színváltozata van.
+- **A vezérlők a téma színeit és betűit követik** minden stílusban: gombok, fülek, beviteli mezők, legördülők, kapcsolók és jelölőnégyzetek (a kiválasztott fül és a bekapcsolt kapcsoló a kiemelőszínnel, mindig olvasható felirattal; ahol a menü saját betűt használ, a fülek is).
+- **Flatpak-csomag** a Flathubhoz előkészítve; Flatpakban a beépített frissítő kikapcsol (ott a Flathub frissít).
+- Biztonsági frissítések: Electron 44.9.3 és a fejlesztői függőségek.
 
 **Kontroller elrendezés, Főoldal egy képernyőn, háttérképek, rendezettebb beállítások, csendes frissítés (1.34.0)**
 - **Új elrendezés: Kontroller** – kanapéról, kontrollerrel (pl. egy játékgépre telepítve): középen nagy, oldalra lapozható részek, alattuk a kijelölt rész tartalma nagy csempéken, alul a kontroller gombjainak súgója (A / B / X / Y, LB / RB) – a többi oldalon is; a kijelölés messziről is jól látható keretet kap.
