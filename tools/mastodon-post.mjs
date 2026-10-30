@@ -20,13 +20,20 @@ const URL_LEN = 23;
 // (CamelCase címkék – a képernyőolvasók így szavanként olvassák fel; kevés, de kereshető)
 export const TAGS = '#Adás #IPTV #OpenSource #FOSS #Linux';
 
-const unxml = (s) => s.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+/** Egy pont sima szövegként: a jelölések nélkül (amíg van mit levenni), a karakterhivatkozások feloldva, kacsacsőr nélkül. */
+const unxml = (s) => {
+  let t = s;
+  for (let prev = ''; prev !== t; ) [prev, t] = [t, t.replace(/<[^<>]*>/g, '')];
+  const ent = { lt: '<', gt: '>', quot: '"', apos: "'", amp: '&' };
+  return t.replace(/&(lt|gt|quot|apos|amp);/g, (_, k) => ent[k]).replace(/[<>]/g, '').replace(/\s+/g, ' ').trim();
+};
 
 /** A kiadás angol pontjai a metainfo.xml-ből (a fordítások – xml:lang – nélkül); null, ha nincs ilyen kiadás. */
 export function releaseNotes(xml, version) {
-  const m = xml.match(new RegExp(`<release\\s+version="${version.replace(/\./g, '\\.')}"[^>]*>([\\s\\S]*?)</release>`));
-  if (!m) return null;
-  return [...m[1].matchAll(/<li>([\s\S]*?)<\/li>/g)].map((x) => unxml(x[1])).filter(Boolean);
+  // (a kiadások sorra – a verzió egyszerű szöveg-összehasonlítással, nem reguláris kifejezésként)
+  const rel = [...xml.matchAll(/<release\s+([^>]*)>([\s\S]*?)<\/release>/g)].find((m) => m[1].match(/\bversion="([^"]*)"/)?.[1] === version);
+  if (!rel) return null;
+  return [...rel[2].matchAll(/<li>([\s\S]*?)<\/li>/g)].map((x) => unxml(x[1])).filter(Boolean);
 }
 
 export const lenOf = (s) => s.replace(/https?:\/\/\S+/g, 'x'.repeat(URL_LEN)).length;
