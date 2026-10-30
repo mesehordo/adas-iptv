@@ -14,7 +14,7 @@ import { spawnSync } from 'node:child_process';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const VERSION = pkg.version;
-const PRODUCT = pkg.productName; // Adás
+const PRODUCT = pkg.productName; // ADAS
 const BIN = pkg.name; // adas
 const src = path.join(root, 'dist', 'linux-unpacked');
 const out = path.join(root, 'dist');
@@ -163,7 +163,7 @@ const icon = fs.readFileSync(path.join(root, 'assets', 'icon.png'));
     const sqfs = path.join(out, `${BIN}-appimage.sqfs`);
     const r = spawnSync(tar2sqfs, ['-f', '-q', '-s', '-c', 'gzip', '-b', '131072', sqfs], { input: tar.buffer(), maxBuffer: 1 << 30 });
     if (r.status !== 0) throw new Error('tar2sqfs: ' + (r.stderr || r.error));
-    const file = path.join(out, `Adas-${VERSION}-x86_64.AppImage`);
+    const file = path.join(out, `ADAS-${VERSION}-x86_64.AppImage`);
     fs.writeFileSync(file, Buffer.concat([fs.readFileSync(runtime), fs.readFileSync(sqfs)]));
     fs.rmSync(sqfs, { force: true });
     console.log('Kész:', path.relative(root, file), (fs.statSync(file).size / 1e6).toFixed(1), 'MB');
@@ -171,7 +171,7 @@ const icon = fs.readFileSync(path.join(root, 'assets', 'icon.png'));
 }
 
 // ---------------------------------------------------------------------------
-// .deb – /opt/Adás alá, menübejegyzéssel, ikonnal, /usr/bin/adas paranccsal
+// .deb – /opt/ADAS alá, menübejegyzéssel, ikonnal, /usr/bin/adas paranccsal
 // ---------------------------------------------------------------------------
 {
   const optDir = `opt/${PRODUCT}`;
@@ -190,7 +190,7 @@ const icon = fs.readFileSync(path.join(root, 'assets', 'icon.png'));
     'Section: video',
     'Priority: optional',
     'Architecture: amd64',
-    `Maintainer: ${pkg.build?.linux?.maintainer || 'Adás'}`,
+    `Maintainer: ${pkg.build?.linux?.maintainer || 'ADAS'}`,
     `Installed-Size: ${installedKB}`,
     'Depends: libgtk-3-0 | libgtk-3-0t64, libnotify4, libnss3, libxss1, libxtst6, xdg-utils, libatspi2.0-0 | libatspi2.0-0t64, libuuid1, libsecret-1-0, libgbm1, libasound2 | libasound2t64',
     'Recommends: libappindicator3-1 | libayatana-appindicator3-1',
@@ -232,7 +232,7 @@ const icon = fs.readFileSync(path.join(root, 'assets', 'icon.png'));
     arEntry('control.tar.gz', zlib.gzipSync(ctl.buffer(), { level: 9 })),
     arEntry('data.tar.gz', zlib.gzipSync(data.buffer(), { level: 6 })),
   ]);
-  const file = path.join(out, `${BIN}_${VERSION}_amd64.deb`);
+  const file = path.join(out, `${PRODUCT}_${VERSION}_amd64.deb`); // ADAS_…_amd64.deb (a csomag neve: adas)
   fs.writeFileSync(file, deb);
   console.log('Kész:', path.relative(root, file), (deb.length / 1e6).toFixed(1), 'MB');
 }

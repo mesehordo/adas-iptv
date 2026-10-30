@@ -32,7 +32,7 @@ test('a beállítások minden fejezete megnyílik', async () => {
   location.hash = '#/settings?g=look';
   await sleep(1500);
   const ids = [...document.querySelectorAll('#view .set-tabs [data-sg]')].map((t) => t.dataset.sg);
-  assert.ok(ids.length >= 10, `kevés fejezet: ${ids.length}`);
+  assert.ok(ids.length >= 7, `kevés fejezet: ${ids.length}`);
   const errors = [];
   const empty = [];
   const onErr = (e) => errors.push(e.message || String(e.reason));

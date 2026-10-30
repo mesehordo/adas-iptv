@@ -7,6 +7,8 @@ import { epg } from './epg.js';
 import { ICON } from './components.js';
 import { currentLayout } from './layoutdefs.js';
 import { _t } from './i18n.js';
+import { facetPanel } from './facets.js';
+import { collectionOf, renderCollection } from './collections.js';
 
 const CARD = '.card, .vcard, .rcard, .tile';
 const PAGES = new Set(['tv', 'vod', 'own', 'radio', 'podcast']);
@@ -60,9 +62,39 @@ function stash(box, secs) {
   for (const s of secs) store.append(s.el);
 }
 
+// (a nem átrendezett oldalak: az elrendezés fejlécét kapják – így egy felületen belül minden fül egy családba tartozik)
+const FRAMED = new Set(['favorites', 'sport', 'guide', 'recordings', 'browse', 'countries', 'search']);
+// (a fülek ikonja a menüből – a Műsorújság, a Felvételek, a Felfedezés és az Országok a TV része)
+const ROUTE_OF = { guide: 'tv', recordings: 'tv', browse: 'tv', countries: 'tv' };
+/** Az oldal fejléce az elrendezés módján (CSS: .frame-head, body[data-layout]). */
+function frame(view, name) {
+  const head = view.querySelector('.page > .page-head:not(.sub), .page-head:not(.sub)');
+  if (!head || head.closest('.frame-head')) return;
+  const svg = document.querySelector(`#nav .links a[data-route="${ROUTE_OF[name] || name}"] svg`)?.cloneNode(true);
+  svg?.removeAttribute('class'); // (a menüben a .nav-ico felülettől függően rejtett)
+  const ico = svg?.outerHTML || '';
+  const wrap = html(`<section class="frame-head" style="--h:${hashHue(name + 'frame')}"><span class="fh-ico" aria-hidden="true">${ico}</span></section>`);
+  head.before(wrap);
+  wrap.append(head);
+  view.querySelector('.page')?.classList.add('framed');
+}
+
+// (az oldal később újrarajzolhatja magát – pl. a Sport az adatok megérkezésekor –: a fejléc akkor is visszakerül)
+let frameObs = null;
+function keepFramed(view, name) {
+  frameObs?.disconnect();
+  frameObs = new MutationObserver(() => (document.body.dataset.route === name ? frame(view, name) : frameObs.disconnect()));
+  frameObs.observe(view, { childList: true, subtree: true });
+}
+
 /** Az oldal igazítása (az útvonal kirajzolása után). */
 export function adaptPage(view, name) {
   const id = currentLayout();
+  frameObs?.disconnect();
+  if (id !== 'classic' && FRAMED.has(name)) {
+    frame(view, name);
+    return void keepFramed(view, name);
+  }
   if (id === 'classic' || !PAGES.has(name)) return;
   // (a Részletes / Gyűjtemény TV oldala eleve saját nézet)
   if (name === 'tv' && (id === 'detail' || id === 'unified')) return;
@@ -70,12 +102,13 @@ export function adaptPage(view, name) {
   if (!box) return;
   const secs = sections(box);
   if (!secs.length) return;
-  // (a VOD és a Rádió böngészése néhány elrendezésben „áruházként”: a minta saját áruházának szerkezetével)
-  const store = name !== 'tv' && { detail: storeFeatured, focus: storeSide, wall: storeCollections, desk: storeDesk }[id];
+  // (a VOD és a Rádió felfedezése néhány elrendezésben „áruházként”: a minta saját áruházának szerkezetével; az Asztal
+  // és a Csempefal TV oldala is – így ott minden fül ugyanúgy néz ki)
+  const store = (name !== 'tv' || id === 'desk' || id === 'wall') && { detail: storeFeatured, focus: storeSide, wall: storeCollections, desk: storeDesk }[id];
   box.classList.add('adapt', store ? 'adapt-store-' + id : 'adapt-' + id);
   if (store) return void store(view, box, secs);
   const fn = { cinema, showcase, shelf, library: null, tiles, detail, unified, wall: null, squares, ribbon, focus, desk: null }[id];
-  fn?.(view, box, secs);
+  fn?.(view, box, secs, name);
 }
 
 // ---------------------------------------------------------------------------
@@ -249,46 +282,54 @@ function detail(view, box, secs) {
 }
 
 // ---------------------------------------------------------------------------
-// Gyűjtemény: szűrők (melyik sorok, keresés) + egy közös rács vagy lista
+// Gyűjtemény: a Rádió és a VOD fő oldalán a teljes gyűjtemény pipálható szűrőkkel (collections.js); a többi oldalon
+// a sorok kártyái egy közös rácsban vagy listában, a sorok (csoportok) szerint pipálva
 // ---------------------------------------------------------------------------
-function unified(view, box, secs) {
+function unified(view, box, secs, name) {
+  const col = collectionOf(name);
+  if (col) {
+    stash(box, secs);
+    return void renderCollection(box, name, col);
+  }
   const ui = html(`<div class="uni adapt-uni">
-    <aside class="uni-side"><details class="uni-filters" ${matchMedia('(max-width: 700px)').matches ? '' : 'open'}><summary>${_t('Szűrők')}</summary>
-      <h4>${_t('Csoportok')}</h4>${secs.map((s) => `<label class="uni-check"><input type="checkbox" data-u-sec="${s.i}" checked /> <span>${esc(s.title)} <small class="muted">${s.cards.length}</small></span>${s.href ? ` <a class="uni-all" href="${esc(s.href)}" title="${_t('Az összes egy oldalon')}">›</a>` : ''}</label>`).join('')}
-    </details></aside>
+    <aside class="uni-side"><details class="uni-filters" ${matchMedia('(max-width: 700px)').matches ? '' : 'open'}><summary>${_t('Szűrők')}</summary></details></aside>
     <section class="uni-main"><div class="uni-bar"><input class="input uni-q" type="search" placeholder="${_t('Keresés…')}" aria-label="${_t('Keresés')}" />
       <div class="seg" role="group" aria-label="${_t('Nézet')}"><button class="btn small on" data-u-view="grid">${_t('Rács')}</button><button class="btn small" data-u-view="list">${_t('Lista')}</button></div>
       <span class="muted uni-count"></span></div><div class="grid adapt-grid"></div></section></div>`);
   const grid = ui.querySelector('.adapt-grid');
   // (az azonos elem több sorban is szerepelhet: egyszer jelenik meg, az első sorával)
   const seen = new Set();
+  const cards = [];
   for (const s of secs)
     for (const c of s.cards) {
       const k = c.dataset.id || c.dataset.vid || c.dataset.rid || c.getAttribute('href') || c.textContent;
       if (seen.has(k)) continue;
       seen.add(k);
       grid.append(c);
+      cards.push(c);
     }
+  const title = new Map(secs.map((s) => [String(s.i), s.title]));
+  const panel = facetPanel({
+    facets: [{ id: 'row', title: _t('Csoportok'), order: secs.map((s) => String(s.i)), keys: (c) => [c.dataset.adaptRow], label: (k) => title.get(k), open: true }],
+    items: cards,
+    state: { sel: {}, open: {} },
+    onChange: () => draw(),
+  });
+  ui.querySelector('.uni-filters').append(panel.el);
+  ui.querySelector('.uni-bar').after(panel.chips);
   putTop(box, ui);
   stash(box, secs);
-  const on = new Set(secs.map((s) => String(s.i)));
   const draw = () => {
     const q = ui.querySelector('.uni-q').value.trim().toLowerCase();
+    const on = new Set(panel.filter());
     let n = 0;
-    for (const c of grid.children) {
-      const show = on.has(c.dataset.adaptRow) && (!q || c.textContent.toLowerCase().includes(q));
+    for (const c of cards) {
+      const show = on.has(c) && (!q || c.textContent.toLowerCase().includes(q));
       c.hidden = !show;
       n += show;
     }
     ui.querySelector('.uni-count').textContent = _t('{n} elem', { n });
   };
-  ui.addEventListener('change', (e) => {
-    const s = e.target.dataset.uSec;
-    if (s === undefined) return;
-    if (e.target.checked) on.add(s);
-    else on.delete(s);
-    draw();
-  });
   ui.addEventListener('click', (e) => {
     const v = e.target.closest('[data-u-view]');
     if (!v) return;
@@ -475,7 +516,7 @@ function storeFeatured(view, box, secs) {
     <div class="st-box"><div class="st-main"></div><div class="st-side"></div></div>
     <div class="st-dots">${feat.map((_, i) => `<button class="st-dot ${i ? '' : 'on'}" data-sf="${i}" aria-label="${_t('{n}. kiemelt', { n: i + 1 })}"></button>`).join('')}</div></section>`);
   putTop(box, el);
-  el.after(tagsEl(secs, _t('Böngészés csoport szerint')));
+  el.after(tagsEl(secs, _t('Felfedezés csoport szerint')));
   let cur = 0;
   const show = (i) => {
     cur = (i + feat.length) % feat.length;

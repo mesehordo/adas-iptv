@@ -11,7 +11,7 @@ import { api } from './api.js';
 import { store } from './store.js';
 import { epg } from './epg.js';
 import { visible, homeRank, rankScore, catalog, channelStatus } from './catalog.js';
-import { openModal, confirmDialog, ICON } from './components.js';
+import { confirmDialog, ICON } from './components.js';
 
 // ---------------------------------------------------------------------------
 import { _t, LOCALE, weekdayNames } from './i18n.js';
@@ -727,129 +727,143 @@ export function eventRowHtml(e, { logos = true, channels = true, remind = false,
 }
 
 // ---------------------------------------------------------------------------
-// A Sportfigyelő ablak
+// A Sportfigyelő – a Beállítások Sport csoportjában (#sport-opts, #sportwatch, #sportadd): mit követsz, új követés,
+// a források beállításai. (Korábban külön ablak volt; a régi #sportwatch hivatkozások ide vezetnek.)
 // ---------------------------------------------------------------------------
 const KIND_LABEL = { espn: 'ESPN', tsdb: 'TheSportsDB', epg: _t('Műsorújság'), ics: _t('Naptár') };
-let tab = 'watch';
+// [azonosító, név, rövid leírás] – az új követés módjai
+const ADD_MODES = [
+  ['leagues', _t('Bajnokság, csapat'), _t('Menetrend, élő állás, eredmény és tabella – az ESPN katalógusából (kulcs nélkül), és a TheSportsDB-ből (saját kulccsal).')],
+  ['tv', _t('Sportág a tévében'), _t('Bármilyen sportág, amit a tévé közvetít: a műsorújságban keresi (cím, kategória), és rögtön csatornát is ad.')],
+  ['kw', _t('Saját kulcsszó'), _t('Csapat, sportoló, verseny vagy játék a műsorújságban (pl. <i>Fradi</i>, <i>Szoboszlai</i>, <i>sakkolimpia</i>). Több szó: függőleges vonallal (<code>|</code>) elválasztva.')],
+  ['ics', _t('Naptár'), _t('Szinte minden sportszervezet, csapat és versenysorozat ad nyilvános naptárat (iCal / ICS / Google-naptár „nyilvános cím iCal formátumban”). A címet ide másolva az eseményei a listába kerülnek.')],
+];
+let addMode = 'leagues';
 let bSport = '';
 let bQuery = '';
+// (a Sport oldal és a Főoldal Sport egysége a módosítás után – kis késleltetéssel, sorozatos kattintásnál egyszer)
+const changed = debounce(() => document.dispatchEvent(new CustomEvent('adas-sport-changed')), 800);
+const followBtn = (on) => `class="btn small ${on ? 'on' : 'primary'}" aria-pressed="${on}"`;
+const followTxt = (on) => (on ? _t('✓ Követve') : _t('+ Követés'));
+const sportSelect = (attr) => `<select ${attr}>${SPORTS.map(([id, name, ico]) => `<option value="${id}">${ico} ${esc(name)}</option>`).join('')}</select>`;
 
-export function openSportWatch(onChange) {
-  const el = html(`<div class="dialog sport-watch">
-    <h2>${_t('Sportfigyelő')}</h2>
-    <p class="muted small">${_t('Bármilyen sportág, bajnokság, verseny vagy csapat – négy forrásból, egy listában. A főoldal <i>Sport</i> csempéje ezeket mutatja, és ahol a műsorújság szerint nézhető, ott csatornát is ajánl (📺).')}</p>
-    <div class="tabs sw-tabs">
-      <button class="tab" data-swt="watch">${_t('Követett')}</button>
-      <button class="tab" data-swt="leagues">${_t('Bajnokságok')}</button>
-      <button class="tab" data-swt="epg">${_t('Sportágak a tévében')}</button>
-      <button class="tab" data-swt="ics">${_t('Naptár')}</button>
-      <button class="tab" data-swt="opts">${_t('Beállítások')}</button>
-    </div>
-    <div class="sw-body"></div>
-    <div class="dialog-btns"><button class="btn primary" data-sw="close">${_t('Kész')}</button></div>
-  </div>`);
-  const body = el.querySelector('.sw-body');
-  let changed = false;
-  const close = openModal(el, { cls: 'wide', onClose: () => changed && onChange?.() });
-  const mark = () => (changed = true);
+/** A Sportfigyelő részei a Beállítások Sport csoportjában (a nézet újrarajzolásakor újra). */
+export function renderSportSettings(root) {
+  const opts = root.querySelector('#sport-opts');
+  const watch = root.querySelector('#sportwatch');
+  const add = root.querySelector('#sportadd');
+  if (!opts || !watch || !add) return;
+
+  const drawOpts = () => {
+    const s = store.settings;
+    opts.innerHTML = `<label class="setting"><span>${_t('<b>Eredmények ennyi napra visszamenőleg</b>')}</span><select data-sw-back>${[1, 2, 3, 5, 7].map((d) => `<option value="${d}" ${(s.sportBack ?? 2) === d ? 'selected' : ''}>${_t('{d} nap', { d })}</option>`).join('')}</select></label>
+      <label class="setting"><span>${_t('<b>Közelgő események ennyi napra előre</b>')}</span><select data-sw-ahead>${[1, 3, 7, 14].map((d) => `<option value="${d}" ${(s.sportAhead ?? 7) === d ? 'selected' : ''}>${_t('{d} nap', { d })}</option>`).join('')}</select></label>
+      <label class="setting"><span>${_t('<b>Csatornaajánlás</b>')}<small>${_t('Az eseményekhez a műsorújságból keres csatornát (csapatnév, bajnokság, sportág és időpont alapján). A bizonytalan találat halványan látszik.')}</small></span><input type="checkbox" class="switch" data-sw-chan ${s.sportChannels === false ? '' : 'checked'} /></label>
+      <div class="setting stack"><span>${_t('<b>TheSportsDB API-kulcs</b> (nem kötelező)')}<small>${_t('A thesportsdb.com támogatói kulcsával szinte minden sportág bajnokságai elérhetők (darts, snooker, kézilabda, kerékpár, e-sport…). Kulcs nélkül ez a forrás nem működik.')}</small></span>
+        <div class="inline"><input class="input" data-sw-key placeholder="${_t('kulcs')}" autocomplete="off" aria-label="${_t('TheSportsDB API-kulcs')}" /><button class="btn small" data-sw="savekey">${_t('Mentés')}</button></div></div>`;
+    opts.querySelector('[data-sw-key]').value = s.tsdbKey || ''; // tulajdonságként, nem attribútumként
+  };
 
   const drawWatch = () => {
     const list = watchList();
-    if (!list.length) return (body.innerHTML = `<p class="muted">${_t('Még nem követsz semmit. Válassz a <b>Bajnokságok</b> vagy a <b>Sportágak a tévében</b> fülön.')}</p>`);
+    const on = list.filter((w) => w.on !== false).length;
+    const head = `<h2>${_t('Követett tételek')} <span class="muted small">${list.length ? esc(_t('{on} / {n} bekapcsolva', { on, n: list.length })) : ''}</span> <button class="help-link" data-help="sportwatch" title="${_t('Súgó')}">?</button></h2>`;
+    if (!list.length) return (watch.innerHTML = `${head}<p class="muted">${_t('Még nem követsz semmit. Lent, az <b>Új követés</b> résznél választhatsz bajnokságot, csapatot, sportágat vagy naptárt.')}</p>`);
     const groups = {};
     for (const w of list) (groups[w.sport] ||= []).push(w);
-    body.innerHTML = Object.entries(groups)
+    watch.innerHTML = head + Object.entries(groups)
       .sort((a, b) => sportOf(a[0]).name.localeCompare(sportOf(b[0]).name, LOCALE))
       .map(([s, ws]) => `<h3 class="sw-sport">${sportOf(s).ico} ${esc(sportOf(s).name)}</h3><ul class="src-list">${ws
-        .map((w) => `<li data-w="${esc(w.id)}"><input type="checkbox" class="switch" data-sw-on ${w.on !== false ? 'checked' : ''} aria-label="${_t('Bekapcsolva')}" />
+        .map((w) => `<li data-w="${esc(w.id)}"><input type="checkbox" class="switch" data-sw-on ${w.on !== false ? 'checked' : ''} aria-label="${esc(_t('{name} bekapcsolva', { name: w.teamName || w.name }))}" />
           <span><b>${esc(w.teamName ? `${w.teamName} (${w.name})` : w.name)}</b><small>${KIND_LABEL[w.kind]}${w.kind === 'epg' ? ` ${_t('· kulcsszó:')} ${esc(w.kw || _t('a sportág szavai'))}` : w.kind === 'ics' ? ' · ' + esc(w.url) : ''}${cache.errors[w.id] ? ` · <span class="warn">${esc(cache.errors[w.id])}</span>` : ''}</small></span>
           <button class="btn small danger" data-sw="del">${_t('Törlés')}</button></li>`)
         .join('')}</ul>`)
       .join('');
   };
 
-  const drawLeagues = async () => {
+  const drawLeagues = async (body) => {
     body.innerHTML = '<div class="spinner small"></div>';
     const cat = await loadCatalog();
+    if (!body.isConnected) return;
     const sports = [...new Set(cat.map((l) => l.s))];
     const q = norm(bQuery);
     const list = cat.filter((l) => (!bSport || l.s === bSport) && (!q || norm(`${l.n} ${l.a} ${l.c}`).includes(q)));
     const tsdb = !!(store.settings.tsdbKey || '').trim();
-    body.innerHTML = `<div class="filters sw-filters"><input class="input" type="search" data-sw-q placeholder="${_t('Keresés: pl. NB I, NBA, Wimbledon, UFC, Bundesliga…')}" value="${esc(bQuery)}" />
-        <select data-sw-sport><option value="">${_t('Minden sportág (ESPN)')}</option>${sports.map((s) => `<option value="${s}" ${bSport === s ? 'selected' : ''}>${sportOf(ESPN_TO[s]).ico} ${esc(sportOf(ESPN_TO[s]).name)} – ${esc(s)}</option>`).join('')}</select></div>
-      <p class="muted small">${_t('{length} bajnokság az ESPN-katalógusban (menetrend, élő állás, eredmény).', { length: list.length })}${tsdb ? '' : ` ${_t('További sportágakhoz (darts, snooker, kézilabda, e-sport…) add meg a TheSportsDB-kulcsot a Beállítások fülön, vagy kövesd a sportágat a műsorújságban.')}`}</p>
+    body.innerHTML = `<div class="filters sw-filters"><input class="input" type="search" data-sw-q placeholder="${_t('Keresés: pl. NB I, NBA, Wimbledon, UFC, Bundesliga…')}" aria-label="${_t('Bajnokság keresése')}" value="${esc(bQuery)}" />
+        <select data-sw-sport aria-label="${_t('Sportág')}"><option value="">${_t('Minden sportág (ESPN)')}</option>${sports.map((s) => `<option value="${s}" ${bSport === s ? 'selected' : ''}>${sportOf(ESPN_TO[s]).ico} ${esc(sportOf(ESPN_TO[s]).name)} – ${esc(s)}</option>`).join('')}</select></div>
+      <p class="muted small">${_t('{length} bajnokság az ESPN-katalógusban (menetrend, élő állás, eredmény).', { length: list.length })}${tsdb ? '' : ` ${_t('További sportágakhoz (darts, snooker, kézilabda, e-sport…) add meg fent a TheSportsDB-kulcsot, vagy kövesd a sportágat a tévében.')}`}</p>
       <ul class="src-list sw-leagues">${list
         .slice(0, 120)
         .map((l) => {
-          const id = `espn:${l.s}/${l.c}`;
-          const on = isWatched(id);
+          const on = isWatched(`espn:${l.s}/${l.c}`);
           return `<li data-lg="${esc(l.s + '/' + l.c)}"><span class="sw-ico">${sportOf(ESPN_TO[l.s]).ico}</span><span><b>${esc(l.n)}</b><small>${esc(l.a)} · ${esc(l.s)}${l.g === 'f' ? ` ${_t('· női')}` : ''}</small></span>
-            <button class="btn small" data-sw="teams">${_t('Csapat…')}</button><button class="btn small ${on ? 'on' : 'primary'}" data-sw="follow">${on ? _t('✓ Követve') : _t('+ Követés')}</button></li>`;
+            <button class="btn small" data-sw="teams">${_t('Csapat…')}</button><button ${followBtn(on)} data-sw="follow">${followTxt(on)}</button></li>`;
         })
         .join('')}</ul>${list.length > 120 ? `<p class="muted small">${_t('Szűkíts kereséssel – az első 120 látszik.')}</p>` : ''}
-      ${tsdb ? `<h3>TheSportsDB</h3><div class="inline"><input class="input" data-sw-tq placeholder="${_t('Sportág angolul (pl. Darts, Snooker, Handball, Esports, Cycling)')}" /><button class="btn small" data-sw="tsearch">${_t('Bajnokságok keresése')}</button></div><ul class="src-list sw-tsdb"></ul>` : ''}`;
+      ${tsdb ? `<h3>TheSportsDB</h3><div class="inline"><input class="input" data-sw-tq placeholder="${_t('Sportág angolul (pl. Darts, Snooker, Handball, Esports, Cycling)')}" aria-label="${_t('Sportág angolul')}" /><button class="btn small" data-sw="tsearch">${_t('Bajnokságok keresése')}</button></div><ul class="src-list sw-tsdb"></ul>` : ''}`;
   };
 
-  const drawEpg = () => {
-    body.innerHTML = `<p class="muted small">${_t('Bármilyen sportág vagy játék, amit a tévé közvetít: a program a műsorújságban keresi (cím, kategória), és azonnal csatornát is ad. Kattints a sportágra a követéshez.')}</p>
-      <div class="sw-chips">${SPORTS.filter(([id]) => id !== 'other')
+  const drawAdd = () => {
+    const [, , desc] = ADD_MODES.find(([id]) => id === addMode) || ADD_MODES[0];
+    add.innerHTML = `<h2>${_t('Új követés')}</h2>
+      <div class="seg sw-modes" role="group" aria-label="${_t('Mit szeretnél követni?')}">${ADD_MODES.map(([id, name]) => `<button class="tab ${id === addMode ? 'active' : ''}" aria-pressed="${id === addMode}" data-swm="${id}">${esc(name)}</button>`).join('')}</div>
+      <p class="muted small sw-desc">${desc}</p><div class="sw-body"></div>`;
+    const body = add.querySelector('.sw-body');
+    if (addMode === 'leagues') return drawLeagues(body);
+    if (addMode === 'tv')
+      body.innerHTML = `<div class="sw-chips">${SPORTS.filter(([id]) => id !== 'other')
         .map(([id, name, ico]) => {
           const on = isWatched(`epg:${id}`);
-          return `<button class="sw-chip ${on ? 'on' : ''}" data-sw-epg="${id}">${ico} ${esc(name)}${on ? ' ✓' : ''}</button>`;
+          return `<button class="sw-chip ${on ? 'on' : ''}" aria-pressed="${on}" data-sw-epg="${id}">${ico} ${esc(name)}${on ? ' ✓' : ''}</button>`;
         })
-        .join('')}</div>
-      <h3>${_t('Saját kulcsszó')}</h3>
-      <p class="muted small">${_t('Bármi más: csapat, sportoló, verseny vagy játék (pl. <i>Fradi</i>, <i>Szoboszlai</i>, <i>sakkolimpia</i>, <i>World Chase Tag</i>, <i>Tour de Hongrie</i>). Több szó: függőleges vonallal (<code>|</code>) elválasztva.')}</p>
-      <div class="inline"><input class="input" data-sw-kw placeholder="${_t('pl. Ferencváros|Fradi')}" /><select data-sw-kws>${SPORTS.map(([id, name, ico]) => `<option value="${id}">${ico} ${esc(name)}</option>`).join('')}</select><button class="btn small primary" data-sw="addkw">${_t('+ Követés')}</button></div>`;
-  };
-
-  const drawIcs = () => {
-    body.innerHTML = `<p class="muted small">${_t('Szinte minden sportszervezet, csapat és versenysorozat ad nyilvános naptárat (iCal / ICS / Google-naptár „nyilvános cím iCal formátumban”). A címet ide másolva az eseményei a listába kerülnek – így bármilyen sport követhető (pl. disc golf túrák, World Chase Tag, sakkversenyek, helyi bajnokság).')}</p>
-      <div class="sw-ics-form"><input class="input" data-sw-icsurl placeholder="${_t('https://…/naptar.ics vagy webcal://…')}" />
-        <input class="input" data-sw-icsname placeholder="${_t('Név (pl. Disc Golf Pro Tour)')}" />
-        <select data-sw-icssport>${SPORTS.map(([id, name, ico]) => `<option value="${id}">${ico} ${esc(name)}</option>`).join('')}</select>
+        .join('')}</div>`;
+    else if (addMode === 'kw')
+      body.innerHTML = `<div class="inline"><input class="input" data-sw-kw placeholder="${_t('pl. Ferencváros|Fradi')}" aria-label="${_t('Kulcsszó')}" />${sportSelect(`data-sw-kws aria-label="${_t('Sportág')}"`)}<button class="btn small primary" data-sw="addkw">${_t('+ Követés')}</button></div>`;
+    else
+      body.innerHTML = `<div class="sw-ics-form"><input class="input" data-sw-icsurl placeholder="${_t('https://…/naptar.ics vagy webcal://…')}" aria-label="${_t('Naptár címe')}" />
+        <input class="input" data-sw-icsname placeholder="${_t('Név (pl. Disc Golf Pro Tour)')}" aria-label="${_t('Név')}" />
+        ${sportSelect(`data-sw-icssport aria-label="${_t('Sportág')}"`)}
         <button class="btn small primary" data-sw="addics">${_t('+ Naptár hozzáadása')}</button></div>`;
   };
 
-  const drawOpts = () => {
-    const s = store.settings;
-    body.innerHTML = `<label class="setting stack"><span>${_t('<b>TheSportsDB API-kulcs</b>')}<small>${_t('A thesportsdb.com támogatói kulcsával szinte minden sportág bajnokságai elérhetők (darts, snooker, kézilabda, kerékpár, e-sport…). Kulcs nélkül ez a forrás nem működik.')}</small></span>
-        <div class="inline"><input class="input" data-sw-key placeholder="${_t('kulcs')}" autocomplete="off" /><button class="btn small" data-sw="savekey">${_t('Mentés')}</button></div></label>
-      <label class="setting"><span>${_t('<b>Eredmények ennyi napra visszamenőleg</b>')}</span><select data-sw-back>${[1, 2, 3, 5, 7].map((d) => `<option value="${d}" ${(s.sportBack ?? 2) === d ? 'selected' : ''}>${_t('{d} nap', { d })}</option>`).join('')}</select></label>
-      <label class="setting"><span>${_t('<b>Közelgő események ennyi napra előre</b>')}</span><select data-sw-ahead>${[1, 3, 7, 14].map((d) => `<option value="${d}" ${(s.sportAhead ?? 7) === d ? 'selected' : ''}>${_t('{d} nap', { d })}</option>`).join('')}</select></label>
-      <label class="setting"><span>${_t('<b>Csatornaajánlás</b>')}<small>${_t('Az eseményekhez a műsorújságból keres csatornát (csapatnév, bajnokság, sportág és időpont alapján). A bizonytalan találat halványan látszik.')}</small></span><input type="checkbox" class="switch" data-sw-chan ${s.sportChannels === false ? '' : 'checked'} /></label>`;
-    body.querySelector('[data-sw-key]').value = s.tsdbKey || ''; // tulajdonságként, nem attribútumként
+  // (követés után: a lista frissül, a gomb a helyén vált – a görgetés és a keresés megmarad)
+  const after = () => {
+    changed();
+    drawWatch();
+  };
+  const setFollow = (b, on) => {
+    b.className = `btn small ${on ? 'on' : 'primary'}`;
+    b.setAttribute('aria-pressed', on);
+    b.textContent = followTxt(on);
   };
 
-  const draw = () => {
-    el.querySelectorAll('[data-swt]').forEach((b) => b.classList.toggle('active', b.dataset.swt === tab));
-    const t = el.querySelector('[data-swt="watch"]');
-    t.textContent = `${_t('Követett ({length})', { length: watchList().length })}`;
-    ({ watch: drawWatch, leagues: drawLeagues, epg: drawEpg, ics: drawIcs, opts: drawOpts })[tab]();
-  };
-
-  el.addEventListener('click', async (e) => {
-    const t = e.target.closest('[data-swt]');
-    if (t) {
-      tab = t.dataset.swt;
-      return draw();
+  const onClick = async (e) => {
+    const m = e.target.closest('[data-swm]');
+    if (m) {
+      addMode = m.dataset.swm;
+      drawAdd();
+      return add.querySelector(`[data-swm="${addMode}"]`)?.focus();
     }
     const b = e.target.closest('[data-sw], [data-sw-epg]');
     if (!b) return;
     const a = b.dataset.sw;
     const li = b.closest('li');
-    if (a === 'close') return close();
     if (a === 'del') {
-      removeWatch(li.dataset.w);
-      mark();
-      return draw();
+      const w = watchList().find((x) => x.id === li.dataset.w);
+      if (!w || !(await confirmDialog(_t('Nem követed tovább: {name}?', { name: w.teamName || w.name }), { ok: _t('Törlés'), danger: true }))) return;
+      removeWatch(w.id);
+      after();
+      return drawAdd();
     }
     if (b.dataset.swEpg) {
       const id = `epg:${b.dataset.swEpg}`;
       if (isWatched(id)) removeWatch(id);
       else addWatch({ id, kind: 'epg', sport: b.dataset.swEpg, name: sportOf(b.dataset.swEpg).name + ` ${_t('a tévében')}` });
-      mark();
-      return draw();
+      const on = isWatched(id);
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', on);
+      b.textContent = `${sportOf(b.dataset.swEpg).ico} ${sportOf(b.dataset.swEpg).name}${on ? ' ✓' : ''}`;
+      return after();
     }
     if (a === 'follow') {
       const ref = li.dataset.lg;
@@ -860,11 +874,13 @@ export function openSportWatch(onChange) {
         const l = (await loadCatalog()).find((x) => x.s === s && x.c === c);
         addWatch({ id, kind: 'espn', sport: ESPN_TO[s] || 'other', ref, name: l?.n || c });
       }
-      mark();
-      return draw();
+      setFollow(b, isWatched(id));
+      return after();
     }
     if (a === 'teams') {
       const ref = li.dataset.lg;
+      // (másodszorra: a csapatlista becsukódik)
+      if (li.nextElementSibling?.matches('.sw-teams-row')) return li.nextElementSibling.remove();
       b.disabled = true;
       try {
         const j = await json(`https://site.api.espn.com/apis/site/v2/sports/${ref}/teams`, 24);
@@ -872,28 +888,31 @@ export function openSportWatch(onChange) {
         if (!teams.length) return toast(_t('Ehhez a bajnoksághoz nincs csapatlista (pl. egyéni sportág).'));
         const [s, c] = ref.split('/');
         const l = (await loadCatalog()).find((x) => x.s === s && x.c === c);
-        const box = html(`<ul class="sw-teams">${teams
+        const box = html(`<li class="sw-teams-row"><ul class="sw-teams">${teams
           .map((t) => `<li><button class="btn small ${isWatched(`espn:${ref}:${t.id}`) ? 'on' : ''}" data-team="${esc(t.id)}" data-tname="${esc(t.displayName)}">${t.logos?.[0]?.href ? `<img src="${esc(t.logos[0].href)}" alt="" loading="lazy" />` : ''}${esc(t.displayName)}</button></li>`)
-          .join('')}</ul>`);
+          .join('')}</ul></li>`);
         li.after(box);
         box.onclick = (ev) => {
           const tb = ev.target.closest('[data-team]');
           if (!tb) return;
+          ev.stopPropagation();
           const id = `espn:${ref}:${tb.dataset.team}`;
           if (isWatched(id)) removeWatch(id);
           else addWatch({ id, kind: 'espn', sport: ESPN_TO[s] || 'other', ref, team: tb.dataset.team, teamName: tb.dataset.tname, name: l?.n || c });
           tb.classList.toggle('on', isWatched(id));
-          mark();
+          after();
         };
       } catch (err) {
         toast(`${_t('A csapatlista nem érhető el:')} ` + err.message);
+      } finally {
+        b.disabled = false;
       }
       return;
     }
     if (a === 'tsearch') {
-      const q = el.querySelector('[data-sw-tq]').value.trim();
+      const q = add.querySelector('[data-sw-tq]').value.trim();
       if (!q) return;
-      const out = el.querySelector('.sw-tsdb');
+      const out = add.querySelector('.sw-tsdb');
       out.innerHTML = '<li><div class="spinner small"></div></li>';
       try {
         const key = encodeURIComponent(store.settings.tsdbKey.trim());
@@ -901,7 +920,7 @@ export function openSportWatch(onChange) {
         const ls = j.countries || j.countrys || [];
         const sp = SPORTS.find(([, , , , kw]) => kw && kwRx(kw).test(q))?.[0] || 'other';
         out.innerHTML = ls.length
-          ? ls.map((l) => `<li data-tl="${esc(l.idLeague)}" data-tn="${esc(l.strLeague)}" data-ts="${sp}"><span><b>${esc(l.strLeague)}</b><small>${esc(l.strSport)} · ${esc(l.strCountry || '')}</small></span><button class="btn small ${isWatched('tsdb:' + l.idLeague) ? 'on' : 'primary'}" data-sw="tfollow">${isWatched('tsdb:' + l.idLeague) ? _t('✓ Követve') : _t('+ Követés')}</button></li>`).join('')
+          ? ls.map((l) => `<li data-tl="${esc(l.idLeague)}" data-tn="${esc(l.strLeague)}" data-ts="${sp}"><span><b>${esc(l.strLeague)}</b><small>${esc(l.strSport)} · ${esc(l.strCountry || '')}</small></span><button ${followBtn(isWatched('tsdb:' + l.idLeague))} data-sw="tfollow">${followTxt(isWatched('tsdb:' + l.idLeague))}</button></li>`).join('')
           : `<li class="muted">${_t('Nincs találat (a sportág nevét angolul add meg).')}</li>`;
       } catch (err) {
         out.innerHTML = `<li class="warn">${esc(err.message)}</li>`;
@@ -912,90 +931,103 @@ export function openSportWatch(onChange) {
       const id = 'tsdb:' + li.dataset.tl;
       if (isWatched(id)) removeWatch(id);
       else addWatch({ id, kind: 'tsdb', sport: li.dataset.ts, ref: li.dataset.tl, name: li.dataset.tn });
-      b.classList.toggle('on', isWatched(id));
-      b.classList.toggle('primary', !isWatched(id));
-      b.textContent = isWatched(id) ? _t('✓ Követve') : _t('+ Követés');
-      mark();
-      return;
+      setFollow(b, isWatched(id));
+      return after();
     }
     if (a === 'addkw') {
-      const kw = el.querySelector('[data-sw-kw]').value.trim();
+      const inp = add.querySelector('[data-sw-kw]');
+      const kw = inp.value.trim();
       if (!kw) return toast(_t('Írj be egy kulcsszót.'));
-      const sport = el.querySelector('[data-sw-kws]').value;
+      const sport = add.querySelector('[data-sw-kws]').value;
       if (addWatch({ id: `epg:kw:${norm(kw)}`, kind: 'epg', sport, kw, name: kw.split('|')[0] })) toast(`${_t('Követve a műsorújságban: {kw}', { kw })}`);
-      mark();
-      tab = 'watch';
-      return draw();
+      inp.value = '';
+      return after();
     }
     if (a === 'addics') {
-      let url = el.querySelector('[data-sw-icsurl]').value.trim().replace(/^webcal:/i, 'https:');
-      const name = el.querySelector('[data-sw-icsname]').value.trim() || _t('Naptár');
-      const sport = el.querySelector('[data-sw-icssport]').value;
+      const url = add.querySelector('[data-sw-icsurl]').value.trim().replace(/^webcal:/i, 'https:');
+      const name = add.querySelector('[data-sw-icsname]').value.trim() || _t('Naptár');
+      const sport = add.querySelector('[data-sw-icssport]').value;
       if (!/^https?:\/\/\S+$/i.test(url)) return toast(_t('Adj meg egy http(s) vagy webcal naptárcímet.'));
+      b.disabled = true;
       try {
         const { text } = await api.fetchText(url, { maxAgeHours: 0, force: true });
-        const n = parseIcs(text, { id: 'x', name, sport }).length;
         if (!/BEGIN:VCALENDAR/.test(text)) throw new Error(_t('A cím nem iCal-naptár.'));
+        const n = parseIcs(text, { id: 'x', name, sport }).length;
         addWatch({ id: `ics:${url}`, kind: 'ics', sport, url, name });
         toast(`${_t('Naptár hozzáadva: {name} ({n} esemény)', { name, n })}`);
-        mark();
-        tab = 'watch';
-        draw();
+        after();
+        drawAdd();
       } catch (err) {
         toast(`${_t('A naptár nem tölthető le:')} ` + (err.message || err));
+      } finally {
+        b.disabled = false;
       }
       return;
     }
     if (a === 'savekey') {
-      store.settings.tsdbKey = el.querySelector('[data-sw-key]').value.trim();
+      store.settings.tsdbKey = opts.querySelector('[data-sw-key]').value.trim();
       saveWatch();
-      mark();
+      changed();
       toast(_t('Kulcs elmentve'));
+      if (addMode === 'leagues') drawAdd();
     }
-  });
-  el.addEventListener('change', (e) => {
+  };
+  const onChange = (e) => {
     const t = e.target;
     if (t.matches('[data-sw-on]')) {
       const w = watchList().find((x) => x.id === t.closest('li').dataset.w);
       if (w) w.on = t.checked;
       saveWatch();
-      mark();
+      after();
     } else if (t.matches('[data-sw-sport]')) {
       bSport = t.value;
-      drawLeagues();
+      drawLeagues(add.querySelector('.sw-body'));
     } else if (t.matches('[data-sw-back]')) {
       store.settings.sportBack = Number(t.value);
       saveWatch();
-      mark();
+      changed();
     } else if (t.matches('[data-sw-ahead]')) {
       store.settings.sportAhead = Number(t.value);
       saveWatch();
-      mark();
+      changed();
     } else if (t.matches('[data-sw-chan]')) {
       store.settings.sportChannels = t.checked;
       store.save();
-      mark();
-    }
-  });
-  el.addEventListener(
+      changed();
+    } else return;
+    e.stopPropagation(); // (a Beállítások általános data-set kezelője ne kapja meg)
+  };
+  for (const el of [opts, watch, add]) {
+    el.addEventListener('click', onClick);
+    el.addEventListener('change', onChange);
+  }
+  add.addEventListener(
     'input',
     debounce((e) => {
       if (!e.target.matches('[data-sw-q]')) return;
       bQuery = e.target.value;
-      drawLeagues().then(() => {
-        const i = el.querySelector('[data-sw-q]');
+      drawLeagues(add.querySelector('.sw-body')).then(() => {
+        const i = add.querySelector('[data-sw-q]');
         i?.focus();
         i?.setSelectionRange(bQuery.length, bQuery.length);
       });
     }, 300)
   );
-  draw();
+  // (Enter a kulcsszó / TheSportsDB mezőben: hozzáadás / keresés)
+  add.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const t = e.target.matches('[data-sw-kw]') ? 'addkw' : e.target.matches('[data-sw-tq]') ? 'tsearch' : '';
+    if (t) add.querySelector(`[data-sw="${t}"]`)?.click();
+  });
+  drawOpts();
+  drawWatch();
+  drawAdd();
 }
 
-// A főoldal / beállítások hivatkozása (#sportwatch) az ablakot nyitja
+// A régi hivatkozások (#sportwatch – pl. a Főoldal Sport egységéből) a Beállítások Sport csoportjába visznek
 document.addEventListener('click', (e) => {
   const a = e.target.closest?.('a[href="#sportwatch"]');
   if (!a) return;
   e.preventDefault();
-  openSportWatch(() => document.dispatchEvent(new CustomEvent('adas-sport-changed')));
+  location.hash = `#/settings?g=sport&section=${watchList().length ? 'sportwatch' : 'sportadd'}`;
 });

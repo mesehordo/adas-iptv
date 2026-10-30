@@ -1504,11 +1504,17 @@ body.rc-nav .tile:focus, body.rc-nav .see-all:focus { transform: scale(1.06); z-
 .sp-table tr.mine td { background: rgba(255, 255, 255, 0.08); background: color-mix(in srgb, var(--accent) 18%, transparent); font-weight: 700; }
 .sp-table .c-points { font-weight: 800; }
 @media (max-width: 480px) { .sp-table .c-wins, .sp-table .c-ties, .sp-table .c-losses { display: none; } }
-/* Sportfigyelő ablak */
-.sport-watch .sw-body { flex: 1 1 auto; min-height: 160px; overflow-y: auto; margin: 4px 0; padding-right: 4px; }
-.sport-watch .sw-tabs { flex-wrap: wrap; }
+/* Sportfigyelő (Beállítások → Sport) */
+/* (a Sport rész beállításai a többi sorral egyformán: a csomagoló nem tör meg a sorok elválasztóját) */
+.set-body > .set-section > #sport-opts > .setting { padding: 10px 0; border-top: 1px solid var(--line); }
+.sw-modes { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.sw-modes .tab { white-space: nowrap; }
+.sw-desc { margin: 0 0 10px; }
+/* (az Új követés a két oszlopos kártyás elrendezésben is teljes szélességű) */
+.set-body > .set-section.sw-add { column-span: all; }
+.sw-leagues { max-height: min(60vh, 560px); overflow-y: auto; }
+.src-list > li.sw-teams-row { display: block; padding-top: 0; }
 .src-list li > span.sw-ico, .src-list li > .rec-dot, .src-list li > .ct-sw { flex: 0 0 auto; }
-@media (max-width: 600px), (max-height: 600px) { .sport-watch .sw-body { flex: none; min-height: 0; overflow: visible; } }
 .sw-sport { margin: 12px 0 6px; font-size: 1rem; }
 .sw-filters { display: flex; flex-wrap: wrap; gap: 8px; }
 .sw-filters .input { flex: 1 1 260px; min-width: 0; }

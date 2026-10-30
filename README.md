@@ -30,11 +30,11 @@ A legfrissebb kiadás: **[Releases → Latest](https://github.com/mesehordo/adas
 
 | Rendszer | Fájl |
 |---|---|
-| Windows | `Adas-Setup-….exe` (telepítő) · `Adas-….msi` · `Adas-…-portable.exe` (telepítés nélkül) |
-| macOS | `Adas-…-mac-arm64.dmg` (Apple Silicon) · `Adas-…-mac-x64.dmg` (Intel) – vagy `.zip` |
-| Linux | `Adas-…-x86_64.AppImage` · `adas_…_amd64.deb` |
-| Android telefon, tablet | `Adas-…-android-mobile.apk` |
-| Android TV, Google TV | `Adas-…-android-tv.apk` |
+| Windows | `ADAS-Setup-….exe` (telepítő) · `ADAS-….msi` · `ADAS-…-portable.exe` (telepítés nélkül) |
+| macOS | `ADAS-…-mac-arm64.dmg` (Apple Silicon) · `ADAS-…-mac-x64.dmg` (Intel) – vagy `.zip` |
+| Linux | `ADAS-…-x86_64.AppImage` · `ADAS_…_amd64.deb` |
+| Android telefon, tablet | `ADAS-…-android-mobile.apk` |
+| Android TV, Google TV | `ADAS-…-android-tv.apk` |
 
 ### Tovább
 
@@ -66,11 +66,11 @@ Latest release: **[Releases → Latest](https://github.com/mesehordo/adas-iptv/r
 
 | System | File |
 |---|---|
-| Windows | `Adas-Setup-….exe` (installer) · `Adas-….msi` · `Adas-…-portable.exe` (no install) |
-| macOS | `Adas-…-mac-arm64.dmg` (Apple Silicon) · `Adas-…-mac-x64.dmg` (Intel) – or `.zip` |
-| Linux | `Adas-…-x86_64.AppImage` · `adas_…_amd64.deb` |
-| Android phone, tablet | `Adas-…-android-mobile.apk` |
-| Android TV, Google TV | `Adas-…-android-tv.apk` |
+| Windows | `ADAS-Setup-….exe` (installer) · `ADAS-….msi` · `ADAS-…-portable.exe` (no install) |
+| macOS | `ADAS-…-mac-arm64.dmg` (Apple Silicon) · `ADAS-…-mac-x64.dmg` (Intel) – or `.zip` |
+| Linux | `ADAS-…-x86_64.AppImage` · `ADAS_…_amd64.deb` |
+| Android phone, tablet | `ADAS-…-android-mobile.apk` |
+| Android TV, Google TV | `ADAS-…-android-tv.apk` |
 
 ### More
 

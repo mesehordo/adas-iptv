@@ -273,7 +273,7 @@ const webApi = {
     } catch {}
   },
   async appInfo() {
-    return { version: '1.33.1', dataDir: _t('böngésző tárhely'), platform: 'web' };
+    return { version: '1.34.0', dataDir: _t('böngésző tárhely'), platform: 'web' };
   },
   exit() {},
 };
@@ -389,7 +389,7 @@ const tvApi = {
   },
   notifyPermission() {},
   async appInfo() {
-    return { version: '1.33.1', dataDir: _t('TV tárhely'), platform: 'LG webOS' };
+    return { version: '1.34.0', dataDir: _t('TV tárhely'), platform: 'LG webOS' };
   },
   exit() {
     try {
@@ -550,6 +550,7 @@ const androidApi = {
   },
   scanFolder: (uri) => native('scanFolder', { uri }),
   readTextFile: (uri) => native('readDoc', { uri }),
+  resolveDocs: (base, rels) => native('resolveDocs', { base, rels }),
   sidecarSubs: (uri) => native('sidecarSubs', { uri }),
   sidecarImage: (uri) => native('sidecarImage', { uri }),
   onUpdateProgress(cb) {

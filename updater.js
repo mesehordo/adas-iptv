@@ -249,8 +249,76 @@ async function download(req, onProgress) {
   }
 }
 
-/** A letöltött telepítő indítása, majd kilépés (Windows); máshol megnyitja a fájlt. */
-async function install(file) {
+/** A telepítés módja: 'portable' | 'msi' | 'setup' | 'appimage' | 'other' (macOS, deb). */
+function kind() {
+  if (isPortable()) return 'portable';
+  if (process.platform === 'win32') return isMsi() ? 'msi' : 'setup';
+  if (process.platform === 'linux' && process.env.APPIMAGE) return 'appimage';
+  return 'other';
+}
+
+/**
+ * A kérdések nélküli (csendes) telepítés beállítása: Windowson választható (Setup és MSI). Alapból: MSI-nél be (az MSI
+ * telepítőjében választott érték – a HKCU\Software\Adas\Update „Silent” értéke, a telepítés idejével; gépre telepítésnél
+ * a többi felhasználónak a HKLM-ben ugyanez –, ennek híján be),
+ * a Setupnál ki. → { kind, silentOk, silent, stamp } – a stamp változása jelzi, hogy a telepítőben újra választottak.
+ */
+async function prefs() {
+  const k = kind();
+  const out = { kind: k, silentOk: k === 'msi' || k === 'setup', silent: k === 'msi', stamp: '' };
+  if (k !== 'msi') return out;
+  const query = (root) =>
+    new Promise((res) => {
+      require('child_process').execFile('reg', ['query', root + '\\Software\\Adas\\Update', '/v', 'Silent'], { windowsHide: true, timeout: 5000 }, (err, stdout) => {
+        const m = !err && /Silent\s+REG_SZ\s+(.*)$/m.exec(String(stdout));
+        res(m ? m[1].trim() : null);
+      });
+    });
+  const v = (await query('HKCU')) ?? (await query('HKLM'));
+  if (v != null) {
+    const [val, ...rest] = v.split('|');
+    out.silent = val === '1';
+    out.stamp = rest.join('|');
+  }
+  return out;
+}
+
+/**
+ * (AppImage) Újraindítás a lecserélt fájlból: egy rendszerhéj (nem az AppImage csatolt fájlrendszerén futó folyamat)
+ * megvárja, amíg az Adás kilép, és tiszta környezettel indítja az új változatot. Az Electron saját újraindítója a régi
+ * csatolásból futna, ami a kilépéskor megszűnik – ezért állt le az újraindítás FUSE-hibával. Ha a gépen nincs FUSE (vagy
+ * az indítás azonnal hibával áll le), a csatolás nélküli módban (APPIMAGE_EXTRACT_AND_RUN) indul.
+ */
+function relaunchAppImage(target, args) {
+  const script = [
+    'p=$1; a=$2; shift 2',
+    'while kill -0 "$p" 2>/dev/null; do sleep 0.3; done',
+    'unset APPDIR APPIMAGE ARGV0 OWD',
+    'cd "${HOME:-/}"',
+    'if [ ! -e /dev/fuse ] || ! { command -v fusermount3 >/dev/null 2>&1 || command -v fusermount >/dev/null 2>&1; }; then export APPIMAGE_EXTRACT_AND_RUN=1; fi',
+    's=$(date +%s); "$a" "$@"; rc=$?',
+    'if [ "$rc" -ne 0 ] && [ -z "$APPIMAGE_EXTRACT_AND_RUN" ] && [ $(( $(date +%s) - s )) -lt 8 ]; then APPIMAGE_EXTRACT_AND_RUN=1 exec "$a" "$@"; fi',
+  ].join('\n');
+  spawn('/bin/sh', ['-c', script, 'adas-relaunch', String(process.pid), target, ...args], { detached: true, stdio: 'ignore' }).unref();
+}
+
+/** Külön (leválasztott) folyamat indítása: csak akkor teljesül, ha ténylegesen elindult (hibánál kivétel). */
+function launch(cmd, args, opts) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, { detached: true, stdio: 'ignore', ...opts });
+    child.once('error', reject);
+    child.once('spawn', () => {
+      child.unref();
+      resolve();
+    });
+  });
+}
+
+/**
+ * A letöltött telepítő indítása, majd kilépés (Windows); máshol megnyitja a fájlt. silent: kérdések nélkül
+ * (Windows: Setup /S, MSI /passive), utána az Adás újraindul; undefined: a telepítés módjához tartozó alapérték.
+ */
+async function install(file, silent) {
   // csak az itt letöltött és ellenőrzött fájl (a felülettől kapott tetszőleges útvonal nem)
   if (!verified.has(file)) throw new Error(_t('Ismeretlen frissítési fájl.'));
   // hordozható változat: nincs telepítés, csak a letöltött fájl mappája nyílik meg (bármi is a neve)
@@ -258,28 +326,49 @@ async function install(file) {
     shell.showItemInFolder(file);
     return 'shown';
   }
-  // MSI: a Windows Installer frissíti a meglévő telepítést (azonos UpgradeCode), az Adás közben bezárul
+  if (typeof silent !== 'boolean') silent = (await prefs()).silent;
+  // MSI: a Windows Installer frissíti a meglévő telepítést (azonos UpgradeCode), az Adás közben bezárul. Csendesen:
+  // /passive (csak a folyamatjelző és – gépre telepítésnél – a Windows engedélykérése; a teljesen néma /qn ott el sem
+  // indulna), utána az Adás újraindul (sikertelen / megszakított frissítésnél a régi változat). A várakozást egy
+  // PowerShell-parancs végzi, kódolva (-EncodedCommand): az útvonalak szó szerint mennek át – a cmd.exe a %…%
+  // részeket környezeti változóként kibontaná –, és nem az Adás saját, a frissítés közben cserélt fájljából fut.
   if (process.platform === 'win32' && /\.msi$/i.test(file)) {
-    spawn('msiexec', ['/i', file], { detached: true, stdio: 'ignore' }).unref();
+    if (silent) {
+      const lit = (x) => "'" + String(x).replace(/'/g, "''") + "'";
+      const ps = `$f = ${lit(file)}; $e = ${lit(process.execPath)}; Start-Process -FilePath 'msiexec.exe' -ArgumentList ('/i "' + $f + '" /passive /norestart') -Wait; Start-Process -FilePath $e`;
+      const enc = Buffer.from(ps, 'utf16le').toString('base64');
+      await launch('powershell.exe', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-EncodedCommand', enc], { windowsHide: true });
+    } else await launch('msiexec', ['/i', file]);
+    // (csak ha a telepítő elindult – hibánál a kivétel a felületre megy, az Adás fut tovább)
     setTimeout(() => app.quit(), 400);
     return 'started';
   }
   if (process.platform === 'win32' && /setup/i.test(path.basename(file))) {
-    spawn(file, [], { detached: true, stdio: 'ignore' }).unref();
+    // (csendesen: /S – az NSIS nem kérdez, nem töröl; --force-run: a végén elindítja az Adást)
+    await launch(file, silent ? ['/S', '--force-run'] : []);
     setTimeout(() => app.quit(), 400);
     return 'started';
   }
   if (process.platform === 'linux' && file.toLowerCase().endsWith('.appimage')) {
     fs.chmodSync(file, 0o755);
     // AppImage-ből futva: a régi fájl helyére tesszük, és az új változattal újraindulunk.
-    const cur = process.env.APPIMAGE;
+    // (a futó AppImage útvonala a környezetből: csak létező, abszolút útvonalú .AppImage fájl – a héjnak argumentumként megy)
+    const env = process.env.APPIMAGE || '';
+    const isFile = (f) => {
+      try {
+        return fs.statSync(f).isFile();
+      } catch {
+        return false;
+      }
+    };
+    const cur = path.isAbsolute(env) && !/[\0\n]/.test(env) && /\.appimage$/i.test(env) && isFile(env) ? path.resolve(env) : '';
     if (cur) {
       try {
         const tmp = cur + '.uj';
         fs.copyFileSync(file, tmp);
         fs.chmodSync(tmp, 0o755);
         fs.renameSync(tmp, cur);
-        app.relaunch({ execPath: cur, args: process.argv.slice(1).filter((a) => a !== '--hidden') });
+        relaunchAppImage(cur, process.argv.slice(1).filter((a) => a !== '--hidden' && !/^--(type|appimage)/.test(a)));
         setTimeout(() => app.quit(), 300);
         return 'started';
       } catch {
@@ -295,6 +384,6 @@ async function install(file) {
   return 'opened';
 }
 
-module.exports = { check, download, install, cmpVersion, isPrerelease };
+module.exports = { check, download, install, prefs, cmpVersion, isPrerelease };
 // (tesztekhez)
 module.exports._test = { sigOk, setPubKey: (k) => (UPDATE_PUBKEY = k) };

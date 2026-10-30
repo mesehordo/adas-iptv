@@ -1,4 +1,4 @@
-// Nézetek: főoldal, böngészés, kedvencek, keresés, műsorújság, beállítások, profilok.
+// Nézetek: főoldal, felfedezés, kedvencek, keresés, műsorújság, beállítások, profilok.
 import { $, $$, esc, html, norm, hashHue, fmtTime, fmtDay, dayStart, dayLabel, toast, bus, seededShuffle, debounce } from './util.js';
 import { themePicker } from './themepicker.js';
 import { api, IS_TV, IS_ANDROID } from './api.js';
@@ -16,18 +16,18 @@ import {
 import { player, stopPreview, PLAYER_BUTTONS } from './player.js';
 import { THEMES, currentTheme, currentVariant, applyTheme, profileRows, defaultRows, rowLabel } from './themes.js';
 import { LAYOUTS, currentLayout, layoutPickerHtml, pickLayoutIn, PLAYER_SKINS, layoutSkin, currentSkin } from './layoutdefs.js';
+import { renderHomeBg } from './homebg.js';
 import { renderLists } from './lists.js';
 import { renderVodLists, renderOwnLists, searchVod, vcardHtml, vod, vodFavItems, loadVod } from './vod.js';
 import { renderHuSettings } from './subtitles.js';
 import { exoAvailable } from './exo.js';
 import { renderKidsSettings } from './kidsui.js';
 import { renderDashSettings } from './dashboard.js';
-import { watchList } from './sports.js';
+import { renderSportSettings } from './sports.js';
 import { radioFavsSection, radioSearchSection, radioSearchCount, startRadioSearch } from './radiopage.js';
 import { renderRadioSettings } from './radiosettings.js';
-import { MENU_ITEMS } from './menus.js';
-import { renderPodcastSettings, podFavsSection } from './podcastpage.js';
-const sportWatchCount = () => watchList().filter((w) => w.on !== false).length;
+import { MENU_ITEMS, menuOn } from './menus.js';
+import { renderPodcastSettings, podFavsSection, podSearchSection, podSearchCount } from './podcastpage.js';
 import { requireAdult, requireAdultAlways, hasPin, choosePin, setPin } from './pin.js';
 import { renderTransfer, importData, attachDocs, stageDocs, dropDocs } from './transfer.js';
 import { dropUnreferenced } from './snapshot.js';
@@ -46,7 +46,7 @@ import { _t, LOCALE, LANGS, lang as uiLang, setLanguage } from './i18n.js';
 const daySeed = () => Math.floor(Date.now() / 86400e3);
 
 /**
- * Ajánlott sorrend (a TV oldal sorai, a műsorújság, a böngészés): elsőként az elérhetőség (a működők elöl,
+ * Ajánlott sorrend (a TV oldal sorai, a műsorújság, a felfedezés): elsőként az elérhetőség (a működők elöl,
  * a nem elérhetők a végén), azon belül hazai, majd hazai nyelvű csatornák, működő / logós / HD, napi változatossággal.
  */
 function popular(list) {
@@ -199,7 +199,7 @@ export function leaveHome() {
 }
 
 // ===========================================================================
-// Böngészés
+// Felfedezés
 // ===========================================================================
 export function renderBrowse(view, params) {
   const f = {
@@ -323,7 +323,7 @@ export function renderFavorites(view) {
         ? `<div class="grid fav-grid">${favs
             .map((c, i) => cardHtml(c, { context: ctx }).replace(/^\s*<div class="card\b/, `<div ${coarse ? '' : 'draggable="true"'} data-num="${i + 1}" class="card`))
             .join('')}</div>`
-        : emptyState(_t('Még nincsenek kedvenc csatornáid'), _t('A csatornák kártyáján a + gombbal, vagy kijelölve az F billentyűvel jelölhetsz kedvencet.'), `<a class="btn primary" href="#/browse">${_t('Csatornák böngészése')}</a>`)}
+        : emptyState(_t('Még nincsenek kedvenc csatornáid'), _t('A csatornák kártyáján a + gombbal, vagy kijelölve az F billentyűvel jelölhetsz kedvencet.'), `<a class="btn primary" href="#/browse">${_t('Csatornák felfedezése')}</a>`)}
     <div class="page-head sub"><h2>${_t('Filmek és sorozatok')}</h2>${vodFavs.length ? `<span class="muted">${_t('{length} cím', { length: vodFavs.length })}</span>` : ''}</div>
     ${vodFavs.length
         ? `<div class="vgrid fav-vod">${vodFavs.map(vcardHtml).join('')}</div>`
@@ -480,7 +480,7 @@ export function renderSearch(view, params) {
   const q = params.get('q') || '';
   const tokens = norm(q).split(/\s+/).filter(Boolean);
   if (!tokens.length) {
-    view.innerHTML = `<div class="page">${emptyState(_t('Keresés'), _t('Írd be egy csatorna, műsor, film vagy rádióadó nevét.'))}</div>`;
+    view.innerHTML = `<div class="page">${emptyState(_t('Keresés'), _t('Írd be egy csatorna, műsor, film, rádióadó vagy podcast nevét.'))}</div>`;
     return;
   }
   // (a keresés maga is az elérhetőket teszi előre – catalog.search)
@@ -495,18 +495,21 @@ export function renderSearch(view, params) {
   const vodHits = searchVod(q);
   startRadioSearch(q); // (minden fülön: a Rádió fül darabszáma az online találatokkal együtt)
   // Szűrő: minden találat, vagy csak egy fajta (ott a teljes lista)
-  const counts = { tv: chans.length, prog: progs.length, vod: vodHits.length, radio: radioSearchCount(q) };
+  const counts = { tv: chans.length, prog: progs.length, vod: vodHits.length, radio: radioSearchCount(q), pod: podSearchCount(q) };
   let only = params.get('t') || '';
-  if (!(only in counts)) only = '';
+  // (kikapcsolt Podcast menüpontnál nincs Podcast fül)
+  if (!(only in counts) || (only === 'pod' && !menuOn('podcast'))) only = '';
   const show = (k) => !only || only === k;
   const radioBox = show('radio') ? radioSearchSection(q, { limit: only ? 120 : 18 }) : null;
-  const total = counts.tv + counts.prog + counts.vod + counts.radio;
+  const podBox = show('pod') ? podSearchSection(q, { limit: only ? 120 : 18 }) : null;
+  const total = counts.tv + counts.prog + counts.vod + counts.radio + counts.pod;
   const tab = (k, label) =>
-    `<button class="tab ${only === k ? 'active' : ''}" data-st="${k}" ${k && !counts[k] ? 'disabled' : ''}>${label}${k ? ` <span class="muted">${counts[k]}</span>` : ''}</button>`;
+    // (a podcast-fül online találatai később érkeznek – a fül akkor is választható)
+    `<button class="tab ${only === k ? 'active' : ''}" data-st="${k}" ${k && k !== 'pod' && !counts[k] ? 'disabled' : ''}>${label}${k ? ` <span class="muted">${counts[k]}</span>` : ''}</button>`;
   const allLink = (n, href) => (only || n <= 18 ? '' : `<a class="btn small" href="${href}">${_t('Összes ({length})', { length: n })}</a>`);
   view.innerHTML = `<div class="page search-page">
-    <div class="page-head"><h1>${_t('Találatok: „{esc}”', { esc: esc(q) })}</h1><span class="muted">${_t('{n} találat', { n: total })}</span></div>
-    <div class="tabs search-tabs">${tab('', _t('Mind'))}${tab('tv', _t('TV-csatornák'))}${tab('prog', _t('Műsorok'))}${tab('vod', _t('VOD'))}${tab('radio', _t('Rádió'))}</div>
+    <div class="page-head"><h1>${_t('Találatok: „{esc}”', { esc: esc(q) })}</h1><span class="muted sc-total" data-base="${total - counts.pod}">${_t('{n} találat', { n: total })}</span></div>
+    <div class="tabs search-tabs">${tab('', _t('Mind'))}${tab('tv', _t('TV-csatornák'))}${tab('prog', _t('Műsorok'))}${tab('vod', _t('VOD'))}${tab('radio', _t('Rádió'))}${podBox || only === 'pod' ? tab('pod', _t('Podcast')) : ''}</div>
     ${show('tv') && chans.length ? `<section class="sc-tv"><h2 class="section-title">${_t('TV-csatornák')} <a class="btn small" href="#/browse?q=${encodeURIComponent(q)}">${_t('Szűrés ország, nyelv, kategória szerint ›')}</a></h2><div class="sc-chans"></div></section>` : ''}
     ${show('prog') && progs.length ? `<section class="sc-prog"><h2 class="section-title">${_t('Műsorok')}</h2><div class="prog-results"></div></section>` : ''}
     ${show('vod') && vodHits.length ? `<section class="sc-vod"><h2 class="section-title">${_t('VOD – filmek és sorozatok')} ${allLink(vodHits.length, `#/vod?type=all&amp;q=${encodeURIComponent(q)}`)}</h2><div class="vgrid vod-search">${vodHits.slice(0, only ? 160 : 18).map(vcardHtml).join('')}</div></section>` : ''}
@@ -543,8 +546,9 @@ export function renderSearch(view, params) {
     };
   }
   if (radioBox) page.append(radioBox);
+  if (podBox) page.append(podBox);
   if (show('tv') && chans.length) $('.sc-chans', view).append(gridEl(chans, { title: `${_t('Keresés: {q}', { q })}` }));
-  if (!total || (only && !counts[only])) page.append(html(`<div>${emptyState(_t('Nincs találat'), _t('Próbálj rövidebb vagy más kifejezést.'))}</div>`));
+  if ((!total && !podBox) || (only && only !== 'pod' && !counts[only])) page.append(html(`<div>${emptyState(_t('Nincs találat'), _t('Próbálj rövidebb vagy más kifejezést.'))}</div>`));
 }
 
 // ===========================================================================
@@ -898,9 +902,11 @@ export function renderSettings(view) {
 
     <section class="set-section" id="sport" data-g="sport"><h2>${_t('Sport')} <button class="help-link" data-help="sport-page" title="${_t('Súgó')}">?</button></h2>
       ${toggle('sportMenu', _t('Sport menüpont'), _t('A menüsoron a TV és a VOD mellett: élő eredmények, a tévében most futó sportműsorok, menetrend, eredmények és tabella a követett tételekből. Gyerekprofilban nem látszik.'))}
-      <div class="setting"><span>${_t('<b>Sportfigyelő</b>')}<small>${_t('Mit követsz: bajnokságok, csapatok, sportágak a tévében, versenynaptárak – és a forrásokhoz tartozó beállítások (időszak, csatornaajánlás, TheSportsDB-kulcs). Jelenleg: {n} követett tétel.', { n: sportWatchCount() })}</small></span>
-        <a class="btn small" href="#sportwatch">${_t('Sportfigyelő megnyitása')}</a></div>
+      <div id="sport-opts"></div>
     </section>
+    <!-- (a Sportfigyelő: sports.js – renderSportSettings) -->
+    <section class="set-section" id="sportwatch" data-g="sport"></section>
+    <section class="set-section sw-add" id="sportadd" data-g="sport"></section>
 
     <section class="set-section" id="radio-settings" data-g="radio"></section>
 
@@ -992,6 +998,7 @@ export function renderSettings(view) {
   renderKidsSettings($('#kidsallow', view));
   renderDashSettings($('#dashboard', view));
   renderRadioSettings($('#radio-settings', view));
+  renderSportSettings(view);
   renderPodcastSettings($('#podcast-settings', view));
   renderRecordings($('#recordings', view));
   renderRemoteSettings($('#remote', view));
@@ -1078,7 +1085,7 @@ export function renderSettings(view) {
       // (a mai nap helyi idő szerint – a toISOString éjfél után még az előző napot adta)
       const d = new Date();
       const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const ok = await api.saveFile(`adas-mentes-${day}.json`, JSON.stringify(data, null, 2));
+      const ok = await api.saveFile(`ADAS-mentes-${day}.json`, JSON.stringify(data, null, 2));
       if (ok) toast(_t('Mentés elkészült'));
     } else if (act === 'import') {
       const f = await api.openFile([{ name: _t('Adás mentés'), extensions: ['json'] }]);
@@ -1144,49 +1151,53 @@ export function renderSettings(view) {
 // ---------------------------------------------------------------------------
 // [azonosító, ikon, név, rövid (legfeljebb kétmondatos) leírás: mit talál itt a felhasználó]
 const SET_GROUPS = [
-  ['look', '🎨', _t('Megjelenés'), _t('A felület stílusa, a saját témák és a TV oldal sorainak sorrendje. Itt adhatod meg azt is, mennyire legyenek kiemelve az elemek.')],
-  ['home', '🏠', _t('Főoldal'), _t('A Főoldal csempéi: melyik látsszon, mekkora legyen, és mit mutasson. Itt állíthatod be az időjárás városát és a hírforrásokat is.')],
-  ['play', '▶️', _t('Lejátszás@@beállítás'), _t('Hogyan induljanak és szóljanak az adások: tartalék forrás, minőség, lejátszómotor, hangerő. Itt választhatod ki azt is, mely gombok látszanak a lejátszóban.')],
-  ['subs', '💬', _t('Feliratok és információk'), _t('Feliratforrások (Feliratok.eu, OpenSubtitles, SubDL), a felirat nyelve és kinézete, a kedvenc hangsáv. A filmek és sorozatok magyar leírásai és borítóképei is innen jönnek.')],
-  ['rec', '⏺', _t('Felvételek'), _t('Hová kerüljenek a felvételek, és mennyivel előbb kezdődjenek, illetve később érjenek véget a műsornál. Itt látod a legutóbbi felvételeidet is.')],
-  ['tvlists', '📺', _t('Csatornalisták'), _t('A tévécsatornák forrásai: beépített és saját lejátszólisták, saját csatornák. Itt ellenőrizheted azt is, mely adások élnek.')],
-  ['vod', '🎬', _t('VOD és médiatár'), _t('Film- és sorozatlisták, kiegészítő csomagok és a saját (NAS-) médiatár mappái. Itt rendezheted a VOD oldal sorait is.')],
-  ['epg', '🗓️', _t('Műsorújság'), _t('A műsorújság forrásai és a frissítésük gyakorisága. Itt látod azt is, melyik forrás hány csatornát fed le.')],
-  ['radio', '📻', _t('Rádió'), _t('A Rádió oldal forrásai (Radio Browser, Verified Radio Streams, IPRD), saját rádiólisták és -csomagok, a hangzás. Itt kapcsolhatod ki a Rádió menüpontot is.')],
-  ['podcast', '🎙️', _t('Podcastok'), _t('Új epizódok keresése, lejátszás (sebesség, ugrások, csend átugrása), letöltések és a feliratkozások átvitele (OPML). Itt kapcsolhatod ki a Podcast menüpontot is.')],
-  ['sport', '🏆', _t('Sport'), _t('A Sport oldal és a Sportfigyelő: milyen bajnokságokat, csapatokat, sportágakat követsz. Itt kapcsolhatod ki a Sport menüpontot is.')],
+  ['look', '🎨', _t('Megjelenés és Főoldal'), _t('A felület stílusa, témák, nyelv és menüpontok; a Főoldal csempéi (időjárás, hírek, műsor) és az élő előnézet.')],
+  ['play', '▶️', _t('Lejátszás'), _t('Hogyan induljanak és szóljanak az adások: tartalék forrás, minőség, lejátszómotor, háttérlejátszás és a lejátszó gombjai.')],
+  ['tv', '📺', _t('TV és műsorújság'), _t('A tévécsatornák listái és elérhetősége, a műsorújság forrásai és a felvételek.')],
+  ['vod', '🎬', _t('VOD-ok és feliratok'), _t('Film- és sorozatlisták, saját médiatár. Feliratforrások, a feliratok kinézete, magyar leírások és borítók.')],
+  ['radio', '📻', _t('Rádió'), _t('A Rádió oldal állomáslistái és beállításai.')],
+  ['podcast', '🎙️', _t('Podcast'), _t('Az epizódok frissítése és lejátszása, a letöltött epizódok és a feliratkozások átvitele.')],
+  ['sport', '🏆', _t('Sport'), _t('A Sportfigyelő: mit követsz (bajnokság, csapat, sportág a tévében, naptár), és a Sport oldal beállításai.')],
   ['kids', '👪', _t('Tartalom és gyerekek'), _t('A hazai ország, a felnőtt tartalom és a nyelvek. Itt állíthatod be, mit nézhetnek a gyerekprofilok.')],
-  ['notify', '🔔', _t('Értesítések'), _t('Emlékeztetők a kedvenc műsoraidra, automatikus átkapcsolás. Itt dől el az is, hogy az Adás a háttérben fusson-e.')],
-  ['remote', '📱', _t('Távirányító és billentyűk'), _t('A telefon távirányítóként (QR-kóddal csatlakozik). Itt találod a billentyűzet és a tévé-távirányító gombjait is.')],
-  ['sync', '🔄', _t('Szinkron eszközök között'), _t('Beállítások, profilok és listák átvitele egy másik eszközre a helyi hálózaton, egy 12 jegyű kóddal.')],
-  ['data', '💾', _t('Profilok és mentés'), _t('A profilok kezelése, mentés fájlba és visszaállítás. Itt vannak az automatikus napi mentések is.')],
-  ['update', '⬆️', _t('Frissítés'), _t('Új verzió keresése és telepítése a GitHubról. Itt kapcsolhatod ki azt is, hogy induláskor keressen frissítést.')],
-  ['about', 'ℹ️', _t('Névjegy'), _t('A verzió, az adatmappa helye és az adatforrások.')],
+  ['remote', '🎮', _t('Távirányító és billentyűk'), _t('A telefon távirányítóként, a kontroller, a gombkiosztás és a billentyűparancsok.')],
+  ['data', '💾', _t('Profilok, mentés, szinkron'), _t('A profilok kezelése, mentés fájlba, a napi mentési pontok és az átvitel egy másik eszközre.')],
+  ['system', '⚙️', _t('Rendszer'), _t('Emlékeztetők és értesítések, háttérben futás, frissítések és a névjegy.')],
 ];
+// (a részek saját, finomabb csoportja → a fenti nyolc; a régi „?g=…” hivatkozások is ide vezetnek, a részhez görgetve)
+// (a régi „media” csoport hivatkozása a Filmekhez visz)
+const GROUP_OF = { look: 'look', home: 'look', play: 'play', subs: 'vod', tvlists: 'tv', epg: 'tv', rec: 'tv', sport: 'sport', vod: 'vod', media: 'vod', radio: 'radio', podcast: 'podcast', kids: 'kids', remote: 'remote', data: 'data', sync: 'data', notify: 'system', update: 'system', about: 'system' };
+// (fülek: asztalon és fekvő kijelzőn – billentyűzettel, távirányítóval így a legkönnyebb; álló, keskeny kijelzőn csempék)
+const narrowPortrait = () => !!window.matchMedia?.('(max-width: 700px) and (orientation: portrait)').matches;
 let refocusSetTab = false;
 /** A beállítások csoportnavigációja (csempék / fülek), kereső, kártyás elrendezés. */
 function settingsNav(view) {
   const nav = $('.set-nav', view);
   const params = new URLSearchParams(location.hash.split('?')[1] || '');
-  // Androidon csak csempék: a fülsor a keskeny képernyőn kilógott, görgetni kellett
-  const mode = IS_ANDROID || store.settings.settingsView === 'tiles' ? 'tiles' : 'tabs';
+  // álló, keskeny kijelzőn csak csempék (a fülsor ott kilógott, görgetni kellett); máshol a választás szerint
+  const mode = narrowPortrait() || store.settings.settingsView === 'tiles' ? 'tiles' : 'tabs';
   const sections = [...view.querySelectorAll('.set-section[data-g]')].filter((s) => !s.hasAttribute('data-off'));
+  for (const s of sections) {
+    s.dataset.sub ||= s.dataset.g;
+    s.dataset.g = GROUP_OF[s.dataset.sub] || s.dataset.sub;
+  }
   const groups = SET_GROUPS.filter(([id]) => sections.some((s) => s.dataset.g === id));
   const label = Object.fromEntries(groups.map(([id, ico, name]) => [id, `${ico} ${name}`]));
   for (const s of sections) s.dataset.glabel = label[s.dataset.g] || '';
   view.querySelectorAll('.set-section[data-off]').forEach((s) => (s.hidden = true));
   // #/settings?section=lists → a rész csoportja, és odagörgetünk
   const sec = params.get('section');
-  const secEl = sec && $(`#${CSS.escape(sec)}`, view);
-  let g = params.get('g') || secEl?.dataset.g || '';
+  const sub = params.get('g') || '';
+  // (régi csoportnév – pl. ?g=podcast –: az új csoport, és a hozzá tartozó első részhez görgetünk)
+  const secEl = (sec && $(`#${CSS.escape(sec)}`, view)) || (sub && !SET_GROUPS.some(([id]) => id === sub) ? sections.find((s) => s.dataset.sub === sub) : null);
+  let g = GROUP_OF[sub] || sub || secEl?.dataset.g || '';
   if (!groups.some(([id]) => id === g)) g = mode === 'tabs' ? groups[0]?.[0] : '';
   const hub = mode === 'tiles' && !g;
   const go = (id, replace) => {
     const h = '#/settings' + (id ? '?g=' + id : '');
     replace ? location.replace(h) : (location.hash = h);
   };
-  // Nézetváltó a fejlécben (Androidon nincs)
-  if (!IS_ANDROID) $('.set-head', view).insertAdjacentHTML(
+  // Nézetváltó a fejlécben (álló, keskeny kijelzőn nincs)
+  if (!narrowPortrait()) $('.set-head', view).insertAdjacentHTML(
     'beforeend',
     `<div class="seg set-view" role="group" aria-label="${_t('Elrendezés')}"><button class="tab ${mode === 'tiles' ? 'active' : ''}" data-sv="tiles" title="${_t('Csempés kezdőlap')}">${_t('▦ Csempék')}</button><button class="tab ${mode === 'tabs' ? 'active' : ''}" data-sv="tabs" title="${_t('Fülek')}">${_t('☰ Fülek')}</button></div>`
   );
@@ -1285,10 +1296,12 @@ function renderAppearance(box) {
     ${layoutPickerHtml(currentLayout())}
     <label class="setting"><span>${_t('<b>A lejátszó kinézete</b>')}<small>${_t('A videó- és a rádiólejátszó kezelőfelülete (a kis rádiósáv is). Alapból az elrendezéshez illő.')}</small></span>
       <select data-pskin-select></select></label>
+    <div class="hbg-box"></div>
     <h3>${_t('A TV oldal sorai')}</h3>
     <p class="muted">${_t('Húzással vagy a nyilakkal rendezheted, a kapcsolóval elrejtheted a sorokat.')}</p>
     <div class="tv-rows"></div>`;
   renderThemeTools(box.querySelector('.ct-box'), () => renderAppearance(box));
+  renderHomeBg(box.querySelector('.hbg-box'));
 
   rowOrderEditor(box.querySelector('.tv-rows'), {
     rows: profileRows(),
@@ -1342,6 +1355,7 @@ function renderAppearance(box) {
     box.querySelector('.lay-desc').textContent = LAYOUTS[id].desc;
     drawPair();
     drawSkins();
+    renderHomeBg(box.querySelector('.hbg-box'));
   };
   box.onchange = (e) => {
     if (e.target.matches('[data-pskin-select]')) {

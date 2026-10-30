@@ -22,7 +22,7 @@ let radioKeysBySource = new Map(); // forrás címe → az ott talált névkulcs
 let indexEntries = []; // a legutóbb elküldött index rádióadói
 /**
  * A párosítandó rádióadók köre – csak azok, amelyeknek a neve a műsorújságban egyáltalán előfordul. Egy keresés vagy
- * böngészés által betöltött, a műsorújságban nem szereplő adó így nem indítja újra a teljes műsorújság feldolgozását
+ * felfedezés által betöltött, a műsorújságban nem szereplő adó így nem indítja újra a teljes műsorújság feldolgozását
  * (eddig ez minden rádiós keresés / ország megnyitása után megtörtént).
  */
 function radioSig(entries) {

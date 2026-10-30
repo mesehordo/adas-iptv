@@ -18,7 +18,25 @@ let win = null;
 let normalBounds = null;
 let sleepBlockerId = null;
 
+// A program technikai neve ékezet nélkül: ADAS (adatmappa, programfájl, csomag – macOS-en ékezetes csomagnévvel az
+// Electron el sem indul, lásd build/mac-adhoc.js); a felületen „Adás”.
+app.setName('ADAS');
 const dataDir = () => app.getPath('userData');
+// (a korábbi, ékezetes nevű adatmappa – %APPDATA%\Adás, ~/.config/Adás, ~/Library/Application Support/Adás – egyszer
+// átköltözik; ha nem nevezhető át – pl. egy régi példány még fut –, az Adás a régi helyén használja tovább)
+if (!process.env.ADAS_DATA_DIR) {
+  try {
+    const cur = app.getPath('userData');
+    const old = path.join(app.getPath('appData'), 'Adás');
+    if (!fs.existsSync(cur) && fs.existsSync(old)) {
+      try {
+        fs.renameSync(old, cur);
+      } catch {
+        app.setPath('userData', old);
+      }
+    }
+  } catch {}
+}
 const cacheDir = () => path.join(dataDir(), 'cache');
 const storeFile = () => path.join(dataDir(), 'store.json');
 
@@ -585,7 +603,7 @@ function setStartWithSystem(on) {
       fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(
         file,
-        ['[Desktop Entry]', 'Type=Application', 'Name=Adás', 'Comment=Élő TV – emlékeztetők a háttérben', `Exec=${q(exe)}${extra} --hidden`, 'X-GNOME-Autostart-enabled=true', 'NoDisplay=false', ''].join('\n')
+        ['[Desktop Entry]', 'Type=Application', 'Name=ADAS', 'Comment=Élő TV – emlékeztetők a háttérben', `Exec=${q(exe)}${extra} --hidden`, 'X-GNOME-Autostart-enabled=true', 'NoDisplay=false', ''].join('\n')
       );
       return;
     }
@@ -1261,7 +1279,7 @@ app.on('will-quit', (e) => {
   media.stopAll();
 });
 
-// Felvételek: a Videók / Adás felvételek mappába
+// Felvételek: a Videók / ADAS felvételek mappába (egy korábbi „Adás felvételek” mappa marad)
 // ADAS_REC_DIR: más mappa (pl. teszteléshez, a valódi Videók mappa érintése nélkül)
 // A mappa neve az első használatkor a felület nyelvén (egy már meglévő magyar nevű mappa marad), és ez a
 // választás megmarad (recdir.json), hogy nyelvváltás után is ugyanott legyenek a felvételek.
@@ -1274,9 +1292,13 @@ const recDir = () => {
     const d = JSON.parse(fs.readFileSync(saved, 'utf8')).dir;
     if (typeof d === 'string' && path.isAbsolute(d)) return (recDirCache = d);
   } catch {}
-  const legacy = path.join(app.getPath('videos'), 'Adás felvételek');
-  const local = path.join(app.getPath('videos'), _t('Adás felvételek'));
-  recDirCache = getLang() === 'hu' || fs.existsSync(legacy) ? legacy : local;
+  // (az 1.34.0 előtti, ékezetes nevű mappák – magyar és honosított – maradnak, ha már léteznek)
+  // (csak létező mappa számít – egy azonos nevű fájl nem)
+  const isDir = (d) => fs.statSync(d, { throwIfNoEntry: false })?.isDirectory() === true;
+  const legacy = [path.join(app.getPath('videos'), 'Adás felvételek'), path.join(app.getPath('videos'), _t('Adás felvételek'))].find(isDir);
+  const hu = path.join(app.getPath('videos'), 'ADAS felvételek');
+  const local = path.join(app.getPath('videos'), _t('ADAS felvételek'));
+  recDirCache = legacy || (getLang() === 'hu' || isDir(hu) ? hu : local);
   try {
     fs.writeFileSync(saved, JSON.stringify({ dir: recDirCache }));
   } catch {}
@@ -1393,8 +1415,8 @@ ipcMain.handle('pod-download', async (_e, { url, feed, name, key, profile } = {}
 });
 ipcMain.handle('pod-delete', async (_e, p) => {
   if (!inPodDir(p)) return false;
-  await fs.promises.unlink(path.resolve(p)).catch(() => {});
-  return true;
+  // (csak a sikeres törlés vagy a már hiányzó fájl siker: zárolt / tiltott fájlnál a letöltés adata megmarad)
+  return fs.promises.unlink(path.resolve(p)).then(() => true, (e) => e.code === 'ENOENT');
 });
 ipcMain.handle('pod-folder', () => {
   fs.mkdirSync(podDir(), { recursive: true });
@@ -1440,7 +1462,8 @@ ipcMain.handle('update-check', (_e, source) => updater.check(source));
 ipcMain.handle('update-download', (_e, asset) =>
   updater.download(asset, (p) => win && !win.isDestroyed() && win.webContents.send('update-progress', p))
 );
-ipcMain.handle('update-install', (_e, file) => updater.install(file));
+ipcMain.handle('update-install', (_e, file, silent) => updater.install(file, typeof silent === 'boolean' ? silent : undefined));
+ipcMain.handle('update-prefs', () => updater.prefs());
 
 // ---------------------------------------------------------------------------
 app.userAgentFallback = CHROME_UA;

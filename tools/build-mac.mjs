@@ -1,4 +1,4 @@
-// macOS-változat (Adás.app, x64 és arm64 .zip) készítése Windowson / Linuxon is.
+// macOS-változat (ADAS.app, x64 és arm64 .zip) készítése Windowson / Linuxon is.
 // Az electron-builder Mac-csomagot csak macOS-en készít; ez a szkript a hivatalos Electron
 // macOS-csomagjából rakja össze az alkalmazást (a keretrendszerek symlinkjeit és a futtatási
 // jogokat megőrizve), a `dist/linux-unpacked/resources/app.asar` felhasználásával (az alkalmazás
@@ -7,7 +7,7 @@
 //   node tools/build-mac.mjs            (előtte: npx electron-builder --linux dir)
 //
 // A kész alkalmazás nincs Apple-fejlesztői tanúsítvánnyal aláírva: első indítás előtt a Macen
-//   xattr -cr /Applications/Adás.app && codesign --force --deep --sign - /Applications/Adás.app
+//   xattr -cr /Applications/ADAS.app && codesign --force --deep --sign - /Applications/ADAS.app
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
@@ -19,7 +19,8 @@ const require = createRequire(import.meta.url);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const electronVersion = require(path.join(root, 'node_modules', 'electron', 'package.json')).version;
-const APP = `${pkg.productName}.app`; // Adás.app
+// (ASCII név: ékezetes csomagnévvel az Electron induláskor leáll – lásd build/mac-adhoc.js)
+const APP = `${pkg.productName}.app`; // ADAS.app
 const asarFile = path.join(root, 'dist', 'linux-unpacked', 'resources', 'app.asar');
 if (!fs.existsSync(asarFile)) {
   console.error('Hiányzik az app.asar. Előbb: npx electron-builder --linux dir');

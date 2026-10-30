@@ -852,6 +852,7 @@ public class MainActivity extends Activity {
           // (F02) helyi / USB-mappák (a kiválasztott, engedélyezett mappán belül)
           else if ("scanFolder".equals(method)) out = Folders.scan(MainActivity.this, a.getString("uri")).toString();
           else if ("readDoc".equals(method)) out = JSONObject.quote(Folders.readText(MainActivity.this, a.getString("uri"), 20 * 1024 * 1024));
+          else if ("resolveDocs".equals(method)) out = Folders.resolve(MainActivity.this, a.getString("base"), a.getJSONArray("rels")).toString();
           else if ("sidecarSubs".equals(method)) out = Folders.sidecars(MainActivity.this, a.getString("uri"), false).toString();
           else if ("sidecarImage".equals(method)) out = JSONObject.quote((String) Folders.sidecars(MainActivity.this, a.getString("uri"), true));
           else if ("updateDownload".equals(method)) out = Updater.download(MainActivity.this, a).toString();

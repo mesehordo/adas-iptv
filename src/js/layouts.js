@@ -5,9 +5,11 @@ import { esc, html, hashHue, fmtTime, bus, debounce, seededShuffle, norm } from 
 import { api } from './api.js';
 import { store } from './store.js';
 import { epg } from './epg.js';
-import { catalog, visible, getChannels, countryName, countryFlag, categoryName, channelStatus, homeRank, rankScore, byAvailability, activeLists, MINE, KIDS_CATEGORIES, recommendOrder } from './catalog.js';
+import { catalog, visible, getChannels, countryName, countryFlag, categoryName, channelStatus, geoState, qualityBadge, homeRank, rankScore, byAvailability, activeLists, MINE, KIDS_CATEGORIES, recommendOrder } from './catalog.js';
 import { ICON, logoHtml, openInfo, openProgram, gridEl, rowEl, emptyState, avatarHtml, tvTabs } from './components.js';
 import { health } from './health.js';
+import { facetPanel } from './facets.js';
+import { isKidsChannel } from './kids.js';
 import { player, startPreview, stopPreview } from './player.js';
 import { renderDashboard, unitCardHtml, activateUnits, homeNews, openNews, tonightPrograms } from './dashboard.js';
 import { radioMenuOn } from './radiopage.js';
@@ -26,7 +28,7 @@ export function layoutRoute(name) {
     return {
       classic: renderDashboard, cinema: renderCinema, showcase: renderShowcase, shelf: renderShelf, library: renderLibraryHome, tiles: renderTiles,
       detail: (v) => renderDetail(v, null, true), unified: renderUnifiedHome,
-      wall: renderWall, squares: renderSquares, ribbon: renderRibbon, focus: renderFocus, desk: renderDesk,
+      wall: renderWall, squares: renderSquares, ribbon: renderRibbon, focus: renderFocus, desk: renderDesk, console: renderConsole,
     }[id];
   }
   if (name === 'tv' && (id === 'detail' || id === 'unified')) return id === 'detail' ? renderDetail : renderUnified;
@@ -554,10 +556,42 @@ function renderDetail(view, params, home = false) {
 // ---------------------------------------------------------------------------
 // 7. Gyűjtemény: minden forrás egy helyen, szűrőkkel, rács- vagy listanézettel
 // ---------------------------------------------------------------------------
-// (a „csak a működők” szűrő csak akkor értelmes, ha van ellenőrzési adat – mint a Böngészésnél)
+// (az elérhetőség-szűrő csak akkor értelmes, ha van ellenőrzési adat – mint a Felfedezésnél)
 const healthKnown = () => !!(health.available || Object.keys(store.health || {}).length);
-const uniState = () => ({ lists: null, cats: [], country: '', working: false, favs: false, view: 'grid', sort: 'rec', q: '', ...(store.profile?.uni || {}) });
+// (a régi mentett szűrők – forrás, kategóriák, ország, csak működők, csak kedvencek – a pipás szűrőkbe kerülnek)
+const uniState = () => {
+  const u = { view: 'grid', sort: 'rec', q: '', ...(store.profile?.uni || {}) };
+  if (!u.f) {
+    const sel = {};
+    if (u.lists?.length) sel.src = u.lists;
+    if (u.cats?.length) sel.cat = u.cats;
+    if (u.country) sel.cc = [u.country];
+    if (u.favs) sel.more = ['fav'];
+    if (u.working) sel.av = ['ok'];
+    u.f = { sel, open: {} };
+  }
+  for (const k of ['lists', 'cats', 'country', 'working', 'favs']) delete u[k];
+  return u;
+};
 const saveUni = (u) => store.setProfileValue('uni', { ...u, q: '' });
+/** A Gyűjtemény TV-s szűrőcsoportjai. */
+function tvFacets(lists) {
+  const listName = new Map(lists.map((l) => [l.id, l.name]));
+  const AV = { ok: _t('Működik'), bad: _t('Nem működik'), unknown: _t('Még nem ellenőrzött'), geo: _t('Földrajzi korlát – innen nem nézhető'), geomaybe: _t('Földrajzi korlát lehet') };
+  const Q = { '4K': '4K', FHD: 'Full HD', HD: 'HD', SD: _t('SD / ismeretlen') };
+  const MORE = { fav: _t('Kedvenc'), epg: _t('Van műsorújság'), multi: _t('Több forrásból'), kids: _t('Gyerekeknek'), part: _t('Nem egész nap sugároz') };
+  return [
+    { id: 'src', title: _t('Források'), keys: (c) => c.lists || [], label: (k) => listName.get(k) || k, open: true },
+    { id: 'cat', title: _t('Téma'), keys: (c) => c.categories, label: categoryName, open: true },
+    { id: 'cc', title: _t('Ország'), keys: (c) => [c.country], label: (k) => `${countryFlag(k)} ${countryName(k) || k}`.trim(), first: [store.settings.homeCountry], open: true },
+    { id: 'lang', title: _t('Nyelv'), keys: (c) => c.languages || [], label: (k) => catalog.languages.get(k)?.name || k },
+    { id: 'av', title: _t('Elérhetőség'), order: Object.keys(AV), label: (k) => AV[k],
+      keys: (c) => [healthKnown() ? channelStatus(c) : 'unknown', { sure: 'geo', maybe: 'geomaybe' }[geoState(c)]] },
+    { id: 'q', title: _t('Minőség'), order: Object.keys(Q), label: (k) => Q[k], keys: (c) => [qualityBadge(c) || 'SD'] },
+    { id: 'more', title: _t('Egyéb'), all: true, order: Object.keys(MORE), label: (k) => MORE[k],
+      keys: (c) => [store.profile.favorites.includes(c.id) && 'fav', epg.has(c.id) && 'epg', (c.lists || []).length > 1 && 'multi', isKidsChannel(c) && 'kids', c.streams.length && c.streams.every((s) => s.notAlways) && 'part'].filter(Boolean) },
+  ];
+}
 function uniRow(ch) {
   const now = epg.now(ch.id);
   return `<button class="uni-row" data-id="${esc(ch.id)}" data-lplay="${esc(ch.id)}">${logoHtml(ch)}<span class="uni-name"><b>${esc(ch.name)}</b><small>${metaLine(ch)}</small></span>
@@ -569,26 +603,9 @@ function renderUnified(view) {
   const vis = visible();
   const u = uniState();
   const lists = [...(vis.some((c) => c.lists?.includes(MINE)) ? [{ id: MINE, name: _t('Saját csatornák') }] : []), ...activeLists()];
-  const catCount = new Map();
-  const ccCount = new Map();
-  for (const c of vis) {
-    for (const k of new Set(c.categories)) catCount.set(k, (catCount.get(k) || 0) + 1);
-    if (c.country) ccCount.set(c.country, (ccCount.get(c.country) || 0) + 1);
-  }
-  const cats = [...catCount].sort((a, b) => b[1] - a[1]).slice(0, 24);
-  const ccs = [...ccCount].sort((a, b) => (b[0] === store.settings.homeCountry) - (a[0] === store.settings.homeCountry) || b[1] - a[1]).slice(0, 60);
-  const listOn = (id) => !u.lists || u.lists.includes(id);
   view.innerHTML = `<div class="uni">
     <aside class="uni-side">
-      <details class="uni-filters" ${matchMedia('(max-width: 700px)').matches ? '' : 'open'}><summary>${_t('Szűrők')}</summary>
-      <h4>${_t('Források')}</h4>${lists.map((l) => `<label class="uni-check"><input type="checkbox" data-u-list="${esc(l.id)}" ${listOn(l.id) ? 'checked' : ''} /> <span>${esc(l.name)}</span></label>`).join('')}
-      <h4>${_t('Ország')}</h4><select class="input" data-u-country><option value="">${_t('Mind')}</option>${ccs.map(([cc, n]) => `<option value="${esc(cc)}" ${u.country === cc ? 'selected' : ''}>${esc(countryName(cc) || cc)} (${n})</option>`).join('')}</select>
-      <h4>${_t('Kategóriák')}</h4><div class="uni-cats">${cats.map(([k, n]) => `<button class="chip ${u.cats.includes(k) ? 'on' : ''}" data-u-cat="${esc(k)}" aria-pressed="${u.cats.includes(k)}">${esc(categoryName(k))} <small>${n}</small></button>`).join('')}</div>
-      <h4>${_t('Egyéb')}</h4>
-      ${healthKnown() ? `<label class="uni-check"><input type="checkbox" data-u-flag="working" ${u.working ? 'checked' : ''} /> <span>${_t('Csak a működők')}</span></label>` : ''}
-      <label class="uni-check"><input type="checkbox" data-u-flag="favs" ${u.favs ? 'checked' : ''} /> <span>${_t('Csak a kedvencek')}</span></label>
-      <button class="btn small" data-u-reset>${_t('Szűrők törlése')}</button>
-      </details>
+      <details class="uni-filters" ${matchMedia('(max-width: 700px)').matches ? '' : 'open'}><summary>${_t('Szűrők')}</summary></details>
     </aside>
     <section class="uni-main"><div class="uni-tabs">${tvTabs('tv')}</div>
       <div class="uni-bar"><input class="input uni-q" type="search" placeholder="${_t('Keresés a gyűjteményben…')}" aria-label="${_t('Keresés a gyűjteményben')}" value="${esc(u.q)}" />
@@ -599,19 +616,28 @@ function renderUnified(view) {
     </section>
   </div>`;
   const results = view.querySelector('.uni-results');
-  const draw = () => {
+  const panel = facetPanel({ facets: tvFacets(lists), items: vis, state: u.f, onChange: () => changed(), onOpen: () => saveUni(u) });
+  view.querySelector('.uni-filters').append(panel.el);
+  view.querySelector('.uni-bar').after(panel.chips);
+  // (ellenőrzés, kedvenc, műsorújság után a darabszámok frissülnek; a rács csak akkor rajzolódik újra, ha a
+  // szűrt találatok köre megváltozott – így nem ugrik el)
+  const matching = () => {
     const t = norm(u.q.trim());
-    const favSet = new Set(store.profile.favorites);
+    return panel.filter().filter((c) => !t || norm(c.name).includes(t));
+  };
+  const sig = (list) => list.map((c) => c.id).sort().join('\n');
+  let shown = '';
+  const offs = ['health', 'favorites', 'epg'].map((ev) =>
+    bus.on(ev, debounce(() => {
+      if (!results.isConnected) return offs.forEach((off) => off());
+      panel.setItems(vis);
+      if (sig(matching()) !== shown) draw();
+    }, 1500))
+  );
+  const draw = () => {
     const watched = store.profile?.stats?.ch || {};
-    let list = vis.filter(
-      (c) =>
-        (!u.lists || (c.lists || []).some((id) => u.lists.includes(id))) &&
-        (!u.country || c.country === u.country) &&
-        (!u.cats.length || u.cats.some((k) => c.categories.includes(k))) &&
-        (!u.working || !healthKnown() || channelStatus(c) === 'ok') &&
-        (!u.favs || favSet.has(c.id)) &&
-        (!t || norm(c.name).includes(t))
-    );
+    let list = matching();
+    shown = sig(list);
     if (u.sort === 'name') list.sort((a, b) => a.name.localeCompare(b.name));
     else if (u.sort === 'watched') list.sort((a, b) => (watched[b.id] || 0) - (watched[a.id] || 0) || homeRank(b) - homeRank(a));
     else list = byAvailability(list.sort((a, b) => homeRank(b) - homeRank(a) || rankScore(b) - rankScore(a)));
@@ -637,37 +663,19 @@ function renderUnified(view) {
     saveUni(u);
     draw();
   };
-  view.querySelector('.uni').addEventListener('change', (e) => {
-    const el = e.target;
-    if (el.dataset.uList !== undefined) {
-      const on = [...view.querySelectorAll('[data-u-list]')].filter((x) => x.checked).map((x) => x.dataset.uList);
-      u.lists = on.length === lists.length ? null : on;
-    } else if (el.dataset.uCountry !== undefined) u.country = el.value;
-    else if (el.dataset.uFlag) u[el.dataset.uFlag] = el.checked;
-    else if (el.dataset.uSort !== undefined) u.sort = el.value;
-    else return;
+  view.querySelector('[data-u-sort]').addEventListener('change', (e) => {
+    u.sort = e.target.value;
     changed();
   });
-  view.querySelector('.uni').addEventListener('click', (e) => {
-    const cat = e.target.closest('[data-u-cat]');
+  view.querySelector('.uni-bar').addEventListener('click', (e) => {
     const vw = e.target.closest('[data-u-view]');
-    if (cat) {
-      const k = cat.dataset.uCat;
-      u.cats = u.cats.includes(k) ? u.cats.filter((x) => x !== k) : [...u.cats, k];
-      cat.classList.toggle('on', u.cats.includes(k));
-      cat.setAttribute('aria-pressed', u.cats.includes(k));
-      changed();
-    } else if (vw) {
-      u.view = vw.dataset.uView;
-      view.querySelectorAll('[data-u-view]').forEach((b) => {
-        b.classList.toggle('on', b === vw);
-        b.setAttribute('aria-pressed', b === vw);
-      });
-      changed();
-    } else if (e.target.closest('[data-u-reset]')) {
-      store.setProfileValue('uni', { view: u.view, sort: u.sort });
-      renderUnified(view);
-    }
+    if (!vw) return;
+    u.view = vw.dataset.uView;
+    view.querySelectorAll('[data-u-view]').forEach((b) => {
+      b.classList.toggle('on', b === vw);
+      b.setAttribute('aria-pressed', b === vw);
+    });
+    changed();
   });
   view.querySelector('.uni-q').addEventListener('input', debounce((e) => {
     u.q = e.target.value;
@@ -709,7 +717,7 @@ function renderUnifiedHome(view) {
     const cat = e.target.closest('[data-uh-cat]');
     if (!src && !cat) return;
     const u = uniState();
-    store.setProfileValue('uni', { ...u, q: '', lists: src ? [src.dataset.uhList] : null, cats: cat ? [cat.dataset.uhCat] : [], country: '', favs: false });
+    store.setProfileValue('uni', { ...u, q: '', f: { open: u.f.open, sel: src ? { src: [src.dataset.uhList] } : { cat: [cat.dataset.uhCat] } } });
     location.hash = '#/tv';
   });
   activateUnits(page);
@@ -837,14 +845,14 @@ function ribbonCats() {
   const onAir = recommendOrder([...vis].filter((c) => epg.now(c.id)?.cur));
   const rf = radioMenuOn() ? radioFavs() : [];
   const cats = [
-    menuOn('tv') && { id: 'favs', label: _t('Kedvencek'), ico: navIcon('favorites'), items: favs.length ? favs.map(chItem) : [link('#/tv', _t('Csatornák böngészése'), _t('A csatornák kártyáján a + gombbal jelölhetsz kedvencet.'), navIcon('tv'))] },
+    menuOn('tv') && { id: 'favs', label: _t('Kedvencek'), ico: navIcon('favorites'), items: favs.length ? favs.map(chItem) : [link('#/tv', _t('Csatornák felfedezése'), _t('A csatornák kártyáján a + gombbal jelölhetsz kedvencet.'), navIcon('tv'))] },
     menuOn('tv') && { id: 'now', label: _t('Most a tévében'), ico: GUIDE_ICO, items: onAir.slice(0, 80).map(chItem) },
     menuOn('tv') && recent.length && { id: 'recent', label: _t('Legutóbb nézett'), ico: HISTORY_ICO, items: recent.map(chItem) },
     menuOn('tv') && { id: 'tonight', label: _t('Ma este'), ico: GUIDE_ICO, items: tonightPrograms(12).map(({ ch, p: pr }) => ({ kind: 'prog', ch, pr, title: pr.title, sub: `${fmtTime(pr.start)} · ${ch.name}` })) },
     // (a hírek a háttérben töltődnek – renderRibbon)
     !p.kids && { id: 'news', label: _t('Hírek'), ico: NEWS_ICO, items: [] },
-    menuOn('tv') && { id: 'tv', label: _t('TV'), ico: navIcon('tv'), items: [link('#/tv', _t('Csatornák'), _t('A csatornák sorai')), link('#/guide', _t('Műsorújság')), link('#/browse', _t('Böngészés')), link('#/countries', _t('Országok')), link('#/recordings', _t('Felvételek'))] },
-    radioMenuOn() && { id: 'radio', label: _t('Rádió'), ico: navIcon('radio'), items: [...rf.map((st, i) => ({ kind: 'radio', i, title: st.name, sub: [countryName(st.country), st.codec].filter(Boolean).join(' · '), st })), link('#/radio', _t('Rádiók')), link('#/radio?tab=guide', _t('Rádió-műsorújság')), link('#/radio?tab=browse', _t('Böngészés'))] },
+    menuOn('tv') && { id: 'tv', label: _t('TV'), ico: navIcon('tv'), items: [link('#/tv', _t('Csatornák'), _t('A csatornák sorai')), link('#/guide', _t('Műsorújság')), link('#/browse', _t('Felfedezés')), link('#/countries', _t('Országok')), link('#/recordings', _t('Felvételek'))] },
+    radioMenuOn() && { id: 'radio', label: _t('Rádió'), ico: navIcon('radio'), items: [...rf.map((st, i) => ({ kind: 'radio', i, title: st.name, sub: [countryName(st.country), st.codec].filter(Boolean).join(' · '), st })), link('#/radio', _t('Rádiók')), link('#/radio?tab=guide', _t('Rádió-műsorújság')), link('#/radio?tab=browse', _t('Felfedezés'))] },
     menuOn('vod') && { id: 'vod', label: _t('Videotár'), ico: navIcon('vod'), items: [link('#/vod', _t('Online listák')), link('#/own', _t('Saját médiatár'))] },
     sportMenuOn() && { id: 'sport', label: _t('Sport'), ico: navIcon('sport'), items: [link('#/sport', _t('Sport'), _t('Élő eredmények, menetrend, tabella'))] },
     { id: 'settings', label: _t('Beállítások'), ico: navIcon('settings'), items: [link('#/settings', _t('Beállítások')), link('#/settings?section=appearance', _t('Megjelenés')), link('#/profiles', _t('Profilok kezelése')), link('#/help', _t('Súgó'))] },
@@ -938,6 +946,142 @@ function renderRibbon(view) {
   });
   drawCat();
   // hírek: betöltés után a kategória feltöltése (ha nincs bekapcsolt forrás vagy hiba, a kategória eltűnik)
+  const ni = cats.findIndex((c) => c.id === 'news');
+  if (ni >= 0) {
+    homeNews()
+      .catch(() => [])
+      .then((list) => {
+        if (!el.isConnected) return;
+        cats[ni].items = list.map((n) => ({ kind: 'news', n, title: n.title, sub: n.source }));
+        if (!cats[ni].items.length) cats[ni].items = [{ kind: 'link', href: '#/settings?section=dashboard', title: _t('Hírforrások beállítása'), sub: _t('A hírek most nem érhetők el.') }];
+        if (ci === ni) drawCat(box.contains(document.activeElement));
+      });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Kontroller: középen nagy, lapozható részek (a Menüszalag részei), alattuk a kijelölt rész tartalma nagy
+// csempéken, alul a kontroller gombjainak súgója. ← → (bal kar, D-pad, LB / RB): rész · ↓ ↑: tartalom / részek ·
+// A: megnyitás · B: vissza · Y: keresés.
+// ---------------------------------------------------------------------------
+const consoleState = { cat: 'favs', idx: {} };
+// (a többi oldalon a képernyő alján – CSS: csak a Kontroller elrendezésben látszik)
+if (!document.getElementById('pad-hints')) document.body.append(Object.assign(document.createElement('div'), { id: 'pad-hints', ariaHidden: 'true' }));
+/** A kontroller gombjainak súgója (a Kontroller elrendezés minden oldalán, alul). */
+export const padHintsHtml = () =>
+  `<span><i class="pad-b a">A</i>${_t('Megnyitás')}</span><span><i class="pad-b b">B</i>${_t('Vissza')}</span><span><i class="pad-b x">X</i>${_t('Adatok')}</span><span><i class="pad-b y">Y</i>${_t('Keresés')}</span><span><i class="pad-b lb">LB</i><i class="pad-b lb">RB</i>${_t('Lapozás')}</span>`;
+function renderConsole(view) {
+  const { cats, rf } = ribbonCats();
+  document.getElementById('pad-hints').innerHTML = padHintsHtml();
+  let ci = Math.max(0, cats.findIndex((c) => c.id === consoleState.cat));
+  const p = store.profile;
+  view.innerHTML = `<section class="cs">
+    <div class="cs-top">${avatarHtml(p, 'cs-av')}<b>${esc(p.name)}</b><span class="cs-clock">${clockText()}</span></div>
+    <div class="cs-car" role="tablist" aria-label="${_t('Részek')}">${cats.map((c, i) => `<button class="cs-sys" role="tab" data-ci="${i}" aria-selected="false" style="--h:${hashHue(c.id + 'sys')}"><span class="cs-ico">${c.ico}</span><b>${esc(c.label)}</b></button>`).join('')}</div>
+    <div class="cs-info"><h1></h1><p class="muted"></p></div>
+    <div class="cs-items" role="list"></div>
+    <footer class="cs-hints" aria-hidden="true">${padHintsHtml()}</footer>
+  </section>`;
+  const el = view.querySelector('.cs');
+  every(el, 20e3, () => (el.querySelector('.cs-clock').textContent = clockText()));
+  const car = el.querySelector('.cs-car');
+  const box = el.querySelector('.cs-items');
+  const items = () => cats[ci].items;
+  const curIdx = () => Math.max(0, Math.min(consoleState.idx[cats[ci].id] || 0, items().length - 1));
+  const itemHtml = (it, i) => {
+    const art = it.kind === 'ch' || it.kind === 'prog' ? logoHtml(it.ch) : it.kind === 'news' ? (it.n.img ? `<img class="logo cover" src="${esc(it.n.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : NEWS_ICO) : it.kind === 'radio' ? (it.st.logo ? `<img class="logo" src="${esc(it.st.logo)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : navIcon('radio')) : it.ico || cats[ci].ico;
+    const hue = hashHue(it.ch?.name || it.st?.name || it.title || '');
+    return `<button class="cs-item" role="listitem" data-ii="${i}" ${it.kind === 'ch' ? `data-id="${esc(it.id)}"` : ''} style="--h:${hue}"><span class="cs-art">${art}</span><span class="cs-cap"><b>${esc(it.title)}</b>${it.sub ? `<small>${esc(it.sub)}</small>` : ''}</span></button>`;
+  };
+  const info = (ii) => {
+    const it = items()[ii];
+    el.querySelector('.cs-info h1').textContent = it?.title || cats[ci].label;
+    el.querySelector('.cs-info p').textContent = it?.sub || '';
+  };
+  const mark = (ii, focus = false) => {
+    consoleState.idx[cats[ci].id] = ii;
+    box.querySelectorAll('.cs-item').forEach((b, n) => b.classList.toggle('sel', n === ii));
+    const b = box.children[ii];
+    b?.scrollIntoView({ block: 'nearest', inline: 'center' });
+    if (focus) b?.focus({ preventScroll: true });
+    info(ii);
+  };
+  const drawCat = (focusItem = false) => {
+    consoleState.cat = cats[ci].id;
+    el.style.setProperty('--i', ci);
+    car.querySelectorAll('.cs-sys').forEach((b, n) => {
+      b.classList.toggle('sel', n === ci);
+      b.setAttribute('aria-selected', n === ci);
+    });
+    car.children[ci]?.scrollIntoView({ block: 'nearest', inline: 'center' });
+    box.innerHTML = items().map(itemHtml).join('');
+    box.scrollLeft = 0;
+    mark(curIdx(), focusItem);
+  };
+  const open = (ii) => {
+    const it = items()[ii];
+    if (!it) return;
+    if (it.kind === 'ch') player.play(it.ch);
+    else if (it.kind === 'prog') openProgram(it.ch, it.pr);
+    else if (it.kind === 'news') openNews(it.n);
+    else if (it.kind === 'radio') radioPlayer.play(it.st, rf);
+    else location.hash = it.href;
+  };
+  const step = (d, focusCat) => {
+    const n = ci + d;
+    if (n < 0 || n >= cats.length) return false;
+    ci = n;
+    drawCat(!focusCat);
+    if (focusCat) car.children[ci].focus({ preventScroll: true });
+    return true;
+  };
+  car.addEventListener('click', (e) => {
+    const b = e.target.closest('.cs-sys');
+    if (!b) return;
+    ci = Number(b.dataset.ci);
+    drawCat();
+  });
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('.cs-item');
+    if (!b) return;
+    mark(Number(b.dataset.ii));
+    open(Number(b.dataset.ii));
+  });
+  box.addEventListener('focusin', (e) => {
+    const b = e.target.closest('.cs-item');
+    if (b) mark(Number(b.dataset.ii));
+  });
+  el.addEventListener('keydown', (e) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const onItem = e.target.closest?.('.cs-item');
+    const onCat = e.target.closest?.('.cs-sys');
+    let handled = true;
+    // (LB / RB – a kontroller vállgombjai – bárhonnan lapoznak a részek között)
+    if (e.key === 'ChannelUp' || e.key === 'ChannelDown') handled = step(e.key === 'ChannelUp' ? 1 : -1, !onItem) || true;
+    else if (!onItem && !onCat) handled = false;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const d = e.key === 'ArrowLeft' ? -1 : 1;
+      if (onCat) handled = step(d, true);
+      else {
+        const n = curIdx() + d;
+        if (n >= 0 && n < items().length) mark(n, true);
+      }
+    } else if (e.key === 'ArrowDown') {
+      if (onCat) mark(curIdx(), true);
+      else handled = false;
+    } else if (e.key === 'ArrowUp') {
+      if (onItem) car.children[ci].focus({ preventScroll: true });
+      else handled = false; // (a kijelölés a felső sávra lép tovább)
+    } else if (e.key === 'Enter' && onItem) open(Number(onItem.dataset.ii));
+    else handled = false;
+    if (handled) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  });
+  drawCat();
+  // (indításkor a kijelölt rész kapja a fókuszt – a kontroller rögtön ott kezd)
+  requestAnimationFrame(() => !view.contains(document.activeElement) && car.children[ci]?.focus({ preventScroll: true }));
   const ni = cats.findIndex((c) => c.id === 'news');
   if (ni >= 0) {
     homeNews()

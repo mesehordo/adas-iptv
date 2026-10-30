@@ -5,11 +5,13 @@
 //  - Eltávolításkor (az MSI újbóli indítása → Eltávolítás): ugyanez az oldal – „Az adatok is törlődjenek”.
 //  - Eltávolításkor a Windows Beállítások / Programok felől (ott nincs MSI-ablak): Igen / Nem kérdés.
 //  - Frissítéskor (nagy verzióváltás – a régi változat eltávolítása) és csendes futásnál nem kérdez, nem töröl.
-// A törlés a felhasználó nevében fut (nem rendszerjoggal), csak a saját %APPDATA%\Adás mappáját érinti.
+// A törlés a felhasználó nevében fut (nem rendszerjoggal), csak a saját %APPDATA%\ADAS (és a korábbi, ékezetes
+// %APPDATA%\Adás) mappáját érinti.
 'use strict';
 const fs = require('fs');
 
-const DATA = '[AppDataFolder]Adás';
+const DATA = '[AppDataFolder]ADAS';
+const DATA_OLD = '[AppDataFolder]Adás'; // (az 1.34.0 előtti név – az Adás első indításkor átnevezi)
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 const TEXT = {
@@ -19,6 +21,7 @@ const TEXT = {
     'Az Adás a beállításait, profiljait, listáit és kedvenceit a felhasználói adatmappában tárolja. ' +
     'Ezek alapból megmaradnak (pl. egy későbbi telepítéshez). / Adás keeps its settings, profiles, lists and favourites in your user data folder; by default they are kept.',
   check: 'Az Adás-adatok törlése (tiszta telepítés / eltávolítás) · Delete Adás data',
+  silent: 'A frissítések kérdések nélkül települjenek (később a Beállításokban is átállítható) · Install updates silently',
   ask:
     'Az Adás adatai (beállítások, profilok, listák, kedvencek) is törlődjenek?\\n\\n(Nem = megmaradnak egy későbbi telepítéshez.)\\n\\nAlso delete Adás data (settings, profiles, lists)?',
 };
@@ -32,8 +35,15 @@ module.exports = async function msiProjectCreated(projectFile) {
     <!-- Adás: tiszta telepítés / adatok törlése -->
     <Property Id="CLEANDATA" Secure="yes"/>
     <Property Id="ADASASKED" Secure="yes"/>
+    <!-- a frissítések kérdések nélkül (az Adás a HKCU\\Software\\Adas\\Update „Silent” értékéből olvassa: „1|<idő>” vagy „|<idő>”) -->
+    <Property Id="SILENTUPDATE" Value="1" Secure="yes"/>
+    <CustomAction Id="AdasSilentPref" Directory="TARGETDIR" Execute="deferred" Impersonate="yes" Return="ignore"
+      ExeCommand="&quot;[SystemFolder]reg.exe&quot; add &quot;HKCU\\Software\\Adas\\Update&quot; /v Silent /t REG_SZ /d &quot;[SILENTUPDATE]|[Date] [Time]&quot; /f"/>
+    <!-- (gépre telepítésnél – ALLUSERS=1 – a gép minden felhasználójának: HKLM, rendszerjoggal; az Adás előbb a saját HKCU-t nézi) -->
+    <CustomAction Id="AdasSilentPrefAll" Directory="TARGETDIR" Execute="deferred" Impersonate="no" Return="ignore"
+      ExeCommand="&quot;[SystemFolder]reg.exe&quot; add &quot;HKLM\\Software\\Adas\\Update&quot; /v Silent /t REG_SZ /d &quot;[SILENTUPDATE]|[Date] [Time]&quot; /f"/>
     <CustomAction Id="AdasCleanData" Directory="TARGETDIR" Execute="deferred" Impersonate="yes" Return="ignore"
-      ExeCommand="&quot;[SystemFolder]cmd.exe&quot; /c if exist &quot;${DATA}&quot; rmdir /s /q &quot;${DATA}&quot;"/>
+      ExeCommand="&quot;[SystemFolder]cmd.exe&quot; /c (if exist &quot;${DATA}&quot; rmdir /s /q &quot;${DATA}&quot;) &amp; (if exist &quot;${DATA_OLD}&quot; rmdir /s /q &quot;${DATA_OLD}&quot;)"/>
     <CustomAction Id="AdasAskClean" Script="jscript"><![CDATA[
       var r = Session.Installer.CreateRecord(0);
       r.StringData(0) = "${TEXT.ask}";
@@ -43,6 +53,10 @@ module.exports = async function msiProjectCreated(projectFile) {
     <InstallExecuteSequence>
       <Custom Action="AdasAskClean" Before="InstallInitialize">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE AND NOT ADASASKED AND NOT CLEANDATA AND UILevel &gt; 2</Custom>
       <Custom Action="AdasCleanData" After="InstallInitialize">CLEANDATA="1" AND NOT UPGRADINGPRODUCTCODE</Custom>
+      <!-- (csak új telepítésnél, ha az Adatok oldal – rajta a választóval – megjelent; csendes frissítésnél, javításnál,
+           eltávolításnál a korábbi választás marad) -->
+      <Custom Action="AdasSilentPref" Before="InstallFinalize">ADASASKED AND NOT Installed AND NOT REMOVE="ALL"</Custom>
+      <Custom Action="AdasSilentPrefAll" Before="InstallFinalize">ADASASKED AND ALLUSERS=1 AND NOT Installed AND NOT REMOVE="ALL"</Custom>
     </InstallExecuteSequence>
 `;
   x = x.replace(/(\s*<Directory Id="TARGETDIR")/, (m) => actions + m);
@@ -71,6 +85,9 @@ module.exports = async function msiProjectCreated(projectFile) {
           <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="${esc(TEXT.desc)}"/>
           <Control Id="Info" Type="Text" X="20" Y="60" Width="330" Height="70" NoPrefix="yes" Text="${esc(TEXT.info)}"/>
           <Control Id="Clean" Type="CheckBox" X="20" Y="140" Width="330" Height="18" Property="CLEANDATA" CheckBoxValue="1" Text="${esc(TEXT.check)}"/>
+          <Control Id="Silent" Type="CheckBox" X="20" Y="166" Width="330" Height="30" Property="SILENTUPDATE" CheckBoxValue="1" Text="${esc(TEXT.silent)}">
+            <Condition Action="hide">Installed</Condition>
+          </Control>
         </Dialog>
         <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Event="NewDialog" Value="AdasCleanDlg" Order="5">1</Publish>
         <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="AdasCleanDlg" Order="5">NOT Installed OR WixUI_InstallMode = "Remove"</Publish>

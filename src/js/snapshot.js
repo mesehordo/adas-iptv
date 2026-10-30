@@ -4,6 +4,32 @@
 import { api } from './api.js';
 import { packDocs, packDocKey, PACK_KINDS } from './packs.js';
 
+// A profilok saját dokumentumai – (L02) a filmekhez kézzel választott feliratok szövege (subtitles.js: a „vodSubs”
+// bejegyzés „doc” mezője, vagy régebbi / helyben írt bejegyzésnél a profil és a film szerinti kulcs) és a Főoldal saját
+// háttérképe (homebg.js: a profil „homeBgDoc” mezője). → [{ key, set(újKulcs) }]
+const SUB_KEY = /^subman:[^\n]{1,600}$/;
+const BG_KEY = /^homebg:[^\n]{1,200}$/;
+const profileDocRefs = (profiles) => {
+  const out = [];
+  for (const p of Array.isArray(profiles) ? profiles : []) {
+    if (!p || typeof p !== 'object') continue;
+    if (p.vodSubs && typeof p.vodSubs === 'object')
+      for (const [film, v] of Object.entries(p.vodSubs)) {
+        if (!v || typeof v !== 'object' || !v.manual) continue;
+        const key = typeof v.doc === 'string' && SUB_KEY.test(v.doc) ? v.doc : `subman:${p.id || ''}:${film}`;
+        if (SUB_KEY.test(key)) out.push({ key, set: (k) => (v.doc = k) });
+      }
+    if (p.homeBg === 'custom') {
+      const key = typeof p.homeBgDoc === 'string' && BG_KEY.test(p.homeBgDoc) ? p.homeBgDoc : `homebg:${p.id || ''}`;
+      if (BG_KEY.test(key)) out.push({ key, set: (k) => (p.homeBgDoc = k) });
+    }
+  }
+  return out;
+};
+
+/** A profilok saját dokumentumainak kulcsai (kézi feliratok, háttérkép). */
+export const profileDocKeys = (profiles) => profileDocRefs(profiles).map((r) => r.key);
+
 /** A fájlból felvett nagy listák szövege külön tárban van – a mentésbe ezeket is beletesszük. */
 export async function attachDocs(data) {
   const docs = {};
@@ -16,6 +42,15 @@ export async function attachDocs(data) {
   }
   // a kiegészítő csomagok (tévé és VOD) is mennek – így a másik eszközön is megjelennek
   Object.assign(docs, await packDocs(data.settings));
+  // (L02) a kézi feliratok szövege és a saját háttérkép is (a választás a profilban van – nélküle a másik eszközön üres lenne)
+  for (const r of profileDocRefs(data.profiles)) {
+    // (a hivatkozás a bejegyzésbe kerül: a másik eszközön a profil azonosítója más is lehet)
+    if (!docs[r.key]) {
+      const v = await api.docGet?.(r.key, { strict: true });
+      if (v && typeof v.text === 'string') docs[r.key] = v;
+    }
+    if (docs[r.key]) r.set(r.key);
+  }
   if (Object.keys(docs).length) data.docs = docs;
   return data;
 }
@@ -26,7 +61,7 @@ export async function attachDocs(data) {
  * ha bármelyik írás – vagy utána a beállítások cseréje – nem sikerül, a régi állapot teljes egészében megmarad
  * (dropDocs törli a már megírt új példányokat). → { written: [új kulcsok] }
  */
-const DOC_KEY = /^(vodtext|vodpack|tvpack|radiopack):[\w-]+$/;
+const DOC_KEY = /^(?:(vodtext|vodpack|tvpack|radiopack):[\w-]+|subman:[^\n]{1,600}|homebg:[^\n]{1,200})$/;
 let stageSerial = 0;
 export async function stageDocs(data) {
   const docs = data.docs || {};
@@ -53,6 +88,8 @@ export async function stageDocs(data) {
   }
   for (const p of data.settings?.vodCustom || []) if (p && map[p.textKey]) p.textKey = map[p.textKey];
   for (const [kind, k] of Object.entries(PACK_KINDS)) for (const p of data.settings?.[k.setting] || []) if (p && map[packDocKey(kind, p)]) p.doc = map[packDocKey(kind, p)];
+  // (a profilok saját dokumentumai is az új példányra mutatnak – a profil azonosítójától függetlenül)
+  for (const r of profileDocRefs(data.profiles)) if (map[r.key]) r.set(map[r.key]);
   return { written };
 }
 /** A stageDocs által megírt új példányok törlése (sikertelen csere után). */
