@@ -1,66 +1,82 @@
-// Kiadási bejegyzés a Mastodonra: a változáslista (docs/FUNKCIOK.md) adott verziójú szakaszából egy rövid poszt
-// (cím, a pontok kiemelt eleje, a kiadás oldala). A kiadási munkafolyamat (mastodon.yml) futtatja.
+// Bejegyzés a Mastodonra (angolul). Kiadásnál a Flathub-adatok (flatpak/…metainfo.xml) adott verziójú <release>
+// pontjaiból: „Adás X.Y.Z is out!”, a pontok, a kiadás oldala és címkék. Egyedi bejegyzés: egy szövegfájl a
+// docs/mastodon/ mappából. A Mastodon munkafolyamat (mastodon.yml) futtatja.
 //
-//   node tools/mastodon-post.mjs <verzió>            – csak kiírja a posztot (próba)
-//   MASTODON_URL=https://… MASTODON_TOKEN=… node tools/mastodon-post.mjs <verzió> --post
+//   node tools/mastodon-post.mjs 1.35.0                   – csak kiírja a posztot (próba)
+//   node tools/mastodon-post.mjs docs/mastodon/intro.txt  – egyedi bejegyzés, próba
+//   MASTODON_URL=https://… MASTODON_TOKEN=… node tools/mastodon-post.mjs <verzió | fájl> --post
 //
 // A hozzáférési kulcs csak „write:statuses” jogú legyen (a tároló titkai között: MASTODON_TOKEN).
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = 'mesehordo/adas-iptv';
+const METAINFO = path.join(root, 'flatpak', 'io.github.mesehordo.adas-iptv.metainfo.xml');
 const LIMIT = 500; // (a Mastodon alapértelmezett korlátja; a hivatkozás 23 karakternek számít)
 const URL_LEN = 23;
+// (CamelCase címkék – a képernyőolvasók így szavanként olvassák fel; kevés, de kereshető)
+export const TAGS = '#Adás #IPTV #OpenSource #FOSS #Linux';
 
-/** A változáslista szakasza: { title, leads: string[] } – a „**Cím (1.2.3)**” sor és alatta a „- **…**” pontok. */
-export function section(md, version) {
-  const lines = md.split(/\r?\n/);
-  const at = lines.findIndex((l) => new RegExp(`^\\*\\*(.+) \\(${version.replace(/\./g, '\\.')}\\)\\*\\*\\s*$`).test(l));
-  if (at < 0) return null;
-  const title = lines[at].replace(/^\*\*(.+) \([^)]+\)\*\*\s*$/, '$1');
-  const leads = [];
-  for (const l of lines.slice(at + 1)) {
-    if (!l.startsWith('- ')) {
-      if (l.trim()) break;
-      continue;
-    }
-    // (a pont kiemelt eleje; ha nincs, az első tagmondat)
-    const b = l.match(/^- \*\*(.+?)\*\*/);
-    const t = (b ? b[1] : l.slice(2).split(/ – |: |\. /)[0]).replace(/[*`_]/g, '').trim();
-    if (t) leads.push(t);
-  }
-  return { title, leads };
+const unxml = (s) => s.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+
+/** A kiadás angol pontjai a metainfo.xml-ből (a fordítások – xml:lang – nélkül); null, ha nincs ilyen kiadás. */
+export function releaseNotes(xml, version) {
+  const m = xml.match(new RegExp(`<release\\s+version="${version.replace(/\./g, '\\.')}"[^>]*>([\\s\\S]*?)</release>`));
+  if (!m) return null;
+  return [...m[1].matchAll(/<li>([\s\S]*?)<\/li>/g)].map((x) => unxml(x[1])).filter(Boolean);
 }
 
-const lenOf = (s) => s.replace(/https?:\/\/\S+/g, 'x'.repeat(URL_LEN)).length;
+export const lenOf = (s) => s.replace(/https?:\/\/\S+/g, 'x'.repeat(URL_LEN)).length;
 
-/** A poszt szövege (legfeljebb LIMIT karakter: a pontok a végéről maradnak el). */
-export function compose(version, sec) {
+/** A kiadási poszt (legfeljebb LIMIT karakter: a pontok a végéről maradnak el). */
+export function compose(version, notes) {
   const url = `https://github.com/${REPO}/releases/tag/v${version}`;
-  const head = `Megjelent az Adás ${version}!\n\n${sec.title}`;
-  const tail = `\n\nLetöltés (Windows, macOS, Linux, Android): ${url}\n\n#Adás #IPTV #NyíltForrás`;
-  let leads = sec.leads.slice(0, 6);
-  const text = () => head + (leads.length ? '\n\n' + leads.map((l) => `• ${l}`).join('\n') : '') + tail;
-  while (leads.length && lenOf(text()) > LIMIT) leads = leads.slice(0, -1);
+  const head = `Adás ${version} is out!`;
+  const tail = `\n\nDownload for Windows, macOS, Linux and Android: ${url}\n\n${TAGS}`;
+  let items = notes.slice(0, 6);
+  const text = () => head + (items.length ? '\n\n' + items.map((l) => `• ${l}`).join('\n') : '') + tail;
+  while (items.length && lenOf(text()) > LIMIT) items = items.slice(0, -1);
   return text();
 }
 
+/** A poszt és az egyszeri küldés kulcsa (ugyanaz a poszt újrafuttatáskor sem megy ki kétszer). */
+export function build(arg) {
+  if (/^\d+\.\d+\.\d+$/.test(arg)) {
+    const notes = releaseNotes(fs.readFileSync(METAINFO, 'utf8'), arg);
+    if (!notes) throw new Error(`A Flathub-adatokban (metainfo.xml) nincs ${arg} kiadás.`);
+    return { status: compose(arg, notes), key: `adas-release-${arg}` };
+  }
+  // (egyedi bejegyzés: csak a docs/mastodon/ mappából)
+  const file = path.resolve(root, arg);
+  if (path.dirname(file) !== path.join(root, 'docs', 'mastodon') || !file.endsWith('.txt')) throw new Error('Egyedi bejegyzés csak a docs/mastodon/*.txt fájlokból lehet.');
+  const status = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n').trim();
+  if (!status) throw new Error('Üres a bejegyzés.');
+  return { status, key: `adas-post-${crypto.createHash('sha256').update(status).digest('hex').slice(0, 24)}` };
+}
+
 async function main() {
-  const [version, flag] = process.argv.slice(2);
-  if (!/^\d+\.\d+\.\d+$/.test(version || '')) {
-    console.error('Használat: node tools/mastodon-post.mjs <verzió> [--post]');
+  const [arg, flag] = process.argv.slice(2);
+  if (!arg) {
+    console.error('Használat: node tools/mastodon-post.mjs <verzió | docs/mastodon/….txt> [--post]');
     process.exit(2);
   }
-  const sec = section(fs.readFileSync(path.join(root, 'docs', 'FUNKCIOK.md'), 'utf8'), version);
-  if (!sec) {
-    console.error(`A változáslistában nincs ${version} szakasz.`);
+  let post;
+  try {
+    post = build(arg);
+  } catch (e) {
+    console.error(e.message);
     process.exit(1);
   }
-  const status = compose(version, sec);
-  console.log(status);
-  console.log(`\n(${lenOf(status)} / ${LIMIT} karakter)`);
+  console.log(post.status);
+  const n = lenOf(post.status);
+  console.log(`\n(${n} / ${LIMIT} karakter)`);
+  if (n > LIMIT) {
+    console.error('Túl hosszú a bejegyzés.');
+    process.exit(1);
+  }
   if (flag !== '--post') return;
   const base = String(process.env.MASTODON_URL || '').replace(/\/+$/, '');
   const token = process.env.MASTODON_TOKEN || '';
@@ -70,13 +86,8 @@ async function main() {
   }
   const r = await fetch(`${base}/api/v1/statuses`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      // (ugyanarra a kiadásra csak egy poszt – az újrafuttatás nem duplikál)
-      'Idempotency-Key': `adas-release-${version}`,
-    },
-    body: JSON.stringify({ status, visibility: 'public', language: 'hu' }),
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'Idempotency-Key': post.key },
+    body: JSON.stringify({ status: post.status, visibility: 'public', language: 'en' }),
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) {

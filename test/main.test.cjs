@@ -416,19 +416,25 @@ test('media.freeBytes: a szabad hely szám (lekérdezhetetlen helyen végtelen)'
   assert.equal(freeBytes(path.join(os.tmpdir(), 'nincs-ilyen-mappa-' + Date.now())), Infinity);
 });
 
-test('Mastodon-bejegyzés: a változáslista szakaszából, legfeljebb 500 karakter, a hivatkozás 23-nak számít', async () => {
-  const { section, compose } = await import('../tools/mastodon-post.mjs');
-  const md = ['## Funkciók verziónként', '', '**Első cím (2.0.0)**', '- **Egy** – leírás.', '- Kettő: hosszabb leírás', '- **Három**', '', '**Régi (1.9.0)**', '- **Régi pont**'].join('\n');
-  const s = section(md, '2.0.0');
-  assert.deepEqual(s, { title: 'Első cím', leads: ['Egy', 'Kettő', 'Három'] });
-  assert.equal(section(md, '2.0.1'), null);
-  const t = compose('2.0.0', s);
-  assert.match(t, /^Megjelent az Adás 2\.0\.0!/);
-  assert.match(t, /• Egy\n• Kettő\n• Három/);
+test('Mastodon-bejegyzés: angolul, a Flathub-adatok kiadási pontjaiból, legfeljebb 500 karakter; egyedi bejegyzés csak a docs/mastodon mappából', async () => {
+  const { releaseNotes, compose, build, lenOf } = await import('../tools/mastodon-post.mjs');
+  const xml = `<releases><release version="2.0.0" date="2026-01-01"><description><ul><li>One &amp; two</li>
+    <li xml:lang="hu">Egy</li><li>Three</li></ul></description></release><release version="1.9.0"><description><ul><li>Old</li></ul></description></release></releases>`;
+  assert.deepEqual(releaseNotes(xml, '2.0.0'), ['One & two', 'Three']);
+  assert.equal(releaseNotes(xml, '2.0.1'), null);
+  const t = compose('2.0.0', releaseNotes(xml, '2.0.0'));
+  assert.match(t, /^Adás 2\.0\.0 is out!\n\n• One & two\n• Three\n/);
   assert.match(t, /releases\/tag\/v2\.0\.0/);
+  assert.match(t, /#OpenSource/);
   // (túl hosszú pontok: a végéről maradnak el, a poszt belefér)
-  const long = compose('2.0.0', { title: 'Cím', leads: Array.from({ length: 6 }, (_, i) => `${i} ` + 'x'.repeat(90)) });
-  assert.ok(long.replace(/https?:\/\/\S+/g, 'x'.repeat(23)).length <= 500);
+  const long = compose('2.0.0', Array.from({ length: 6 }, (_, i) => `${i} ` + 'x'.repeat(90)));
+  assert.ok(lenOf(long) <= 500);
   assert.match(long, /• 0 /);
   assert.doesNotMatch(long, /• 5 /);
+  // (a valódi adatok: az 1.34.0 kiadás és a bemutatkozó bejegyzés belefér; más mappából nem posztol)
+  assert.ok(lenOf(build('1.34.0').status) <= 500);
+  const intro = build('docs/mastodon/intro.txt');
+  assert.ok(intro.status.startsWith('Meet Adás') && lenOf(intro.status) <= 500);
+  assert.throws(() => build('README.md'), /docs\/mastodon/);
+  assert.throws(() => build('docs/mastodon/../../README.md'), /docs\/mastodon/);
 });

@@ -1,5 +1,6 @@
-# Kiadási bejegyzés a Mastodonra (tools/mastodon-post.mjs). A Kiadás munkafolyamat a sikeres kiadás után hívja;
-# kézzel is indítható (pl. egy korábbi kiadáshoz, vagy próbaként: csak kiírja a posztot).
+# Bejegyzés a Mastodonra, angolul (tools/mastodon-post.mjs). A Kiadás munkafolyamat a sikeres kiadás után hívja (a
+# pontok a Flathub-adatok <release> szakaszából); kézzel is indítható egy kiadáshoz vagy egy egyedi bejegyzéshez
+# (docs/mastodon/….txt) – próbaként csak kiírja a posztot.
 # Beállítás (a tároló tulajdonosa): Settings → Secrets and variables → Actions
 #   - változó (Variables): MASTODON_URL = a példány címe, pl. https://mastodon.social
 #   - titok (Secrets): MASTODON_TOKEN = egy csak „write:statuses” jogú hozzáférési kulcs (a Mastodonban:
@@ -19,7 +20,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Verzió (pl. 1.35.0)'
+        description: 'Verzió (pl. 1.35.0) vagy egyedi bejegyzés (pl. docs/mastodon/intro.txt)'
         type: string
         required: true
       post:
@@ -46,7 +47,7 @@ jobs:
           MASTODON_URL: ${{ vars.MASTODON_URL }}
           MASTODON_TOKEN: ${{ secrets.MASTODON_TOKEN }}
         run: |
-          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "::error::Érvénytelen verzió: $VERSION"; exit 1; fi
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ || "$VERSION" =~ ^docs/mastodon/[a-z0-9-]+\.txt$ ]]; then echo "::error::Érvénytelen verzió / bejegyzés: $VERSION"; exit 1; fi
           if [ "$POST" != "true" ]; then node tools/mastodon-post.mjs "$VERSION"; exit 0; fi
           if [ -z "$MASTODON_URL" ] || [ -z "$MASTODON_TOKEN" ]; then
             echo "::notice::Nincs beállítva MASTODON_URL / MASTODON_TOKEN – a Mastodon-bejegyzés kimarad."

@@ -93,12 +93,14 @@ az elkészült `ADAS.flatpak` letölthető, és `flatpak install --user ADAS.fla
 
 ### Kiadási bejegyzés a Mastodonra
 
-A sikeres kiadás után a *Kiadás* munkafolyamat a *Mastodon* munkafolyamattal (`mastodon.yml`) egy rövid posztot küld: a
-`docs/FUNKCIOK.md` adott verziójú szakaszának címe, a pontok kiemelt eleje és a kiadás oldala (`tools/mastodon-post.mjs`, legfeljebb
-500 karakter; ugyanarra a verzióra csak egyszer). Beállítás a tárolóban (Settings → Secrets and variables → Actions): változó
-`MASTODON_URL` (a példány, pl. `https://mastodon.social`) és titok `MASTODON_TOKEN` (a Mastodonban: Beállítások → Fejlesztés →
-Új alkalmazás, csak `write:statuses` joggal). Ha nincs beállítva, a lépés kimarad. Próba: `node tools/mastodon-post.mjs 1.35.0`
-(csak kiírja), vagy a munkafolyamat kézi indítása a *post* kapcsoló nélkül.
+A sikeres kiadás után a *Kiadás* munkafolyamat a *Mastodon* munkafolyamattal (`mastodon.yml`) egy rövid, **angol** posztot küld:
+„Adás X.Y.Z is out!”, a Flathub-adatok (`flatpak/…metainfo.xml`) adott verziójú `<release>` pontjai, a kiadás oldala és néhány
+CamelCase címke (`tools/mastodon-post.mjs`, legfeljebb 500 karakter; ugyanaz a poszt csak egyszer megy ki). **Kiadás előtt** ezért a
+`metainfo.xml`-be kell az új `<release>` sor, angol pontokkal – a Flathubnak is ez kell. Egyedi bejegyzés: egy szövegfájl a
+`docs/mastodon/` mappában (pl. `intro.txt`), a munkafolyamat kézi indításával. Beállítás a tárolóban (Settings → Secrets and
+variables → Actions): változó `MASTODON_URL` (a példány, pl. `https://mstdn.social`) és titok `MASTODON_TOKEN` (a Mastodonban:
+Beállítások → Fejlesztés → Új alkalmazás, csak `write:statuses` joggal). Ha nincs beállítva, a lépés kimarad. Próba:
+`node tools/mastodon-post.mjs 1.35.0` vagy `… docs/mastodon/intro.txt` (csak kiírja), vagy a kézi indítás a *post* kapcsoló nélkül.
 
 ## LG webOS TV (szünetel)
 
