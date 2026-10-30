@@ -948,9 +948,53 @@ final class Cast {
     String text = readBody(code >= 400 ? c.getErrorStream() != null ? c.getErrorStream() : new java.io.ByteArrayInputStream(new byte[0]) : c.getInputStream(), 256 * 1024);
     if (code < 200 || code >= 300) {
       String err = xmlTag(text, "errorDescription");
-      throw new Exception(err.isEmpty() ? action + ": HTTP " + code : err);
+      throw new UpnpException(err.isEmpty() ? action + ": HTTP " + code : err, xmlTag(text, "errorCode"));
     }
     return text;
+  }
+
+  /** UPnP-hiba a kódjával (pl. 701 = „Transition not available”). */
+  static final class UpnpException extends Exception {
+    final String code;
+
+    UpnpException(String msg, String code) {
+      super(msg);
+      this.code = code == null ? "" : code.trim();
+    }
+  }
+
+  /** (a java.util.function csak API 24-től van – a legkisebb támogatott változat 23) */
+  interface Flag {
+    boolean get();
+  }
+
+  /**
+   * Lejátszás indítása a SetAVTransportURI után (mint az asztali lan.js playWhenReady). Több vevő (pl. LG webOS) a cím
+   * átvétele után egy ideig TRANSITIONING állapotban van: a túl korai Play 701-es „Transition not available” hibát ad (közben
+   * a TV „nem ismerhető fel”-t ír), majd magától mégis elindul. Megvárjuk, amíg a vevő kész; ha közben magától elindult, nem
+   * küldünk Play-t; a 701-et legfeljebb 8 mp-ig újrapróbáljuk; ha a vevő ennyi idő után is átmeneti, még egy Play megy (a
+   * STOPPED-be kerülő vevő is induljon), és ha ez is hibát ad, hibát dobunk (az állapotlekérdezés ekkor is elindul).
+   */
+  static void playWhenReady(JSONObject av, Flag closed) throws Exception {
+    long end = System.currentTimeMillis() + 8000;
+    while (true) {
+      String state = "";
+      try {
+        state = xmlTag(soap(av, "GetTransportInfo", new String[][] {{"InstanceID", "0"}}), "CurrentTransportState").trim();
+      } catch (Exception ignored) {
+      }
+      if ("PLAYING".equals(state) || closed.get()) return;
+      if (!"TRANSITIONING".equals(state) || System.currentTimeMillis() >= end) {
+        try {
+          soap(av, "Play", new String[][] {{"InstanceID", "0"}, {"Speed", "1"}});
+          return;
+        } catch (Exception e) {
+          boolean busy = (e instanceof UpnpException && "701".equals(((UpnpException) e).code)) || String.valueOf(e.getMessage()).toLowerCase(java.util.Locale.ROOT).contains("transition");
+          if (!busy || System.currentTimeMillis() >= end) throw e;
+        }
+      }
+      Thread.sleep(500);
+    }
   }
 
   static final class DlnaSession implements Session {
@@ -992,9 +1036,17 @@ final class Cast {
       } catch (Exception ignored) {
       }
       soap(av, "SetAVTransportURI", new String[][] {{"InstanceID", "0"}, {"CurrentURI", url}, {"CurrentURIMetaData", didl}});
-      soap(av, "Play", new String[][] {{"InstanceID", "0"}, {"Speed", "1"}});
-      resetTrack();
+      try {
+        playWhenReady(av, () -> closed);
+      } finally {
+        // (sikertelen indításnál is: a vevő később magától elindulhat; a közben lezárt munkamenet nem kap lekérdezést)
+        resetTrack();
+        if (!closed) startPoll(av);
+      }
       emitState(id, "BUFFERING", null);
+    }
+
+    void startPoll(JSONObject av) {
       if (poll == null) {
         poll = new Thread(() -> {
           while (!closed) {

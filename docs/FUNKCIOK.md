@@ -55,6 +55,10 @@ távirányítóval is), például: Legutóbb nézett, Kedvenceid, Most a TV-ben,
 
 A legújabb változások elöl, a kiadások csökkenő verziószám szerint.
 
+**Megbízható kivetítés DLNA-ra, vezérlőpanel hibánál (1.35.1)**
+- **DLNA-kivetítés (pl. LG webOS TV)**: a vevő a cím átvétele után egy ideig „átmeneti” állapotban van – az Adás ezt kivárja, és a túl korai indításra adott „Transition not available” (701) választ újrapróbálja; ha a TV közben magától elindult, nem küld még egy indítást (asztalon és Androidon is).
+- **Kivetítési hiba után a kivetítés-panel marad** – a hibaüzenettel, *Újra* és (ha van) *Másik forrás* gombbal –, az „adás nem érhető el” képernyő helyett; ha a vevő mégis elindul, a hibaüzenet eltűnik.
+
 **Új felületstílusok, vezérlők a téma színeivel, Flatpak (1.35.0)**
 - **Onkai** (hangskála): egy digitális énekhang ritmusjátékainak hangulata – türkiz és rózsaszín fények, kottavonalak, hangjegyek, ütemre lüktető kártyák.
 - **Roji** (sikátor): éjszakai városi utca – figyelmeztető sárga, savas zöld, kordonszalag, raszterpöttyök, ferde matricakártyák.

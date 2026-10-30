@@ -23,13 +23,13 @@ const root = $('#player');
 const video = $('#video');
 
 const CAST_ICON = '<svg viewBox="0 0 24 24"><path d="M21 3H3a2 2 0 0 0-2 2v3h2V5h18v14h-7v2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2ZM1 18v3h3a3 3 0 0 0-3-3Zm0-4v2a5 5 0 0 1 5 5h2a7 7 0 0 0-7-7Zm0-4v2a9 9 0 0 1 9 9h2A11 11 0 0 0 1 10Z"/></svg>';
-const STATE_TEXT = { PLAYING: _t('Lejátszás@@állapot'), PAUSED: _t('Szüneteltetve'), BUFFERING: _t('Betöltés…'), IDLE: _t('Várakozik'), LOADING: _t('Csatlakozás…') };
+const STATE_TEXT = { PLAYING: _t('Lejátszás@@állapot'), PAUSED: _t('Szüneteltetve'), BUFFERING: _t('Betöltés…'), IDLE: _t('Várakozik'), LOADING: _t('Csatlakozás…'), ERROR: _t('Nem indult el') };
 
 function overlay() {
   let el = $('.p-cast', root);
   if (!el) {
     el = html(`<div class="p-cast" hidden><div class="pc-ico">${CAST_ICON}</div><div class="pc-text"></div>
-      <div class="dialog-btns"><button class="btn" data-pc="toggle"></button><button class="btn" data-pc="voldown" title="${_t('Halkabban')}">−</button><button class="btn" data-pc="volup" title="${_t('Hangosabban')}">+</button><button class="btn primary" data-pc="stop">${_t('Kivetítés leállítása')}</button></div></div>`);
+      <div class="dialog-btns"><button class="btn white" data-pc="retry" hidden>${_t('Újra')}</button><button class="btn" data-pc="next" hidden>${_t('Másik forrás')}</button><button class="btn" data-pc="toggle"></button><button class="btn" data-pc="voldown" title="${_t('Halkabban')}">−</button><button class="btn" data-pc="volup" title="${_t('Hangosabban')}">+</button><button class="btn primary" data-pc="stop">${_t('Kivetítés leállítása')}</button></div></div>`);
     root.insertBefore(el, $('.p-top', root));
     el.addEventListener('click', (e) => {
       const a = e.target.closest('[data-pc]')?.dataset.pc;
@@ -37,6 +37,14 @@ function overlay() {
       e.stopPropagation();
       if (a === 'toggle') hooks.toggle();
       else if (a === 'stop') stopCast(true);
+      else if (a === 'retry' || a === 'next') {
+        // (kivetítési hiba után: ugyanez a forrás újra, ill. a csatorna következő forrása – a lejátszó adja)
+        const act = state.failActs?.[a];
+        state.error = '';
+        state.failActs = null;
+        drawOverlay();
+        act?.();
+      }
       else if (a === 'volup' || a === 'voldown') {
         state.volume = Math.max(0, Math.min(1, (state.volume ?? 0.5) + (a === 'volup' ? 0.1 : -0.1)));
         api.castControl('volume', state.volume);
@@ -60,8 +68,11 @@ function drawOverlay() {
   el.querySelector('.pc-text').innerHTML = `<div class="muted small">${_t('Kivetítve ide')}</div>
     <h2>${esc(state.device.name)}</h2>
     <div>${esc(ch?.vod?.title || ch?.name || '')}${n?.cur ? ` · ${esc(n.cur.title)}` : ''}</div>
-    <div class="muted small">${esc(STATE_TEXT[state.status] || state.status || '')}${state.device.kind === 'dlna' ? ' · DLNA' : ' · Chromecast'}</div>`;
+    <div class="muted small">${esc(STATE_TEXT[state.status] || state.status || '')}${state.device.kind === 'dlna' ? ' · DLNA' : ' · Chromecast'}</div>
+    ${state.error ? `<div class="pc-err" role="alert">${esc(state.error)}</div>` : ''}`;
   el.querySelector('[data-pc="toggle"]').textContent = state.paused ? _t('▶ Folytatás') : _t('❚❚ Szünet');
+  el.querySelector('[data-pc="retry"]').hidden = !state.failActs?.retry;
+  el.querySelector('[data-pc="next"]').hidden = !state.failActs?.next;
 }
 
 async function scan(listEl) {
@@ -191,6 +202,17 @@ const hooks = {
     else this.setVolume(state.muteVol || 0.5);
   },
   menu: openMenu,
+  /**
+   * A kivetítés nem indult el (a lejátszó hívja): a kivetítés-panel marad, a hibával és a teendőkkel (acts: { retry, next }
+   * – Újra / Másik forrás), az „adás nem érhető el” képernyő helyett – a vevő gyakran mégis elindul, ill. vezérelhető marad.
+   */
+  failed(err, acts = {}) {
+    if (!state.device) return;
+    state.status = 'ERROR';
+    state.error = errText(err);
+    state.failActs = acts;
+    drawOverlay();
+  },
   async load(ch, stream, at = 0) {
     const n = !ch.vod ? epg.now(ch.id) : null;
     // (H15 / H29) új tartalom = új munkamenet: a pozíció a kezdőpont (nem az előző filmé), a régi tekerés érvénytelen
@@ -202,6 +224,8 @@ const hooks = {
     state.savedAt = 0;
     if ((ch.vod?.key || '') !== state.durKey) (state.dur = 0), (state.durKey = ch.vod?.key || '');
     state.status = 'LOADING';
+    state.error = '';
+    state.failActs = null;
     drawOverlay();
     const opts = {
       deviceId: state.device.id,
@@ -277,6 +301,9 @@ if (api.onCastStatus) {
     // (H29) egy korábbi tartalom (A → B váltás előtti munkamenet) késői állapota: nem írja B idejét, haladását
     if (typeof s.gen === 'number' && s.gen !== state.gen) return;
     state.status = s.state;
+    // (a vevő mégis elindult – pl. a betöltési hiba után magától: a hibaüzenet és a teendők eltűnnek; a BUFFERING
+    // nem elég – a DLNA-vevő TRANSITIONING állapota is az, a lejátszás attól még nem indult el)
+    if (s.state === 'PLAYING' || s.state === 'PAUSED') (state.error = ''), (state.failActs = null);
     if (s.state === 'PAUSED') state.paused = true;
     if (s.state === 'PLAYING') state.paused = false;
     bus.emit('cast-state'); // (a gyerek nézési ideje a vevőn indított szünetnél / folytatásnál is pontos – B09)

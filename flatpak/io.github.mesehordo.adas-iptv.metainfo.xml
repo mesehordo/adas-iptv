@@ -110,6 +110,15 @@
   </keywords>
 
   <releases>
+    <release version="1.35.1" date="2026-10-30">
+      <url type="details">https://github.com/mesehordo/adas-iptv/releases/tag/v1.35.1</url>
+      <description>
+        <ul>
+          <li>Casting to DLNA TVs (e.g. LG webOS) starts reliably: Adás waits until the TV is ready</li>
+          <li>If casting fails, the cast controls stay on screen with Retry, and Other source when another stream is available</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.35.0" date="2026-10-30">
       <url type="details">https://github.com/mesehordo/adas-iptv/releases/tag/v1.35.0</url>
       <description>
