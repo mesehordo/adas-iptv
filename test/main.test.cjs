@@ -435,6 +435,11 @@ test('Mastodon-bejegyzés: angolul, a Flathub-adatok kiadási pontjaiból, legfe
   assert.ok(lenOf(build('1.34.0').status) <= 500);
   const intro = build('docs/mastodon/intro.txt');
   assert.ok(intro.status.startsWith('Meet Adás') && lenOf(intro.status) <= 500);
+  // (jelölés a ponton belül: sima szöveg; csak magyar ponttal a kiadás üres – a build ezt elutasítja; az emoji egy karakter)
+  assert.deepEqual(releaseNotes('<release version="3.0.0"><ul><li>A <em>b</em> &lt;c&gt;</li></ul></release>', '3.0.0'), ['A b c']);
+  assert.deepEqual(releaseNotes('<release version="3.0.0"><ul><li xml:lang="hu">Csak magyar</li></ul></release>', '3.0.0'), []);
+  assert.equal(lenOf('📺'), 1);
+  assert.equal(lenOf('see https://example.com/very/long/path'), 4 + 23);
   assert.throws(() => build('README.md'), /docs\/mastodon/);
   assert.throws(() => build('docs/mastodon/../../README.md'), /docs\/mastodon/);
 });

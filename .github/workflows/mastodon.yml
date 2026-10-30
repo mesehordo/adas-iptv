@@ -14,6 +14,10 @@ on:
       version:
         type: string
         required: true
+      # (a hívó – a Kiadás – mindig posztol, akkor is, ha a kiadást kézzel indították)
+      post:
+        type: boolean
+        default: true
     secrets:
       MASTODON_TOKEN:
         required: false
@@ -42,11 +46,13 @@ jobs:
       - name: Bejegyzés
         env:
           VERSION: ${{ inputs.version }}
-          # (a hívó kiadásból mindig posztol; kézi indításnál csak bekapcsolva)
-          POST: ${{ github.event_name != 'workflow_dispatch' || inputs.post }}
+          # (hívásnál alapból igen; kézi indításnál csak bekapcsolva)
+          POST: ${{ inputs.post }}
           MASTODON_URL: ${{ vars.MASTODON_URL }}
           MASTODON_TOKEN: ${{ secrets.MASTODON_TOKEN }}
         run: |
+          # (előzetes kiadás – pl. 1.35.0-beta.1 – nem kerül a Mastodonra; a kiadás ettől nem hibás)
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+[-.] ]]; then echo "::notice::Előzetes kiadás ($VERSION) – a Mastodon-bejegyzés kimarad."; exit 0; fi
           if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ || "$VERSION" =~ ^docs/mastodon/[a-z0-9-]+\.txt$ ]]; then echo "::error::Érvénytelen verzió / bejegyzés: $VERSION"; exit 1; fi
           if [ "$POST" != "true" ]; then node tools/mastodon-post.mjs "$VERSION"; exit 0; fi
           if [ -z "$MASTODON_URL" ] || [ -z "$MASTODON_TOKEN" ]; then

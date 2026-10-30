@@ -20,12 +20,18 @@ const URL_LEN = 23;
 // (CamelCase címkék – a képernyőolvasók így szavanként olvassák fel; kevés, de kereshető)
 export const TAGS = '#Adás #IPTV #OpenSource #FOSS #Linux';
 
-/** Egy pont sima szövegként: a jelölések nélkül (amíg van mit levenni), a karakterhivatkozások feloldva, kacsacsőr nélkül. */
+/** Egy pont sima szövegként: a jelölések nélkül (karakterenként, a < … > közti rész kimarad), a karakterhivatkozások
+ *  feloldva, kacsacsőr nélkül (a poszt sima szöveg – a Mastodon maga escape-el). */
 const unxml = (s) => {
-  let t = s;
-  for (let prev = ''; prev !== t; ) [prev, t] = [t, t.replace(/<[^<>]*>/g, '')];
-  const ent = { lt: '<', gt: '>', quot: '"', apos: "'", amp: '&' };
-  return t.replace(/&(lt|gt|quot|apos|amp);/g, (_, k) => ent[k]).replace(/[<>]/g, '').replace(/\s+/g, ' ').trim();
+  let t = '';
+  let inTag = false;
+  for (const ch of s) {
+    if (ch === '<') inTag = true;
+    else if (ch === '>') inTag = false;
+    else if (!inTag) t += ch;
+  }
+  const ent = { lt: '', gt: '', quot: '"', apos: "'", amp: '&' };
+  return t.replace(/&(lt|gt|quot|apos|amp);/g, (_, k) => ent[k]).replace(/\s+/g, ' ').trim();
 };
 
 /** A kiadás angol pontjai a metainfo.xml-ből (a fordítások – xml:lang – nélkül); null, ha nincs ilyen kiadás. */
@@ -36,7 +42,8 @@ export function releaseNotes(xml, version) {
   return [...rel[2].matchAll(/<li>([\s\S]*?)<\/li>/g)].map((x) => unxml(x[1])).filter(Boolean);
 }
 
-export const lenOf = (s) => s.replace(/https?:\/\/\S+/g, 'x'.repeat(URL_LEN)).length;
+/** A hossz úgy, ahogy a Mastodon számolja: kódpontonként (egy emoji egy), a hivatkozás 23 karakter. */
+export const lenOf = (s) => [...s.replace(/https?:\/\/\S+/g, 'x'.repeat(URL_LEN))].length;
 
 /** A kiadási poszt (legfeljebb LIMIT karakter: a pontok a végéről maradnak el). */
 export function compose(version, notes) {
@@ -49,11 +56,12 @@ export function compose(version, notes) {
   return text();
 }
 
-/** A poszt és az egyszeri küldés kulcsa (ugyanaz a poszt újrafuttatáskor sem megy ki kétszer). */
+/** A poszt és a küldés kulcsa (Idempotency-Key: a Mastodon egy órán belül nem fogad el kétszer ugyanazzal a kulccsal). */
 export function build(arg) {
   if (/^\d+\.\d+\.\d+$/.test(arg)) {
     const notes = releaseNotes(fs.readFileSync(METAINFO, 'utf8'), arg);
     if (!notes) throw new Error(`A Flathub-adatokban (metainfo.xml) nincs ${arg} kiadás.`);
+    if (!notes.length) throw new Error(`A Flathub-adatokban a ${arg} kiadásnak nincs angol pontja (<li> xml:lang nélkül).`);
     return { status: compose(arg, notes), key: `adas-release-${arg}` };
   }
   // (egyedi bejegyzés: csak a docs/mastodon/ mappából)
@@ -65,8 +73,8 @@ export function build(arg) {
 }
 
 async function main() {
-  const [arg, flag] = process.argv.slice(2);
-  if (!arg) {
+  const [arg, flag, ...rest] = process.argv.slice(2);
+  if (!arg || (flag !== undefined && flag !== '--post') || rest.length) {
     console.error('Használat: node tools/mastodon-post.mjs <verzió | docs/mastodon/….txt> [--post]');
     process.exit(2);
   }
