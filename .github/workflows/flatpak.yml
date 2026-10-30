@@ -46,9 +46,9 @@ jobs:
         run: flatpak run --command=flatpak-builder-lint org.flatpak.Builder --exceptions --user-exceptions flatpak/lint-exceptions.json repo repo
       - name: Indítási próba
         run: |
-          # (25 másodpercig futnia kell összeomlás nélkül; a timeout 124-es kilépése a jó eset)
+          # (25 másodpercig futnia kell összeomlás nélkül; a timeout 124-es kilépése a jó eset; a zypak munkamenet-buszt kér)
           set +e
-          xvfb-run -a timeout 25 flatpak run --user io.github.mesehordo.adas-iptv > run.log 2>&1
+          xvfb-run -a dbus-run-session -- timeout 25 flatpak run --user io.github.mesehordo.adas-iptv > run.log 2>&1
           rc=$?
           tail -n 40 run.log
           if [ "$rc" -ne 124 ]; then echo "::error::Az Adás $rc kóddal kilépett 25 másodpercen belül."; exit 1; fi
