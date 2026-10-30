@@ -2949,5 +2949,6 @@ export default {
  "⌕ Felfedezés": "⌕ Discover",
  "Csatornák felfedezése": "Discover channels",
  "Lejátszólisták és csoportok": "Playlists and groups",
- "Kiváló (256 kbps vagy több)": "Excellent (256 kbps or more)"
+ "Kiváló (256 kbps vagy több)": "Excellent (256 kbps or more)",
+ "A Flathubról telepített Adást a Flathub frissíti (a Szoftverközpontban vagy a „flatpak update” paranccsal).": "Adás installed from Flathub is updated by Flathub (in your software centre or with the “flatpak update” command)."
 };

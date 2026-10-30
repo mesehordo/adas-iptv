@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Adás
+Comment=Live TV, radio and podcast player for public channel lists
+Comment[hu]=Élő TV-, rádió- és podcastlejátszó nyilvános csatornalistákhoz
+Exec=adas %U
+Terminal=false
+Type=Application
+Icon=io.github.mesehordo.adas-iptv
+StartupWMClass=ADAS
+Categories=AudioVideo;Video;Player;TV;
+Keywords=tv;iptv;live;radio;podcast;epg;
+Keywords[hu]=tv;iptv;élő;televízió;műsor;rádió;podcast;

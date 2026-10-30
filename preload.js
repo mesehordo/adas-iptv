@@ -5,7 +5,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('api', {
   native: true,
   platform: 'desktop',
-  caps: { mini: true, fullscreen: true, files: true, external: true, health: true, preview: true, exit: false, folders: true, cast: true, share: true, update: true, nightAudio: true, background: true },
+  caps: { mini: true, fullscreen: true, files: true, external: true, health: true, preview: true, exit: false, folders: true, cast: true, share: true, update: !process.env.FLATPAK_ID, nightAudio: true, background: true },
   exit: () => {},
   request: (opts) => ipcRenderer.invoke('http-request', opts),
   requestBytes: (url, headers) => ipcRenderer.invoke('http-request', { url, headers, binary: true }),
