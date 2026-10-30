@@ -972,7 +972,8 @@ final class Cast {
    * Lejátszás indítása a SetAVTransportURI után (mint az asztali lan.js playWhenReady). Több vevő (pl. LG webOS) a cím
    * átvétele után egy ideig TRANSITIONING állapotban van: a túl korai Play 701-es „Transition not available” hibát ad (közben
    * a TV „nem ismerhető fel”-t ír), majd magától mégis elindul. Megvárjuk, amíg a vevő kész; ha közben magától elindult, nem
-   * küldünk Play-t; a 701-et legfeljebb 8 mp-ig újrapróbáljuk; ha a vevő ennyi idő után is átmeneti, nem hiba.
+   * küldünk Play-t; a 701-et legfeljebb 8 mp-ig újrapróbáljuk; ha a vevő ennyi idő után is átmeneti, még egy Play megy (a
+   * STOPPED-be kerülő vevő is induljon), és ha ez is hibát ad, hibát dobunk (az állapotlekérdezés ekkor is elindul).
    */
   static void playWhenReady(JSONObject av, Flag closed) throws Exception {
     long end = System.currentTimeMillis() + 8000;
@@ -983,7 +984,7 @@ final class Cast {
       } catch (Exception ignored) {
       }
       if ("PLAYING".equals(state) || closed.get()) return;
-      if (!"TRANSITIONING".equals(state)) {
+      if (!"TRANSITIONING".equals(state) || System.currentTimeMillis() >= end) {
         try {
           soap(av, "Play", new String[][] {{"InstanceID", "0"}, {"Speed", "1"}});
           return;
@@ -991,7 +992,7 @@ final class Cast {
           boolean busy = (e instanceof UpnpException && "701".equals(((UpnpException) e).code)) || String.valueOf(e.getMessage()).toLowerCase(java.util.Locale.ROOT).contains("transition");
           if (!busy || System.currentTimeMillis() >= end) throw e;
         }
-      } else if (System.currentTimeMillis() >= end) return;
+      }
       Thread.sleep(500);
     }
   }
@@ -1035,9 +1036,17 @@ final class Cast {
       } catch (Exception ignored) {
       }
       soap(av, "SetAVTransportURI", new String[][] {{"InstanceID", "0"}, {"CurrentURI", url}, {"CurrentURIMetaData", didl}});
-      playWhenReady(av, () -> closed);
-      resetTrack();
+      try {
+        playWhenReady(av, () -> closed);
+      } finally {
+        // (sikertelen indításnál is: a vevő később magától elindulhat; a közben lezárt munkamenet nem kap lekérdezést)
+        resetTrack();
+        if (!closed) startPoll(av);
+      }
       emitState(id, "BUFFERING", null);
+    }
+
+    void startPoll(JSONObject av) {
       if (poll == null) {
         poll = new Thread(() -> {
           while (!closed) {

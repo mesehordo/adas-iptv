@@ -479,14 +479,14 @@ test('DLNA: a cím átvétele után a vevő átmeneti állapotát (TRANSITIONING
       if (a === 'GetTransportInfo') {
         info++;
         // (LG: két lekérdezésig átmeneti, utána kész; „auto”: magától elindult)
-        const st = mode === 'auto' ? 'PLAYING' : info <= 2 ? 'TRANSITIONING' : 'STOPPED';
+        const st = mode === 'auto' ? 'PLAYING' : mode === 'stuck' || info <= 2 ? 'TRANSITIONING' : 'STOPPED';
         return res.end(`<r><CurrentTransportState>${st}</CurrentTransportState></r>`);
       }
       if (a === 'Play') {
         plays++;
         res.statusCode = 500;
         if (mode === 'mime') return res.end(fault(714, 'Illegal MIME-type'));
-        if (plays === 1) return res.end(fault(701, 'Transition not available'));
+        if (plays === 1 || mode === 'stuck') return res.end(fault(701, 'Transition not available'));
         res.statusCode = 200;
       }
       res.end('<ok/>');
@@ -509,4 +509,15 @@ test('DLNA: a cím átvétele után a vevő átmeneti állapotát (TRANSITIONING
   (mode = 'mime'), (plays = 0), (info = 10);
   await assert.rejects(s.load(media), /Illegal MIME-type/);
   assert.equal(plays, 1);
+  assert.ok(s.poll, 'sikertelen indítás után is fut az állapotlekérdezés (a vevő magától is elindulhat)');
+  // (a határidő után is átmeneti vevő: még egy Play, és ha az is 701, hiba – nem csendes „siker”)
+  (mode = 'stuck'), (plays = 0);
+  await assert.rejects(lan._test.playWhenReady(dev.av, () => false, 300, 50), /Transition not available/);
+  assert.equal(plays, 1);
+  // (a betöltés közben lezárt munkamenet nem kap új lekérdezést)
+  (mode = 'auto'), (s.closed = true);
+  clearInterval(s.poll);
+  s.poll = null;
+  await s.load(media);
+  assert.equal(s.poll, null);
 });

@@ -229,9 +229,10 @@ export const player = {
         // (a kivetítés-panel marad a hibával – Újra / Másik forrás –, nem az „adás nem érhető el” képernyő: a vevő
         // gyakran mégis elindul, és a kivetítés vezérelhető marad; a kapcsolat nélküli eszköznél a szokásos tartalék)
         if (!this.castHooks?.active) return this.fallback(err);
-        const more = (ch.vod ? ch.streams : orderedStreams(ch)).some((s) => !this.tried.has(s.url));
+        // (a Másik forrás az automatikus tartalék beállításától függetlenül a következő kipróbálatlan forrást indítja)
+        const next = (ch.vod ? ch.streams : orderedStreams(ch)).find((s) => !this.tried.has(s.url));
         this.setLoading(false);
-        this.castHooks.failed(err, { retry: () => this.tryStream(stream), next: more ? () => this.fallback(err) : null });
+        this.castHooks.failed(err, { retry: () => this.tryStream(stream), next: next ? () => this.tryStream(next) : null });
         this.renderControls();
       }
       return;

@@ -115,7 +115,7 @@
       <description>
         <ul>
           <li>Casting to DLNA TVs (e.g. LG webOS) starts reliably: Adás waits until the TV is ready</li>
-          <li>If casting fails, the cast controls stay on screen with Retry and Other source</li>
+          <li>If casting fails, the cast controls stay on screen with Retry, and Other source when another stream is available</li>
         </ul>
       </description>
     </release>

@@ -301,8 +301,9 @@ if (api.onCastStatus) {
     // (H29) egy korábbi tartalom (A → B váltás előtti munkamenet) késői állapota: nem írja B idejét, haladását
     if (typeof s.gen === 'number' && s.gen !== state.gen) return;
     state.status = s.state;
-    // (a vevő mégis elindult – pl. a betöltési hiba után magától: a hibaüzenet és a teendők eltűnnek)
-    if (s.state === 'PLAYING' || s.state === 'PAUSED' || s.state === 'BUFFERING') (state.error = ''), (state.failActs = null);
+    // (a vevő mégis elindult – pl. a betöltési hiba után magától: a hibaüzenet és a teendők eltűnnek; a BUFFERING
+    // nem elég – a DLNA-vevő TRANSITIONING állapota is az, a lejátszás attól még nem indult el)
+    if (s.state === 'PLAYING' || s.state === 'PAUSED') (state.error = ''), (state.failActs = null);
     if (s.state === 'PAUSED') state.paused = true;
     if (s.state === 'PLAYING') state.paused = false;
     bus.emit('cast-state'); // (a gyerek nézési ideje a vevőn indított szünetnél / folytatásnál is pontos – B09)
