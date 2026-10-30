@@ -26,7 +26,7 @@ jobs:
       - name: Eszközök
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q flatpak flatpak-builder xvfb
+          sudo apt-get install -y -q flatpak flatpak-builder ostree xvfb
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install -y --user --noninteractive flathub org.flatpak.Builder
       - name: A leírófájl ellenőrzése
@@ -35,8 +35,11 @@ jobs:
         run: |
           # (a gépre telepített flatpak-builderrel – a homokozós org.flatpak.Builder nem látja a felhasználói telepítést;
           # a Flathub-ellenőrzés marad az org.flatpak.Builderé)
+          # (a képernyőképeket a Flathub a saját tükrére teszi – a csomagellenőrzés ezt várja, ezért itt is úgy készül)
           flatpak-builder --user --install-deps-from=flathub --disable-rofiles-fuse --force-clean \
-            --repo=repo --install build flatpak/io.github.mesehordo.adas-iptv.yml
+            --mirror-screenshots-url=https://dl.flathub.org/media/ --repo=repo --install build flatpak/io.github.mesehordo.adas-iptv.yml
+          mkdir -p build/files/share/app-info/media
+          ostree commit --repo=repo --canonical-permissions --branch=screenshots/$(uname -m) build/files/share/app-info/media
       - name: A kész csomag ellenőrzése
         run: flatpak run --command=flatpak-builder-lint org.flatpak.Builder repo repo
       - name: Indítási próba
