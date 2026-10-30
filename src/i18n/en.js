@@ -2949,5 +2949,16 @@ export default {
  "⌕ Felfedezés": "⌕ Discover",
  "Csatornák felfedezése": "Discover channels",
  "Lejátszólisták és csoportok": "Playlists and groups",
- "Kiváló (256 kbps vagy több)": "Excellent (256 kbps or more)"
+ "Kiváló (256 kbps vagy több)": "Excellent (256 kbps or more)",
+ "Onkai (hangskála): egy digitális énekhang ritmusjátékainak hangulata – mélytürkiz alap, türkiz és rózsaszín fények, kottavonalak és hangjegyek, hangszínszabályzó-sávok, ütemre lüktető kártyák.": "Onkai (musical scale): the mood of a digital singing voice’s rhythm games – deep teal background, teal and pink lights, staff lines and notes, equaliser bars, cards that pulse to the beat.",
+ "Roji (sikátor): éjszakai városi utca – fekete beton, figyelmeztető sárga, savas zöld és matricarózsaszín, csíkos kordonszalag, raszterpöttyök, ferde vastag betűk, felragasztott matricakártyák.": "Roji (back alley): a city street at night – black concrete, warning yellow, acid green and sticker pink, striped cordon tape, halftone dots, slanted heavy letters, stuck-on sticker cards.",
+ "Dennō (elektronikus agy): egy kiberváros hálózati felülete – zöldes-fekete alap, zöld adatfény és hideg cián, áramköri vezetékek, célzókeret-sarkok, ritkított feliratok, villogó kurzor.": "Dennō (electronic brain): the network interface of a cyber city – greenish-black background, green data light and cold cyan, circuit traces, targeting-frame corners, spaced-out labels, a blinking cursor.",
+ "Citrus": "Citrus",
+ "Cseresznyevirág": "Cherry blossom",
+ "Neonéjszaka": "Neon night",
+ "Savas": "Acid",
+ "Villanykék": "Electric blue",
+ "Hideg cián": "Cold cyan",
+ "Ibolya háló": "Violet net",
+ "Riasztás": "Alert"
 };

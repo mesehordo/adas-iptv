@@ -397,6 +397,27 @@ export const THEME_VARIANTS = {
     // vészhelyzet: vörös sávok
     L('redalert', () => _t('Vörös riadó'), ['#ff3300', '#ff6644', '#cc6666', '#e98181', '#ff9988', '#ffccbb', '#ff6644', '#e98181']),
   ],
+  // Onkai: a türkiz–rózsaszín páros más színpadi fénypárokban
+  onkai: [
+    V('citrus', () => _t('Citrus'), [[188, 100], [355, 55]]),
+    V('sakura', () => _t('Cseresznyevirág'), [[188, 350], [355, 300]]),
+    V('ocean', () => _t('Mélytenger'), [[188, 245], [355, 200]]),
+    V('mint', () => _t('Menta'), [[188, 150], [355, 100]], { chroma: 0.9 }),
+  ],
+  // Roji: a figyelmeztető sárga / savas zöld / matricarózsaszín hármas más utcai színekben
+  roji: [
+    V('neon', () => _t('Neonéjszaka'), [[94, 350], [129, 200], [8, 94]]),
+    V('acid', () => _t('Savas'), [[94, 129], [129, 94], [8, 300]]),
+    V('electric', () => _t('Villanykék'), [[94, 220], [129, 160], [8, 320]]),
+    V('rust', () => _t('Rozsda'), [[94, 55], [129, 95], [8, 25]], { chroma: 0.85 }),
+  ],
+  // Dennō: a hálózati felület más üzemmódszínei
+  denno: [
+    V('ice', () => _t('Hideg cián'), [[160, 220], [221, 260]]),
+    V('amber', () => _t('Borostyán'), [[160, 75], [221, 45]]),
+    V('violet', () => _t('Ibolya háló'), [[160, 295], [221, 330]]),
+    V('alert', () => _t('Riasztás'), [[160, 25], [221, 355]]),
+  ],
 };
 
 // ---------------------------------------------------------------- a szabályok átszínezése

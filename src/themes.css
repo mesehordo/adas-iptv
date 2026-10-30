@@ -1796,3 +1796,174 @@ body[data-theme="yami"] {
 [data-theme="yami"] .dcard::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 9px; pointer-events: none;
   background: radial-gradient(circle at 9px 9px, rgba(247, 231, 216, 0.4) 0 5px, rgba(247, 231, 216, 0.14) 5.5px 6.5px, transparent 7px) 0 0 / 18px 9px repeat-x; }
 [data-theme="yami"] .dc-title::after { content: ''; display: inline-block; flex: none; width: 20px; height: 20px; background: var(--skull) center / contain no-repeat; }
+
+/* ======================================================================
+   Onkai (hangskála) – egy digitális énekhang ritmusjátékainak hangulata: mélytürkiz alap, türkiz és rózsaszín
+   fények, kottavonalak és hangjegyek a háttérben, hangszínszabályzó-sávok, „ütemre” lüktető kártyák
+   ====================================================================== */
+body[data-theme="onkai"] {
+  --bg: #0a1416; --bg-2: #0e1d20; --bg-3: #14292d; --bg-4: #1b353a; --line: #24474d;
+  --text: #e2f7f5; --text-strong: #ffffff; --muted: #8cbfba;
+  --accent: #39c5bb; --accent-2: #7fe3dc; --pink: #ff5aa8; --pink-2: #ff9ccb; --ink: #06100f; --radius: 12px; --focus: #39c5bb;
+  --onkai-font: 'Adas Fredoka', 'M PLUS Rounded 1c', 'Varela Round', 'Nunito', 'Arial Rounded MT Bold', system-ui, sans-serif;
+  /* (hangjegypár és hangszínszabályzó – a díszek) */
+  --note: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cpath d='M30 52a6 6 0 1 1-4-5.6V24l22-5v24a6 6 0 1 1-4-5.6V27.4l-14 3.2Z' fill='%2339c5bb' fill-opacity='.07'/%3E%3Cpath d='M104 108a5 5 0 1 1-3.4-4.7V86l3.4-1Z' fill='%23ff5aa8' fill-opacity='.06'/%3E%3Cpath d='M104 85c4 1 8 4 8 9' fill='none' stroke='%23ff5aa8' stroke-opacity='.06' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
+  --eq: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 16'%3E%3Crect x='0' y='7' width='4' height='9' rx='1.5' fill='%2339c5bb'/%3E%3Crect x='6' y='2' width='4' height='14' rx='1.5' fill='%237fe3dc'/%3E%3Crect x='12' y='5' width='4' height='11' rx='1.5' fill='%23ff5aa8'/%3E%3Crect x='18' y='9' width='4' height='7' rx='1.5' fill='%2339c5bb'/%3E%3C/svg%3E");
+  background-color: #0a1416;
+  /* (hangjegyek rácsban, ötvonalas kottasávok, türkiz és rózsaszín fényfoltok) */
+  background-image: var(--note),
+    repeating-linear-gradient(180deg, transparent 0 150px, rgba(57, 197, 187, 0.06) 150px 151px, transparent 151px 158px, rgba(57, 197, 187, 0.06) 158px 159px, transparent 159px 166px, rgba(57, 197, 187, 0.06) 166px 167px, transparent 167px 174px, rgba(57, 197, 187, 0.06) 174px 175px, transparent 175px 182px, rgba(57, 197, 187, 0.06) 182px 183px, transparent 183px 300px),
+    radial-gradient(ellipse at 8% -5%, rgba(57, 197, 187, 0.28) 0, transparent 50%), radial-gradient(ellipse at 100% 100%, rgba(255, 90, 168, 0.18) 0, transparent 45%), linear-gradient(180deg, #0a1416, #08191b);
+  background-size: 140px 140px, auto, auto, auto, auto; background-attachment: fixed;
+}
+[data-theme="onkai"] h1, [data-theme="onkai"] h2, [data-theme="onkai"] .row-title, [data-theme="onkai"] .dc-title, [data-theme="onkai"] .brand, [data-theme="onkai"] .links a, [data-theme="onkai"] .btn { font-family: var(--onkai-font); }
+[data-theme="onkai"] #nav.solid { background: rgba(10, 20, 22, 0.94); border-bottom: 3px solid transparent; border-image: linear-gradient(90deg, var(--accent), var(--accent-2) 45%, var(--pink)) 1; }
+[data-theme="onkai"] .brand { color: var(--accent); transform: none; font-weight: 700; letter-spacing: 0.04em; text-shadow: 0 0 14px rgba(57, 197, 187, 0.6), 2px 2px 0 rgba(255, 90, 168, 0.55); }
+[data-theme="onkai"] .links a { font-weight: 600; }
+[data-theme="onkai"] .links a:hover, [data-theme="onkai"] .links a.active { color: var(--accent-2); }
+[data-theme="onkai"] .links a.active::after { background: linear-gradient(90deg, var(--accent), var(--pink)); }
+[data-theme="onkai"] .hero { border-radius: 18px; border: 1px solid var(--line); }
+[data-theme="onkai"] .hero-slide { background: linear-gradient(135deg, #0f4a47 0%, #142a40 55%, #3a1430 100%); }
+[data-theme="onkai"] .hero-shade { background: linear-gradient(90deg, rgba(10, 20, 22, 0.95) 0%, rgba(10, 20, 22, 0.55) 45%, transparent 80%); }
+[data-theme="onkai"] .hero h1 { color: var(--text-strong); text-shadow: 0 0 18px rgba(57, 197, 187, 0.55); }
+/* gombok: lekerekített türkiz, rámutatásra rózsaszín */
+[data-theme="onkai"] .btn { border-radius: 999px; font-weight: 600; }
+[data-theme="onkai"] .btn.white, [data-theme="onkai"] .btn.primary { background: linear-gradient(180deg, var(--accent-2), var(--accent)); color: var(--ink); box-shadow: 0 0 0 2px rgba(57, 197, 187, 0.25), 0 6px 16px -8px rgba(57, 197, 187, 0.9); }
+[data-theme="onkai"] .btn.primary:hover, [data-theme="onkai"] .btn.white:hover { background: linear-gradient(180deg, var(--pink-2), var(--pink)); color: #2a0618; }
+[data-theme="onkai"] .row-title { color: var(--text-strong); font-weight: 600; }
+[data-theme="onkai"] .row-title::before { content: ''; display: inline-block; width: 22px; height: 16px; margin-right: 8px; vertical-align: -1px; background: var(--eq) center / contain no-repeat; }
+/* csatornakártyák: rámutatásra türkiz gyűrű és rózsaszín visszhang – mint a ritmusjáték célköre */
+[data-theme="onkai"] .thumb { border-radius: 12px; border: 1px solid rgba(57, 197, 187, 0.22); background: linear-gradient(160deg, hsl(var(--h) 40% 28%), #0b1a1c); }
+[data-theme="onkai"] .card:hover, [data-theme="onkai"] .card:focus-visible { box-shadow: none; }
+[data-theme="onkai"] .card:hover .thumb, [data-theme="onkai"] .card:focus-visible .thumb { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent), 0 0 0 6px rgba(255, 90, 168, 0.35), 0 10px 26px -8px rgba(57, 197, 187, 0.6); }
+@media (prefers-reduced-motion: no-preference) {
+  [data-theme="onkai"] .card:hover .thumb, [data-theme="onkai"] .card:focus-visible .thumb { animation: onkai-beat 0.9s ease-out infinite; }
+}
+@keyframes onkai-beat {
+  0% { box-shadow: 0 0 0 2px var(--accent), 0 0 0 4px rgba(255, 90, 168, 0.5), 0 10px 26px -8px rgba(57, 197, 187, 0.6); }
+  70% { box-shadow: 0 0 0 2px var(--accent), 0 0 0 10px rgba(255, 90, 168, 0), 0 10px 26px -8px rgba(57, 197, 187, 0.6); }
+  100% { box-shadow: 0 0 0 2px var(--accent), 0 0 0 10px rgba(255, 90, 168, 0), 0 10px 26px -8px rgba(57, 197, 187, 0.6); }
+}
+[data-theme="onkai"] .now-label, [data-theme="onkai"] .live-badge { background: var(--pink); color: #2a0618; border-radius: 999px; }
+[data-theme="onkai"] .bar i { background: linear-gradient(90deg, var(--accent), var(--pink)); }
+[data-theme="onkai"] .tile { border-radius: 16px; }
+[data-theme="onkai"] .modal { background: var(--bg-2); border-radius: 18px; border: 1px solid var(--line); box-shadow: 0 0 0 1px rgba(57, 197, 187, 0.15), 0 20px 50px -12px rgba(0, 0, 0, 0.7); }
+[data-theme="onkai"] .tab { border-radius: 999px; }
+[data-theme="onkai"] .tab.active { background: var(--accent); color: var(--ink); }
+[data-theme="onkai"] .input { border-radius: 999px; }
+/* a főoldal kártyái: felül türkiz–rózsaszín ütemsáv */
+[data-theme="onkai"] .dcard { position: relative; border-radius: 16px; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(57, 197, 187, 0.08), transparent 40%), var(--bg-2); }
+[data-theme="onkai"] .dcard::before { content: ''; position: absolute; left: 16px; right: 16px; top: 0; height: 3px; border-radius: 0 0 3px 3px; background: repeating-linear-gradient(90deg, var(--accent) 0 18px, transparent 18px 24px, var(--pink) 24px 30px, transparent 30px 36px); opacity: 0.8; pointer-events: none; }
+[data-theme="onkai"] .dc-title { color: var(--text-strong); }
+
+/* ======================================================================
+   Roji (sikátor) – éjszakai városi utca: fekete beton, figyelmeztető sárga, savas zöld és matricarózsaszín,
+   csíkos kordonszalag, raszterpöttyök, ferde, vastag betűk, „felragasztott” matricakártyák
+   ====================================================================== */
+body[data-theme="roji"] {
+  --bg: #0e0e0e; --bg-2: #161616; --bg-3: #1f1f1f; --bg-4: #292929; --line: #343434;
+  --text: #f2f1e8; --text-strong: #ffffff; --muted: #a8a698;
+  --accent: #ffd400; --accent-2: #ffe25a; --lime: #b6ff3b; --hot: #ff3d7f; --ink: #0e0e0e; --radius: 4px; --focus: #ffd400;
+  --roji-font: 'Impact', 'Haettenschweiler', 'Arial Narrow Bold', 'Franklin Gothic Heavy', 'Arial Black', sans-serif;
+  --tape: repeating-linear-gradient(-45deg, #ffd400 0 12px, #0e0e0e 12px 24px);
+  background-color: #0e0e0e;
+  /* (raszterpöttyök, durva betonfoltok, sárga és rózsaszín utcai fény) */
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1.4px),
+    radial-gradient(ellipse at 0% 0%, rgba(255, 212, 0, 0.12) 0, transparent 40%), radial-gradient(ellipse at 100% 90%, rgba(255, 61, 127, 0.1) 0, transparent 40%),
+    linear-gradient(180deg, #121212, #0b0b0b);
+  background-size: 7px 7px, auto, auto, auto; background-attachment: fixed;
+}
+[data-theme="roji"] h1, [data-theme="roji"] h2, [data-theme="roji"] .row-title, [data-theme="roji"] .dc-title, [data-theme="roji"] .brand, [data-theme="roji"] .links a, [data-theme="roji"] .btn, [data-theme="roji"] .tab { font-family: var(--roji-font); font-style: italic; text-transform: uppercase; letter-spacing: 0.03em; }
+/* menüsor: alatta sárga–fekete kordonszalag */
+[data-theme="roji"] #nav.solid { background: rgba(14, 14, 14, 0.96); border-bottom: 8px solid transparent; border-image: var(--tape) 8; }
+[data-theme="roji"] .brand { color: var(--ink); background: var(--accent); padding: 0 12px; transform: skewX(-10deg); box-shadow: 3px 3px 0 var(--hot); text-shadow: none; font-weight: 400; }
+[data-theme="roji"] .links a { font-weight: 400; color: var(--muted); }
+[data-theme="roji"] .links a:hover, [data-theme="roji"] .links a.active { color: var(--accent); }
+[data-theme="roji"] .links a.active::after { background: var(--lime); height: 4px; }
+[data-theme="roji"] .hero { border: 2px solid #2a2a2a; }
+[data-theme="roji"] .hero-slide { background: linear-gradient(135deg, #3b3200 0%, #1a1a1a 50%, #3a0f22 100%); }
+[data-theme="roji"] .hero-shade { background: linear-gradient(90deg, rgba(14, 14, 14, 0.96) 0%, rgba(14, 14, 14, 0.6) 45%, transparent 80%); }
+[data-theme="roji"] .hero h1 { color: var(--text-strong); text-shadow: 4px 4px 0 var(--ink), 6px 6px 0 var(--accent); }
+/* gombok: ferde sárga matrica, rózsaszín árnyékkal */
+[data-theme="roji"] .btn { border-radius: 2px; transform: skewX(-8deg); }
+[data-theme="roji"] .btn.white, [data-theme="roji"] .btn.primary { background: var(--accent); color: var(--ink); box-shadow: 4px 4px 0 var(--hot); }
+[data-theme="roji"] .btn.primary:hover, [data-theme="roji"] .btn.white:hover { background: var(--lime); box-shadow: 4px 4px 0 var(--ink), 6px 6px 0 var(--hot); }
+[data-theme="roji"] .row-title { color: var(--text-strong); font-weight: 400; }
+[data-theme="roji"] .row-title::before { content: ''; display: inline-block; width: 18px; height: 0.9em; margin-right: 10px; vertical-align: -1px; background: var(--accent); transform: skewX(-18deg); box-shadow: 4px 0 0 var(--lime); }
+/* csatornakártyák: rámutatásra „felragasztott” matrica – kibillen, sárga kemény árnyék */
+[data-theme="roji"] .thumb { border-radius: 4px; border: 2px solid #262626; background: linear-gradient(160deg, hsl(var(--h) 30% 26%), #121212); }
+[data-theme="roji"] .card:hover, [data-theme="roji"] .card:focus-visible { box-shadow: none; transform: translate(-3px, -3px) rotate(-1deg); }
+[data-theme="roji"] .card:hover .thumb, [data-theme="roji"] .card:focus-visible .thumb { outline: none; border-color: var(--ink); box-shadow: 0 0 0 2px var(--accent), 6px 6px 0 2px var(--accent); }
+[data-theme="roji"] .now-label { background: var(--lime); color: var(--ink); border-radius: 2px; transform: skewX(-10deg); font-weight: 800; }
+[data-theme="roji"] .live-badge { background: var(--hot); color: #fff; border-radius: 2px; transform: skewX(-10deg); }
+[data-theme="roji"] .bar i { background: var(--accent); }
+[data-theme="roji"] .tile { border-radius: 4px; border: 2px solid #262626; }
+[data-theme="roji"] .modal { background: var(--bg-2); border-radius: 4px; border: 2px solid var(--accent); box-shadow: 8px 8px 0 rgba(255, 212, 0, 0.18), 0 20px 50px -12px rgba(0, 0, 0, 0.8); }
+[data-theme="roji"] .tab { border-radius: 2px; font-weight: 400; }
+[data-theme="roji"] .tab.active { background: var(--accent); color: var(--ink); }
+/* a főoldal kártyái: betonlap, a bal felső sarkon sárga ragasztószalag-darab */
+[data-theme="roji"] .dcard { position: relative; border-radius: 4px; border: 1px solid #262626; background: radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1.4px) 0 0 / 6px 6px, var(--bg-2); }
+[data-theme="roji"] .dcard::before { content: ''; position: absolute; top: 6px; left: -14px; width: 64px; height: 14px; background: var(--tape); transform: rotate(-35deg); opacity: 0.9; pointer-events: none; }
+[data-theme="roji"] .dc-title { color: var(--text-strong); padding-left: 26px; }
+
+/* ======================================================================
+   Dennō (elektronikus agy) – kiberváros hálózati felülete: mélyzöldes-fekete alap, zöld adatfény és hideg cián,
+   áramköri vezetékek, célzókeret-sarkok, keskeny, ritkított feliratok, villogó kurzor
+   ====================================================================== */
+body[data-theme="denno"] {
+  --bg: #04100f; --bg-2: #071816; --bg-3: #0b221f; --bg-4: #112e2a; --line: #1a4740;
+  --text: #c4f2e2; --text-strong: #eafff7; --muted: #6ba596;
+  --accent: #3cffb0; --accent-2: #8dffd4; --cyan: #4fd8ff; --ink: #031210; --radius: 0; --focus: #3cffb0;
+  --denno-font: 'Bahnschrift', 'Eurostile', 'DIN Alternate', 'Segoe UI', system-ui, sans-serif;
+  --denno-mono: 'Cascadia Mono', 'Consolas', 'DejaVu Sans Mono', ui-monospace, monospace;
+  /* (áramköri vezetékek csomópontokkal) */
+  --circuit: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%233cffb0' stroke-opacity='.08' stroke-width='1.2'%3E%3Cpath d='M0 30h34l10 10v26l10 10h66M60 0v18l8 8h20M88 120V96l-10-10H58M0 96h20l8-8v-14'/%3E%3C/g%3E%3Cg fill='%233cffb0' fill-opacity='.14'%3E%3Ccircle cx='88' cy='26' r='2.5'/%3E%3Ccircle cx='58' cy='86' r='2.5'/%3E%3Ccircle cx='28' cy='74' r='2.5'/%3E%3C/g%3E%3C/svg%3E");
+  /* (célzókeret-sarkok – a kártyák és ablakok négy sarkán) */
+  --brackets: linear-gradient(var(--accent), var(--accent)) top left / 14px 2px, linear-gradient(var(--accent), var(--accent)) top left / 2px 14px,
+    linear-gradient(var(--accent), var(--accent)) top right / 14px 2px, linear-gradient(var(--accent), var(--accent)) top right / 2px 14px,
+    linear-gradient(var(--accent), var(--accent)) bottom left / 14px 2px, linear-gradient(var(--accent), var(--accent)) bottom left / 2px 14px,
+    linear-gradient(var(--accent), var(--accent)) bottom right / 14px 2px, linear-gradient(var(--accent), var(--accent)) bottom right / 2px 14px;
+  background-color: #04100f;
+  /* (áramkör, függőleges adatoszlopok, zöld és cián derengés) */
+  background-image: var(--circuit), repeating-linear-gradient(90deg, transparent 0 46px, rgba(60, 255, 176, 0.035) 46px 47px),
+    radial-gradient(ellipse at 50% -10%, rgba(60, 255, 176, 0.16) 0, transparent 55%), radial-gradient(ellipse at 100% 100%, rgba(79, 216, 255, 0.1) 0, transparent 45%), linear-gradient(180deg, #04100f, #031413);
+  background-size: 120px 120px, auto, auto, auto, auto; background-attachment: fixed;
+}
+[data-theme="denno"] h1, [data-theme="denno"] h2, [data-theme="denno"] .brand, [data-theme="denno"] .links a { font-family: var(--denno-font); }
+[data-theme="denno"] .row-title, [data-theme="denno"] .dc-title, [data-theme="denno"] .btn, [data-theme="denno"] .tab, [data-theme="denno"] .now-label, [data-theme="denno"] .live-badge { font-family: var(--denno-mono); text-transform: uppercase; letter-spacing: 0.1em; }
+[data-theme="denno"] #nav.solid { background: rgba(4, 16, 15, 0.95); border-bottom: 1px solid var(--line); box-shadow: 0 1px 0 rgba(60, 255, 176, 0.12), 0 8px 24px -16px rgba(60, 255, 176, 0.5); }
+[data-theme="denno"] .brand { color: var(--accent); transform: none; font-weight: 300; letter-spacing: 0.32em; text-shadow: 0 0 10px rgba(60, 255, 176, 0.65); }
+[data-theme="denno"] .brand::after { content: '_'; margin-left: 2px; color: var(--accent); }
+@media (prefers-reduced-motion: no-preference) {
+  [data-theme="denno"] .brand::after { animation: denno-cursor 1.1s steps(1) infinite; }
+}
+@keyframes denno-cursor { 50% { opacity: 0; } }
+[data-theme="denno"] .links a { text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.8rem; color: var(--muted); }
+[data-theme="denno"] .links a:hover, [data-theme="denno"] .links a.active { color: var(--accent); text-shadow: 0 0 8px rgba(60, 255, 176, 0.55); }
+[data-theme="denno"] .hero { border: 1px solid var(--line); }
+[data-theme="denno"] .hero-slide { background: linear-gradient(135deg, #06342a 0%, #061a20 55%, #04100f 100%); }
+[data-theme="denno"] .hero-shade { background: linear-gradient(90deg, rgba(4, 16, 15, 0.96) 0%, rgba(4, 16, 15, 0.6) 45%, transparent 80%); }
+[data-theme="denno"] .hero h1 { color: var(--text-strong); font-weight: 300; letter-spacing: 0.06em; text-shadow: 0 0 16px rgba(60, 255, 176, 0.4); }
+/* gombok: vékony zöld keret, kitöltve a fő gomb */
+[data-theme="denno"] .btn { border-radius: 0; border: 1px solid var(--accent); background: rgba(60, 255, 176, 0.06); color: var(--accent); font-size: 0.85em; }
+[data-theme="denno"] .btn:hover, [data-theme="denno"] .btn.white, [data-theme="denno"] .btn.primary { background: var(--accent); color: var(--ink); box-shadow: 0 0 14px rgba(60, 255, 176, 0.45); }
+[data-theme="denno"] .btn.gray { border-color: var(--cyan); color: var(--cyan); background: rgba(79, 216, 255, 0.06); }
+/* sorcímek: csomópont, utána a sor végéig futó vezeték */
+[data-theme="denno"] .row-title { color: var(--accent); font-weight: 500; font-size: 0.95em; }
+[data-theme="denno"] .row-title::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 10px; vertical-align: 1px; border: 1px solid var(--accent); transform: rotate(45deg); box-shadow: 0 0 6px var(--accent); }
+/* csatornakártyák: célzókeret-sarkok, rámutatásra zöld fény */
+[data-theme="denno"] .thumb { border-radius: 0; border: 1px solid var(--line); background: linear-gradient(160deg, hsl(var(--h) 35% 22%), #051412); }
+[data-theme="denno"] .card:hover, [data-theme="denno"] .card:focus-visible { box-shadow: none; }
+[data-theme="denno"] .card:hover .thumb, [data-theme="denno"] .card:focus-visible .thumb { outline: none; border-color: transparent; box-shadow: 0 0 22px rgba(60, 255, 176, 0.35), inset 0 0 26px rgba(60, 255, 176, 0.14); }
+[data-theme="denno"] .card:hover .thumb::after, [data-theme="denno"] .card:focus-visible .thumb::after { content: ''; position: absolute; inset: 0; background: var(--brackets); background-repeat: no-repeat; pointer-events: none; }
+[data-theme="denno"] .now-label, [data-theme="denno"] .live-badge { background: transparent; border: 1px solid var(--accent); color: var(--accent); border-radius: 0; font-size: 0.72em; }
+[data-theme="denno"] .bar i { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+[data-theme="denno"] .tile { border-radius: 0; border: 1px solid var(--line); }
+[data-theme="denno"] .modal { background: var(--bg-2); border-radius: 0; border: 1px solid var(--line); box-shadow: 0 0 0 1px rgba(60, 255, 176, 0.08), 0 20px 50px -12px rgba(0, 0, 0, 0.8); }
+[data-theme="denno"] .tab { border-radius: 0; font-size: 0.82em; }
+[data-theme="denno"] .tab.active { background: var(--accent); color: var(--ink); }
+[data-theme="denno"] .input { border-radius: 0; }
+/* a főoldal kártyái: célzókeret a négy sarkon */
+[data-theme="denno"] .dcard { position: relative; border-radius: 0; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(60, 255, 176, 0.05), transparent 40%), var(--bg-2); }
+[data-theme="denno"] .dcard::before { content: ''; position: absolute; inset: -1px; background: var(--brackets); background-repeat: no-repeat; opacity: 0.7; pointer-events: none; }
+[data-theme="denno"] .dc-title { color: var(--accent); font-size: 0.92em; }
