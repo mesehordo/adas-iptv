@@ -212,7 +212,8 @@ body[data-tone="light"] {
 [data-tone="light"] .brand { text-shadow: none; }
 [data-tone="light"] .btn { background: rgba(0, 0, 0, 0.07); color: var(--text-strong); }
 [data-tone="light"] .btn:hover { background: rgba(0, 0, 0, 0.13); }
-[data-tone="light"] .btn.primary, [data-tone="light"] .btn.danger { color: #fff; }
+[data-tone="light"] .btn.danger { color: #fff; }
+[data-tone="light"] .btn.primary { color: var(--on-accent, #fff); }
 [data-tone="light"] .btn.primary { background: var(--accent); }
 [data-tone="light"] .btn.primary:hover { background: var(--accent-2); }
 [data-tone="light"] .btn.white { background: var(--text-strong); color: var(--bg-2); }
@@ -298,6 +299,60 @@ body[data-tone="light"] {
 [data-tone="light"] #player .bar { background: rgba(255, 255, 255, 0.25); }
 [data-tone="light"] #player .icon-btn:hover { background: rgba(255, 255, 255, 0.12); }
 [data-tone="light"] #player :focus-visible { outline-color: #fff; }
+
+/* ======================================================================
+   Vezérlők a téma színeiből (minden stílus közös alapja, a Kontraszt kivételével): gombok, fülek, beviteli
+   mezők, legördülők, kapcsolók, jelölőnégyzetek. A színek, a sarokkerekítés és a vonalak a téma változóiból
+   jönnek; a kiemelőszínre írt szöveg (--on-accent) a téma és a színváltozat kiemelőszínéből számolódik
+   (themes.js). A :where() miatt alacsony a súlyuk: ahol egy stílus saját gombot / fület rajzol, az marad.
+   (A color-mix() előtt a régi érték – a régebbi Android-nézetek azt használják.)
+   ====================================================================== */
+:where(body:not([data-theme="contrast"])) .btn { border-radius: var(--radius); }
+:where(body[data-tone="dark"]:not([data-theme="contrast"])) .btn,
+:where(body[data-tone="dark"]:not([data-theme="contrast"])) .btn.gray {
+  background: rgba(109, 109, 110, 0.5);
+  background: color-mix(in srgb, var(--muted) 28%, var(--bg-3));
+  color: var(--text-strong);
+}
+:where(body[data-tone="dark"]:not([data-theme="contrast"])) .btn:hover:where(:not(.primary, .white, .danger, .outline)) {
+  background: rgba(109, 109, 110, 0.75);
+  background: color-mix(in srgb, var(--muted) 42%, var(--bg-3));
+}
+:where(body:not([data-theme="contrast"])) .btn.primary { color: var(--on-accent, #fff); }
+:where(body[data-tone="dark"]:not([data-theme="contrast"])) .btn.outline { border-color: var(--line); color: var(--muted); }
+:where(body[data-tone="dark"]:not([data-theme="contrast"])) .btn.outline:hover { border-color: var(--accent); color: var(--text-strong); }
+:where(body:not([data-theme="contrast"])) .btn.on { box-shadow: inset 0 0 0 2px var(--accent); }
+
+/* fülek: a téma alapszínén, a kiválasztott a kiemelőszínnel */
+:where(body:not([data-theme="contrast"])) .tab { border-radius: var(--radius); color: var(--muted); background: var(--bg-3); }
+:where(body:not([data-theme="contrast"])) .tab:hover { color: var(--text-strong); }
+:where(body:not([data-theme="contrast"])) .tab.active { background: var(--accent); color: var(--on-accent, #fff); }
+
+/* beviteli mezők és legördülők: a téma mélyebb alapszínén, a téma vonalszínével, fókuszban kiemelőszínnel */
+:where(body[data-tone="dark"]:not([data-theme="contrast"])) .input,
+:where(body[data-tone="dark"]:not([data-theme="contrast"])) select {
+  background: #0c0c0c;
+  background: color-mix(in srgb, var(--bg) 75%, #000);
+  border-color: var(--line);
+  color: var(--text-strong);
+}
+:where(body:not([data-theme="contrast"])) .input, :where(body:not([data-theme="contrast"])) select { border-radius: min(var(--radius), 12px); }
+:where(body:not([data-theme="contrast"])) .input:focus, :where(body:not([data-theme="contrast"])) select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+:where(body:not([data-theme="contrast"])) select option { background: var(--bg-2); color: var(--text); }
+
+/* kapcsolók és jelölőnégyzetek */
+:where(body[data-tone="dark"]:not([data-theme="contrast"])) .switch { background: var(--bg-4); box-shadow: inset 0 0 0 1px var(--line); }
+:where(body:not([data-theme="contrast"])) .switch:checked { background: var(--accent); box-shadow: none; }
+:where(body:not([data-theme="contrast"])) .switch:checked::after { background: var(--on-accent, #fff); }
+:where(body:not([data-theme="contrast"])) input[type="checkbox"]:not(.switch), :where(body:not([data-theme="contrast"])) input[type="radio"] { accent-color: var(--accent); }
+
+/* címkék (pl. a Gyűjtemény bepipált szűrői) és a kiemelőszínű jelvények */
+:where(body:not([data-theme="contrast"])) .uni-cats .chip.on { color: var(--on-accent, #fff); }
+:where(body:not([data-theme="contrast"])) .uni-cats .chip.on small { color: inherit; opacity: 0.8; }
 
 /* ======================================================================
    Zen-stílus – rizspapír, moha, kő; csend és sok levegő
@@ -1967,3 +2022,21 @@ body[data-theme="denno"] {
 [data-theme="denno"] .dcard { position: relative; border-radius: 0; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(60, 255, 176, 0.05), transparent 40%), var(--bg-2); }
 [data-theme="denno"] .dcard::before { content: ''; position: absolute; inset: -1px; background: var(--brackets); background-repeat: no-repeat; opacity: 0.7; pointer-events: none; }
 [data-theme="denno"] .dc-title { color: var(--accent); font-size: 0.92em; }
+
+/* ======================================================================
+   Fülek, mezők és legördülők a stílus betűivel – ahol a menüpontok saját betűt / betűformát kapnak,
+   a fülek (és a sci-fi stílusoknál a mezők is) ugyanazt használják
+   ====================================================================== */
+[data-theme="disney"] .tab { text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600; }
+[data-theme="zen"] .tab { letter-spacing: 0.08em; }
+[data-theme="deco"] .tab { text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.78rem; }
+[data-theme="holo"] .tab { font-family: var(--holo-font); text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.8rem; border-radius: 2px; }
+[data-theme="holo"] .input, [data-theme="holo"] select { font-family: var(--holo-font); letter-spacing: 0.04em; }
+[data-theme="stardate"] .tab { font-family: var(--sd-font); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+[data-theme="stardate"] .input, [data-theme="stardate"] select { font-family: var(--sd-font); letter-spacing: 0.04em; }
+[data-theme="onkai"] .tab, [data-theme="onkai"] .input, [data-theme="onkai"] select { font-family: var(--onkai-font); }
+[data-theme="onkai"] .tab { font-weight: 600; }
+[data-theme="roji"] .input, [data-theme="roji"] select { font-weight: 600; }
+[data-theme="roji"] .input:focus, [data-theme="roji"] select:focus { box-shadow: 4px 4px 0 var(--hot); }
+[data-theme="denno"] .input, [data-theme="denno"] select { font-family: var(--denno-mono); font-size: 0.88em; letter-spacing: 0.02em; }
+[data-theme="denno"] .input::placeholder { color: var(--muted); }
