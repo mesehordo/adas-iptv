@@ -78,7 +78,7 @@ xattr -cr /Applications/ADAS.app && codesign --force --deep --sign - /Applicatio
 
 ### Flatpak (Flathub)
 
-A `flatpak/` mappában a Flathub-csomag: a leírófájl (`io.github.mesehordo.adas_iptv.yml`), a bolti adatok (`.metainfo.xml`), a
+A `flatpak/` mappában a Flathub-csomag: a leírófájl (`io.github.mesehordo.adas-iptv.yml`), a bolti adatok (`.metainfo.xml`), a
 menübejegyzés és a `flathub.json` (csak x86_64). A csomag a kiadás `.deb`-jét csomagolja át (Electron-alap: `org.electronjs.Electron2.BaseApp`,
 homokozó: zypak). Flatpakban a beépített frissítő ki van kapcsolva (`FLATPAK_ID`), a frissítést a Flathub végzi; új kiadásnál a
 Flathub frissítőrobotja (`x-checker-data`) magától nyit PR-t a Flathub-tárolóban – a `metainfo.xml` kiadási sorát kézzel kell hozzáadni.
