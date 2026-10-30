@@ -1,0 +1,55 @@
+# Flatpak-csomag (Flathub). A kész Linux-kiadást (.deb) csomagolja át – a forrás a GitHub-kiadás, az
+# ellenőrző összeggel. Új kiadásnál a Flathub frissítőrobotja (x-checker-data) magától nyit PR-t.
+# Helyi próba: flatpak-builder --user --install --force-clean build flatpak/io.github.mesehordo.ADAS.yml
+id: io.github.mesehordo.ADAS
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: '25.08'
+command: adas
+separate-locales: false
+finish-args:
+  - --share=ipc
+  - --share=network
+  - --socket=x11
+  - --socket=pulseaudio
+  - --device=dri
+  # a felvételek alapmappája (Videók); a többi fájl a rendszer fájlválasztóján (portálon) át
+  - --filesystem=xdg-videos
+  # értesítések és tálcaikon
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.kde.StatusNotifierWatcher
+  # (a beépített frissítő Flatpakban ki van kapcsolva – a FLATPAK_ID alapján)
+modules:
+  - name: adas
+    buildsystem: simple
+    build-commands:
+      - ar x adas.deb data.tar.gz
+      - tar -xzf data.tar.gz ./opt/ADAS ./usr/share/icons/hicolor/512x512/apps/adas.png
+      - cp -a opt/ADAS /app/adas
+      # (a Chromium homokozóját Flatpakban a zypak adja; a SUID-segédre nincs szükség)
+      - rm -f /app/adas/chrome-sandbox
+      - install -Dm755 adas.sh /app/bin/adas
+      - install -Dm644 usr/share/icons/hicolor/512x512/apps/adas.png /app/share/icons/hicolor/512x512/apps/io.github.mesehordo.ADAS.png
+      - install -Dm644 io.github.mesehordo.ADAS.desktop -t /app/share/applications
+      - install -Dm644 io.github.mesehordo.ADAS.metainfo.xml -t /app/share/metainfo
+    sources:
+      - type: file
+        dest-filename: adas.deb
+        url: https://github.com/mesehordo/adas-iptv/releases/download/v1.34.0/ADAS_1.34.0_amd64.deb
+        sha256: 26aa796637cf9c301f4490b7466ae62dca1660563b77fce07697374d579d34ea
+        only-arches: [x86_64]
+        x-checker-data:
+          type: json
+          url: https://api.github.com/repos/mesehordo/adas-iptv/releases/latest
+          version-query: .tag_name | sub("^v"; "")
+          url-query: '"https://github.com/mesehordo/adas-iptv/releases/download/v" + $version + "/ADAS_" + $version + "_amd64.deb"'
+      - type: file
+        path: io.github.mesehordo.ADAS.desktop
+      - type: file
+        path: io.github.mesehordo.ADAS.metainfo.xml
+      - type: script
+        dest-filename: adas.sh
+        commands:
+          - exec zypak-wrapper /app/adas/adas "$@"

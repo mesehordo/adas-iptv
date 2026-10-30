@@ -1,0 +1,55 @@
+# A Flatpak-csomag (flatpak/) próbafordítása és a Flathub szabályainak ellenőrzése (flatpak-builder-lint),
+# a Flathubra küldés előtt és a csomag módosításakor. Az elkészült .flatpak letölthető próbára.
+name: Flatpak
+
+on:
+  pull_request:
+    paths: ['flatpak/**', '.github/workflows/flatpak.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flatpak-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Flatpak (fordítás és ellenőrzés)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Eszközök
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q flatpak xvfb
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install -y --user --noninteractive flathub org.flatpak.Builder
+      - name: A leírófájl ellenőrzése
+        run: flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest flatpak/io.github.mesehordo.ADAS.yml
+      - name: Fordítás
+        run: |
+          flatpak run org.flatpak.Builder --user --install-deps-from=flathub --disable-rofiles-fuse --force-clean \
+            --repo=repo --install build flatpak/io.github.mesehordo.ADAS.yml
+      - name: A kész csomag ellenőrzése
+        run: flatpak run --command=flatpak-builder-lint org.flatpak.Builder repo repo
+      - name: Indítási próba
+        run: |
+          # (25 másodpercig futnia kell összeomlás nélkül; a timeout 124-es kilépése a jó eset)
+          set +e
+          xvfb-run -a timeout 25 flatpak run --user io.github.mesehordo.ADAS > run.log 2>&1
+          rc=$?
+          tail -n 40 run.log
+          if [ "$rc" -ne 124 ]; then echo "::error::Az Adás $rc kóddal kilépett 25 másodpercen belül."; exit 1; fi
+      - name: Csomag (.flatpak)
+        run: flatpak build-bundle repo ADAS.flatpak io.github.mesehordo.ADAS --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: adas-flatpak
+          path: ADAS.flatpak
+          if-no-files-found: error
+          retention-days: 7

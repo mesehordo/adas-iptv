@@ -76,6 +76,15 @@ npm run dist:mac:any
 xattr -cr /Applications/ADAS.app && codesign --force --deep --sign - /Applications/ADAS.app
 ```
 
+### Flatpak (Flathub)
+
+A `flatpak/` mappában a Flathub-csomag: a leírófájl (`io.github.mesehordo.ADAS.yml`), a bolti adatok (`.metainfo.xml`), a
+menübejegyzés és a `flathub.json` (csak x86_64). A csomag a kiadás `.deb`-jét csomagolja át (Electron-alap: `org.electronjs.Electron2.BaseApp`,
+homokozó: zypak). Flatpakban a beépített frissítő ki van kapcsolva (`FLATPAK_ID`), a frissítést a Flathub végzi; új kiadásnál a
+Flathub frissítőrobotja (`x-checker-data`) magától nyit PR-t a Flathub-tárolóban – a `metainfo.xml` kiadási sorát kézzel kell hozzáadni.
+A próbafordítást és a Flathub-ellenőrzést (`flatpak-builder-lint`) a *Flatpak* munkafolyamat végzi (a `flatpak/` változásakor, vagy kézzel);
+az elkészült `ADAS.flatpak` letölthető, és `flatpak install --user ADAS.flatpak` paranccsal kipróbálható.
+
 ## LG webOS TV (szünetel)
 
 A webOS-változat fejlesztése és csomagolása 1.14-től szünetel (a `webos/` mappa és a `tools/build-webos.mjs`
