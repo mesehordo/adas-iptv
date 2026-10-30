@@ -226,7 +226,13 @@ export const player = {
       } catch (err) {
         if (stale()) return;
         console.warn('Kivetítési hiba', stream.url, err);
-        this.fallback(err);
+        // (a kivetítés-panel marad a hibával – Újra / Másik forrás –, nem az „adás nem érhető el” képernyő: a vevő
+        // gyakran mégis elindul, és a kivetítés vezérelhető marad; a kapcsolat nélküli eszköznél a szokásos tartalék)
+        if (!this.castHooks?.active) return this.fallback(err);
+        const more = (ch.vod ? ch.streams : orderedStreams(ch)).some((s) => !this.tried.has(s.url));
+        this.setLoading(false);
+        this.castHooks.failed(err, { retry: () => this.tryStream(stream), next: more ? () => this.fallback(err) : null });
+        this.renderControls();
       }
       return;
     }

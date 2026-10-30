@@ -453,3 +453,49 @@ test('stdio-guard: a lezárt kimeneti csőbe naplózás (EPIPE) nem dönti le a 
   const code = await new Promise((r) => c.on('exit', (cd) => r(cd)));
   assert.equal(code, 0);
 });
+
+test('DLNA: a cím átvétele után a vevő átmeneti állapotát (TRANSITIONING) és a 701-es Play-hibát kivárja; más hiba hiba marad', async (t) => {
+  const lan = require(path.join(ROOT, 'lan'));
+  lan.init({ emit: () => {} });
+  const fault = (code, desc) => `<s:Envelope><s:Body><s:Fault><detail><UPnPError><errorCode>${code}</errorCode><errorDescription>${desc}</errorDescription></UPnPError></detail></s:Fault></s:Body></s:Envelope>`;
+  let mode = 'lg';
+  let info = 0;
+  let plays = 0;
+  const srv = http.createServer((req, res) => {
+    const a = String(req.headers.soapaction || '').replace(/^.*#|"$/g, '');
+    let body = '';
+    req.on('data', (d) => (body += d)).on('end', () => {
+      if (a === 'GetTransportInfo') {
+        info++;
+        // (LG: két lekérdezésig átmeneti, utána kész; „auto”: magától elindult)
+        const st = mode === 'auto' ? 'PLAYING' : info <= 2 ? 'TRANSITIONING' : 'STOPPED';
+        return res.end(`<r><CurrentTransportState>${st}</CurrentTransportState></r>`);
+      }
+      if (a === 'Play') {
+        plays++;
+        res.statusCode = 500;
+        if (mode === 'mime') return res.end(fault(714, 'Illegal MIME-type'));
+        if (plays === 1) return res.end(fault(701, 'Transition not available'));
+        res.statusCode = 200;
+      }
+      res.end('<ok/>');
+    });
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  t.after(() => srv.close());
+  const dev = { id: 'dlna-lg', av: { control: `http://127.0.0.1:${srv.address().port}/ctl`, type: 'urn:x' } };
+  const media = { url: 'http://127.0.0.1/x.m3u8', contentType: 'application/x-mpegURL', title: 'Teszt' };
+  const s = new lan._test.DlnaSession(dev);
+  t.after(() => clearInterval(s.poll));
+  await s.load(media);
+  assert.equal(plays, 2, 'átmeneti állapotban nem küld Play-t, a 701 után újrapróbál');
+  assert.ok(info >= 3);
+  // (magától elinduló vevő: nincs Play)
+  (mode = 'auto'), (plays = 0);
+  await s.load(media);
+  assert.equal(plays, 0);
+  // (valódi hiba – pl. nem támogatott formátum – azonnal hiba)
+  (mode = 'mime'), (plays = 0), (info = 10);
+  await assert.rejects(s.load(media), /Illegal MIME-type/);
+  assert.equal(plays, 1);
+});

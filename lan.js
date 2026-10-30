@@ -1208,8 +1208,39 @@ async function soap(svc, action, args) {
     signal: ctrl.signal,
   }).finally(() => clearTimeout(t));
   const text = await readBody(res, 256 * 1024);
-  if (!res.ok) throw new Error(xmlTag(text, 'errorDescription') || `${action}: HTTP ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(xmlTag(text, 'errorDescription') || `${action}: HTTP ${res.status}`);
+    err.upnpCode = xmlTag(text, 'errorCode'); // (pl. 701 = „Transition not available”)
+    throw err;
+  }
   return text;
+}
+
+/**
+ * Lejátszás indítása a SetAVTransportURI után. Több vevő (pl. LG webOS) a cím átvétele után egy ideig TRANSITIONING
+ * állapotban van: a túl korai Play 701-es „Transition not available” hibát ad (közben a TV „nem ismerhető fel”-t ír), majd
+ * magától mégis elindul. Ezért megvárjuk, amíg a vevő kész; ha közben magától elindult, nem küldünk Play-t; a 701-et
+ * (legfeljebb waitMs-ig) újrapróbáljuk. Ha a vevő ennyi idő után is átmeneti állapotban van, nem hiba – az állapotlekérdezés követi.
+ */
+async function playWhenReady(av, isClosed = () => false, waitMs = 8000, stepMs = 500) {
+  const end = Date.now() + waitMs;
+  const busy = (e) => e?.upnpCode === '701' || /transition/i.test(e?.message || '');
+  for (;;) {
+    let state = '';
+    try {
+      state = xmlTag(await soap(av, 'GetTransportInfo', { InstanceID: 0 }), 'CurrentTransportState');
+    } catch {}
+    if (state === 'PLAYING' || isClosed()) return;
+    if (state !== 'TRANSITIONING') {
+      try {
+        await soap(av, 'Play', { InstanceID: 0, Speed: 1 });
+        return;
+      } catch (e) {
+        if (!busy(e) || Date.now() >= end) throw e;
+      }
+    } else if (Date.now() >= end) return;
+    await new Promise((r) => setTimeout(r, stepMs));
+  }
 }
 
 /** (H14) UPnP-időformátum: másodperc → „H:MM:SS”, ill. vissza (érvénytelen / NOT_IMPLEMENTED → NaN). */
@@ -1248,7 +1279,7 @@ class DlnaSession {
       await soap(this.dev.av, 'Stop', { InstanceID: 0 });
     } catch {}
     await soap(this.dev.av, 'SetAVTransportURI', { InstanceID: 0, CurrentURI: url, CurrentURIMetaData: didl });
-    await soap(this.dev.av, 'Play', { InstanceID: 0, Speed: 1 });
+    await playWhenReady(this.dev.av, () => this.closed);
     clearInterval(this.poll);
     this.resetTrack();
     this.poll = setInterval(() => this.status(), 3000);
