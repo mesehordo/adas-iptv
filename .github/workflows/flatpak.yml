@@ -33,8 +33,14 @@ jobs:
         run: flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest flatpak/io.github.mesehordo.adas-iptv.yml
       - name: Fordítás
         run: |
-          flatpak run org.flatpak.Builder --user --install-deps-from=flathub --disable-rofiles-fuse --force-clean \
-            --repo=repo --install build flatpak/io.github.mesehordo.adas-iptv.yml
+          # (a függőségeket és a kész csomagot a gépen futó flatpak telepíti – a homokozóból ehhez D-Bus kellene)
+          M=flatpak/io.github.mesehordo.adas-iptv.yml
+          V=$(sed -n "s/^runtime-version: '\(.*\)'$/\1/p" "$M")
+          B=$(sed -n "s/^base-version: '\(.*\)'$/\1/p" "$M")
+          flatpak install -y --user --noninteractive flathub org.freedesktop.Platform//$V org.freedesktop.Sdk//$V org.electronjs.Electron2.BaseApp//$B
+          flatpak run org.flatpak.Builder --user --disable-rofiles-fuse --force-clean --repo=repo build "$M"
+          flatpak remote-add --user --no-gpg-verify --if-not-exists helyi repo
+          flatpak install -y --user --noninteractive helyi io.github.mesehordo.adas-iptv
       - name: A kész csomag ellenőrzése
         run: flatpak run --command=flatpak-builder-lint org.flatpak.Builder repo repo
       - name: Indítási próba
