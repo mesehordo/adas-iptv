@@ -1,0 +1,6 @@
+{
+  "io.github.mesehordo.adas-iptv": {
+    "appstream-external-screenshot-url": "local CI only: screenshots are mirrored by the Flathub build infrastructure",
+    "appstream-remote-icon-not-mirrored": "local CI only: icons are mirrored by the Flathub build infrastructure"
+  }
+}
