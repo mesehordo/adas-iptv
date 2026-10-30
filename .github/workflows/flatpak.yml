@@ -43,7 +43,7 @@ jobs:
       - name: A kész csomag ellenőrzése
         # (a képernyőképek és az ikon tükrözését csak a Flathub fordítógépe végzi el teljesen – ezt a két hibát itt
         # kivételként kezeljük: flatpak/lint-exceptions.json; a Flathubra ez a fájl nem kerül fel)
-        run: flatpak run --command=flatpak-builder-lint org.flatpak.Builder --user-exceptions flatpak/lint-exceptions.json repo repo
+        run: flatpak run --command=flatpak-builder-lint org.flatpak.Builder --exceptions --user-exceptions flatpak/lint-exceptions.json repo repo
       - name: Indítási próba
         run: |
           # (25 másodpercig futnia kell összeomlás nélkül; a timeout 124-es kilépése a jó eset)
