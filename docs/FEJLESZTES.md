@@ -145,6 +145,9 @@ csomagot tölti le. A buildcél a natív rétegtől jut el a felülethez (`AdasA
   zipalign, apksigner). Kell hozzá JDK 17 és Android SDK (`platforms;android-34`,
   `build-tools;34.0.0`); a szkript a `.android-tools/` mappában (vagy a `JAVA_HOME` /
   `ANDROID_HOME` változókban) keresi őket.
+- **Tesztek**: az Android-függőség nélküli osztályok (pl. `HttpOpen`) tesztjei az `android/test`
+  mappában vannak, sima JDK-val futnak (`npm test` része, vagy külön: `node tools/test-java.mjs`;
+  a JDK helye `ADAS_JDK` / `JAVA_HOME`, JDK nélkül helyben kimaradnak, a CI-ban hiba).
 - **Aláírás**: az első build létrehozza az `android/keystore/adas.jks` kulcsot és a jelszavát
   (`password.txt`). **Őrizd meg**: frissítést csak ugyanazzal a kulccsal aláírt APK-val lehet a
   régi fölé telepíteni.
@@ -162,15 +165,16 @@ csomagot tölti le. A buildcél a natív rétegtől jut el a felülethez (`AdasA
 npm test
 ```
 
-Három lépés fut egymás után (`tools/run-tests.mjs`):
+Négy lépés fut egymás után (`tools/run-tests.mjs`):
 
 | Lépés | Mit ellenőriz |
 |---|---|
 | Fordításkulcsok | `tools/i18n-check.mjs`: minden `_t()` szöveg megvan magyarul és angolul |
 | Főfolyamat | `test/*.test.cjs` (node:test, az Electron saját Node-jával): hálózati szabályok, DLNA-vezérlés, távirányító és beállítás-átadás (aláírás, visszajátszás, korlátozás), borítótár, felvétel valódi FFmpeggel |
 | Felület | `test/renderer/*.test.js`: a valódi alkalmazásablakban, ideiglenes adatmappával (`ADAS_DATA_DIR`) és kész tesztprofillal – listafeldolgozás, műsorújság (XMLTV), felirat, beállítás-ellenőrzés, gyerektartalom, mentési pontok, rádió, súgó, valódi lejátszás (MP4 és MPEG-TS az FFmpeg-hídon át), valamint minden oldal és beállításfejezet megnyitása hiba nélkül |
+| Android (JDK) | `android/test/**/*Test.java` (`tools/test-java.mjs`): az Android-függőség nélküli osztályok sima JDK-val – pl. `HttpOpen` helyi hálózati szabálya DNS-újrakötés ellen. JDK nélkül helyben kimarad, a CI-ban hiba |
 
-Egy lépés külön: `npm test -- --only=main` (`i18n`, `main`, `renderer`). Rendszer-Node nélkül: `ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron tools/run-tests.mjs`. A GitHubon minden PR-nál lefut (`.github/workflows/tests.yml`, Linuxon xvfb-vel).
+Egy lépés külön: `npm test -- --only=main` (`i18n`, `main`, `renderer`, `java`). Rendszer-Node nélkül: `ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron tools/run-tests.mjs`. A GitHubon minden PR-nál lefut (`.github/workflows/tests.yml`, Linuxon xvfb-vel).
 
 ## Felépítés
 
