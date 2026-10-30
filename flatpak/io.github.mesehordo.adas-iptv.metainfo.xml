@@ -124,9 +124,12 @@
       <url type="details">https://github.com/mesehordo/adas-iptv/releases/tag/v1.34.0</url>
       <description>
         <ul>
+          <li>New Controller layout for the sofa: big tiles and pages to flip through with a game controller</li>
           <li>Collection view with tick-box filters for TV, radio, VOD and podcasts</li>
           <li>Discover pages everywhere, including VOD and podcasts</li>
           <li>Podcasts in Search and in Favourites</li>
+          <li>Home screen fits on one screen, with optional background images</li>
+          <li>Silent updates on Windows</li>
         </ul>
       </description>
     </release>

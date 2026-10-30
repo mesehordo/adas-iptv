@@ -91,6 +91,19 @@ az elkészült `ADAS.flatpak` letölthető, és `flatpak install --user ADAS.fla
   a fájl- és mappaválasztó (portál) bármit megnyit. Máshol lévő, kézzel beírt mappához:
   `flatpak override --user --filesystem=/út/vonal:ro io.github.mesehordo.adas-iptv`.
 
+### Kiadási bejegyzés a Mastodonra
+
+A sikeres kiadás után a *Kiadás* munkafolyamat a *Mastodon* munkafolyamattal (`mastodon.yml`) egy rövid, **angol** posztot küld:
+„Adás X.Y.Z is out!”, a Flathub-adatok (`flatpak/…metainfo.xml`) adott verziójú `<release>` pontjai, a kiadás oldala és néhány
+CamelCase címke (`tools/mastodon-post.mjs`, legfeljebb 500 karakter, a Mastodon módján számolva; előzetes kiadásnál nincs poszt).
+A dupla küldés ellen az `Idempotency-Key` csak **egy órán belül** véd (ennyi ideig tárolja a Mastodon): egy órán túli újrafuttatás
+*post* kapcsolóval újra posztol, ezért kézzel csak akkor indítsd, ha a poszt nem ment ki. **Kiadás előtt** a
+`metainfo.xml`-be kell az új `<release>` sor, angol pontokkal – a Flathubnak is ez kell. Egyedi bejegyzés: egy szövegfájl a
+`docs/mastodon/` mappában (pl. `intro.txt`), a munkafolyamat kézi indításával. Beállítás a tárolóban (Settings → Secrets and
+variables → Actions): változó `MASTODON_URL` (a példány, pl. `https://mstdn.social`) és titok `MASTODON_TOKEN` (a Mastodonban:
+Beállítások → Fejlesztés → Új alkalmazás, csak `write:statuses` joggal). Ha nincs beállítva, a lépés kimarad. Próba:
+`node tools/mastodon-post.mjs 1.35.0` vagy `… docs/mastodon/intro.txt` (csak kiírja), vagy a kézi indítás a *post* kapcsoló nélkül.
+
 ## LG webOS TV (szünetel)
 
 A webOS-változat fejlesztése és csomagolása 1.14-től szünetel (a `webos/` mappa és a `tools/build-webos.mjs`

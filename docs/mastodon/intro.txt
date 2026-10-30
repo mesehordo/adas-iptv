@@ -1,0 +1,13 @@
+Meet Adás 📺
+
+A free, open-source player for public live TV channels, radio stations and podcasts, with a streaming-style interface.
+
+• TV guide, favourites, profiles (with a kids profile)
+• Radio and podcasts with subscriptions
+• Many styles and layouts, also for the sofa with a remote or a controller
+
+For Windows, macOS, Linux and Android (TV too). Adás provides no content itself: it only plays public streams.
+
+https://mesehordo.github.io/adas-iptv/
+
+#Adás #IPTV #OpenSource #FOSS #Linux

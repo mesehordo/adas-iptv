@@ -209,3 +209,13 @@ jobs:
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: out/*
+
+  # Kiadási bejegyzés a Mastodonra (mastodon.yml) – csak a Mastodon-kulcsot kapja meg, a többi titkot nem
+  mastodon:
+    name: Mastodon
+    needs: [verify, release]
+    uses: ./.github/workflows/mastodon.yml
+    with:
+      version: ${{ needs.verify.outputs.version }}
+    secrets:
+      MASTODON_TOKEN: ${{ secrets.MASTODON_TOKEN }}
