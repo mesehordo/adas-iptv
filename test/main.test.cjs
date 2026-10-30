@@ -415,3 +415,20 @@ test('media.freeBytes: a szabad hely szám (lekérdezhetetlen helyen végtelen)'
   assert.ok(freeBytes(os.tmpdir()) > 0);
   assert.equal(freeBytes(path.join(os.tmpdir(), 'nincs-ilyen-mappa-' + Date.now())), Infinity);
 });
+
+test('Mastodon-bejegyzés: a változáslista szakaszából, legfeljebb 500 karakter, a hivatkozás 23-nak számít', async () => {
+  const { section, compose } = await import('../tools/mastodon-post.mjs');
+  const md = ['## Funkciók verziónként', '', '**Első cím (2.0.0)**', '- **Egy** – leírás.', '- Kettő: hosszabb leírás', '- **Három**', '', '**Régi (1.9.0)**', '- **Régi pont**'].join('\n');
+  const s = section(md, '2.0.0');
+  assert.deepEqual(s, { title: 'Első cím', leads: ['Egy', 'Kettő', 'Három'] });
+  assert.equal(section(md, '2.0.1'), null);
+  const t = compose('2.0.0', s);
+  assert.match(t, /^Megjelent az Adás 2\.0\.0!/);
+  assert.match(t, /• Egy\n• Kettő\n• Három/);
+  assert.match(t, /releases\/tag\/v2\.0\.0/);
+  // (túl hosszú pontok: a végéről maradnak el, a poszt belefér)
+  const long = compose('2.0.0', { title: 'Cím', leads: Array.from({ length: 6 }, (_, i) => `${i} ` + 'x'.repeat(90)) });
+  assert.ok(long.replace(/https?:\/\/\S+/g, 'x'.repeat(23)).length <= 500);
+  assert.match(long, /• 0 /);
+  assert.doesNotMatch(long, /• 5 /);
+});

@@ -91,6 +91,15 @@ az elkészült `ADAS.flatpak` letölthető, és `flatpak install --user ADAS.fla
   a fájl- és mappaválasztó (portál) bármit megnyit. Máshol lévő, kézzel beírt mappához:
   `flatpak override --user --filesystem=/út/vonal:ro io.github.mesehordo.adas-iptv`.
 
+### Kiadási bejegyzés a Mastodonra
+
+A sikeres kiadás után a *Kiadás* munkafolyamat a *Mastodon* munkafolyamattal (`mastodon.yml`) egy rövid posztot küld: a
+`docs/FUNKCIOK.md` adott verziójú szakaszának címe, a pontok kiemelt eleje és a kiadás oldala (`tools/mastodon-post.mjs`, legfeljebb
+500 karakter; ugyanarra a verzióra csak egyszer). Beállítás a tárolóban (Settings → Secrets and variables → Actions): változó
+`MASTODON_URL` (a példány, pl. `https://mastodon.social`) és titok `MASTODON_TOKEN` (a Mastodonban: Beállítások → Fejlesztés →
+Új alkalmazás, csak `write:statuses` joggal). Ha nincs beállítva, a lépés kimarad. Próba: `node tools/mastodon-post.mjs 1.35.0`
+(csak kiírja), vagy a munkafolyamat kézi indítása a *post* kapcsoló nélkül.
+
 ## LG webOS TV (szünetel)
 
 A webOS-változat fejlesztése és csomagolása 1.14-től szünetel (a `webos/` mappa és a `tools/build-webos.mjs`

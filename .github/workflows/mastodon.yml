@@ -1,0 +1,56 @@
+# Kiadási bejegyzés a Mastodonra (tools/mastodon-post.mjs). A Kiadás munkafolyamat a sikeres kiadás után hívja;
+# kézzel is indítható (pl. egy korábbi kiadáshoz, vagy próbaként: csak kiírja a posztot).
+# Beállítás (a tároló tulajdonosa): Settings → Secrets and variables → Actions
+#   - változó (Variables): MASTODON_URL = a példány címe, pl. https://mastodon.social
+#   - titok (Secrets): MASTODON_TOKEN = egy csak „write:statuses” jogú hozzáférési kulcs (a Mastodonban:
+#     Beállítások → Fejlesztés → Új alkalmazás)
+# Ha egyik sincs megadva, a lépés kimarad (a kiadás ettől nem hibás).
+name: Mastodon
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+    secrets:
+      MASTODON_TOKEN:
+        required: false
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Verzió (pl. 1.35.0)'
+        type: string
+        required: true
+      post:
+        description: 'Valóban posztoljon (kikapcsolva csak kiírja)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  post:
+    name: Mastodon-bejegyzés
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Bejegyzés
+        env:
+          VERSION: ${{ inputs.version }}
+          # (a hívó kiadásból mindig posztol; kézi indításnál csak bekapcsolva)
+          POST: ${{ github.event_name != 'workflow_dispatch' || inputs.post }}
+          MASTODON_URL: ${{ vars.MASTODON_URL }}
+          MASTODON_TOKEN: ${{ secrets.MASTODON_TOKEN }}
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "::error::Érvénytelen verzió: $VERSION"; exit 1; fi
+          if [ "$POST" != "true" ]; then node tools/mastodon-post.mjs "$VERSION"; exit 0; fi
+          if [ -z "$MASTODON_URL" ] || [ -z "$MASTODON_TOKEN" ]; then
+            echo "::notice::Nincs beállítva MASTODON_URL / MASTODON_TOKEN – a Mastodon-bejegyzés kimarad."
+            node tools/mastodon-post.mjs "$VERSION"
+            exit 0
+          fi
+          node tools/mastodon-post.mjs "$VERSION" --post
