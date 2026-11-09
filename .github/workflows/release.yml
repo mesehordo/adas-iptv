@@ -124,7 +124,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           # (kiadásnál nincs npm-gyorsítótár: tiszta telepítés a lockfájlból)
-      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
           java-version: '17'
@@ -202,7 +202,7 @@ jobs:
           if [ -z "$ADAS_SIGN_KEY" ]; then echo "Nincs aláíró kulcs (ADAS_UPDATE_SIGN_KEY) – az aláírás kimarad."; exit 0; fi
           node -e "const c=require('crypto'),fs=require('fs');const k=c.createPrivateKey(process.env.ADAS_SIGN_KEY);const t=fs.readFileSync('SHA256SUMS.txt');const s=c.sign(null,t,k);if(!c.verify(null,t,c.createPublicKey(k),s))process.exit(1);fs.writeFileSync('SHA256SUMS.txt.sig',s.toString('base64')+'\n')"
           echo "aláírva: SHA256SUMS.txt.sig"
-      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+      - uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           tag_name: ${{ needs.verify.outputs.tag }}
           name: Adás ${{ needs.verify.outputs.version }}
