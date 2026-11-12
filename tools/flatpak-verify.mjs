@@ -61,8 +61,8 @@ const expression = `(async () => {
 })()`;
 const res = await call('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
 ws.close();
-// (a csomagból jövő szöveg a naplóba csak sortörés és vezérlőkarakter nélkül, rövidítve kerül)
-const clean = (s) => String(s ?? '').replace(/[\r\n]/g, ' ').replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 500);
+// (a csomagból jövő szöveget nem írjuk a naplóba – csak a feltételek eredményét; hibánál a munkafolyamat az Adás
+// saját naplóját mutatja)
 let r = {};
 try {
   r = JSON.parse(res.result?.value) || {};
@@ -75,8 +75,6 @@ const checks = [
   ['a frissítéskeresés a Flathubra utaló hibával áll meg', /Flathub/.test(String(r.error ?? ''))],
 ];
 for (const [name, ok] of checks) console.log(`${ok ? '✓' : '✗'} ${name}`);
-console.log('a frissítéskeresés hibaüzenete:', clean(r.error));
-if (res.exceptionDetails) console.log('a felület hibája:', clean(res.exceptionDetails.exception?.description || res.exceptionDetails.text));
 const passed = checks.every(([, ok]) => ok);
 console.log(passed ? 'Rendben: Flatpakban a beépített frissítő ki van kapcsolva.' : 'Sikertelen.');
 process.exitCode = passed ? 0 : 1;
