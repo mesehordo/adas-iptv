@@ -4,7 +4,7 @@ name: Flatpak
 
 on:
   pull_request:
-    paths: ['flatpak/**', '.github/workflows/flatpak.yml']
+    paths: ['flatpak/**', '.github/workflows/flatpak.yml', 'tools/flatpak-verify.mjs']
   workflow_dispatch:
 
 permissions:
@@ -52,6 +52,23 @@ jobs:
           rc=$?
           tail -n 40 run.log
           if [ "$rc" -ne 124 ]; then echo "::error::Az Adás $rc kóddal kilépett 25 másodpercen belül."; exit 1; fi
+      - name: A beépített frissítő tiltása a telepített csomagban
+        run: |
+          # (a futó csomag felületét a Chromium hibakereső portján kérdezzük: api.caps.update, a beállítások
+          # Frissítések része és a frissítéskeresés hibaüzenete – tools/flatpak-verify.mjs)
+          xvfb-run -a dbus-run-session -- flatpak run --user io.github.mesehordo.adas-iptv --remote-debugging-port=9222 > verify.log 2>&1 &
+          app=$!
+          set +e
+          if node -e 'process.exit(typeof WebSocket === "function" ? 0 : 1)'; then node tools/flatpak-verify.mjs 9222; else node --experimental-websocket tools/flatpak-verify.mjs 9222; fi
+          rc=$?
+          kill $app 2>/dev/null; flatpak kill io.github.mesehordo.adas-iptv 2>/dev/null
+          [ "$rc" -eq 0 ] || tail -n 40 verify.log
+          exit $rc
+      - name: A csomagolt kiadás adatai
+        run: |
+          # (a Flathubra küldés előtti feljegyzéshez: a csomagolt .deb címe, ellenőrzőösszege és a telepített csomag adatai)
+          grep -E '^\s+(url: https://github.com/.*/releases/download/|sha256: )' flatpak/io.github.mesehordo.adas-iptv.yml | tee -a "$GITHUB_STEP_SUMMARY"
+          flatpak info --user io.github.mesehordo.adas-iptv | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Csomag (.flatpak)
         run: flatpak build-bundle repo ADAS.flatpak io.github.mesehordo.adas-iptv --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
