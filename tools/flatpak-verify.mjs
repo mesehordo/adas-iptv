@@ -61,18 +61,22 @@ const expression = `(async () => {
 })()`;
 const res = await call('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
 ws.close();
-if (res.exceptionDetails) {
-  console.error('Hiba a felületen:', res.exceptionDetails.exception?.description || res.exceptionDetails.text);
-  process.exit(1);
-}
-const r = JSON.parse(res.result.value);
-console.log(JSON.stringify(r, null, 2));
-const fails = [];
-if (r.capsUpdate !== false) fails.push('api.caps.update nem hamis');
-if (!r.sectionHidden || !r.sectionEmpty) fails.push('a beállítások Frissítések része látszik');
-if (!/Flathub/.test(r.error)) fails.push('a frissítéskeresés nem a Flathubra utaló hibával állt meg');
-if (fails.length) {
-  console.error('Sikertelen:', fails.join('; '));
-  process.exit(1);
-}
-console.log('Rendben: Flatpakban a beépített frissítő ki van kapcsolva.');
+// (a csomagból jövő szöveg a naplóba csak sortörés és vezérlőkarakter nélkül, rövidítve kerül)
+const clean = (s) => String(s ?? '').replace(/[\r\n]/g, ' ').replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 500);
+let r = {};
+try {
+  r = JSON.parse(res.result?.value) || {};
+} catch {}
+// (csak minden feltétel teljesülésekor sikeres – a felületi hiba vagy a hiányzó eredmény is bukás)
+const checks = [
+  ['a felület hiba nélkül válaszolt', !res.exceptionDetails],
+  ['api.caps.update hamis', r.capsUpdate === false],
+  ['a beállítások Frissítések része rejtve', r.sectionHidden === true && r.sectionEmpty === true],
+  ['a frissítéskeresés a Flathubra utaló hibával áll meg', /Flathub/.test(String(r.error ?? ''))],
+];
+for (const [name, ok] of checks) console.log(`${ok ? '✓' : '✗'} ${name}`);
+console.log('a frissítéskeresés hibaüzenete:', clean(r.error));
+if (res.exceptionDetails) console.log('a felület hibája:', clean(res.exceptionDetails.exception?.description || res.exceptionDetails.text));
+const passed = checks.every(([, ok]) => ok);
+console.log(passed ? 'Rendben: Flatpakban a beépített frissítő ki van kapcsolva.' : 'Sikertelen.');
+process.exitCode = passed ? 0 : 1;
