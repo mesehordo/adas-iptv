@@ -32,12 +32,18 @@ await new Promise((ok, fail) => {
   ws.addEventListener('error', () => fail(new Error('A hibakereső kapcsolat nem jött létre.')), { once: true });
 });
 let seq = 0;
-const call = (method, params) =>
+// (időkorláttal: egy függőben maradó ígéret – pl. a frissítéskeresés – ne akassza meg a munkafolyamatot)
+const call = (method, params, ms = 30000) =>
   new Promise((ok, fail) => {
     const id = ++seq;
+    const timer = setTimeout(() => {
+      ws.removeEventListener('message', on);
+      fail(new Error(`${method}: nincs válasz ${ms / 1000} mp alatt.`));
+    }, ms);
     const on = (ev) => {
       const m = JSON.parse(ev.data);
       if (m.id !== id) return;
+      clearTimeout(timer);
       ws.removeEventListener('message', on);
       m.error ? fail(new Error(m.error.message)) : ok(m.result);
     };
@@ -59,7 +65,15 @@ const expression = `(async () => {
   }
   return JSON.stringify({ capsUpdate: window.api?.caps?.update, sectionHidden: box.hidden, sectionEmpty: !box.innerHTML, error });
 })()`;
-const res = await call('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
+let res;
+try {
+  res = await call('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
+} catch {
+  // (a hibaszöveg a csomagtól is jöhet – nem írjuk a naplóba; hibánál a munkafolyamat az Adás naplóját mutatja)
+  console.error('Sikertelen: a felület nem válaszolt az ellenőrzésre (időtúllépés vagy hibakereső hiba).');
+  ws.close();
+  process.exit(1);
+}
 ws.close();
 // (a csomagból jövő szöveget nem írjuk a naplóba – csak a feltételek eredményét; hibánál a munkafolyamat az Adás
 // saját naplóját mutatja)
